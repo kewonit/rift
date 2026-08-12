@@ -1,0 +1,12 @@
+[
+  {"input":"Example.COM.","canonical":"example.com"},
+  {"input":"xn--bcher-kva.de","error":"malformedALabel"},
+  {"input":"api.sub.example.com","canonical":"api.sub.example.com"},
+  {"input":"","error":"empty"},
+  {"input":"bad_domain.example","error":"invalidCharacter"},
+  {"input":"-bad.example","error":"leadingOrTrailingHyphen"},
+  {"input":"bad-.example","error":"leadingOrTrailingHyphen"},
+  {"input":"two..dots","error":"emptyLabel"},
+  {"input":"bücher.de","error":"unicodeUnsupported"},
+  {"input":"xn--.example","error":"malformedALabel"}
+]

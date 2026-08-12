@@ -1,0 +1,68 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "creationInfo": {
+    "created": "2026-08-10T23:20:00Z",
+    "creators": [
+      "Organization: Abyss contributors",
+      "Tool: manual-source-inventory"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://spdx.org/spdxdocs/abyss-0.1.0-pre-release-20260811",
+  "name": "Abyss 0.1.0 pre-release source SBOM",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-Abyss",
+      "copyrightText": "Copyright 2026 Abyss contributors",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "name": "Abyss",
+      "primaryPackagePurpose": "APPLICATION",
+      "versionInfo": "0.1.0-pre-release"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-GRDB",
+      "copyrightText": "Copyright (C) 2015-2025 Gwendal Roue",
+      "downloadLocation": "git+https://github.com/groue/GRDB.swift.git@36e30a6f1ef10e4194f6af0cff90888526f0c115",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "name": "GRDB.swift",
+      "primaryPackagePurpose": "LIBRARY",
+      "supplier": "Person: Gwendal Roue",
+      "versionInfo": "7.10.0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-SwiftArgumentParser",
+      "copyrightText": "Copyright Apple Inc. and the Swift project authors",
+      "downloadLocation": "git+https://github.com/apple/swift-argument-parser.git@6a52f3251125d74daf04fcbd5e6f08a75d074382",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0 WITH Swift-exception",
+      "licenseDeclared": "Apache-2.0 WITH Swift-exception",
+      "name": "swift-argument-parser",
+      "primaryPackagePurpose": "LIBRARY",
+      "supplier": "Organization: Apple Inc. and Swift project contributors",
+      "versionInfo": "1.8.2"
+    }
+  ],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-Package-Abyss",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-GRDB",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-Abyss"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-SwiftArgumentParser",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-Package-Abyss"
+    }
+  ],
+  "spdxVersion": "SPDX-2.3"
+}

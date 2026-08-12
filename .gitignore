@@ -1,0 +1,14 @@
+.build/
+.build-*/
+.derived-data*/
+.swiftpm/
+xcuserdata/
+*.xcuserstate
+.DS_Store
+inspiration_images/
+*.xcarchive/
+*.dmg
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile

@@ -1,0 +1,34 @@
+name: Non-filtering source audit
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nonfiltering-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unsigned-arm64-audit:
+    name: Unsigned arm64 audit (no filtering)
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Verify runner and toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(xcodebuild -version | sed -n '1p')" = "Xcode 26.6"
+
+      - name: Run unsigned local release audit
+        run: ./Scripts/release-local-audit.sh
