@@ -1,4 +1,4 @@
-import AbyssIPC
+import RiftIPC
 
 enum CLIFileAccess {
     static func beginRead(path: String, maximumBytes: Int) throws -> DescriptorInputFile {

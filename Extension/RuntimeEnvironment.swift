@@ -1,4 +1,4 @@
-import AbyssFilterRuntime
+import RiftFilterRuntime
 import Foundation
 
 enum RuntimeEnvironment {
@@ -9,13 +9,13 @@ enum RuntimeEnvironment {
     static let policy: PolicyRuntime = {
         let rootURL: URL?
         if let group = Bundle.main.object(
-            forInfoDictionaryKey: "AbyssAppGroupIdentifier"
+            forInfoDictionaryKey: "RiftAppGroupIdentifier"
         ) as? String,
            !group.isEmpty,
            let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: group
            ) {
-            rootURL = container.appendingPathComponent("AbyssFilterState", isDirectory: true)
+            rootURL = container.appendingPathComponent("RiftFilterState", isDirectory: true)
         } else {
             rootURL = nil
         }

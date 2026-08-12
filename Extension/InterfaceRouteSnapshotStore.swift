@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 import Darwin
 import Foundation
 import Network
@@ -6,7 +6,7 @@ import Network
 final class InterfaceRouteSnapshotStore: @unchecked Sendable {
     private let lock = NSLock()
     private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "io.abyss.filter.interface-routes", qos: .utility)
+    private let queue = DispatchQueue(label: "io.rift.filter.interface-routes", qos: .utility)
     private var current: InterfaceRouteSnapshot
 
     init() {
@@ -74,7 +74,7 @@ private enum InterfaceAddressReader {
         return result
     }
 
-    private static func address(_ pointer: UnsafePointer<sockaddr>?) -> AbyssCore.IPAddress? {
+    private static func address(_ pointer: UnsafePointer<sockaddr>?) -> RiftCore.IPAddress? {
         guard let pointer,
               pointer.pointee.sa_family == sa_family_t(AF_INET) ||
                 pointer.pointee.sa_family == sa_family_t(AF_INET6)
@@ -98,6 +98,6 @@ private enum InterfaceAddressReader {
             as: UTF8.self
         )
         let numeric = text.split(separator: "%", maxSplits: 1)[0]
-        return try? AbyssCore.IPAddress(String(numeric))
+        return try? RiftCore.IPAddress(String(numeric))
     }
 }

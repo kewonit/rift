@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import AppKit
 import MapKit
 import SwiftUI
@@ -219,7 +219,7 @@ struct DestinationMapView: NSViewRepresentable {
                     withIdentifier: "destination", for: annotation
                   ) as? MKMarkerAnnotationView else { return nil }
             view.annotation = annotation
-            view.clusteringIdentifier = "abyss-destination"
+            view.clusteringIdentifier = "rift-destination"
             view.markerTintColor = .systemIndigo
             view.titleVisibility = .hidden
             view.subtitleVisibility = .hidden

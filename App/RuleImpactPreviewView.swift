@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import SwiftUI
 
 struct RuleImpactPreviewView: View {

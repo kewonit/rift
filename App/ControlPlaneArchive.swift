@@ -1,6 +1,6 @@
-import AbyssControl
-import AbyssCore
-import AbyssIPC
+import RiftControl
+import RiftCore
+import RiftIPC
 import Foundation
 
 enum ConfigurationRestorePhase: Sendable, Equatable {
@@ -203,7 +203,7 @@ extension ControlPlaneController {
         let desired = try? await repository?.newestDesiredPolicy()
         let extensionVersion = Bundle(
             url: Bundle.main.bundleURL.appendingPathComponent(
-                "Contents/Library/SystemExtensions/AbyssFilter.systemextension"
+                "Contents/Library/SystemExtensions/RiftFilter.systemextension"
             )
         )?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         let observedLineages = [
@@ -342,7 +342,7 @@ extension ControlPlaneController {
     }
 }
 
-final class AppRelayHandler: NSObject, AbyssAppRelayXPC, @unchecked Sendable {
+final class AppRelayHandler: NSObject, RiftAppRelayXPC, @unchecked Sendable {
     private let operation: @Sendable (CLIRelayRequest) async throws -> CLIRelayResponse
     private let runtimeSignal: @Sendable () async -> Void
 

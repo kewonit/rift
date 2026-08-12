@@ -1,6 +1,6 @@
-import AbyssCore
-import AbyssFilterRuntime
-import AbyssIPC
+import RiftCore
+import RiftFilterRuntime
+import RiftIPC
 import Foundation
 import OSLog
 
@@ -21,7 +21,7 @@ actor PolicyRuntime {
         var access: Access
     }
 
-    private let logger = Logger(subsystem: "io.abyss.firewall.filter", category: "runtime")
+    private let logger = Logger(subsystem: "io.rift.firewall.filter", category: "runtime")
     private let runtimeInstanceID = UUID()
     let store: RootPolicyStore?
     let transfer: SnapshotTransferCoordinator?

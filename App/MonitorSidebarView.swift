@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssCore
+import RiftControl
+import RiftCore
 import SwiftUI
 
 struct MonitorSidebarView: View {
@@ -360,7 +360,7 @@ func monitorCoverageLabel(_ state: MonitorRuleCoverageState) -> String {
     case .notInstalled:
         return "Set up the network filter"
     case .awaitingApproval:
-        return "Approve Abyss in System Settings"
+        return "Approve Rift in System Settings"
     case .denied, .disabled, .failed:
         return "The network filter needs attention"
     default:

@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssIPC
+import RiftControl
+import RiftIPC
 import Foundation
 import UserNotifications
 
@@ -25,13 +25,13 @@ actor NotificationRouter {
             && (event.action == .deny || event.reason != .concreteDecision) {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
-            content.title = event.action == .deny ? "Abyss denied a connection" : "Abyss used fallback"
+            content.title = event.action == .deny ? "Rift denied a connection" : "Rift used fallback"
             if UserDefaults.standard.bool(forKey: "notificationSensitiveDetails"),
                let endpoint = event.flow.destinationEndpoint {
                 let value = endpoint.hostname?.ascii ?? endpoint.address.description
                 content.body = "Destination: \(value)"
             } else {
-                content.body = "Open Abyss to review the connection metadata."
+                content.body = "Open Rift to review the connection metadata."
             }
             await deliver(
                 UNNotificationRequest(identifier: event.id, content: content, trigger: nil)
@@ -46,17 +46,17 @@ actor NotificationRouter {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
             content.title = event.action == .deny
-                ? "Abyss denied a connection" : "Abyss observed a connection"
+                ? "Rift denied a connection" : "Rift observed a connection"
             if UserDefaults.standard.bool(forKey: "notificationSensitiveDetails"),
                let endpoint = event.flow.destinationEndpoint {
                 let value = endpoint.hostname?.ascii ?? endpoint.address.description
                 content.body = "Destination: \(value)"
             } else {
-                content.body = "A notification rule matched. Open Abyss for available details."
+                content.body = "A notification rule matched. Open Rift for available details."
             }
             await deliver(
                 UNNotificationRequest(
-                    identifier: "abyss-notify-\(event.id.uuidString.lowercased())",
+                    identifier: "rift-notify-\(event.id.uuidString.lowercased())",
                     content: content,
                     trigger: nil
                 )
@@ -95,10 +95,10 @@ actor NotificationRouter {
             return
         }
         let content = UNMutableNotificationContent()
-        content.title = "Abyss connection summary"
+        content.title = "Rift connection summary"
         content.body = "\(count) additional events were coalesced."
         await deliver(UNNotificationRequest(
-            identifier: "abyss-summary-\(UUID().uuidString.lowercased())",
+            identifier: "rift-summary-\(UUID().uuidString.lowercased())",
             content: content,
             trigger: nil
         ))
@@ -121,5 +121,5 @@ actor NotificationRouter {
 }
 
 private extension RuntimeEvent {
-    var id: String { "abyss-\(providerEpoch.uuidString)-\(sequence)" }
+    var id: String { "rift-\(providerEpoch.uuidString)-\(sequence)" }
 }

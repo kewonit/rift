@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 import AppKit
 import Darwin
 import Foundation
@@ -32,7 +32,7 @@ final class ApplicationArtworkStore {
     private var runningIndexTask: Task<[ProcessIdentity: [URL]], Never>?
     private var workspaceGeneration: UInt64 = 0
 #if DEBUG
-    private static let fixtureCanary = "ABYSS_UI_FIXTURE_ARTWORK_ONLY_5C8E1D42"
+    private static let fixtureCanary = "RIFT_UI_FIXTURE_ARTWORK_ONLY_5C8E1D42"
     private let usesFixtureArtwork: Bool
 #endif
 
@@ -288,7 +288,7 @@ private struct ApplicationCandidateProof: Sendable, Equatable {
 private final class ApplicationArtworkVerifier: @unchecked Sendable {
     private let queue: OperationQueue = {
         let value = OperationQueue()
-        value.name = "io.abyss.firewall.application-artwork"
+        value.name = "io.rift.firewall.application-artwork"
         value.qualityOfService = .utility
         value.maxConcurrentOperationCount = 2
         return value

@@ -1,4 +1,4 @@
-import AbyssIPC
+import RiftIPC
 import AppKit
 import Foundation
 import SwiftUI
@@ -29,7 +29,7 @@ final class PromptPanelController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        panel.title = "Abyss Connection Alert"
+        panel.title = "Rift Connection Alert"
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false

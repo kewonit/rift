@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import Foundation
 import Observation
 
@@ -49,7 +49,7 @@ final class GeolocationController {
         }
 #endif
         guard let group = Bundle.main.object(
-            forInfoDictionaryKey: "AbyssAppGroupIdentifier"
+            forInfoDictionaryKey: "RiftAppGroupIdentifier"
         ) as? String,
               let container = FileManager.default.containerURL(
                 forSecurityApplicationGroupIdentifier: group

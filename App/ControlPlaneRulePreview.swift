@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 
 extension ControlPlaneController {
     func ruleWorkspaceSnapshot() async throws -> RuleWorkspaceSnapshot? {

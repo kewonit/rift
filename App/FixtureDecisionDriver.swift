@@ -1,12 +1,12 @@
 #if DEBUG
-import AbyssCore
-import AbyssIPC
+import RiftCore
+import RiftIPC
 import Foundation
 
 extension ControlPlaneController {
     func startFixtureDriverIfRequested() async -> Bool {
-        guard ProcessInfo.processInfo.environment["ABYSS_FIXTURE_DRIVER"] == "1" else { return false }
-        let configuredLineage = ProcessInfo.processInfo.environment["ABYSS_FIXTURE_LINEAGE_ID"]
+        guard ProcessInfo.processInfo.environment["RIFT_FIXTURE_DRIVER"] == "1" else { return false }
+        let configuredLineage = ProcessInfo.processInfo.environment["RIFT_FIXTURE_LINEAGE_ID"]
             .flatMap(UUID.init(uuidString:))
         let lineage = configuredLineage
             ?? lastHandshake?.active?.lineageID

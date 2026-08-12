@@ -18,8 +18,8 @@ The workspace dependency lock has SHA-256
 current source candidate. Dependency revisions are also recorded in the SPDX
 SBOM and third-party notices.
 
-The Release build emits `Abyss.app.dSYM`,
-`AbyssFilter.systemextension.dSYM`, and `abyssctl.dSYM`. Product verification
+The Release build emits `Rift.app.dSYM`,
+`RiftFilter.systemextension.dSYM`, and `riftctl.dSYM`. Product verification
 requires each arm64 DWARF UUID to match its corresponding binary. Retain those
 three symbol bundles privately with the exact source revision and published
 artifact hashes; symbols contain debugging information and are not bundled into

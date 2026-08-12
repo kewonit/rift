@@ -1,6 +1,6 @@
-import AbyssControl
-import AbyssCore
-import AbyssIPC
+import RiftControl
+import RiftCore
+import RiftIPC
 import SwiftUI
 
 struct ConnectionAlertView: View {
@@ -308,7 +308,7 @@ struct ConnectionAlertView: View {
                     decisionMessage = result.message
                     decisionNeedsAttention = result.requiresAttention
                 } catch {
-                    decisionMessage = "The rule was not saved. Abyss did not dismiss this prompt."
+                    decisionMessage = "The rule was not saved. Rift did not dismiss this prompt."
                     decisionNeedsAttention = true
                 }
             }

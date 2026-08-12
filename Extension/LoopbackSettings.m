@@ -1,7 +1,7 @@
 #import "LoopbackSettings.h"
 #import <bsm/libbsm.h>
 
-NEFilterSettings *AbyssAllowAllFilterSettings(void) {
+NEFilterSettings *RiftAllowAllFilterSettings(void) {
     NWHostEndpoint *loopbackV4Endpoint =
         [NWHostEndpoint endpointWithHostname:@"127.0.0.1" port:@"0"];
     NWHostEndpoint *loopbackV6Endpoint =
@@ -22,7 +22,7 @@ NEFilterSettings *AbyssAllowAllFilterSettings(void) {
                                      defaultAction:NEFilterActionFilterData];
 }
 
-static NSDictionary<NSString *, id> *AbyssCopyLegacyEndpointParts(NWEndpoint *endpoint) {
+static NSDictionary<NSString *, id> *RiftCopyLegacyEndpointParts(NWEndpoint *endpoint) {
     if (![endpoint isKindOfClass:[NWHostEndpoint class]]) {
         return nil;
     }
@@ -30,7 +30,7 @@ static NSDictionary<NSString *, id> *AbyssCopyLegacyEndpointParts(NWEndpoint *en
     return @{ @"host": host.hostname, @"port": host.port };
 }
 
-static NSDictionary<NSString *, id> *AbyssCopyFlowEndpointParts(nw_endpoint_t endpoint) {
+static NSDictionary<NSString *, id> *RiftCopyFlowEndpointParts(nw_endpoint_t endpoint) {
     if (endpoint == nil || nw_endpoint_get_type(endpoint) != nw_endpoint_type_host) {
         return nil;
     }
@@ -42,21 +42,21 @@ static NSDictionary<NSString *, id> *AbyssCopyFlowEndpointParts(nw_endpoint_t en
     return @{ @"host": [NSString stringWithUTF8String:host], @"port": @(port) };
 }
 
-NSDictionary<NSString *, id> *AbyssCopyLocalEndpointParts(NEFilterSocketFlow *flow) {
+NSDictionary<NSString *, id> *RiftCopyLocalEndpointParts(NEFilterSocketFlow *flow) {
     if (@available(macOS 15.0, *)) {
-        return AbyssCopyFlowEndpointParts(flow.localFlowEndpoint);
+        return RiftCopyFlowEndpointParts(flow.localFlowEndpoint);
     }
-    return AbyssCopyLegacyEndpointParts(flow.localEndpoint);
+    return RiftCopyLegacyEndpointParts(flow.localEndpoint);
 }
 
-NSDictionary<NSString *, id> *AbyssCopyRemoteEndpointParts(NEFilterSocketFlow *flow) {
+NSDictionary<NSString *, id> *RiftCopyRemoteEndpointParts(NEFilterSocketFlow *flow) {
     if (@available(macOS 15.0, *)) {
-        return AbyssCopyFlowEndpointParts(flow.remoteFlowEndpoint);
+        return RiftCopyFlowEndpointParts(flow.remoteFlowEndpoint);
     }
-    return AbyssCopyLegacyEndpointParts(flow.remoteEndpoint);
+    return RiftCopyLegacyEndpointParts(flow.remoteEndpoint);
 }
 
-uint32_t AbyssAuditTokenEUID(NSData *token) {
+uint32_t RiftAuditTokenEUID(NSData *token) {
     if (token == nil || token.length != sizeof(audit_token_t)) {
         return UINT32_MAX;
     }

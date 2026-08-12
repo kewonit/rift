@@ -1,13 +1,13 @@
-import AbyssIPC
+import RiftIPC
 import ArgumentParser
 import Foundation
 
 @available(macOS 10.15, macCatalyst 13, iOS 13, tvOS 13, watchOS 6, *)
 @main
-struct AbyssCTL: AsyncParsableCommand {
+struct RiftCTL: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "abyssctl",
-        abstract: "Inspect and manage the installed Abyss firewall.",
+        commandName: "riftctl",
+        abstract: "Inspect and manage the installed Rift firewall.",
         subcommands: [Status.self, Rules.self, Profiles.self, Diagnostics.self]
     )
 

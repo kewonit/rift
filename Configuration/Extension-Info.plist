@@ -2,12 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>AbyssAppGroupIdentifier</key>
-	<string>$(ABYSS_APP_GROUP)</string>
-	<key>AbyssTeamIdentifierPrefix</key>
+	<key>RiftAppGroupIdentifier</key>
+	<string>$(RIFT_APP_GROUP)</string>
+	<key>RiftTeamIdentifierPrefix</key>
 	<string>$(TeamIdentifierPrefix)</string>
     <key>CFBundleDisplayName</key>
-    <string>Abyss Network Filter</string>
+    <string>Rift Network Filter</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -23,11 +23,11 @@
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>NSSystemExtensionUsageDescription</key>
-    <string>Abyss uses a network system extension to apply your local connection rules.</string>
+    <string>Rift uses a network system extension to apply your local connection rules.</string>
     <key>NetworkExtension</key>
     <dict>
         <key>NEMachServiceName</key>
-        <string>$(ABYSS_MACH_SERVICE)</string>
+        <string>$(RIFT_MACH_SERVICE)</string>
         <key>NEProviderClasses</key>
         <dict>
             <key>com.apple.networkextension.filter-data</key>

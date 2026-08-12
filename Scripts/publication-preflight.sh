@@ -5,10 +5,10 @@ set -euo pipefail
 ROOT=${0:A:h:h}
 typeset -A tracked
 
-if [[ -n "${ABYSS_TRACKED_MANIFEST:-}" ]]; then
+if [[ -n "${RIFT_TRACKED_MANIFEST:-}" ]]; then
   while IFS= read -r path; do
     [[ -n "$path" ]] && tracked[$path]=1
-  done < "$ABYSS_TRACKED_MANIFEST"
+  done < "$RIFT_TRACKED_MANIFEST"
 else
   while IFS= read -r -d $'\0' path; do
     tracked[$path]=1
@@ -22,10 +22,10 @@ fail() {
 }
 
 for required in \
-  Abyss.xcodeproj/project.pbxproj \
+  Rift.xcodeproj/project.pbxproj \
   Configuration/App-Info.plist \
   Configuration/Extension-Info.plist \
-  App/AbyssApp.swift \
+  App/RiftApp.swift \
   Extension/FilterDataProvider.swift \
   CLI/main.swift \
   Scripts/test-nonfiltering.sh \
@@ -38,8 +38,8 @@ for required in \
   [[ -n "${tracked[$required]:-}" ]] || fail "publication inventory is missing: $required"
 done
 
-for prefix in Packages/AbyssCore/ Packages/AbyssIPC/ Packages/AbyssControl/ \
-  Packages/AbyssFilterRuntime/; do
+for prefix in Packages/RiftCore/ Packages/RiftIPC/ Packages/RiftControl/ \
+  Packages/RiftFilterRuntime/; do
   found=0
   for path in ${(k)tracked}; do
     if [[ "$path" == "$prefix"* ]]; then
@@ -88,7 +88,7 @@ if /usr/bin/git -C "$ROOT" grep --cached -I -n -i -e "$forbidden_name" --; then
 fi
 
 if (( failed )); then
-  print -u2 -- "FAIL: tracked files are not a publishable Abyss source inventory"
+  print -u2 -- "FAIL: tracked files are not a publishable Rift source inventory"
   exit 1
 fi
 

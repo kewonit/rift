@@ -1,6 +1,6 @@
-import AbyssControl
-import AbyssCore
-import AbyssIPC
+import RiftControl
+import RiftCore
+import RiftIPC
 import Foundation
 
 private enum ConfigurationMutationSavePlan {
@@ -43,7 +43,7 @@ enum ConfigurationMutationResult: Sendable, Equatable {
             base = "Saved by the filter. Waiting for the provider."
             backupFailed = failed
         case .applyFailed(let failed):
-            base = "Saved, but applying failed. Retry after Abyss reconnects."
+            base = "Saved, but applying failed. Retry after Rift reconnects."
             backupFailed = failed
         }
         return backupFailed ? base + " Automatic backup failed." : base

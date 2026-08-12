@@ -1,4 +1,4 @@
-import AbyssIPC
+import RiftIPC
 import Foundation
 import OSLog
 import Security
@@ -6,7 +6,7 @@ import Security
 final class FilterServiceListener: NSObject, NSXPCListenerDelegate {
     private let listener: NSXPCListener?
     private let runtime: PolicyRuntime
-    private let logger = Logger(subsystem: "io.abyss.firewall.filter", category: "xpc")
+    private let logger = Logger(subsystem: "io.rift.firewall.filter", category: "xpc")
     private let relay = AppRelayRegistry()
 
     init(runtime: PolicyRuntime) {
@@ -49,10 +49,10 @@ final class FilterServiceListener: NSObject, NSXPCListenerDelegate {
             role: role
         )
         let session = FilterControlSession(runtime: runtime, peer: peer, relay: relay)
-        connection.exportedInterface = NSXPCInterface(with: AbyssFilterControlXPC.self)
+        connection.exportedInterface = NSXPCInterface(with: RiftFilterControlXPC.self)
         connection.exportedObject = session
         if role == .app {
-            connection.remoteObjectInterface = NSXPCInterface(with: AbyssAppRelayXPC.self)
+            connection.remoteObjectInterface = NSXPCInterface(with: RiftAppRelayXPC.self)
             guard relay.registerCandidate(connection: connection, peer: peer) else {
                 logger.error("Rejected app XPC peer because the relay candidate cap was reached")
                 return false
@@ -81,7 +81,7 @@ final class FilterServiceListener: NSObject, NSXPCListenerDelegate {
 
     private static func codeSigningRequirement(identifier: String) -> String? {
         guard let rawPrefix = Bundle.main.object(
-            forInfoDictionaryKey: "AbyssTeamIdentifierPrefix"
+            forInfoDictionaryKey: "RiftTeamIdentifierPrefix"
         ) as? String else { return nil }
         let team = rawPrefix.trimmingCharacters(in: CharacterSet(charactersIn: "."))
         guard !team.isEmpty,
@@ -98,8 +98,8 @@ final class FilterServiceListener: NSObject, NSXPCListenerDelegate {
             as CFDictionary
         guard SecCodeCopyGuestWithAttributes(nil, attributes, [], &code) == errSecSuccess,
               let code else { return nil }
-        if satisfies(code, identifier: "io.abyss.firewall") { return .app }
-        if satisfies(code, identifier: "io.abyss.firewall.cli") { return .cli }
+        if satisfies(code, identifier: "io.rift.firewall") { return .app }
+        if satisfies(code, identifier: "io.rift.firewall.cli") { return .cli }
         return nil
     }
 
@@ -118,8 +118,8 @@ enum PeerRole: Sendable, Equatable {
 
     var signingIdentifier: String {
         switch self {
-        case .app: "io.abyss.firewall"
-        case .cli: "io.abyss.firewall.cli"
+        case .app: "io.rift.firewall"
+        case .cli: "io.rift.firewall.cli"
         }
     }
 }
@@ -190,7 +190,7 @@ final class AppRelayRegistry: @unchecked Sendable {
         }
         guard let proxy = connection.remoteObjectProxyWithErrorHandler({ _ in
             gate.call()
-        }) as? AbyssAppRelayXPC else {
+        }) as? RiftAppRelayXPC else {
             gate.call()
             return
         }
@@ -233,7 +233,7 @@ final class AppRelayRegistry: @unchecked Sendable {
                 status: .internalFailure,
                 redactedErrorCode: "appRelayFailure"
             ))
-        }) as? AbyssAppRelayXPC else {
+        }) as? RiftAppRelayXPC else {
             gate.call(SecureIPCReply(
                 requestID: request.requestID,
                 status: .internalFailure,

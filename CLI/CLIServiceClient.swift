@@ -1,4 +1,4 @@
-import AbyssIPC
+import RiftIPC
 import AppKit
 import Foundation
 
@@ -38,7 +38,7 @@ actor CLIServiceClient {
     private func connect() throws {
         guard connection == nil else { return }
         guard let serviceName = Bundle.main.object(
-            forInfoDictionaryKey: "AbyssMachServiceName"
+            forInfoDictionaryKey: "RiftMachServiceName"
         ) as? String, !serviceName.isEmpty else {
             throw CLIServiceError.missingConfiguration
         }
@@ -46,7 +46,7 @@ actor CLIServiceClient {
             throw CLIServiceError.unsignedBuild
         }
         let connection = NSXPCConnection(machServiceName: serviceName, options: .privileged)
-        connection.remoteObjectInterface = NSXPCInterface(with: AbyssFilterControlXPC.self)
+        connection.remoteObjectInterface = NSXPCInterface(with: RiftFilterControlXPC.self)
         connection.setCodeSigningRequirement(requirement)
         connection.activate()
         self.connection = connection
@@ -76,7 +76,7 @@ actor CLIServiceClient {
             return try await relay(request)
         } catch CLIServiceError.rejected(let code)
             where launchingAppIfNeeded && code == "sameUserAppUnavailable" {
-            guard NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Abyss.app")) else {
+            guard NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Rift.app")) else {
                 throw CLIServiceError.appLaunchFailed
             }
             let clock = ContinuousClock()
@@ -184,14 +184,14 @@ actor CLIServiceClient {
 
     private func call(
         _ request: SecureIPCEnvelope,
-        invoke: @escaping (AbyssFilterControlXPC, SecureIPCEnvelope, @escaping (SecureIPCReply) -> Void) -> Void
+        invoke: @escaping (RiftFilterControlXPC, SecureIPCEnvelope, @escaping (SecureIPCReply) -> Void) -> Void
     ) async throws -> SecureIPCReply {
         guard let connection else { throw CLIServiceError.unavailable }
         return try await withCheckedThrowingContinuation { continuation in
             let gate = CLIContinuationGate(continuation, timeout: .seconds(5))
             guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
                 gate.fail(error)
-            }) as? AbyssFilterControlXPC else {
+            }) as? RiftFilterControlXPC else {
                 gate.fail(CLIServiceError.unavailable)
                 return
             }
@@ -212,14 +212,14 @@ actor CLIServiceClient {
 
     private static func extensionCodeSigningRequirement() -> String? {
         guard let rawPrefix = Bundle.main.object(
-            forInfoDictionaryKey: "AbyssTeamIdentifierPrefix"
+            forInfoDictionaryKey: "RiftTeamIdentifierPrefix"
         ) as? String else { return nil }
         let team = rawPrefix.trimmingCharacters(in: CharacterSet(charactersIn: "."))
         guard !team.isEmpty,
               team.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) }) else {
             return nil
         }
-        return "anchor apple generic and identifier \"io.abyss.firewall.filter\" "
+        return "anchor apple generic and identifier \"io.rift.firewall.filter\" "
             + "and certificate leaf[subject.OU] = \"\(team)\""
     }
 }

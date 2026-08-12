@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import Foundation
 
 extension ControlPlaneController {

@@ -1,6 +1,6 @@
-import AbyssControl
-import AbyssCore
-import AbyssIPC
+import RiftControl
+import RiftCore
+import RiftIPC
 import Foundation
 
 extension ControlPlaneController {

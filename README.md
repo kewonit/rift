@@ -1,6 +1,6 @@
-# Abyss
+# Rift
 
-Abyss is an open-source, native macOS content-filter firewall for Apple-silicon
+Rift is an open-source, native macOS content-filter firewall for Apple-silicon
 Macs. It is built with SwiftUI, AppKit, NetworkExtension, SystemExtensions, and
 Swift 6 strict concurrency. Core 1.0 targets macOS 14 or later and produces
 `arm64` binaries only.
@@ -14,10 +14,10 @@ Swift 6 strict concurrency. Core 1.0 targets macOS 14 or later and produces
 
 Cloning, inspecting, changing, testing, and compiling the source is free. No
 Apple account is needed for the unsigned local lane below. A free Personal Team
-can sign ordinary personal apps, but it does not make Abyss's full content-filter
+can sign ordinary personal apps, but it does not make Rift's full content-filter
 lane generally runnable or distributable.
 
-Running Abyss as a real system-wide firewall requires both the host app and its
+Running Rift as a real system-wide firewall requires both the host app and its
 system extension to be provisioned with Apple-authorized App Group, System
 Extension, and Network Extension capabilities. Shipping a downloadable build
 from GitHub additionally requires Developer ID signing and notarization. Those
@@ -87,10 +87,10 @@ publication-rights approval; the script never stages, deletes, or rewrites it.
 For the lighter pure-package lane:
 
 ```sh
-swift test --package-path Packages/AbyssCore
-swift test --package-path Packages/AbyssIPC
-swift test --package-path Packages/AbyssControl
-swift test --package-path Packages/AbyssFilterRuntime
+swift test --package-path Packages/RiftCore
+swift test --package-path Packages/RiftIPC
+swift test --package-path Packages/RiftControl
+swift test --package-path Packages/RiftFilterRuntime
 ```
 
 Package tests cover the deterministic matcher, policy/state machines, bounded
@@ -112,7 +112,7 @@ production-size database stress, attribution/legal, and accessibility evidence
 passes. The fixture cannot import a real database, and the live Debug surface
 does not bypass those requirements.
 
-Abyss does not bundle an IP-location database or call a remote geolocation API.
+Rift does not bundle an IP-location database or call a remote geolocation API.
 The reviewed candidate remains
 [DB-IP City Lite](https://db-ip.com/db/lite.php), supplied by the user only if
 the feature is later admitted.

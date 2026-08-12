@@ -1,6 +1,6 @@
-import AbyssCore
-import AbyssFilterRuntime
-import AbyssIPC
+import RiftCore
+import RiftFilterRuntime
+import RiftIPC
 import Foundation
 @preconcurrency import NetworkExtension
 
@@ -27,7 +27,7 @@ final class FilterDataProvider: NEFilterDataProvider {
         Task { [runtime, epoch, settingsApplier] in
             let registration = await runtime.prepareProviderStart()
             epoch.store(registration)
-            let settings = AbyssAllowAllFilterSettings()
+            let settings = RiftAllowAllFilterSettings()
             settingsApplier.apply(settings) { error in
                 Task {
                     _ = await runtime.completeProviderStart(

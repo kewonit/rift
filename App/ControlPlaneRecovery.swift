@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssIPC
+import RiftControl
+import RiftIPC
 import Darwin
 import Foundation
 
@@ -33,7 +33,7 @@ extension ControlPlaneController {
             }
             return true
         } catch {
-            recordStartupIssue("Root policy cleanup could not be verified, so Abyss did not request extension deactivation. Retry while the policy-owner account is the current console user.")
+            recordStartupIssue("Root policy cleanup could not be verified, so Rift did not request extension deactivation. Retry while the policy-owner account is the current console user.")
             return false
         }
     }

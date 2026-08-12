@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 import Darwin
 import Foundation
 @preconcurrency import NetworkExtension
@@ -17,8 +17,8 @@ enum FlowMetadataNormalizer {
     ) -> CapturedFlowMetadata {
         let socket = flow as? NEFilterSocketFlow
         let hostname = socket?.remoteHostname.flatMap { try? DomainName($0) }
-        let localParts = socket.flatMap(AbyssCopyLocalEndpointParts)
-        let remoteParts = socket.flatMap(AbyssCopyRemoteEndpointParts)
+        let localParts = socket.flatMap(RiftCopyLocalEndpointParts)
+        let remoteParts = socket.flatMap(RiftCopyRemoteEndpointParts)
         let local = endpoint(from: localParts, hostname: nil, snapshot: interfaceSnapshot)
         let remote = endpoint(from: remoteParts, hostname: hostname, snapshot: interfaceSnapshot)
         let direction: TrafficDirection = flow.direction == .inbound ? .incoming : .outgoing
@@ -87,7 +87,7 @@ enum FlowMetadataNormalizer {
     }
 
     private static func flowOwner(from token: Data?) -> FlowOwner {
-        let uid = AbyssAuditTokenEUID(token)
+        let uid = RiftAuditTokenEUID(token)
         if uid == UInt32.max { return .unknown }
         return uid == 0 ? .system : .user(uid: uid)
     }

@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 import AppKit
 import NetworkExtension
 import Observation
@@ -20,7 +20,7 @@ final class FilterLifecycleController: NSObject {
     }
 
     private static let extensionIdentifier = FilterActivationPreflight.extensionIdentifier
-    private let logger = Logger(subsystem: "io.abyss.firewall", category: "lifecycle")
+    private let logger = Logger(subsystem: "io.rift.firewall", category: "lifecycle")
     private var machine = LifecycleStateMachine()
     private var activeRequest: OSSystemExtensionRequest?
     private var activeRequestKind: RequestKind?
@@ -66,12 +66,12 @@ final class FilterLifecycleController: NSObject {
         case .awaitingApproval: "Approval is required"
         case .active: "Network filter installed"
         case .savingFilterConfiguration: "Enabling the network filter…"
-        case .enabled: "Abyss is active"
+        case .enabled: "Rift is active"
         case .denied: "Approval was denied"
-        case .disabled: "Abyss is disabled in macOS"
+        case .disabled: "Rift is disabled in macOS"
         case .stale: "Refreshing filter settings…"
         case .replacing: "Updating the network filter…"
-        case .failed: "Abyss needs attention"
+        case .failed: "Rift needs attention"
         case .uninstalling: "Removing the network filter…"
         }
     }
@@ -79,17 +79,17 @@ final class FilterLifecycleController: NSObject {
     var guidance: String {
         switch state {
         case .notInstalled:
-            "Install Abyss from Applications, then approve its network extension when macOS asks. Traffic remains allowed during this foundation setup."
+            "Install Rift from Applications, then approve its network extension when macOS asks. Traffic remains allowed during this foundation setup."
         case .awaitingApproval:
-            "Open Login Items & Extensions in System Settings, select Network Extensions, and enable Abyss. Return here when approval finishes."
+            "Open Login Items & Extensions in System Settings, select Network Extensions, and enable Rift. Return here when approval finishes."
         case .denied(let message), .failed(let message):
             message
         case .disabled:
-            "The extension is installed but disabled outside Abyss. No filtering or activity reporting is available until it is enabled again."
+            "The extension is installed but disabled outside Rift. No filtering or activity reporting is available until it is enabled again."
         case .enabled:
-            "The network provider is enabled. Abyss reports enforcement only after the control plane confirms the active policy generation."
+            "The network provider is enabled. Rift reports enforcement only after the control plane confirms the active policy generation."
         default:
-            "Abyss is applying the requested system configuration."
+            "Rift is applying the requested system configuration."
         }
     }
 
@@ -99,7 +99,7 @@ final class FilterLifecycleController: NSObject {
             .resolvingSymlinksInPath().standardizedFileURL.path
         guard applicationPath.hasPrefix("/Applications/") else {
             retryAction = .activation
-            transition(.fail("Move Abyss to Applications before installing its system extension."))
+            transition(.fail("Move Rift to Applications before installing its system extension."))
             return
         }
         activationPreflightFailure = nil
@@ -202,7 +202,7 @@ final class FilterLifecycleController: NSObject {
 
     private func redactedDiagnostics() -> String {
         [
-            "Abyss health (redacted)",
+            "Rift health (redacted)",
             "state=\(state)",
             "activationPreflight=\(activationPreflightFailure?.rawValue ?? "none")",
             "os=\(ProcessInfo.processInfo.operatingSystemVersionString)",
@@ -227,11 +227,11 @@ final class FilterLifecycleController: NSObject {
         let configuration = NEFilterProviderConfiguration()
         configuration.filterSockets = true
         configuration.filterPackets = false
-        configuration.organization = "Abyss"
+        configuration.organization = "Rift"
         configuration.filterDataProviderBundleIdentifier = Self.extensionIdentifier
         configuration.filterPacketProviderBundleIdentifier = nil
         manager.providerConfiguration = configuration
-        manager.localizedDescription = "Abyss Network Filter"
+        manager.localizedDescription = "Rift Network Filter"
         manager.isEnabled = true
         do {
             try await manager.saveToPreferences()
@@ -367,7 +367,7 @@ extension FilterLifecycleController: OSSystemExtensionRequestDelegate {
             Task { @MainActor [weak self] in
                 self?.retryAction = .activation
                 self?.transition(.fail(
-                    "Abyss refused to replace the installed network filter with an older or mismatched copy."
+                    "Rift refused to replace the installed network filter with an older or mismatched copy."
                 ))
             }
             return .cancel
@@ -401,11 +401,11 @@ extension FilterLifecycleController: OSSystemExtensionRequestDelegate {
                 switch kind {
                 case .activation:
                     self.transition(.fail(
-                        "macOS will finish installing the network filter after a restart. Restart this Mac, then reopen Abyss."
+                        "macOS will finish installing the network filter after a restart. Restart this Mac, then reopen Rift."
                     ))
                 case .deactivation:
                     self.transition(.fail(
-                        "macOS will finish removing the network filter after a restart. Restart this Mac before reinstalling Abyss."
+                        "macOS will finish removing the network filter after a restart. Restart this Mac before reinstalling Rift."
                     ))
                 case .properties:
                     self.finishPropertiesRequest(with: .failed(
@@ -450,7 +450,7 @@ extension FilterLifecycleController: OSSystemExtensionRequestDelegate {
             if value.domain == OSSystemExtensionErrorDomain,
                value.code == OSSystemExtensionError.authorizationRequired.rawValue {
                 self.retryAction = .activation
-                self.transition(.permissionDenied("macOS did not authorize the extension. Approve Abyss in System Settings, then try again."))
+                self.transition(.permissionDenied("macOS did not authorize the extension. Approve Rift in System Settings, then try again."))
             } else {
                 self.retryAction = kind == .activation ? .activation : .status
                 self.transition(.fail("System extension setup failed with \(value.domain) (\(value.code)). Traffic remains unclaimed."))

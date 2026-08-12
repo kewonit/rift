@@ -1,6 +1,6 @@
-import AbyssControl
-import AbyssCore
-import AbyssIPC
+import RiftControl
+import RiftCore
+import RiftIPC
 import SwiftUI
 
 struct GeneralSettingsPane: View {
@@ -34,7 +34,7 @@ struct GeneralSettingsPane: View {
                 Text("Observe Only leaves the provider running but allows visible connections.")
             }
             Section("Startup") {
-                Toggle("Launch Abyss at login", isOn: $launchAtLogin)
+                Toggle("Launch Rift at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, value in loginItemChanged(value) }
             }
         }

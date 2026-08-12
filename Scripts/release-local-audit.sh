@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT=${0:A:h:h}
 
-plutil -lint "$ROOT/Abyss.xcodeproj/project.pbxproj" "$ROOT"/Configuration/*.plist \
+plutil -lint "$ROOT/Rift.xcodeproj/project.pbxproj" "$ROOT"/Configuration/*.plist \
   "$ROOT"/Configuration/*.entitlements
 jq empty "$ROOT/docs/release/sbom.spdx.json"
 
@@ -34,13 +34,13 @@ verify_lock() {
     exit 1
   fi
 }
-verify_lock "$ROOT/Packages/AbyssControl/Package.resolved" "$control_inventory"
-verify_lock "$ROOT/Abyss.xcworkspace/xcshareddata/swiftpm/Package.resolved" "$workspace_inventory"
-verify_lock "$ROOT/Abyss.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" "$workspace_inventory"
+verify_lock "$ROOT/Packages/RiftControl/Package.resolved" "$control_inventory"
+verify_lock "$ROOT/Rift.xcworkspace/xcshareddata/swiftpm/Package.resolved" "$workspace_inventory"
+verify_lock "$ROOT/Rift.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" "$workspace_inventory"
 
 for pin in 36e30a6f1ef10e4194f6af0cff90888526f0c115 \
   6a52f3251125d74daf04fcbd5e6f08a75d074382; do
-  if ! rg -q "$pin" "$ROOT/Abyss.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
+  if ! rg -q "$pin" "$ROOT/Rift.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
     || ! rg -q "$pin" "$ROOT/docs/release/sbom.spdx.json" \
     || ! rg -q "$pin" "$ROOT/THIRD_PARTY_NOTICES.md"; then
     print -u2 "dependency inventory is inconsistent for revision: $pin"

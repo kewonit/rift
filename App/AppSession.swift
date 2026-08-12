@@ -1,5 +1,5 @@
 import AppKit
-import AbyssCore
+import RiftCore
 import Foundation
 import NetworkExtension
 import Observation
@@ -10,7 +10,7 @@ enum AppLaunchMode: Equatable {
     case uiFixture
 
     static var current: AppLaunchMode {
-#if ABYSS_UI_FIXTURE_DEFAULT
+#if RIFT_UI_FIXTURE_DEFAULT
         return .uiFixture
 #else
         if MonitorFixtureData.isRequested { return .uiFixture }
@@ -67,10 +67,10 @@ final class AppSession {
     }
 
     var statusAccessibilityLabel: String {
-        if isUIFixture { return "Abyss preview data. Filtering is inactive." }
+        if isUIFixture { return "Rift preview data. Filtering is inactive." }
         return hasConfirmedFilterService
             ? controlPlane.statusAccessibilityLabel
-            : "Abyss filter needs attention"
+            : "Rift filter needs attention"
     }
 
 #if DEBUG
@@ -155,8 +155,8 @@ final class AppSession {
                 self.observingLifecycle = false
                 if lifecycle.initialStatusResolved,
                    case .notInstalled = lifecycle.state,
-                   !UserDefaults.standard.bool(forKey: "abyssInitialSetupPresented") {
-                    UserDefaults.standard.set(true, forKey: "abyssInitialSetupPresented")
+                   !UserDefaults.standard.bool(forKey: "riftInitialSetupPresented") {
+                    UserDefaults.standard.set(true, forKey: "riftInitialSetupPresented")
                     self.showingFilterStatus = true
                 }
                 if lifecycle.initialStatusResolved,

@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssCore
+import RiftControl
+import RiftCore
 import AppKit
 import Foundation
 import SwiftUI
@@ -13,7 +13,7 @@ struct RuleWorkspaceDragPayload: Hashable, Sendable {
         let data = Data(token.uuidString.utf8)
         provider.suggestedName = token.uuidString
         provider.registerDataRepresentation(
-            forTypeIdentifier: UTType.abyssRuleWorkspaceDragToken.identifier,
+            forTypeIdentifier: UTType.riftRuleWorkspaceDragToken.identifier,
             visibility: .ownProcess
         ) { completion in
             completion(data, nil)
@@ -138,8 +138,8 @@ extension RuleWorkspaceDropTarget {
 }
 
 private extension UTType {
-    static let abyssRuleWorkspaceDragToken = UTType(
-        exportedAs: "io.abyss.firewall.rule-workspace-drag-token",
+    static let riftRuleWorkspaceDragToken = UTType(
+        exportedAs: "io.rift.firewall.rule-workspace-drag-token",
         conformingTo: .data
     )
 }
@@ -168,12 +168,12 @@ private struct RuleWorkspaceDropTargetModifier: ViewModifier {
             )
             .help("Drop selected rules here. Hold Option while dropping to copy.")
             .onDrop(
-                of: [.abyssRuleWorkspaceDragToken],
+                of: [.riftRuleWorkspaceDragToken],
                 isTargeted: isTargeted
             ) { providers in
                 guard providers.count == 1,
                       providers[0].hasItemConformingToTypeIdentifier(
-                          UTType.abyssRuleWorkspaceDragToken.identifier
+                          UTType.riftRuleWorkspaceDragToken.identifier
                       ),
                       let tokenValue = providers[0].suggestedName,
                       let token = UUID(uuidString: tokenValue) else {

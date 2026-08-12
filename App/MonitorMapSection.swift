@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import SwiftUI
 
 struct MonitorMapSection: View {
@@ -144,7 +144,7 @@ struct MonitorMapSection: View {
             }
             Text("Connection links show relationships to the chosen approximate origin, not packet routes.")
             Text("CDNs, VPNs, and relays may represent an observed endpoint rather than a service owner.")
-            Text("MapKit requests tiles for viewed regions. Abyss does not send endpoint IPs or app identities to a geolocation service.")
+            Text("MapKit requests tiles for viewed regions. Rift does not send endpoint IPs or app identities to a geolocation service.")
             if let url = Self.licenseURL {
                 Link("DB-IP City Lite · CC BY 4.0", destination: url)
             } else {

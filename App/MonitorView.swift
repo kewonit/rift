@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssCore
+import RiftControl
+import RiftCore
 import AppKit
 import SwiftUI
 
@@ -159,7 +159,7 @@ struct MonitorView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("MapKit requests tiles for viewed regions. Destination lookup remains local, and Abyss does not send endpoint IPs or app identities to a geolocation service.")
+            Text("MapKit requests tiles for viewed regions. Destination lookup remains local, and Rift does not send endpoint IPs or app identities to a geolocation service.")
         }
         .modifier(MonitorManagedListOverrideConfirmation(
             pending: $pendingManagedListOverride,
@@ -396,7 +396,7 @@ struct MonitorView: View {
                 pendingManagedListOverride = node
                 loadError = nil
             } catch {
-                loadError = "The exact rule wasn’t applied. Retry after Abyss reconnects."
+                loadError = "The exact rule wasn’t applied. Retry after Rift reconnects."
             }
             applyingEventID = nil
         }

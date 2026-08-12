@@ -1,11 +1,11 @@
 #if DEBUG
-import AbyssControl
-import AbyssCore
-import AbyssIPC
+import RiftControl
+import RiftCore
+import RiftIPC
 import Foundation
 
 enum MonitorFixtureData {
-    static let canary = "ABYSS_UI_FIXTURE_ONLY_7F4C2A91"
+    static let canary = "RIFT_UI_FIXTURE_ONLY_7F4C2A91"
     static let referenceNow = Date(timeIntervalSince1970: 1_786_444_800)
     private static let previewProfileID = UUID(uuid: (
         0x20, 0, 0, 0, 0, 0, 0x40, 0, 0x80, 0, 0, 0, 0, 0, 0, 1
@@ -27,7 +27,7 @@ enum MonitorFixtureData {
               arguments.indices.contains(flag + 1) else { return }
         let url = URL(fileURLWithPath: arguments[flag + 1])
         guard url.deletingLastPathComponent().path == "/private/tmp",
-              url.lastPathComponent.hasPrefix("abyss-ui-ready-") else {
+              url.lastPathComponent.hasPrefix("rift-ui-ready-") else {
             reportReadinessFailure("refused an unsafe destination")
             return
         }
@@ -41,11 +41,11 @@ enum MonitorFixtureData {
     }
 
     private static func reportReadinessFailure(_ message: String) {
-        FileHandle.standardError.write(Data("Abyss fixture readiness: \(message)\n".utf8))
+        FileHandle.standardError.write(Data("Rift fixture readiness: \(message)\n".utf8))
     }
 
     static let geoMetadata = GeoDatabaseMetadata(
-        sourceName: "Abyss preview locations",
+        sourceName: "Rift preview locations",
         sourceVersion: "fixed fixture",
         sourceModifiedAt: nil,
         importedAt: referenceNow,
@@ -169,10 +169,10 @@ enum MonitorFixtureData {
         return try (0..<54).map { index in
             let appName = appNames[index % appNames.count]
             let identity = ProcessIdentity.developerID(try SignedCodeIdentity(
-                teamIdentifier: "ABYSSPREVIEW",
+                teamIdentifier: "RIFTPREVIEW",
                 signingIdentifier: appName.capitalized
             ))
-            let host = try DomainName("node-\(index + 1).abyss.test")
+            let host = try DomainName("node-\(index + 1).rift.test")
             let address = try IPAddress(address(for: index))
             let endpoint = Endpoint(
                 address: address,
@@ -222,17 +222,17 @@ enum MonitorFixtureData {
     private static func makeRules() throws -> [Rule] {
         let lineage = try requiredUUID("A4F31042-EA13-4D42-B307-AB1D70160322")
         let specifications: [(String, String, FilterAction, UInt16, Bool)] = [
-            ("browser", "media.abyss.test", .allow, 443, true),
-            ("calendar", "sync.abyss.test", .allow, 443, true),
-            ("chat", "presence.abyss.test", .deny, 443, true),
-            ("cloud", "storage.abyss.test", .allow, 443, false),
-            ("mail", "mail.abyss.test", .ask, 993, true),
-            ("music", "audio.abyss.test", .deny, 443, true),
+            ("browser", "media.rift.test", .allow, 443, true),
+            ("calendar", "sync.rift.test", .allow, 443, true),
+            ("chat", "presence.rift.test", .deny, 443, true),
+            ("cloud", "storage.rift.test", .allow, 443, false),
+            ("mail", "mail.rift.test", .ask, 993, true),
+            ("music", "audio.rift.test", .deny, 443, true),
         ]
         let manualRules = try specifications.enumerated().map { index, value in
             let (appName, hostname, action, port, enabled) = value
             let identity = ProcessIdentity.developerID(try SignedCodeIdentity(
-                teamIdentifier: "ABYSSPREVIEW",
+                teamIdentifier: "RIFTPREVIEW",
                 signingIdentifier: appName.capitalized
             ))
             let createdAt = referenceNow.addingTimeInterval(TimeInterval(-(index + 1) * 86_400))
@@ -267,7 +267,7 @@ enum MonitorFixtureData {
             action: .filter(.deny),
             priority: .blocklistDeny,
             process: .anyProcess,
-            destination: .normalizedExactHostnameSet([try DomainName("tracker.abyss.test")]),
+            destination: .normalizedExactHostnameSet([try DomainName("tracker.rift.test")]),
             transportProtocol: .anySupportedProtocol,
             port: nil,
             direction: .bidirectional,

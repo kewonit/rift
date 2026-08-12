@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 import SwiftUI
 
 struct ApplicationIdentityIcon: View {

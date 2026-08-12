@@ -3,15 +3,15 @@
 set -euo pipefail
 
 if (( $# != 1 )); then
-  echo "usage: $0 /path/to/Abyss.app" >&2
+  echo "usage: $0 /path/to/Rift.app" >&2
   exit 64
 fi
 
 APP=$1
-EXTENSION="$APP/Contents/Library/SystemExtensions/AbyssFilter.systemextension"
-APP_BINARY="$APP/Contents/MacOS/Abyss"
-EXTENSION_BINARY="$EXTENSION/Contents/MacOS/AbyssFilter"
-CLI_BINARY="$APP/Contents/Helpers/abyssctl"
+EXTENSION="$APP/Contents/Library/SystemExtensions/RiftFilter.systemextension"
+APP_BINARY="$APP/Contents/MacOS/Rift"
+EXTENSION_BINARY="$EXTENSION/Contents/MacOS/RiftFilter"
+CLI_BINARY="$APP/Contents/Helpers/riftctl"
 
 for item in "$APP_BINARY" "$EXTENSION_BINARY" "$CLI_BINARY"; do
   if [[ ! -f "$item" ]]; then
@@ -43,9 +43,9 @@ verify_dsym() {
     exit 1
   fi
 }
-verify_dsym "$APP_BINARY" "$PRODUCTS/Abyss.app.dSYM"
-verify_dsym "$EXTENSION_BINARY" "$PRODUCTS/AbyssFilter.systemextension.dSYM"
-verify_dsym "$CLI_BINARY" "$PRODUCTS/abyssctl.dSYM"
+verify_dsym "$APP_BINARY" "$PRODUCTS/Rift.app.dSYM"
+verify_dsym "$EXTENSION_BINARY" "$PRODUCTS/RiftFilter.systemextension.dSYM"
+verify_dsym "$CLI_BINARY" "$PRODUCTS/riftctl.dSYM"
 
 if ! "$CLI_BINARY" --help >/dev/null; then
   echo "embedded CLI help failed" >&2
@@ -60,7 +60,7 @@ fi
 if find "$EXTENSION" -type f \
   ! -name Info.plist \
   ! -name embedded.provisionprofile \
-  ! -path '*/MacOS/AbyssFilter' \
+  ! -path '*/MacOS/RiftFilter' \
   ! -path '*/_CodeSignature/CodeResources' | grep -q .; then
   echo "unexpected file embedded in system extension" >&2
   exit 1
@@ -98,7 +98,7 @@ while IFS= read -r rpath; do
 done <<< "$rpaths"
 
 if ! /usr/libexec/PlistBuddy -c 'Print :NetworkExtension:NEProviderClasses:com.apple.networkextension.filter-data' \
-  "$EXTENSION/Contents/Info.plist" | grep -qx 'AbyssFilter.FilterDataProvider'; then
+  "$EXTENSION/Contents/Info.plist" | grep -qx 'RiftFilter.FilterDataProvider'; then
   echo "filter provider class is not configured" >&2
   exit 1
 fi
@@ -118,10 +118,10 @@ for info_plist in "$APP/Contents/Info.plist" "$EXTENSION/Contents/Info.plist"; d
 done
 
 fixture_canaries=(
-  'ABYSS_FIXTURE_DRIVER'
+  'RIFT_FIXTURE_DRIVER'
   '--ui-fixture'
-  'ABYSS_UI_FIXTURE_ONLY_7F4C2A91'
-  'ABYSS_UI_FIXTURE_ARTWORK_ONLY_5C8E1D42'
+  'RIFT_UI_FIXTURE_ONLY_7F4C2A91'
+  'RIFT_UI_FIXTURE_ARTWORK_ONLY_5C8E1D42'
   'Preview database loaded. No live traffic is being filtered.'
   'The UI fixture cannot create'
   'MonitorFixtureData'

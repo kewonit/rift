@@ -1,4 +1,4 @@
-# Abyss Core 1.0 threat model
+# Rift Core 1.0 threat model
 
 ## Assets and boundaries
 

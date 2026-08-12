@@ -1,12 +1,12 @@
 # Changelog
 
-All notable user-visible changes will be recorded here. Abyss has not produced a
+All notable user-visible changes will be recorded here. Rift has not produced a
 signed public release yet.
 
 ## Unreleased
 
 - Added the initial Apple-silicon macOS firewall source tree, native app,
-  content-filter system extension, and embedded `abyssctl` command-line client.
+  content-filter system extension, and embedded `riftctl` command-line client.
 - Added deterministic rule evaluation, durable policy reconciliation, bounded
   alert handling, rules/profiles/groups/blocklists, retained connection history,
   configuration archives, backups, and redacted diagnostics.

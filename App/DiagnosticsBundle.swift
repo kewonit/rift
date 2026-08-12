@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssCore
+import RiftControl
+import RiftCore
 import Foundation
 import OSLog
 
@@ -34,7 +34,7 @@ extension ControlPlaneController {
             optional.append("Up to \(min(configuration?.rules.count ?? 0, 200)) rule summaries, freshly pseudonymized")
         }
         if options.contains(.appLogExcerpts) {
-            optional.append("Up to 200 current-process Abyss log entries from the last 15 minutes")
+            optional.append("Up to 200 current-process Rift log entries from the last 15 minutes")
         }
         return DiagnosticsBundlePreview(
             defaultSections: [
@@ -109,7 +109,7 @@ extension ControlPlaneController {
             let position = store.position(
                 date: Date().addingTimeInterval(-15 * 60)
             )
-            let predicate = NSPredicate(format: "subsystem == %@", "io.abyss.firewall")
+            let predicate = NSPredicate(format: "subsystem == %@", "io.rift.firewall")
             let entries = try store.getEntries(at: position, matching: predicate)
                 .compactMap { $0 as? OSLogEntryLog }
                 .prefix(200)

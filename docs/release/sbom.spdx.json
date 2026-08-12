@@ -3,22 +3,22 @@
   "creationInfo": {
     "created": "2026-08-10T23:20:00Z",
     "creators": [
-      "Organization: Abyss contributors",
+      "Organization: Rift contributors",
       "Tool: manual-source-inventory"
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://spdx.org/spdxdocs/abyss-0.1.0-pre-release-20260811",
-  "name": "Abyss 0.1.0 pre-release source SBOM",
+  "documentNamespace": "https://spdx.org/spdxdocs/rift-0.1.0-pre-release-20260811",
+  "name": "Rift 0.1.0 pre-release source SBOM",
   "packages": [
     {
-      "SPDXID": "SPDXRef-Package-Abyss",
-      "copyrightText": "Copyright 2026 Abyss contributors",
+      "SPDXID": "SPDXRef-Package-Rift",
+      "copyrightText": "Copyright 2026 Rift contributors",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
-      "name": "Abyss",
+      "name": "Rift",
       "primaryPackagePurpose": "APPLICATION",
       "versionInfo": "0.1.0-pre-release"
     },
@@ -49,19 +49,19 @@
   ],
   "relationships": [
     {
-      "relatedSpdxElement": "SPDXRef-Package-Abyss",
+      "relatedSpdxElement": "SPDXRef-Package-Rift",
       "relationshipType": "DESCRIBES",
       "spdxElementId": "SPDXRef-DOCUMENT"
     },
     {
       "relatedSpdxElement": "SPDXRef-Package-GRDB",
       "relationshipType": "DEPENDS_ON",
-      "spdxElementId": "SPDXRef-Package-Abyss"
+      "spdxElementId": "SPDXRef-Package-Rift"
     },
     {
       "relatedSpdxElement": "SPDXRef-Package-SwiftArgumentParser",
       "relationshipType": "DEPENDS_ON",
-      "spdxElementId": "SPDXRef-Package-Abyss"
+      "spdxElementId": "SPDXRef-Package-Rift"
     }
   ],
   "spdxVersion": "SPDX-2.3"

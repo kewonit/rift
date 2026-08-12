@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssIPC
+import RiftControl
+import RiftIPC
 import Foundation
 
 struct MonitorRowsSnapshot {

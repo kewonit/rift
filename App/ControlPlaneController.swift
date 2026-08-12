@@ -1,6 +1,6 @@
-import AbyssCore
-import AbyssControl
-import AbyssIPC
+import RiftCore
+import RiftControl
+import RiftIPC
 import Darwin
 import Foundation
 import Observation
@@ -104,7 +104,7 @@ final class ControlPlaneController {
 #endif
         do {
             guard let group = Bundle.main.object(
-                forInfoDictionaryKey: "AbyssAppGroupIdentifier"
+                forInfoDictionaryKey: "RiftAppGroupIdentifier"
             ) as? String,
                   let container = FileManager.default.containerURL(
                     forSecurityApplicationGroupIdentifier: group
@@ -120,7 +120,7 @@ final class ControlPlaneController {
             }
             guard case .success(let database) = configurationResult else {
                 configurationRecoveryRequired = true
-                startupIssue = "The editable configuration database failed validation. Abyss did not replace it; the last validated extension policy may still be active. Import a known-good configuration from Settings › Advanced to preserve the invalid database and recover safely."
+                startupIssue = "The editable configuration database failed validation. Rift did not replace it; the last validated extension policy may still be active. Import a known-good configuration from Settings › Advanced to preserve the invalid database and recover safely."
                 state = .failed
                 await prepareConfigurationRecoveryConnection()
                 return
@@ -146,7 +146,7 @@ final class ControlPlaneController {
                 try await history?.markOpenFlowsAbandoned()
                 historyRecovery = historyResult.recovery
             } else {
-                startupIssue = "Connection history could not be opened or safely quarantined. Abyss did not delete it; filtering configuration remains separate."
+                startupIssue = "Connection history could not be opened or safely quarantined. Rift did not delete it; filtering configuration remains separate."
             }
             state = .databaseReady
             await installConnectionHooks()
@@ -381,7 +381,7 @@ final class ControlPlaneController {
             historyRecovery = result.recovery
             startupIssue = nil
         } else {
-            startupIssue = "Connection history is unavailable, but configuration recovery can continue. Abyss did not delete the history database."
+            startupIssue = "Connection history is unavailable, but configuration recovery can continue. Rift did not delete the history database."
         }
         configurationRecovery = result.recovery
         configurationRecoveryRequired = false

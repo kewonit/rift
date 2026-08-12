@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import AppKit
 import Foundation
 
@@ -56,7 +56,7 @@ enum ArchiveFileAccess {
         case .wrongOwner, .notRegularFile, .symbolicLink:
             return "Choose a regular, non-symlink file owned by your macOS account."
         case .oversized:
-            return "The selected file exceeds Abyss’s safe import limit. Nothing was changed."
+            return "The selected file exceeds Rift’s safe import limit. Nothing was changed."
         case .fileChangedWhileReading:
             return "The selected file changed while it was being read. Nothing was changed."
         case .destinationChanged:

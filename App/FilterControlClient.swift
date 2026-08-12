@@ -1,4 +1,4 @@
-import AbyssIPC
+import RiftIPC
 import Foundation
 
 enum FilterControlClientError: Error, Sendable {
@@ -14,11 +14,11 @@ actor FilterControlClient {
     private var connection: NSXPCConnection?
     private var connectionID: UUID?
     private var controllerLeaseID: UUID?
-    private var appRelay: AbyssAppRelayXPC?
+    private var appRelay: RiftAppRelayXPC?
     private var invalidationHandler: (@Sendable () async -> Void)?
     private let transferQueue = SnapshotTransferQueue()
 
-    func installAppRelay(_ relay: AbyssAppRelayXPC) {
+    func installAppRelay(_ relay: RiftAppRelayXPC) {
         appRelay = relay
     }
 
@@ -33,7 +33,7 @@ actor FilterControlClient {
             throw FilterControlClientError.invalidReply
         }
         guard let serviceName = Bundle.main.object(
-            forInfoDictionaryKey: "AbyssMachServiceName"
+            forInfoDictionaryKey: "RiftMachServiceName"
         ) as? String, !serviceName.isEmpty else {
             throw FilterControlClientError.missingConfiguration
         }
@@ -41,9 +41,9 @@ actor FilterControlClient {
             throw FilterControlClientError.unsignedBuild
         }
         let connection = NSXPCConnection(machServiceName: serviceName, options: .privileged)
-        connection.remoteObjectInterface = NSXPCInterface(with: AbyssFilterControlXPC.self)
+        connection.remoteObjectInterface = NSXPCInterface(with: RiftFilterControlXPC.self)
         if let appRelay {
-            connection.exportedInterface = NSXPCInterface(with: AbyssAppRelayXPC.self)
+            connection.exportedInterface = NSXPCInterface(with: RiftAppRelayXPC.self)
             connection.exportedObject = appRelay
         }
         connection.setCodeSigningRequirement(requirement)
@@ -240,7 +240,7 @@ actor FilterControlClient {
 
     private func successfulReply(
         _ request: SecureIPCEnvelope,
-        invoke: @escaping (AbyssFilterControlXPC, SecureIPCEnvelope, @escaping (SecureIPCReply) -> Void) -> Void
+        invoke: @escaping (RiftFilterControlXPC, SecureIPCEnvelope, @escaping (SecureIPCReply) -> Void) -> Void
     ) async throws -> SecureIPCReply {
         let reply = try await call(request, invoke: invoke)
         guard reply.status == .success else {
@@ -251,7 +251,7 @@ actor FilterControlClient {
 
     private func call(
         _ request: SecureIPCEnvelope,
-        invoke: @escaping (AbyssFilterControlXPC, SecureIPCEnvelope, @escaping (SecureIPCReply) -> Void) -> Void
+        invoke: @escaping (RiftFilterControlXPC, SecureIPCEnvelope, @escaping (SecureIPCReply) -> Void) -> Void
     ) async throws -> SecureIPCReply {
         guard let connection else { throw FilterControlClientError.proxyUnavailable }
         let cancellation = ContinuationCancellation()
@@ -261,7 +261,7 @@ actor FilterControlClient {
                 guard cancellation.install(gate) else { return }
                 guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
                     gate.fail(error)
-                }) as? AbyssFilterControlXPC else {
+                }) as? RiftFilterControlXPC else {
                     gate.fail(FilterControlClientError.proxyUnavailable)
                     return
                 }
@@ -284,14 +284,14 @@ actor FilterControlClient {
 
     private static func extensionCodeSigningRequirement() -> String? {
         guard let rawPrefix = Bundle.main.object(
-            forInfoDictionaryKey: "AbyssTeamIdentifierPrefix"
+            forInfoDictionaryKey: "RiftTeamIdentifierPrefix"
         ) as? String else { return nil }
         let team = rawPrefix.trimmingCharacters(in: CharacterSet(charactersIn: "."))
         guard !team.isEmpty,
               team.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) }) else {
             return nil
         }
-        return "anchor apple generic and identifier \"io.abyss.firewall.filter\" "
+        return "anchor apple generic and identifier \"io.rift.firewall.filter\" "
             + "and certificate leaf[subject.OU] = \"\(team)\""
     }
 }

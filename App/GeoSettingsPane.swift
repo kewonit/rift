@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import SwiftUI
 
 struct GeoSettingsPane: View {
@@ -42,7 +42,7 @@ struct GeoSettingsPane: View {
                 if let source = URL(string: GeoCSVImporter.sourceURLString) {
                     Link("Download DB-IP City Lite", destination: source)
                 }
-                Text("Download the City Lite CSV archive, extract it, then choose the .csv file above. Abyss does not auto-download or upload database data.")
+                Text("Download the City Lite CSV archive, extract it, then choose the .csv file above. Rift does not auto-download or upload database data.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("The extracted CSV is much larger than the compressed download. Import runs off the UI thread and may take several minutes; keep enough free space for both the CSV and local index.")
@@ -61,8 +61,8 @@ struct GeoSettingsPane: View {
             }
 
             Section("Privacy and accuracy") {
-                Text("Abyss performs IP-to-location lookups only on this Mac. Locations are approximate and can be stale or incorrect; they must not be used to identify a person or precise address.")
-                Text("The destination map is hidden by default. When you show it, MapKit requests Apple map tiles for the viewed coordinate regions. Abyss does not send endpoint IPs, hostnames, or application identities to DB-IP or another lookup API.")
+                Text("Rift performs IP-to-location lookups only on this Mac. Locations are approximate and can be stale or incorrect; they must not be used to identify a person or precise address.")
+                Text("The destination map is hidden by default. When you show it, MapKit requests Apple map tiles for the viewed coordinate regions. Rift does not send endpoint IPs, hostnames, or application identities to DB-IP or another lookup API.")
             }
             .font(.caption)
             .foregroundStyle(.secondary)

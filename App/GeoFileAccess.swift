@@ -1,4 +1,4 @@
-import AbyssControl
+import RiftControl
 import AppKit
 import Foundation
 import UniformTypeIdentifiers

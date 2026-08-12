@@ -1,6 +1,6 @@
 # Third-party notices
 
-Abyss 0.1.0 uses the following exact source dependencies. Apple platform
+Rift 0.1.0 uses the following exact source dependencies. Apple platform
 frameworks are supplied by macOS/Xcode and are not redistributed as third-party
 packages by this project.
 
@@ -44,13 +44,13 @@ Library Exception:
 
 ## DB-IP City Lite (optional user-provided data)
 
-DB-IP City Lite is not bundled with Abyss and is not downloaded automatically.
+DB-IP City Lite is not bundled with Rift and is not downloaded automatically.
 Users may manually obtain a current CSV snapshot from
 [DB-IP City Lite](https://db-ip.com/db/lite.php). The data is provided by DB-IP
 under the [Creative Commons Attribution 4.0 International license](https://creativecommons.org/licenses/by/4.0/).
 
 Required attribution: **IP Geolocation by DB-IP**.
 
-When a user imports the CSV, Abyss transforms its ranges into a local SQLite
-index for offline lookup. Abyss does not intentionally alter the source location
+When a user imports the CSV, Rift transforms its ranges into a local SQLite
+index for offline lookup. Rift does not intentionally alter the source location
 values. DB-IP data is approximate and may be stale or incorrect.

@@ -1,7 +1,7 @@
 import AppKit
-import AbyssControl
-import AbyssCore
-import AbyssIPC
+import RiftControl
+import RiftCore
+import RiftIPC
 import SwiftUI
 
 extension ControlPlaneController {
@@ -26,17 +26,17 @@ extension ControlPlaneController {
     }
 
     var statusAccessibilityLabel: String {
-        guard case .connected(.ready) = state else { return "Abyss filter needs attention" }
-        if !pendingPrompts.isEmpty { return "Abyss has pending connection decisions" }
+        guard case .connected(.ready) = state else { return "Rift filter needs attention" }
+        if !pendingPrompts.isEmpty { return "Rift has pending connection decisions" }
         if let recentDenyUntil, recentDenyUntil > Date() {
-            return "Abyss recently denied a connection"
+            return "Rift recently denied a connection"
         }
         switch currentMode {
-        case .alert: return "Abyss filtering in Alert mode"
-        case .silentAllow: return "Abyss filtering in Silent Allow mode"
-        case .silentDeny: return "Abyss filtering in Silent Deny mode"
-        case .filterOff: return "Abyss observing without filtering"
-        case .degradedFallback: return "Abyss filtering is degraded"
+        case .alert: return "Rift filtering in Alert mode"
+        case .silentAllow: return "Rift filtering in Silent Allow mode"
+        case .silentDeny: return "Rift filtering in Silent Deny mode"
+        case .filterOff: return "Rift observing without filtering"
+        case .degradedFallback: return "Rift filtering is degraded"
         }
     }
 
@@ -140,7 +140,7 @@ struct StatusMenuView: View {
                 }
             }
             Divider()
-            Button("Open Abyss") { showMainWindow() }
+            Button("Open Rift") { showMainWindow() }
             Button("Rules…") { showRulesWindow() }
             if !session.isUIFixture {
                 Button("Filter Status…") {
@@ -149,7 +149,7 @@ struct StatusMenuView: View {
                 }
             }
             SettingsLink { Text("Settings…") }
-            Button("Quit Abyss…") { requestQuit() }
+            Button("Quit Rift…") { requestQuit() }
         }
         .padding(10)
         .onAppear {
@@ -163,19 +163,19 @@ struct StatusMenuView: View {
             Button("Switch to Observe Only") { setFilteringEnabled(false) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Abyss will continue observing visible connections but will allow them instead of applying allow, deny, or ask verdicts.")
+            Text("Rift will continue observing visible connections but will allow them instead of applying allow, deny, or ask verdicts.")
         }
         .confirmationDialog(
-            "Quit Abyss?",
+            "Quit Rift?",
             isPresented: $showingQuitConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Quit Abyss", role: .destructive) {
+            Button("Quit Rift", role: .destructive) {
                 NSApplication.shared.terminate(nil)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Loaded rules keep enforcing, but prompts cannot appear and activity history may have gaps until Abyss reopens.")
+            Text("Loaded rules keep enforcing, but prompts cannot appear and activity history may have gaps until Rift reopens.")
         }
     }
 
@@ -183,16 +183,16 @@ struct StatusMenuView: View {
         if session.isUIFixture { return "Preview — not filtering" }
         switch controller.state {
         case .connected(.ready):
-            guard session.hasConfirmedFilterService else { return "Abyss needs attention" }
+            guard session.hasConfirmedFilterService else { return "Rift needs attention" }
             switch controller.currentMode {
-            case .filterOff: return "Abyss is observing"
-            case .degradedFallback: return "Abyss needs attention"
-            default: return "Abyss is enforcing"
+            case .filterOff: return "Rift is observing"
+            case .degradedFallback: return "Rift needs attention"
+            default: return "Rift is enforcing"
             }
-        case .connected: return "Abyss needs attention"
+        case .connected: return "Rift needs attention"
         case .databaseReady: return "Connecting…"
         case .integrationUnavailable: return "Filter connection unavailable"
-        case .failed: return "Abyss needs attention"
+        case .failed: return "Rift needs attention"
         case .idle: return "Starting…"
         }
     }

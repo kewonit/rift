@@ -1,5 +1,5 @@
-import AbyssCore
-import AbyssIPC
+import RiftCore
+import RiftIPC
 import Darwin
 import Foundation
 import Security
@@ -33,9 +33,9 @@ final class IdentityResolver: @unchecked Sendable {
         let process: Data?
     }
 
-    private let stateQueue = DispatchQueue(label: "io.abyss.firewall.identity.state")
+    private let stateQueue = DispatchQueue(label: "io.rift.firewall.identity.state")
     private let workers = BoundedIdentityWorkerPool(
-        label: "io.abyss.firewall.identity.worker"
+        label: "io.rift.firewall.identity.worker"
     )
     private var cache: [Data: CacheEntry] = [:]
     private var pending: [TokenPair: [@Sendable (ResolvedIdentityPair) -> Void]] = [:]

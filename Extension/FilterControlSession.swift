@@ -1,5 +1,5 @@
-import AbyssFilterRuntime
-import AbyssIPC
+import RiftFilterRuntime
+import RiftIPC
 import Foundation
 import Security
 import SystemConfiguration
@@ -11,7 +11,7 @@ struct PeerContext: Sendable {
     let role: PeerRole
 }
 
-final class FilterControlSession: NSObject, AbyssFilterControlXPC {
+final class FilterControlSession: NSObject, RiftFilterControlXPC {
     private let runtime: PolicyRuntime
     private let peer: PeerContext
     private let relay: AppRelayRegistry

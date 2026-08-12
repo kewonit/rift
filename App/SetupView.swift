@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 import SwiftUI
 
 struct FilterStatusView: View {
@@ -12,7 +12,7 @@ struct FilterStatusView: View {
                 .font(.title3.weight(.semibold))
             Text(controller.initialStatusResolved
                 ? controller.guidance
-                : "Abyss is asking macOS for the installed filter state.")
+                : "Rift is asking macOS for the installed filter state.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -52,7 +52,7 @@ struct FilterStatusView: View {
 
             DisclosureGroup("Troubleshooting") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Abyss never reports filtering or activity while macOS has disabled the extension.")
+                    Text("Rift never reports filtering or activity while macOS has disabled the extension.")
                     Button("Copy Redacted Health") {
                         controller.copyRedactedDiagnostics()
                     }

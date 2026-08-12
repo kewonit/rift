@@ -3,7 +3,7 @@ import SystemConfiguration
 
 final class ConsoleSessionTracker: @unchecked Sendable {
     private let lock = NSLock()
-    private let callbackQueue = DispatchQueue(label: "io.abyss.firewall.console-session")
+    private let callbackQueue = DispatchQueue(label: "io.rift.firewall.console-session")
     private var store: SCDynamicStore?
     private var uid: UInt32?
 
@@ -18,7 +18,7 @@ final class ConsoleSessionTracker: @unchecked Sendable {
         )
         guard let store = SCDynamicStoreCreate(
             nil,
-            "io.abyss.firewall.console-session" as CFString,
+            "io.rift.firewall.console-session" as CFString,
             { _, _, info in
                 guard let info else { return }
                 Unmanaged<ConsoleSessionTracker>.fromOpaque(info)

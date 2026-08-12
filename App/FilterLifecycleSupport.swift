@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 import Foundation
 import Security
 
@@ -29,13 +29,13 @@ enum LifecycleHealthFailure: Error, Sendable {
         case .activationPreflight(let failure):
             failure.message
         case .invalidEmbeddedExtension:
-            "This copy of Abyss does not contain the expected matching network filter. Replace it with a complete Abyss release."
+            "This copy of Rift does not contain the expected matching network filter. Replace it with a complete Rift release."
         case .ambiguousInstalledExtension:
-            "macOS reported more than one matching Abyss network filter. Resolve the duplicate installation before filtering."
+            "macOS reported more than one matching Rift network filter. Resolve the duplicate installation before filtering."
         case .installedExtensionMismatch:
-            "The installed network filter does not match this copy of Abyss. Update or reinstall it before filtering."
+            "The installed network filter does not match this copy of Rift. Update or reinstall it before filtering."
         case .providerConfigurationMismatch:
-            "The saved macOS filter configuration does not target the exact Abyss filter. Remove and reinstall the filter configuration before filtering."
+            "The saved macOS filter configuration does not target the exact Rift filter. Remove and reinstall the filter configuration before filtering."
         case .socketFilteringDisabled:
             "The saved macOS filter configuration does not enable socket filtering. Remove and reinstall the filter configuration before filtering."
         case .packetFilteringClaimed:
@@ -48,25 +48,25 @@ private extension SystemExtensionActivationPreflightFailure {
     var message: String {
         switch self {
         case .invalidHostBundle, .invalidEmbeddedBundle, .versionMismatch:
-            "This copy of Abyss does not contain the expected matching network filter. Replace it with a complete Abyss release, then retry."
+            "This copy of Rift does not contain the expected matching network filter. Replace it with a complete Rift release, then retry."
         case .invalidHostSignature, .invalidEmbeddedSignature, .invalidNestedCode,
                 .signingTeamMismatch, .designatedIdentityMismatch:
-            "Abyss could not verify the embedded network filter as part of this signed release. Replace this copy of Abyss, then retry."
+            "Rift could not verify the embedded network filter as part of this signed release. Replace this copy of Rift, then retry."
         case .hostEntitlementsMismatch, .extensionEntitlementsMismatch:
-            "This copy of Abyss is missing required network-filter authorization. Replace it with a correctly signed release, then retry."
+            "This copy of Rift is missing required network-filter authorization. Replace it with a correctly signed release, then retry."
         case .machServiceMismatch:
-            "The app and embedded network filter have mismatched service configuration. Replace this copy of Abyss, then retry."
+            "The app and embedded network filter have mismatched service configuration. Replace this copy of Rift, then retry."
         }
     }
 }
 
 enum FilterActivationPreflight {
-    static let hostIdentifier = "io.abyss.firewall"
-    static let extensionIdentifier = "io.abyss.firewall.filter"
-    static let appGroup = "group.io.abyss.firewall"
-    static let filterDataProviderClass = "AbyssFilter.FilterDataProvider"
+    static let hostIdentifier = "io.rift.firewall"
+    static let extensionIdentifier = "io.rift.firewall.filter"
+    static let appGroup = "group.io.rift.firewall"
+    static let filterDataProviderClass = "RiftFilter.FilterDataProvider"
     static let embeddedExtensionPath =
-        "Contents/Library/SystemExtensions/AbyssFilter.systemextension"
+        "Contents/Library/SystemExtensions/RiftFilter.systemextension"
 
     static func validate() throws -> ExtensionIdentity {
         let app = Bundle.main
@@ -194,13 +194,13 @@ enum FilterActivationPreflight {
             ),
             appGroups: stringSet(entitlements["com.apple.security.application-groups"]),
             configuredAppGroup: bundle.object(
-                forInfoDictionaryKey: "AbyssAppGroupIdentifier"
+                forInfoDictionaryKey: "RiftAppGroupIdentifier"
             ) as? String,
             teamIdentifierPrefix: bundle.object(
-                forInfoDictionaryKey: "AbyssTeamIdentifierPrefix"
+                forInfoDictionaryKey: "RiftTeamIdentifierPrefix"
             ) as? String,
             machServiceName: bundle.object(
-                forInfoDictionaryKey: "AbyssMachServiceName"
+                forInfoDictionaryKey: "RiftMachServiceName"
             ) as? String ?? network?["NEMachServiceName"] as? String,
             filterDataProviderClass: providerClasses?[
                 "com.apple.networkextension.filter-data"

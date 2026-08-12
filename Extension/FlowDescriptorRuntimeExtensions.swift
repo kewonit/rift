@@ -1,4 +1,4 @@
-import AbyssCore
+import RiftCore
 
 extension CapturedFlowMetadata {
     func withIdentities(_ resolved: ResolvedIdentityPair) -> CapturedFlowMetadata {

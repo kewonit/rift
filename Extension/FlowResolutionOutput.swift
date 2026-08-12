@@ -1,6 +1,6 @@
-import AbyssCore
-import AbyssFilterRuntime
-import AbyssIPC
+import RiftCore
+import RiftFilterRuntime
+import RiftIPC
 import Foundation
 @preconcurrency import NetworkExtension
 

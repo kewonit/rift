@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssCore
+import RiftControl
+import RiftCore
 import ServiceManagement
 import SwiftUI
 
@@ -244,7 +244,7 @@ struct SettingsView: View {
             }
             await loadDefinitions()
         } catch {
-            message = "Settings could not be loaded. Retry after Abyss reconnects."
+            message = "Settings could not be loaded. Retry after Rift reconnects."
         }
     }
 
@@ -357,13 +357,13 @@ struct SettingsView: View {
         }
         switch databaseError {
         case .unsupportedSchema:
-            return "The configuration database was created by a newer Abyss version. It was not quarantined or changed. Update Abyss before retrying."
+            return "The configuration database was created by a newer Rift version. It was not quarantined or changed. Update Rift before retrying."
         case .recoveryRollbackFailed:
             return "Database recovery did not complete, and the original could not be restored automatically. Inspect the owner-only Configuration Quarantine before retrying."
         case .recoveryPreparationCleanupFailed:
             return "The replacement was not activated and the original remains in place, but the staged recovery database could not be closed cleanly."
         case .schemaPreflightCleanupFailed:
-            return "The database was not changed, but Abyss could not remove its private schema-check copy. Recovery did not continue."
+            return "The database was not changed, but Rift could not remove its private schema-check copy. Recovery did not continue."
         case .invalidDatabaseDirectory, .integrityCheckFailed:
             return "The restore did not save a new configuration. The original configuration remains in place."
         }
@@ -376,7 +376,7 @@ struct SettingsView: View {
             let data = try await controlPlane.historyExportData(format: format)
             try await ArchiveFileAccess.save(
                 data: data,
-                suggestedName: "Abyss Connection History.\(format == .json ? "json" : "csv")"
+                suggestedName: "Rift Connection History.\(format == .json ? "json" : "csv")"
             )
         }
     }
@@ -444,7 +444,7 @@ struct SettingsView: View {
     private func configureLoginItem(_ enabled: Bool) {
         guard loaded else {
             launchAtLogin = false
-            message = "Abyss is still checking the login-item setting. Try again in a moment."
+            message = "Rift is still checking the login-item setting. Try again in a moment."
             return
         }
         do {

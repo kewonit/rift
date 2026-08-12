@@ -71,14 +71,14 @@ struct AdvancedSettingsPane: View {
             Task { await updateDiagnosticsPreview() }
         }
         .confirmationDialog(
-            "Uninstall the Abyss network filter?",
+            "Uninstall the Rift network filter?",
             isPresented: $showingUninstallConfirmation,
             titleVisibility: .visible
         ) {
             Button("Uninstall Network Filter", role: .destructive, action: uninstall)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Abyss will first verify fail-open policy cleanup, then ask macOS to remove the filter extension.")
+            Text("Rift will first verify fail-open policy cleanup, then ask macOS to remove the filter extension.")
         }
         .alert(
             "Reset the invalid configuration?",
@@ -107,7 +107,7 @@ struct AdvancedSettingsPane: View {
         perform("The configuration export was not saved.") {
             let data = try await controlPlane.configurationArchiveData()
             try await ArchiveFileAccess.save(
-                data: data, suggestedName: "Abyss Configuration.json"
+                data: data, suggestedName: "Rift Configuration.json"
             )
         }
     }
@@ -133,7 +133,7 @@ struct AdvancedSettingsPane: View {
         perform("The diagnostics export was not saved.") {
             let data = try await controlPlane.diagnosticsBundleData(options: diagnosticsOptions)
             try await ArchiveFileAccess.save(
-                data: data, suggestedName: "Abyss Diagnostics.json"
+                data: data, suggestedName: "Rift Diagnostics.json"
             )
         }
     }

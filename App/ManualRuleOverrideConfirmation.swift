@@ -1,5 +1,5 @@
-import AbyssControl
-import AbyssCore
+import RiftControl
+import RiftCore
 
 enum ManualRuleOverrideConfirmation {
     static func message(draft: ManualRuleDraft, applicationLabel: String) -> String {
