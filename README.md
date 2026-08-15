@@ -5,6 +5,8 @@ Macs. It is built with SwiftUI, AppKit, NetworkExtension, SystemExtensions, and
 Swift 6 strict concurrency. Core 1.0 targets macOS 14 or later and produces
 `arm64` binaries only.
 
+<img width="1392" height="791" alt="image" src="https://github.com/user-attachments/assets/312cf59c-a527-4a59-ac07-12f4c8db7ba6" />
+
 > **Pre-release status:** the non-filtering source lane builds and its automated
 > tests pass. The signed Network Extension, clean-install, fault, soak, and
 > notarization release gates have not run yet. Do not treat this repository as a
