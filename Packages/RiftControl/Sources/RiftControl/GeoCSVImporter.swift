@@ -145,7 +145,9 @@ public enum GeoCSVImporter {
                      latitude, longitude)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """)
-            while let chunk = try handle.read(upToCount: 64 * 1_024), !chunk.isEmpty {
+            while try autoreleasepool(invoking: {
+                guard let chunk = try handle.read(upToCount: 64 * 1_024),
+                      !chunk.isEmpty else { return false }
                 try parser.consume(chunk) { fields, line in
                     if count == 0, line == 1, isHeader(fields) { return }
                     guard count < maximumRecords else { throw GeoCSVImportError.tooManyRecords }
@@ -163,7 +165,8 @@ public enum GeoCSVImporter {
                     ])
                     count += 1
                 }
-            }
+                return true
+            }) {}
             try parser.finish { fields, line in
                 if count == 0, line == 1, isHeader(fields) { return }
                 guard count < maximumRecords else { throw GeoCSVImportError.tooManyRecords }

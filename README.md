@@ -5,7 +5,7 @@ Macs. It is built with SwiftUI, AppKit, NetworkExtension, SystemExtensions, and
 Swift 6 strict concurrency. Core 1.0 targets macOS 14 or later and produces
 `arm64` binaries only.
 
-<img width="1392" height="791" alt="image" src="https://github.com/user-attachments/assets/312cf59c-a527-4a59-ac07-12f4c8db7ba6" />
+<img width="1392" height="791" alt="Rift Monitor showing application activity on a destination map" src="https://github.com/user-attachments/assets/312cf59c-a527-4a59-ac07-12f4c8db7ba6" />
 
 > **Pre-release status:** the non-filtering source lane builds and its automated
 > tests pass. The signed Network Extension, clean-install, fault, soak, and
@@ -81,10 +81,8 @@ Before any source publication or release, run the stricter gate:
 ```
 
 It includes the unsigned workflow and also verifies release metadata and the
-tracked, source-only publication inventory. It intentionally fails this local
-pre-release history, which currently tracks reference imagery rather than the
-working product source. Correcting that history requires explicit owner and
-publication-rights approval; the script never stages, deletes, or rewrites it.
+tracked, source-only publication inventory. It does not stage, delete, rewrite,
+or publish anything.
 
 For the lighter pure-package lane:
 
@@ -109,10 +107,10 @@ Debug UI fixture uses synthetic locations to exercise the map without opening
 the live App Group, history databases, XPC, or extension APIs.
 
 No live Debug or Release app currently exposes **Map Data**, CSV import, or
-**Show Map**. The live map remains disabled until signed MapKit self-traffic,
-production-size database stress, attribution/legal, and accessibility evidence
-passes. The fixture cannot import a real database, and the live Debug surface
-does not bypass those requirements.
+**Show Map**. The live map remains disabled until signed MapKit self-traffic and
+interactive attribution and accessibility evidence pass. The fixture cannot
+import a real database, and the live Debug surface does not bypass those
+requirements.
 
 Rift does not bundle an IP-location database or call a remote geolocation API.
 The reviewed candidate remains
@@ -123,6 +121,12 @@ The August 2026 download is about 87.5 MB compressed and DB-IP reports 673.7 MB
 for the extracted CSV; sizes change monthly. Keep roughly 2 GB free while the
 CSV and generated local index coexist. Import is streamed on a utility task and
 is bounded to a 1 GiB CSV and 10 million records.
+
+The August 2026 production-size import gate passed locally with the official
+706,430,977-byte CSV and all 7,926,653 records. It produced a 679,448,576-byte
+SQLite index in 116.3 seconds with approximately 101 MB peak resident memory;
+representative IPv4 and IPv6 lookups succeeded. These figures are evidence for
+that source file and host, not a universal performance guarantee.
 
 Locations are approximate. Local, private, multicast, broadcast, Bonjour,
 missing, and unmatched destinations remain explicit list groups and are not

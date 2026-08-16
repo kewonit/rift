@@ -17,7 +17,7 @@ for required in CHANGELOG.md CONTRIBUTING.md LICENSE PRIVACY.md README.md \
   fi
 done
 
-if ! rg -q 'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd' \
+if ! /usr/bin/grep -Fq 'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd' \
   "$ROOT/.github/workflows/nonfiltering.yml"; then
   print -u2 "GitHub checkout action is not pinned to the reviewed revision"
   exit 1
@@ -40,9 +40,9 @@ verify_lock "$ROOT/Rift.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Packa
 
 for pin in 36e30a6f1ef10e4194f6af0cff90888526f0c115 \
   6a52f3251125d74daf04fcbd5e6f08a75d074382; do
-  if ! rg -q "$pin" "$ROOT/Rift.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
-    || ! rg -q "$pin" "$ROOT/docs/release/sbom.spdx.json" \
-    || ! rg -q "$pin" "$ROOT/THIRD_PARTY_NOTICES.md"; then
+  if ! /usr/bin/grep -Fq "$pin" "$ROOT/Rift.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
+    || ! /usr/bin/grep -Fq "$pin" "$ROOT/docs/release/sbom.spdx.json" \
+    || ! /usr/bin/grep -Fq "$pin" "$ROOT/THIRD_PARTY_NOTICES.md"; then
     print -u2 "dependency inventory is inconsistent for revision: $pin"
     exit 1
   fi
@@ -58,10 +58,17 @@ if [[ -n "$oversized" ]]; then
   exit 1
 fi
 
-if rg -n --hidden --glob '!.git/**' --glob '!inspiration_images/**' \
-  --glob '!Scripts/release-local-audit.sh' \
-  '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|notarytool.{0,80}(--password|password=))' \
-  "$ROOT"; then
+secret_hits=$(find "$ROOT" \
+  -path "$ROOT/.git" -prune -o \
+  -path "$ROOT/inspiration_images" -prune -o \
+  -type d -name '.build*' -prune -o \
+  -path "$ROOT/Scripts/release-local-audit.sh" -prune -o \
+  -type f -print0 \
+  | xargs -0 /usr/bin/grep -EInI \
+    '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|notarytool.{0,80}(--password|password=))' \
+  || true)
+if [[ -n "$secret_hits" ]]; then
+  print -r -- "$secret_hits"
   print -u2 "possible secret material found"
   exit 1
 fi

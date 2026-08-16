@@ -21,6 +21,10 @@ enum MonitorFixtureData {
         ProcessInfo.processInfo.arguments.contains("--ui-fixture")
     }
 
+    static var usesLiveMap: Bool {
+        ProcessInfo.processInfo.arguments.contains("--ui-fixture-live-map")
+    }
+
     static func signalVisualReadiness() {
         let arguments = ProcessInfo.processInfo.arguments
         guard let flag = arguments.firstIndex(of: "--ui-fixture-ready-file"),

@@ -6,7 +6,7 @@ import Testing
 @testable import RiftControl
 
 @Test func geoCSVImportBoundsCoverCurrentOfficialLiteDataset() {
-    #expect(GeoCSVImporter.maximumFileBytes >= 673_700_000)
+    #expect(GeoCSVImporter.maximumFileBytes >= 706_430_977)
     #expect(GeoCSVImporter.maximumRecords >= 7_926_653)
 }
 

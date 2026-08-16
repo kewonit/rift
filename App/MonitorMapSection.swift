@@ -55,7 +55,7 @@ struct MonitorMapSection: View {
     @ViewBuilder
     private var mapSurface: some View {
 #if DEBUG
-        if isPreview {
+        if isPreview && !MonitorFixtureData.usesLiveMap {
             DestinationMapPreviewView(
                 points: points,
                 linkedPointIDs: origin == nil ? [] : Set(selection.links.map(\.id)),

@@ -72,9 +72,15 @@ struct DestinationMapView: NSViewRepresentable {
         let signature = Self.signature(points: points, links: linkedPointIDs, origin: origin)
         if signature != context.coordinator.signature {
             context.coordinator.signature = signature
-            rebuildMap(map)
+            let coordinator = context.coordinator
+            Task { @MainActor [weak map] in
+                guard let map, coordinator.signature == signature else { return }
+                rebuildMap(map)
+                synchronizeSelection(on: map)
+            }
+        } else {
+            synchronizeSelection(on: map)
         }
-        synchronizeSelection(on: map)
     }
 
     private func rebuildMap(_ map: MKMapView) {
