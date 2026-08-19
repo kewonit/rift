@@ -1,4 +1,5 @@
 import RiftControl
+import RiftCore
 import Foundation
 import Observation
 
@@ -118,5 +119,150 @@ final class GeolocationController {
         return try await repository.resolve(rows.map {
             GeoLookupRequest(id: $0.id, endpoint: $0.event.flow.destinationEndpoint)
         })
+    }
+
+    func approximateNetworkLocation() async throws -> GeoLocation {
+#if DEBUG
+        if fixtureEnabled { return try MonitorFixtureData.approximateNetworkLocation() }
+#endif
+        guard let repository else { throw NetworkOriginError.databaseUnavailable }
+        let address = try await PublicIPAddressLookup.fetch()
+        let endpoint = Endpoint(
+            address: address,
+            port: nil,
+            hostname: nil,
+            hostnameCoverage: .absent,
+            classes: EndpointClassifier.classify(
+                address: address,
+                observedHostname: nil,
+                snapshot: nil
+            ),
+            interfaceSnapshotGeneration: 0
+        )
+        let result = try await repository.resolve([
+            GeoLookupRequest(id: "network-origin", endpoint: endpoint),
+        ])
+        guard let location = result["network-origin"]?.location else {
+            throw NetworkOriginError.locationUnavailable
+        }
+        return location
+    }
+}
+
+private enum NetworkOriginError: Error {
+    case databaseUnavailable
+    case invalidResponse
+    case locationUnavailable
+}
+
+@MainActor
+@Observable
+final class MonitorOriginController {
+    var origin: CoarseMapOrigin?
+    var isPlacingManually = false
+    private(set) var isLocating = false
+    private(set) var automaticLookupFailed = false
+    @ObservationIgnored private var didAttemptAutomaticLookup = false
+    @ObservationIgnored private var lookupTask: Task<Void, Never>?
+
+    func locateAutomatically(using geolocation: GeolocationController) {
+        guard !didAttemptAutomaticLookup else { return }
+        didAttemptAutomaticLookup = true
+        locate(using: geolocation)
+    }
+
+    func locate(using geolocation: GeolocationController) {
+        guard origin == nil, !isLocating else { return }
+        lookupTask?.cancel()
+        isPlacingManually = false
+        isLocating = true
+        automaticLookupFailed = false
+        lookupTask = Task { [weak self, weak geolocation] in
+            guard let self, let geolocation else { return }
+            do {
+                let location = try await geolocation.approximateNetworkLocation()
+                try Task.checkCancellation()
+                origin = CoarseMapOrigin(coordinate: try CoarseMapCoordinate(
+                    latitude: location.latitude,
+                    longitude: location.longitude
+                ))
+            } catch is CancellationError {
+                return
+            } catch {
+                automaticLookupFailed = true
+            }
+            isLocating = false
+            lookupTask = nil
+        }
+    }
+
+    func beginManualPlacement() {
+        cancelLookup()
+        isPlacingManually = true
+    }
+
+    func clearOrigin() {
+        cancelLookup()
+        origin = nil
+    }
+
+    func cancelPlacement() {
+        isPlacingManually = false
+    }
+
+    func cancelLookup() {
+        lookupTask?.cancel()
+        lookupTask = nil
+        isLocating = false
+    }
+}
+
+private enum PublicIPAddressLookup {
+    private static let endpoint = URL(string: "https://api64.ipify.org/")
+
+    static func fetch() async throws -> IPAddress {
+        guard let endpoint else { throw NetworkOriginError.invalidResponse }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.waitsForConnectivity = false
+        configuration.timeoutIntervalForRequest = 5
+        configuration.timeoutIntervalForResource = 7
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+
+        var request = URLRequest(url: endpoint)
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        request.timeoutInterval = 5
+        request.setValue("text/plain", forHTTPHeaderField: "Accept")
+        let delegate = RedirectRejectingURLSessionDelegate()
+        let (bytes, response) = try await session.bytes(for: request, delegate: delegate)
+        guard let http = response as? HTTPURLResponse,
+              http.statusCode == 200,
+              http.url == endpoint else { throw NetworkOriginError.invalidResponse }
+
+        var data = Data()
+        for try await byte in bytes {
+            guard data.count < PublicIPAddressResponse.maximumBytes else {
+                throw PublicIPAddressResponseError.tooLarge
+            }
+            data.append(byte)
+        }
+        return try PublicIPAddressResponse.parse(data)
+    }
+}
+
+private final class RedirectRejectingURLSessionDelegate: NSObject,
+    URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
     }
 }

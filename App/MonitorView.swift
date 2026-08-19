@@ -25,9 +25,9 @@ struct MonitorView: View {
     @State private var loading = false
     @State private var loadError: String?
     @State private var showingMap = false
+    @State private var showingSummary = true
     @State private var showingMapDisclosure = false
-    @State private var mapOrigin: CoarseMapOrigin?
-    @State private var isPlacingOrigin = false
+    @State private var originController = MonitorOriginController()
     @State private var queryTask: Task<Void, Never>?
     @State private var refreshTask: Task<Void, Never>?
     @State private var activeRefreshID = UUID()
@@ -77,7 +77,7 @@ struct MonitorView: View {
                 selectionID: $selectionID,
                 hierarchy: hierarchy,
                 rows: Dictionary(uniqueKeysWithValues: allRows.map { ($0.id, $0) }),
-                summary: summary,
+                summary: summary, isPreview: session.isUIFixture,
                 controlPlane: session.controlPlane,
                 artworkStore: session.applicationArtwork,
                 now: queryNow,
@@ -105,38 +105,34 @@ struct MonitorView: View {
                     metadata: geolocation.metadata,
                     isPreview: session.isUIFixture,
                     selectedLocationID: $query.focusedLocationID,
-                    origin: $mapOrigin,
-                    isPlacingOrigin: $isPlacingOrigin,
+                    originController: originController, geolocation: geolocation,
                     onMapReady: signalFixtureReadiness
                 )
                 .ignoresSafeArea(.container, edges: .top)
                 .frame(minWidth: 420, idealWidth: 645, maxWidth: .infinity)
             }
 
-            MonitorSummaryView(
-                summary: summary,
-                selectedNode: selectedNode,
-                selectedRow: selectedRow,
-                applyingEventID: applyingEventID,
-                artworkStore: session.applicationArtwork,
-                apply: { apply($0, $1) },
-                showRules: { selectedNode.map { showRules($0.ruleCoverage.ruleIDs) } }
-            )
-            .frame(minWidth: 260, idealWidth: 320, maxWidth: 320)
-            .layoutPriority(1)
+            if showingSummary {
+                MonitorSummaryView(
+                    summary: summary, selectedNode: selectedNode, selectedRow: selectedRow,
+                    applyingEventID: applyingEventID, artworkStore: session.applicationArtwork,
+                    apply: { apply($0, $1) }, showRules: {
+                        selectedNode.map { showRules($0.ruleCoverage.ruleIDs) }
+                    }, hideSummary: { showingSummary = false })
+                .ignoresSafeArea(.container, edges: .top)
+                .frame(minWidth: 260, idealWidth: 320, maxWidth: 320).layoutPriority(1)
+            }
         }
         .frame(minWidth: 960, minHeight: 560)
         .toolbar {
             MonitorToolbarContent(
-                isPreview: session.isUIFixture,
-                canShowMap: canShowMap,
-                showingMap: showingMap,
-                showFilterStatus: session.requestFilterStatus,
+                canShowMap: canShowMap, showingMap: showingMap,
+                showingSummary: showingSummary,
                 openRules: {
                     openWindow(id: "rules")
                     NSApplication.shared.activate(ignoringOtherApps: true)
                 },
-                toggleMap: toggleMap,
+                toggleMap: toggleMap, showSummary: { showingSummary = true },
                 refresh: { scheduleReload() }
             )
         }
@@ -154,12 +150,12 @@ struct MonitorView: View {
             titleVisibility: .visible
         ) {
             Button("Show Map") {
-                UserDefaults.standard.set(true, forKey: "monitorMapDisclosureAcknowledged")
+                UserDefaults.standard.set(true, forKey: "monitorMapDisclosureAcknowledgedV2")
                 setMapVisible(true)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("MapKit requests tiles for viewed regions. Destination lookup remains local, and Rift does not send endpoint IPs or app identities to a geolocation service.")
+            Text("MapKit requests tiles for viewed regions. Rift asks api64.ipify.org for your public IP once per map session, resolves its approximate location with the local DB-IP database, and keeps only a coarse coordinate in memory. Destination IPs and app identities are not sent to ipify or DB-IP.")
         }
         .modifier(MonitorManagedListOverrideConfirmation(
             pending: $pendingManagedListOverride,
@@ -178,8 +174,8 @@ struct MonitorView: View {
             Task { await reloadGeography() }
         }
         .onKeyPress(.escape) {
-            guard isPlacingOrigin else { return .ignored }
-            isPlacingOrigin = false
+            guard originController.isPlacingManually else { return .ignored }
+            originController.cancelPlacement()
             return .handled
         }
         .onDisappear { stop(); session.controlPlane.monitorDidDisappear() }
@@ -199,15 +195,16 @@ struct MonitorView: View {
             showingMap = true
         } else {
             showingMap = geolocation.isAvailable
-                && UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledged")
+                && UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledgedV2")
                 && UserDefaults.standard.bool(forKey: "monitorMapVisible")
         }
 #else
         showingMap = geolocation.isAvailable
-            && UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledged")
+            && UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledgedV2")
             && UserDefaults.standard.bool(forKey: "monitorMapVisible")
 #endif
         monitorIsReady = true
+        if isMapVisible { originController.locateAutomatically(using: geolocation) }
         let task = scheduleReload()
         await task?.value
     }
@@ -452,11 +449,11 @@ struct MonitorView: View {
         }
 #if DEBUG
         if session.isUIFixture {
-            showingMap = true
+            setMapVisible(true)
             return
         }
 #endif
-        if UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledged") {
+        if UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledgedV2") {
             setMapVisible(true)
         } else {
             showingMapDisclosure = true
@@ -475,7 +472,10 @@ struct MonitorView: View {
 #endif
         if !willShow {
             if query.focusedLocationID != nil { query.focusedLocationID = nil }
-            if isPlacingOrigin { isPlacingOrigin = false }
+            originController.cancelPlacement()
+            originController.cancelLookup()
+        } else {
+            originController.locateAutomatically(using: geolocation)
         }
     }
 
@@ -484,9 +484,9 @@ struct MonitorView: View {
         guard !session.isUIFixture else { return }
 #endif
         guard canShowMap,
-              UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledged"),
+              UserDefaults.standard.bool(forKey: "monitorMapDisclosureAcknowledgedV2"),
               UserDefaults.standard.bool(forKey: "monitorMapVisible") else { return }
-        showingMap = true
+        setMapVisible(true)
     }
 
     private func signalFixtureReadiness() {

@@ -8,6 +8,7 @@ struct MonitorSidebarView: View {
     let hierarchy: [MonitorHierarchyNode]
     let rows: [String: MonitorEventRow]
     let summary: MonitorSummarySnapshot
+    let isPreview: Bool
     let controlPlane: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
     let now: Date
@@ -68,6 +69,24 @@ struct MonitorSidebarView: View {
             .labelsHidden()
             .pickerStyle(.menu)
             filters
+            if isPreview {
+                ViewThatFits(in: .horizontal) {
+                    Text("Preview")
+                    Image(systemName: "eye")
+                }
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .help("Preview data. This is not live filtering.")
+                .accessibilityLabel("Preview data. This is not live filtering.")
+            } else {
+                Button(action: showFilterStatus) {
+                    Label("Filter Status", systemImage: "shield")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.plain)
+                .help("Filter status")
+            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -158,45 +177,43 @@ struct MonitorSidebarView: View {
 }
 
 struct MonitorToolbarContent: ToolbarContent {
-    let isPreview: Bool
     let canShowMap: Bool
     let showingMap: Bool
-    let showFilterStatus: () -> Void
+    let showingSummary: Bool
     let openRules: () -> Void
     let toggleMap: () -> Void
+    let showSummary: () -> Void
     let refresh: () -> Void
 
     @ToolbarContentBuilder
     var body: some ToolbarContent {
-        if isPreview {
-            ToolbarItem {
-                Text("Preview")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("Preview data. This is not live filtering.")
-            }
-        } else {
-            ToolbarItem {
-                Button(action: showFilterStatus) {
-                    Label("Filter Status", systemImage: "shield")
-                }
-            }
-        }
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .secondaryAction) {
             Button(action: openRules) {
                 Label("Rules", systemImage: "list.bullet.rectangle")
             }
+            .help("Open rules")
             if canShowMap {
                 Button(action: toggleMap) {
                     Label(showingMap ? "Hide Map" : "Show Map", systemImage: "map")
                 }
+                .help(showingMap ? "Hide map" : "Show map")
             }
+            if !showingSummary {
+                Button(action: showSummary) {
+                    Label("Show Summary", systemImage: "sidebar.right")
+                }
+                .help("Show summary")
+            }
+        }
+        ToolbarItemGroup(placement: .primaryAction) {
             Button(action: refresh) {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
+            .help("Refresh activity")
             SettingsLink {
                 Label("Settings", systemImage: "gearshape")
             }
+            .help("Open settings")
         }
     }
 }

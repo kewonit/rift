@@ -10,6 +10,7 @@ struct MonitorSummaryView: View {
     let artworkStore: ApplicationArtworkStore
     let apply: (FilterAction, MonitorHierarchyNode) -> Void
     let showRules: () -> Void
+    let hideSummary: () -> Void
     @State private var connectionsExpanded = true
     @State private var statisticsExpanded = true
 
@@ -57,8 +58,13 @@ struct MonitorSummaryView: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.secondary)
+            Button(action: hideSummary) {
+                Image(systemName: "line.3.horizontal")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Hide Summary")
+            .help("Hide Summary")
             VStack(alignment: .leading, spacing: 1) {
                 Text("Summary").font(.title2.weight(.semibold))
                 Text(summaryCountLabel)

@@ -1,8 +1,8 @@
 # Third-party notices
 
-Rift 0.1.0 uses the following exact source dependencies. Apple platform
-frameworks are supplied by macOS/Xcode and are not redistributed as third-party
-packages by this project.
+Rift 0.1.0 uses these exact source dependencies. macOS and Xcode provide the
+Apple platform frameworks. This project does not redistribute them as
+third-party packages.
 
 ## GRDB.swift 7.10.0
 
@@ -42,15 +42,15 @@ Library Exception:
 > you may redistribute such product without providing attribution as would
 > otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
 
-## DB-IP City Lite (optional user-provided data)
+## DB-IP City Lite (optional, user-provided data)
 
 DB-IP City Lite is not bundled with Rift and is not downloaded automatically.
-Users may manually obtain a current CSV snapshot from
-[DB-IP City Lite](https://db-ip.com/db/lite.php). The data is provided by DB-IP
-under the [Creative Commons Attribution 4.0 International license](https://creativecommons.org/licenses/by/4.0/).
+Users can obtain a current CSV snapshot from [DB-IP City Lite](https://db-ip.com/db/lite.php).
+DB-IP provides the data under the [Creative Commons Attribution 4.0
+International license](https://creativecommons.org/licenses/by/4.0/).
 
 Required attribution: **IP Geolocation by DB-IP**.
 
-When a user imports the CSV, Rift transforms its ranges into a local SQLite
-index for offline lookup. Rift does not intentionally alter the source location
-values. DB-IP data is approximate and may be stale or incorrect.
+When a user imports the CSV, Rift converts its ranges into a local SQLite index
+for offline lookup. Rift does not intentionally change the source location
+values. DB-IP data is approximate and may be stale or wrong.

@@ -15,6 +15,7 @@ struct SettingsView: View {
     @AppStorage("alertDefaultScope") private var alertDefaultScope = "Current profile"
     @State private var section: SettingsSection = .general
     @State private var launchAtLogin = false
+    @State private var loginItemLoaded = false
     @State private var baseMode: OperationMode = .silentAllow
     @State private var effectiveMode: OperationMode = .silentAllow
     @State private var confirmedBaseMode: OperationMode = .silentAllow
@@ -48,24 +49,44 @@ struct SettingsView: View {
                 Label(item.rawValue, systemImage: item.symbol).tag(item)
             }
             .navigationTitle("Settings")
-            .navigationSplitViewColumnWidth(min: 155, ideal: 175)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 195, max: 220)
         } detail: {
-            pane
-                .navigationTitle(section.rawValue)
-                .disabled(isPreview)
-                .overlay(alignment: .topTrailing) {
-                    if isPreview {
-                        Text("Preview")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(12)
-                    }
+            VStack(spacing: 0) {
+                if isPreview {
+                    Label("Preview data — settings are read-only", systemImage: "eye")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(.bar)
+                    Divider()
                 }
+
+                pane
+                    .allowsHitTesting(!isPreview)
+                    .accessibilityHidden(isPreview)
+            }
+            .navigationTitle(section.rawValue)
         }
-        .frame(minWidth: 760, idealWidth: 820, minHeight: 560, idealHeight: 600)
+        .navigationSplitViewStyle(.balanced)
+        .frame(
+            minWidth: 700,
+            idealWidth: 760,
+            maxWidth: 900,
+            minHeight: 460,
+            idealHeight: 500,
+            maxHeight: 640
+        )
         .task {
-            guard !isPreview else { return }
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            guard !isPreview else {
+#if DEBUG
+                loadFixtureSettings()
+#endif
+                loaded = true
+                loginItemLoaded = true
+                return
+            }
             recentLimit = min(max(recentLimit, 0), 25)
             if !["Once", "One hour", "Permanent"].contains(alertDefaultLifetime) {
                 alertDefaultLifetime = "Once"
@@ -73,8 +94,15 @@ struct SettingsView: View {
             if !["Current profile", "All profiles"].contains(alertDefaultScope) {
                 alertDefaultScope = "Current profile"
             }
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+            loginItemLoaded = true
             await load()
             loaded = true
+        }
+        .onChange(of: geolocation.isMapUIAdmitted) { _, isAdmitted in
+            if !isAdmitted, section == .map {
+                section = .general
+            }
         }
         .safeAreaInset(edge: .bottom) {
             if let message {
@@ -170,7 +198,8 @@ struct SettingsView: View {
                 baseMode: $baseMode,
                 launchAtLogin: $launchAtLogin,
                 effectiveMode: effectiveMode,
-                isChangingBaseMode: isChangingBaseMode,
+                isChangingBaseMode: isChangingBaseMode || !loaded,
+                isLoginItemReady: loginItemLoaded,
                 baseModeChanged: changeBaseMode,
                 loginItemChanged: configureLoginItem
             )
@@ -230,6 +259,19 @@ struct SettingsView: View {
             $0 != .map || geolocation.isMapUIAdmitted
         }
     }
+
+#if DEBUG
+    private func loadFixtureSettings() {
+        let configuration = MonitorFixtureData.ruleWorkspaceSnapshot.configuration
+        baseMode = configuration.baseOperationMode
+        confirmedBaseMode = configuration.baseOperationMode
+        effectiveMode = configuration.operationMode
+        groups = configuration.localGroups
+        profiles = configuration.profiles
+        blocklists = configuration.blocklists
+        activeProfileID = configuration.activeProfileID
+    }
+#endif
 
     private func load() async {
         do {
@@ -442,7 +484,7 @@ struct SettingsView: View {
     }
 
     private func configureLoginItem(_ enabled: Bool) {
-        guard loaded else {
+        guard loginItemLoaded else {
             launchAtLogin = false
             message = "Rift is still checking the login-item setting. Try again in a moment."
             return

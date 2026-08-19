@@ -33,6 +33,26 @@ final class ApplicationArtworkStore {
     private var workspaceGeneration: UInt64 = 0
 #if DEBUG
     private static let fixtureCanary = "RIFT_UI_FIXTURE_ARTWORK_ONLY_5C8E1D42"
+    private static let fixtureBundleIdentifiers = [
+        "Safari": "com.apple.Safari",
+        "Google Chrome": "com.google.Chrome",
+        "Mail": "com.apple.mail",
+        "Music": "com.apple.Music",
+        "App Store": "com.apple.AppStore",
+        "FaceTime": "com.apple.FaceTime",
+        "Maps": "com.apple.Maps",
+        "Calendar": "com.apple.iCal",
+        "Messages": "com.apple.MobileSMS",
+        "Notes": "com.apple.Notes",
+        "Photos": "com.apple.Photos",
+        "Terminal": "com.apple.Terminal",
+        "Preview": "com.apple.Preview",
+        "Weather": "com.apple.weather",
+        "Xcode": "com.apple.dt.Xcode",
+        "Books": "com.apple.iBooksX",
+        "Podcasts": "com.apple.podcasts",
+        "TV": "com.apple.TV",
+    ]
     private let usesFixtureArtwork: Bool
 #endif
 
@@ -247,6 +267,16 @@ final class ApplicationArtworkStore {
 #if DEBUG
     private func fixtureArtwork(for identity: ProcessIdentity) -> ApplicationArtwork? {
         let label = lookupIdentifier(identity) ?? "App"
+        if let bundleIdentifier = Self.fixtureBundleIdentifiers[label] {
+            let candidates = NSWorkspace.shared.urlsForApplications(
+                withBundleIdentifier: bundleIdentifier
+            )
+            let distinct = Dictionary(grouping: candidates, by: { $0.standardizedFileURL.path })
+                .compactMap { $0.value.first }
+            if distinct.count == 1, let artwork = renderArtwork(at: distinct[0]) {
+                return artwork
+            }
+        }
         let seed = (Self.fixtureCanary + label).unicodeScalars.reduce(0) {
             ($0 &* 33 &+ Int($1.value)) % 360
         }

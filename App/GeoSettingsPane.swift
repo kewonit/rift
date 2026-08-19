@@ -62,7 +62,7 @@ struct GeoSettingsPane: View {
 
             Section("Privacy and accuracy") {
                 Text("Rift performs IP-to-location lookups only on this Mac. Locations are approximate and can be stale or incorrect; they must not be used to identify a person or precise address.")
-                Text("The destination map is hidden by default. When you show it, MapKit requests Apple map tiles for the viewed coordinate regions. Rift does not send endpoint IPs, hostnames, or application identities to DB-IP or another lookup API.")
+                Text("The destination map is hidden by default. When you show it, MapKit requests Apple map tiles and Rift asks api64.ipify.org for your public IP once per map session. Rift resolves that address locally, keeps only a coarse coordinate in memory, and does not send destination IPs, hostnames, or application identities to ipify or DB-IP.")
             }
             .font(.caption)
             .foregroundStyle(.secondary)

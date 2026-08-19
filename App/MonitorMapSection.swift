@@ -7,8 +7,8 @@ struct MonitorMapSection: View {
     let metadata: GeoDatabaseMetadata?
     let isPreview: Bool
     @Binding var selectedLocationID: String?
-    @Binding var origin: CoarseMapOrigin?
-    @Binding var isPlacingOrigin: Bool
+    @Bindable var originController: MonitorOriginController
+    let geolocation: GeolocationController
     let onMapReady: () -> Void
     @State private var showingInformation = false
 
@@ -49,7 +49,7 @@ struct MonitorMapSection: View {
                 .frame(maxWidth: 360)
             }
         }
-        .onExitCommand { isPlacingOrigin = false }
+        .onExitCommand { originController.cancelPlacement() }
     }
 
     @ViewBuilder
@@ -58,11 +58,11 @@ struct MonitorMapSection: View {
         if isPreview && !MonitorFixtureData.usesLiveMap {
             DestinationMapPreviewView(
                 points: points,
-                linkedPointIDs: origin == nil ? [] : Set(selection.links.map(\.id)),
+                linkedPointIDs: originController.origin == nil ? [] : Set(selection.links.map(\.id)),
                 accessibilityValue: accessibilitySummary,
                 selectionID: $selectedLocationID,
-                origin: $origin,
-                isPlacingOrigin: $isPlacingOrigin,
+                origin: $originController.origin,
+                isPlacingOrigin: $originController.isPlacingManually,
                 onReady: onMapReady
             )
         } else {
@@ -76,11 +76,11 @@ struct MonitorMapSection: View {
     private var liveMap: some View {
         DestinationMapView(
             points: points,
-            linkedPointIDs: origin == nil ? [] : Set(selection.links.map(\.id)),
+            linkedPointIDs: originController.origin == nil ? [] : Set(selection.links.map(\.id)),
             accessibilityValue: accessibilitySummary,
             selectionID: $selectedLocationID,
-            origin: $origin,
-            isPlacingOrigin: $isPlacingOrigin,
+            origin: $originController.origin,
+            isPlacingOrigin: $originController.isPlacingManually,
             reduceMotion: reduceMotion,
             onReady: onMapReady
         )
@@ -88,19 +88,34 @@ struct MonitorMapSection: View {
 
     private var originControls: some View {
         HStack(spacing: 6) {
-            if isPlacingOrigin {
+            if originController.isPlacingManually {
                 Text("Click to set origin")
                     .font(.caption)
-                Button("Cancel") { isPlacingOrigin = false }
-            } else if origin == nil {
+                Button("Cancel") { originController.cancelPlacement() }
+            } else if originController.isLocating {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Finding network location…")
+                    .font(.caption)
+            } else if originController.origin == nil {
                 Button {
-                    isPlacingOrigin = true
+                    originController.locate(using: geolocation)
                 } label: {
-                    Label("Set Approximate Origin", systemImage: "scope")
+                    Label(
+                        originController.automaticLookupFailed
+                            ? "Retry Network Location" : "Use Network Location",
+                        systemImage: "location.circle"
+                    )
+                }
+                Menu {
+                    Button("Set Manually") { originController.beginManualPlacement() }
+                } label: {
+                    Label("Origin Options", systemImage: "ellipsis.circle")
+                        .labelStyle(.iconOnly)
                 }
             } else {
                 Button {
-                    origin = nil
+                    originController.clearOrigin()
                 } label: {
                     Label("Clear Origin", systemImage: "scope")
                 }
@@ -142,9 +157,10 @@ struct MonitorMapSection: View {
                 Text("\(metadata.sourceName) · \(metadata.sourceVersion)")
                 Text("Imported \(metadata.importedAt.formatted(date: .abbreviated, time: .omitted))")
             }
-            Text("Connection links show relationships to the chosen approximate origin, not packet routes.")
+            Text("Connection links use an approximate network origin, not an observed packet route or precise device location.")
             Text("CDNs, VPNs, and relays may represent an observed endpoint rather than a service owner.")
-            Text("MapKit requests tiles for viewed regions. Rift does not send endpoint IPs or app identities to a geolocation service.")
+            Text("Rift asks api64.ipify.org for the public IP once per map session, resolves it with the local DB-IP database, then keeps only a coarse coordinate in memory.")
+            Text("MapKit requests tiles for viewed regions. Destination IPs and application identities are not sent to ipify or DB-IP.")
             if let url = Self.licenseURL {
                 Link("DB-IP City Lite · CC BY 4.0", destination: url)
             } else {

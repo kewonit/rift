@@ -64,6 +64,8 @@ struct RiftApp: App {
                 )
             }
         }
+        .defaultSize(width: 760, height: 500)
+        .windowResizability(.contentMinSize)
     }
 }
 

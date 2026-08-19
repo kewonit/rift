@@ -8,6 +8,7 @@ struct GeneralSettingsPane: View {
     @Binding var launchAtLogin: Bool
     let effectiveMode: OperationMode
     let isChangingBaseMode: Bool
+    let isLoginItemReady: Bool
     let baseModeChanged: (OperationMode) -> Void
     let loginItemChanged: (Bool) -> Void
 
@@ -34,8 +35,14 @@ struct GeneralSettingsPane: View {
                 Text("Observe Only leaves the provider running but allows visible connections.")
             }
             Section("Startup") {
-                Toggle("Launch Rift at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, value in loginItemChanged(value) }
+                Toggle("Launch Rift at login", isOn: Binding(
+                    get: { launchAtLogin },
+                    set: { value in
+                        launchAtLogin = value
+                        loginItemChanged(value)
+                    }
+                ))
+                .disabled(!isLoginItemReady)
             }
         }
         .formStyle(.grouped)

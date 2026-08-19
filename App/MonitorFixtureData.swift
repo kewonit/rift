@@ -135,6 +135,17 @@ enum MonitorFixtureData {
         })
     }
 
+    static func approximateNetworkLocation() throws -> GeoLocation {
+        try GeoLocation(
+            continentCode: "EU",
+            countryCode: "FR",
+            region: "Île-de-France",
+            city: "Paris",
+            latitude: 48.8566,
+            longitude: 2.3522
+        )
+    }
+
     static func decisionBuckets(
         from start: Date,
         to end: Date,
@@ -166,15 +177,15 @@ enum MonitorFixtureData {
     private static func makeRows() throws -> [MonitorEventRow] {
         let provider = try requiredUUID("612E26C2-C04B-42EA-90E9-78BD0567799C")
         let appNames = [
-            "browser", "calendar", "chat", "cloud", "editor", "mail",
-            "music", "notes", "photos", "reader", "terminal", "weather",
-            "backup", "camera", "design", "finance", "maps", "video",
+            "Safari", "Google Chrome", "Mail", "Music", "App Store", "FaceTime",
+            "Maps", "Calendar", "Messages", "Notes", "Photos", "Terminal",
+            "Preview", "Weather", "Xcode", "Books", "Podcasts", "TV",
         ]
         return try (0..<54).map { index in
             let appName = appNames[index % appNames.count]
             let identity = ProcessIdentity.developerID(try SignedCodeIdentity(
                 teamIdentifier: "RIFTPREVIEW",
-                signingIdentifier: appName.capitalized
+                signingIdentifier: appName
             ))
             let host = try DomainName("node-\(index + 1).rift.test")
             let address = try IPAddress(address(for: index))
@@ -226,18 +237,18 @@ enum MonitorFixtureData {
     private static func makeRules() throws -> [Rule] {
         let lineage = try requiredUUID("A4F31042-EA13-4D42-B307-AB1D70160322")
         let specifications: [(String, String, FilterAction, UInt16, Bool)] = [
-            ("browser", "media.rift.test", .allow, 443, true),
-            ("calendar", "sync.rift.test", .allow, 443, true),
-            ("chat", "presence.rift.test", .deny, 443, true),
-            ("cloud", "storage.rift.test", .allow, 443, false),
-            ("mail", "mail.rift.test", .ask, 993, true),
-            ("music", "audio.rift.test", .deny, 443, true),
+            ("Safari", "media.rift.test", .allow, 443, true),
+            ("Calendar", "sync.rift.test", .allow, 443, true),
+            ("Messages", "presence.rift.test", .deny, 443, true),
+            ("Google Chrome", "storage.rift.test", .allow, 443, false),
+            ("Mail", "mail.rift.test", .ask, 993, true),
+            ("Music", "audio.rift.test", .deny, 443, true),
         ]
         let manualRules = try specifications.enumerated().map { index, value in
             let (appName, hostname, action, port, enabled) = value
             let identity = ProcessIdentity.developerID(try SignedCodeIdentity(
                 teamIdentifier: "RIFTPREVIEW",
-                signingIdentifier: appName.capitalized
+                signingIdentifier: appName
             ))
             let createdAt = referenceNow.addingTimeInterval(TimeInterval(-(index + 1) * 86_400))
             return try Rule(
