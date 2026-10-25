@@ -1,74 +1,14 @@
-# Dependencies
-node_modules/
-
-# Build outputs
-visualizer/dist/
-visualizer/.vite/
-visualizer/coverage/
-visualizer/*.tsbuildinfo
-sniffer-core/build/
-sniffer-core/**/build/
-tauri-host/src-tauri/target/
-
-# IDE
-.vscode/launch.json
-.vscode/tasks.json
-.idea/
-.github/agents
-*.swp
-*.swo
-*~
-
-# OS
+.build/
+.build-*/
+.derived-data*/
+.swiftpm/
+xcuserdata/
+*.xcuserstate
 .DS_Store
-Thumbs.db
-desktop.ini
-
-# C++ build artifacts
-*.o
-*.obj
-*.exe
-*.lib
-*.dll
-*.so
-*.dylib
-*.pdb
-*.ilk
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-compile_commands.json
-Makefile
-
-# TypeScript
-*.tsbuildinfo
-
-# Rust
-target/
-
-# Logs
-*.log
-
-# Refactoring plans (local only)
-.refactor/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Npcap SDK (don't commit third-party SDK)
-npcap-sdk/
-
-# Build artifacts & release binaries
-artifacts/
-
-# Internal planning docs
-docs/
-docs/internal/
-scripts
-skills
+inspiration_images/
+*.xcarchive/
+*.dmg
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile

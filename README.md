@@ -1,130 +1,147 @@
-# ABYSS
+# Rift
 
-Real-time network traffic dashboard. Captures live connections, geolocates endpoints, and renders them on an interactive world map.
+Rift is an open-source, native macOS content-filter firewall for Apple silicon
+Macs. It uses SwiftUI, AppKit, NetworkExtension, SystemExtensions, and Swift 6
+strict concurrency. Core 1.0 targets macOS 15 and later and builds only
+`arm64` binaries.
 
-<img width="2041" height="1147" alt="Screenshot 2026-02-26 214044" src="https://github.com/user-attachments/assets/966b281a-7a9b-40e9-84de-e6097fc8409b" />
+> **Pre-release status:** The non-filtering source lane builds, and its automated
+> tests pass. Signed live-filtering, clean-install, fault, and soak testing are
+> not complete, and no signed build has been published. Do not treat this
+> repository as a released or independently verified firewall.
 
----
+## Apple membership requirements
 
-## Architecture
+You can clone, inspect, change, test, and compile the source at no cost. The
+unsigned local lane does not require an Apple account. A free Personal Team can
+sign ordinary personal apps, but it does not make Rift's full content-filter
+lane generally runnable or distributable.
 
+To run Rift as a system-wide firewall, provision the host app and system
+extension with Apple-authorized App Group, System Extension, and Network
+Extension capabilities. To distribute a download from GitHub, you also need
+Developer ID signing and notarization. An Apple Developer Program team provides
+these assets. Signed live-filtering evidence and Mac App Store validation are
+still pending.
+
+Apple references:
+
+- [Developer account overview](https://developer.apple.com/help/account/basics/about-your-developer-account)
+- [Network Extensions entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.networkextension)
+- [Supported macOS capabilities](https://developer.apple.com/help/account/reference/supported-capabilities-macos/)
+
+In short:
+
+| Use | Free local lane | Paid Apple program/team |
+|---|---:|---:|
+| Read, modify, and run package tests | Yes | No |
+| Compile the unsigned app, extension, and CLI | Yes | No |
+| Test the MapKit UI fixtures | Yes | No |
+| Exercise pure rule/history/archive/IPC logic | Yes | No |
+| Activate the system-wide content filter | No | Yes, with matching capabilities and profiles |
+| Publish a notarized GitHub download | No | Yes, with Developer ID and notarization |
+
+For contributors, a GitHub source archive or clone provides a free build, test,
+and UI lane. It does not turn the unsigned app into a functioning system-wide
+firewall. A contributor with an authorized Developer Program team can supply
+their own identifiers and profiles for signed integration testing.
+
+For end users, the intended distribution is a paid Mac App Store download.
+End users will not need an Apple account beyond the normal App Store account or
+their own developer membership. They will need to approve the Network Extension
+and system extension in macOS. Store receipt, clean-install, and entitlement
+validation are still pending.
+
+## Build the unsigned local lane
+
+Requirements:
+
+- Apple silicon Mac
+- macOS 15 or later
+- Xcode 26.6 or newer with the command-line tools selected
+
+Run the maintained unsigned build workflow:
+
+```sh
+./Scripts/test-nonfiltering.sh
 ```
-+--------------------------------------------------------------+
-|  Tauri v2 Desktop Shell                                      |
-|                                                              |
-|   Rust Backend          event    React Frontend              |
-|   (lib.rs)            -------->  (Vite + MapLibre GL)        |
-|   writer.rs (SQLite)             store.ts (Zustand)          |
-|   db.rs (queries)                sessions.ts (IPC)           |
-|                                                              |
-|   - netstat parser               - Interactive world map     |
-|   - GeoIP resolver               - Great-circle arcs        |
-|   - 1 Hz event loop              - Session browser           |
-|   - Session persistence          - Playback / analytics      |
-|   - Anomaly detection            - Health score dashboard    |
-+--------------------------------------------------------------+
+
+The workflow runs all four Swift package suites. It creates an unsigned Release
+build. It checks that the app, extension, and embedded CLI are arm64-only and
+correctly contained. It does not install, launch, activate, or modify a system
+extension. The same script is the only job in the GitHub Actions workflow. That
+job is named **Unsigned arm64 audit (no filtering)** and publishes no app
+artifact.
+
+Before any source publication or release candidate, run the stricter gate:
+
+```sh
+./Scripts/release-local-audit.sh
 ```
 
-**Rust backend** runs `netstat` every second, parses active TCP/UDP connections, batch-geolocates public IPs via [ip-api.com](http://ip-api.com), and emits a `telemetry-frame` event through Tauri's IPC. A dedicated OS thread writer persists frames, flows, and process usage to SQLite (WAL mode). Baseline profiling and anomaly detection run against stored session data.
+The gate includes the unsigned workflow. It also verifies release metadata and
+the tracked publication inventory. It does not stage, delete, rewrite, or
+publish anything.
 
-**React frontend** subscribes to that event, updates a Zustand store, and renders:
+For the lighter pure-package lane:
 
-- **MapLibre GL** map with CARTO Dark Matter tiles
-- **Great-circle arcs** from local machine to each remote endpoint
-- **Floating status pills** showing throughput, latency, and flow count
-- **Stats sidebar** with sparklines, protocol breakdown, and active flows
-- **Session browser** with search, tagging, status badges, and comparison
-- **Playback timeline** with speed control and keyboard shortcuts
-- **Analytics dashboard** with cross-session trends and insights
-- **Anomaly detection** with baseline profiling and health score
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- **Rust** (latest stable) — [rustup.rs](https://rustup.rs)
-- **Node.js** ≥ 18 — [nodejs.org](https://nodejs.org)
-- **Tauri CLI** — `cargo install tauri-cli`
-
-### Development
-
-```bash
-# 1. Install frontend dependencies
-cd visualizer && npm install && cd ..
-
-# 2. Run the full app (Vite dev server + Rust backend)
-cargo tauri dev
+```sh
+swift test --package-path Packages/RiftCore
+swift test --package-path Packages/RiftIPC
+swift test --package-path Packages/RiftControl
+swift test --package-path Packages/RiftFilterRuntime
 ```
 
-This starts the Vite dev server for the frontend and compiles + launches the Tauri desktop app. The app requires an **elevated/admin shell** on Windows for `netstat -bno` access.
+Package tests cover the deterministic matcher, policy and state machines, and
+bounded IPC and file transfer. They cover root policy-store recovery,
+configuration and history repositories, backups, and archives. They also cover
+diagnostics redaction, monitor logic, and rule logic. They do not claim that
+live macOS filtering works.
 
-### Production Build
+## Map
 
-```bash
-cargo tauri build
-```
+The Live Map uses Apple MapKit for the basemap. It shows only the location you
+place for this Mac. Rift doesn't look up your location or where connections
+go, and it doesn't send destination addresses to any service. The location you
+place is rounded to `0.25°` and saved on this Mac only. MapKit requests imagery
+and labels from Apple as you pan and zoom; Rift doesn't give Apple destination
+IP addresses, hostnames, app identities, or firewall decisions.
 
-Output goes to `tauri-host/src-tauri/target/release/bundle/`.
+## Signed integration and distribution
 
-### Keyboard Shortcuts
+The repository contains no Team ID, certificate, provisioning profile, notary
+credential, or signing secret. When an authorized Apple Developer Program team
+is available, follow the [build and signing guide](docs/release/build-signing.md).
+The paid Mac App Store lane still requires capability approval, App Store
+Connect/TestFlight validation, and clean-machine filtering, recovery, and
+performance tests. Direct distribution has a separate notarization gate.
 
-| Key          | Action                |
-| ------------ | --------------------- |
-| `S`          | Toggle session drawer |
-| `Escape`     | Return to live view   |
-| `Ctrl+N`     | Start new session     |
-| `Space`      | Play/pause playback   |
-| `←` / `→`    | Skip ±10 frames       |
-| `Home`/`End` | Jump to start/end     |
+## Design and safety boundaries
 
----
+- Rift fails open when no compatible, validated policy is available.
+- Rift does not collect packet payloads or complete URLs. It does not use
+  analytics or upload diagnostics automatically.
+- Privacy-hidden flows do not enter monitor history or user-visible aggregates.
+- New installations keep connection history in memory only: up to 10 recent
+  connections for five minutes in visible activity views, or five in the menu
+  panel alone. Hidden activity views stop collection and release those buffers.
+  Persistent history is opt-in; saved rules remain enforced either way.
+- The app owns editable user configuration. The extension owns the validated,
+  durable enforcement cache.
+- Rift does not enable a remote blocklist URL or an automatic updater. It
+  doesn't geolocate connections. Apple MapKit requests the visible basemap
+  region.
 
-## Stack
+Read the [runtime limitations and recovery](docs/release/runtime-limitations.md),
+[threat model](docs/security/threat-model.md), [privacy notice](PRIVACY.md),
+and [third-party notices](THIRD_PARTY_NOTICES.md). The [software bill of
+materials (SBOM)](docs/release/sbom.spdx.json) and [reproducibility and symbol
+notes](docs/release/reproducibility.md) describe the current source candidate.
 
-| Layer    | Tech                                     |
-| -------- | ---------------------------------------- |
-| Shell    | Tauri v2                                 |
-| Backend  | Rust (reqwest, tokio, serde, rusqlite)   |
-| Database | SQLite (WAL mode, bundled via rusqlite)  |
-| Frontend | React 18, Vite 6, Zustand 4, Tailwind v4 |
-| Charts   | uPlot 1.6                                |
-| Map      | MapLibre GL JS, CARTO Dark Matter tiles  |
-| UI       | Radix UI (Dialog, Switch), Lucide icons  |
-| GeoIP    | ip-api.com (free, no key)                |
+## Contribute or report a security issue
 
----
+Read [the contribution guide](CONTRIBUTING.md) before changing code. Report
+security issues as described in [the security policy](SECURITY.md). Do not
+attach private network data or signing material.
 
-## Structure
-
-```
-abyss/
-├── tauri-host/src-tauri/
-│   └── src/
-│       ├── main.rs          # Entry point
-│       ├── lib.rs           # 35+ Tauri commands, monitor loop, geo
-│       ├── db.rs            # SQLite schema, migrations, analytics
-│       └── writer.rs        # Dedicated OS thread for persistence
-├── visualizer/src/
-│   ├── App.tsx              # Root – event listener + keyboard shortcuts
-│   ├── components/
-│   │   ├── NetworkMap.tsx   # MapLibre GL world map + arcs
-│   │   ├── TopBar.tsx       # Status pills, health score, settings
-│   │   ├── StatsPanel.tsx   # Sidebar – sparklines, protocols, flows
-│   │   ├── SessionDrawer.tsx    # Session browser with search & badges
-│   │   ├── SessionDetail.tsx    # Full session analysis (3 tabs)
-│   │   ├── PlaybackTimeline.tsx # Playback controls & speed
-│   │   ├── AnalyticsDashboard.tsx # Cross-session analytics
-│   │   ├── SessionComparison.tsx  # Side-by-side comparison
-│   │   └── UPlotChart.tsx   # Chart wrapper
-│   └── telemetry/
-│       ├── store.ts         # Zustand state (live + playback)
-│       ├── schema.ts        # Frame type definitions
-│       ├── sessions.ts      # TypeScript interfaces + Tauri IPC
-│       └── cables.ts        # Submarine cable overlay data
-├── scripts/
-│   ├── build-release.ps1    # Release build script
-│   └── soak-test.ps1        # Performance soak testing
-└── docs/internal/           # Implementation plans
-```
+Licensed under the [Apache License 2.0](LICENSE).

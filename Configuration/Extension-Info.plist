@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>RiftAppGroupIdentifier</key>
+	<string>$(RIFT_APP_GROUP)</string>
+	<key>RiftTeamIdentifierPrefix</key>
+	<string>$(TeamIdentifierPrefix)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Rift Network Filter</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>SYSX</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>NSSystemExtensionUsageDescription</key>
+    <string>Rift uses a network system extension to apply your local connection rules.</string>
+    <key>NetworkExtension</key>
+    <dict>
+        <key>NEMachServiceName</key>
+        <string>$(RIFT_MACH_SERVICE)</string>
+        <key>NEProviderClasses</key>
+        <dict>
+            <key>com.apple.networkextension.filter-data</key>
+            <string>$(PRODUCT_MODULE_NAME).FilterDataProvider</string>
+        </dict>
+    </dict>
+</dict>
+</plist>
