@@ -25,10 +25,46 @@ enum RiftDesign {
         dark: NSColor(srgbRed: 0.66, green: 0.52, blue: 1, alpha: 1)
     )
 
-    static let trafficSent = Color(
-        light: NSColor(srgbRed: 0.82, green: 0.30, blue: 0.95, alpha: 1),
-        dark: NSColor(srgbRed: 0.88, green: 0.44, blue: 1, alpha: 1)
-    )
+    static let trafficSent = Color(nsColor: .systemPurple)
+    static let trafficReceived = Color(nsColor: .systemBlue)
+}
+
+/// A small section title for inspectors and side panels.
+struct RiftSectionHeader: View {
+    let title: String
+
+    init(_ title: String) { self.title = title }
+
+    var body: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// A label and value on one line, like a property in an inspector.
+struct RiftPropertyRow<Value: View>: View {
+    let title: String
+    var symbol: String?
+    @ViewBuilder let value: Value
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
+            }
+            Text(title).foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            value
+        }
+        .font(.callout)
+        .accessibilityElement(children: .combine)
+    }
 }
 
 enum RiftStatusTone: String, CaseIterable {

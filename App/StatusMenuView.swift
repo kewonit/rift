@@ -67,6 +67,7 @@ extension ControlPlaneController {
 
 struct StatusMenuView: View {
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
     @Bindable var session: AppSession
     @AppStorage("statusPreviousFilteringMode") private var previousMode = OperationMode.silentAllow.rawValue
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
@@ -171,9 +172,9 @@ struct StatusMenuView: View {
                     showMainWindow()
                 }
             }
-            StatusMenuActionRow("Rift Settings…") {
-                session.destination = .settings
-                showMainWindow()
+            StatusMenuActionRow("Settings…") {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                openSettings()
             }
             Divider()
             StatusMenuActionRow("Quit Rift…", action: requestQuit)

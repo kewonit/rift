@@ -22,13 +22,13 @@ struct LiveTrafficChart: View {
                     .font(.caption2).foregroundStyle(.secondary)
             } else { rangeControls }
         }
-        .padding(10)
-        .background(.bar)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .accessibilityElement(children: .contain)
     }
 
     private var totals: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 18) {
             TrafficTotal(
                 title: "Sent",
                 systemImage: "arrow.up",
@@ -41,7 +41,7 @@ struct LiveTrafficChart: View {
                 systemImage: "arrow.down",
                 bytes: snapshot.received,
                 partial: snapshot.partial,
-                color: .blue
+                color: RiftDesign.trafficReceived
             )
         }
     }
@@ -82,7 +82,7 @@ struct LiveTrafficChart: View {
                         width: max(1, width - 2),
                         height: receivedHeight
                     ), cornerRadius: 2),
-                    with: .color(Color.blue.opacity(0.86))
+                    with: .color(RiftDesign.trafficReceived.opacity(0.86))
                 )
             }
         }
@@ -181,19 +181,17 @@ private struct TrafficTotal: View {
     let color: Color
 
     var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: systemImage)
-            Text(title).font(.caption.weight(.semibold))
-            Spacer(minLength: 3)
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7).accessibilityHidden(true)
+            Text(title).foregroundStyle(.secondary)
+            Spacer(minLength: 4)
             Text((partial ? "≥" : "") + byteLabel(bytes))
-                .font(.headline.monospacedDigit())
+                .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.8)
         }
-        .foregroundStyle(color)
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, minHeight: 30)
-        .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
+        .font(.callout)
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
     }
 }

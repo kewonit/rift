@@ -54,22 +54,38 @@ struct MonitorSidebarView: View {
 #endif
             DecisionChartView(snapshot: decisionSnapshot, query: $query, now: now,
                               refreshFailed: errorMessage != nil, isMinimal: controlPlane.isMinimalActivity)
-                .padding(.horizontal, 8)
-                .padding(.bottom, 7)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
         }
-        .background(.bar)
     }
 
     private var header: some View {
-        HStack(spacing: 6) {
-            TextField("Search", text: $query.search)
-                .textFieldStyle(.roundedBorder)
-                .frame(minHeight: 28)
-            Picker("Group by", selection: $query.lens) {
-                ForEach(availableLenses) { Text($0.rawValue).tag($0) }
+        HStack(spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                TextField("Search activity", text: $query.search)
+                    .textFieldStyle(.plain)
+                if !query.search.isEmpty {
+                    Button { query.search = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Clear Search")
+                }
             }
-            .labelsHidden()
-            .pickerStyle(.menu)
+            .padding(.horizontal, 8)
+            .frame(height: 30)
+            .background(.quinary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            Menu {
+                Picker("Group By", selection: $query.lens) {
+                    ForEach(availableLenses) { Text($0.rawValue).tag($0) }
+                }
+            } label: {
+                Label("Group By", systemImage: "square.stack.3d.up")
+            }
+            .labelStyle(.iconOnly)
+            .help("Group by " + query.lens.rawValue.lowercased())
             filters
             if isPreview {
                 ViewThatFits(in: .horizontal) {
@@ -90,8 +106,9 @@ struct MonitorSidebarView: View {
                 .help("Show filter status")
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .controlSize(.small)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
     }
 
     private var filters: some View {
@@ -138,7 +155,7 @@ struct MonitorSidebarView: View {
                 .disabled(loading)
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.inset)
         .overlay {
             if hierarchy.isEmpty && !loading {
                 ContentUnavailableView(
@@ -169,13 +186,13 @@ struct MonitorSidebarView: View {
             title: "Sent",
             systemImage: "arrow.up",
             total: summary.sent,
-            color: .purple
+            color: RiftDesign.trafficSent
         )
         TrafficTotalChip(
             title: "Received",
             systemImage: "arrow.down",
             total: summary.received,
-            color: .blue
+            color: RiftDesign.trafficReceived
         )
     }
 #endif
@@ -192,35 +209,14 @@ struct MonitorSidebarView: View {
 }
 
 struct MonitorToolbarContent: ToolbarContent {
-    let showingSummary: Bool
-    let openRules: () -> Void
-    let showSummary: () -> Void
-    let openSettings: () -> Void
-    let refresh: () -> Void
+    @Binding var showingSummary: Bool
 
-    @ToolbarContentBuilder
     var body: some ToolbarContent {
-        ToolbarItemGroup(placement: .secondaryAction) {
-            Button(action: openRules) {
-                Label("Rules", systemImage: "list.bullet.rectangle")
+        ToolbarItem(placement: .primaryAction) {
+            Button { showingSummary.toggle() } label: {
+                Label(showingSummary ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
             }
-            .help("Show rules")
-            if !showingSummary {
-                Button(action: showSummary) {
-                    Label("Show Summary", systemImage: "sidebar.right")
-                }
-                .help("Show summary")
-            }
-        }
-        ToolbarItemGroup(placement: .primaryAction) {
-            Button(action: refresh) {
-                Label("Refresh", systemImage: "arrow.clockwise")
-            }
-            .help("Refresh activity")
-            Button(action: openSettings) {
-                Label("Settings", systemImage: "gearshape")
-            }
-            .help("Open Settings")
+            .help(showingSummary ? "Hide the inspector" : "Show the inspector")
         }
     }
 }
@@ -238,18 +234,16 @@ private struct TrafficTotalChip: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: systemImage)
-            Text(title).font(.caption)
+            Circle().fill(color).frame(width: 7, height: 7).accessibilityHidden(true)
+            Text(title).font(.callout).foregroundStyle(.secondary)
             Spacer(minLength: 2)
             Text(formatted)
-                .font(.callout.weight(.semibold).monospacedDigit())
+                .font(.callout.monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .foregroundStyle(color)
-        .padding(.horizontal, 7)
-        .frame(maxWidth: .infinity, minHeight: 26)
-        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+        .padding(.horizontal, 2)
+        .frame(maxWidth: .infinity, minHeight: 22)
         .help(helpText)
     }
 
@@ -276,9 +270,10 @@ private struct MonitorHierarchyRow: View {
     let artworkStore: ApplicationArtworkStore
     let apply: (FilterAction) -> Void
     let showRules: () -> Void
+    @State private var hovering = false
 
     var body: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             if node.kind == .application || node.kind == .helper {
                 ApplicationIdentityIcon(
                     identity: node.presentationIdentity,
@@ -296,38 +291,40 @@ private struct MonitorHierarchyRow: View {
                 Text(node.title).lineLimit(1)
                 if let subtitle = node.subtitle {
                     Text(subtitle)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
-            Spacer(minLength: 4)
-            Text("\(node.aggregate.flowCount)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-            if let row, MonitorExactRuleSeed.make(from: row) != nil {
-                HStack(spacing: 0) {
-                    Button { apply(.allow) } label: {
-                        Image(systemName: "checkmark")
-                    }
-                    .buttonStyle(.borderless)
-                    .frame(width: 20, height: 18)
-                    .accessibilityLabel("Allow this connection")
-                    Divider().frame(height: 13)
-                    Button { apply(.deny) } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .buttonStyle(.borderless)
-                    .frame(width: 20, height: 18)
-                    .accessibilityLabel("Deny this connection")
+            Spacer(minLength: 6)
+            if hovering, let row, MonitorExactRuleSeed.make(from: row) != nil {
+                HStack(spacing: 2) {
+                    Button { apply(.allow) } label: { Image(systemName: "checkmark.circle") }
+                        .help("Allow this connection")
+                        .accessibilityLabel("Allow this connection")
+                    Button { apply(.deny) } label: { Image(systemName: "xmark.circle") }
+                        .help("Deny this connection")
+                        .accessibilityLabel("Deny this connection")
                 }
-                .controlSize(.mini)
-                .background(.quinary, in: RoundedRectangle(cornerRadius: 5))
+                .buttonStyle(.borderless)
+                .imageScale(.large)
+                .foregroundStyle(.secondary)
                 .disabled(isApplying || monitorCoveragePending(node.ruleCoverage.state))
+            } else {
+                if node.aggregate.denied > 0 {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.red)
+                        .imageScale(.small)
+                        .accessibilityLabel(node.aggregate.denied == 1 ? "1 denied" : "\(node.aggregate.denied) denied")
+                }
+                Text("\(node.aggregate.flowCount)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
         }
+        .onHover { hovering = $0 }
         .accessibilityElement(children: .contain)
-        .frame(minHeight: 25)
+        .frame(minHeight: 26)
         .help(monitorCoverageLabel(node.ruleCoverage.state))
         .contextMenu {
             Button("Show Matching Rules", action: showRules)

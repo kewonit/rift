@@ -23,6 +23,16 @@ struct RiftApp: App {
             RuleWorkspaceCommands()
         }
 
+        Settings {
+            if let session = startup.session {
+                SettingsView(
+                    controlPlane: session.controlPlane,
+                    lifecycle: session.lifecycle,
+                    isPreview: session.isUIFixture
+                )
+            }
+        }
+
         MenuBarExtra {
             if let session = startup.session {
                 StatusMenuView(session: session)

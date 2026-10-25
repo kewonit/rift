@@ -43,40 +43,27 @@ struct SettingsView: View {
     @State private var loaded = false
 
     var body: some View {
-        NavigationSplitView {
-            List(SettingsSection.allCases, selection: $section) { item in
-                Label(item.title, systemImage: item.symbol).tag(item)
-            }
-            .navigationTitle("Settings")
-            .navigationSplitViewColumnWidth(min: 180, ideal: 195, max: 220)
-        } detail: {
-            VStack(spacing: 0) {
-                if isPreview {
-                    Label("Preview mode — settings can’t be changed", systemImage: "eye")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                        .background(.bar)
-                    Divider()
+        TabView(selection: $section) {
+            ForEach(SettingsSection.allCases) { item in
+                VStack(spacing: 0) {
+                    if isPreview {
+                        Label("Preview mode — settings can’t be changed", systemImage: "eye")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                        Divider()
+                    }
+                    pane(for: item)
+                        .allowsHitTesting(!isPreview)
+                        .accessibilityHidden(isPreview)
                 }
-
-                pane
-                    .allowsHitTesting(!isPreview)
-                    .accessibilityHidden(isPreview)
+                .tabItem { Label(item.title, systemImage: item.symbol) }
+                .tag(item)
             }
-            .navigationTitle(section.title)
         }
-        .navigationSplitViewStyle(.balanced)
-        .frame(
-            minWidth: 700,
-            idealWidth: 760,
-            maxWidth: 900,
-            minHeight: 460,
-            idealHeight: 500,
-            maxHeight: 640
-        )
+        .frame(width: 640, height: 520)
         .task {
             guard !isPreview else {
 #if DEBUG
@@ -185,7 +172,7 @@ struct SettingsView: View {
         }
     }
     @ViewBuilder
-    private var pane: some View {
+    private func pane(for section: SettingsSection) -> some View {
         switch section {
         case .general:
             GeneralSettingsPane(

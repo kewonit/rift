@@ -8,8 +8,8 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://spdx.org/spdxdocs/rift-0.2.0-pre-release-20261026",
-  "name": "Rift 0.2.0 pre-release source SBOM",
+  "documentNamespace": "https://spdx.org/spdxdocs/rift-0.3.0-pre-release-20261026",
+  "name": "Rift 0.3.0 pre-release source SBOM",
   "packages": [
     {
       "SPDXID": "SPDXRef-Package-Rift",
@@ -20,7 +20,7 @@
       "licenseDeclared": "Apache-2.0",
       "name": "Rift",
       "primaryPackagePurpose": "APPLICATION",
-      "versionInfo": "0.2.0-pre-release"
+      "versionInfo": "0.3.0-pre-release"
     },
     {
       "SPDXID": "SPDXRef-Package-GRDB",

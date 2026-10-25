@@ -54,26 +54,18 @@ final class MapOriginController {
 }
 
 struct LiveMapOriginControl: View {
-    let isPlacing: Bool
     let hasOrigin: Bool
-    let cancelPlacement: () -> Void
     let beginPlacement: () -> Void
     let clearOrigin: () -> Void
 
-    @ViewBuilder
     var body: some View {
-        if isPlacing {
-            Text("Click the map to set your location").font(.caption)
-            Button("Cancel", action: cancelPlacement)
-        } else {
-            Menu {
-                Button(hasOrigin ? "Move My Location" : "Set My Location", action: beginPlacement)
-                if hasOrigin { Button("Clear My Location", action: clearOrigin) }
-            } label: {
-                Label("My Location", systemImage: "location.circle")
-            }
-            .accessibilityLabel("My Location")
+        Menu {
+            Button(hasOrigin ? "Move My Location" : "Set My Location", action: beginPlacement)
+            if hasOrigin { Button("Clear My Location", action: clearOrigin) }
+        } label: {
+            Label("My Location", systemImage: hasOrigin ? "location.fill" : "location")
         }
+        .help("Set where this Mac is on the map")
     }
 }
 

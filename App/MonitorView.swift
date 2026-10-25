@@ -60,55 +60,36 @@ struct MonitorView: View {
     }
 
     var body: some View {
-        HSplitView {
-            MonitorSidebarView(
-                query: $query,
-                selectionID: $selectionID,
-                hierarchy: hierarchy,
-                rows: rowLookup,
-                summary: summary, isPreview: session.isUIFixture,
-                controlPlane: session.controlPlane,
-                artworkStore: session.applicationArtwork,
-                now: queryNow, decisionSnapshot: decisionSnapshot,
-                attentionMessage: monitorAttentionMessage(for: session.lifecycle),
-                errorMessage: loadError,
-                loading: loading,
-                hasMore: displayed.count > visibleLimit,
-                applyingEventID: applyingEventID,
-                availableLenses: MonitorLens.allCases,
-                showFilterStatus: session.requestFilterStatus,
-                loadMore: loadMore,
-                apply: { apply($0, $1) },
-                showRules: showRules
-            )
-            .frame(minWidth: 240, idealWidth: 640, maxWidth: .infinity)
-            .layoutPriority(1)
-
-            if showingSummary {
-                MonitorSummaryView(
-                    summary: summary, selectedNode: selectedNode, selectedRow: selectedRow,
-                    applyingEventID: applyingEventID, artworkStore: session.applicationArtwork,
-                    apply: { apply($0, $1) }, showRules: {
-                        selectedNode.map { showRules($0.ruleCoverage.ruleIDs) }
-                    }, hideSummary: { showingSummary = false }, isMinimal: session.controlPlane.isMinimalActivity)
-                .ignoresSafeArea(.container, edges: .top)
-                .frame(minWidth: 260, idealWidth: 320, maxWidth: 320).layoutPriority(1)
-            }
+        MonitorSidebarView(
+            query: $query,
+            selectionID: $selectionID,
+            hierarchy: hierarchy,
+            rows: rowLookup,
+            summary: summary, isPreview: session.isUIFixture,
+            controlPlane: session.controlPlane,
+            artworkStore: session.applicationArtwork,
+            now: queryNow, decisionSnapshot: decisionSnapshot,
+            attentionMessage: monitorAttentionMessage(for: session.lifecycle),
+            errorMessage: loadError,
+            loading: loading,
+            hasMore: displayed.count > visibleLimit,
+            applyingEventID: applyingEventID,
+            availableLenses: MonitorLens.allCases,
+            showFilterStatus: session.requestFilterStatus,
+            loadMore: loadMore,
+            apply: { apply($0, $1) },
+            showRules: showRules
+        )
+        .inspector(isPresented: $showingSummary) {
+            MonitorSummaryView(
+                summary: summary, selectedNode: selectedNode, selectedRow: selectedRow,
+                applyingEventID: applyingEventID, artworkStore: session.applicationArtwork,
+                apply: { apply($0, $1) }, showRules: {
+                    selectedNode.map { showRules($0.ruleCoverage.ruleIDs) }
+                }, isMinimal: session.controlPlane.isMinimalActivity)
+            .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
         }
-        .frame(minWidth: 960, minHeight: 560)
-        .toolbar {
-            MonitorToolbarContent(
-                showingSummary: showingSummary,
-                openRules: {
-                    session.destination = .rules
-                    openWindow(id: "main")
-                    NSApplication.shared.activate(ignoringOtherApps: true)
-                },
-                showSummary: { showingSummary = true },
-                openSettings: { session.destination = .settings },
-                refresh: { scheduleReload(immediate: true) }
-            )
-        }
+        .toolbar { MonitorToolbarContent(showingSummary: $showingSummary) }
         .sheet(isPresented: $session.showingFilterStatus) {
             if let lifecycle = session.lifecycle {
                 FilterStatusView(

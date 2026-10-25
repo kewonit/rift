@@ -1,6 +1,6 @@
 # Third-party notices
 
-Rift 0.2.0 uses these exact source dependencies and bundled data. macOS and
+Rift 0.3.0 uses these exact source dependencies and bundled data. macOS and
 Xcode provide the Apple platform frameworks. This project does not redistribute
 them as third-party packages.
 

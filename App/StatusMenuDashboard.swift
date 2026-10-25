@@ -157,7 +157,7 @@ struct StatusMenuDashboard: View {
                 Spacer()
                 StatusTrafficValueBadge(
                     value: traffic.prefix + byteLabel(traffic.received),
-                    color: .blue
+                    color: RiftDesign.trafficReceived
                 )
                 HStack {
                     Text("5 minutes ago")
@@ -291,12 +291,14 @@ private struct StatusTrafficValueBadge: View {
     let color: Color
 
     var body: some View {
-        Text(value)
-            .font(.system(size: 10.5, weight: .semibold).monospacedDigit())
-            .foregroundStyle(.white)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.72), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(value)
+                .font(.system(size: 10.5, weight: .medium).monospacedDigit())
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(.regularMaterial, in: Capsule())
     }
 }
 
@@ -354,7 +356,7 @@ private struct StatusTrafficBars: View {
                             width: barWidth,
                             height: max(1, receivedHeight)
                         )),
-                        with: .color(.blue)
+                        with: .color(RiftDesign.trafficReceived)
                     )
                 }
             }

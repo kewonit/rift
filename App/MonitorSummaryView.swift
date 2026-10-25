@@ -11,71 +11,50 @@ struct MonitorSummaryView: View {
     let artworkStore: ApplicationArtworkStore
     let apply: (FilterAction, MonitorHierarchyNode) -> Void
     let showRules: () -> Void
-    let hideSummary: () -> Void
     var isMinimal = false
-    @State private var connectionsExpanded = true
-    @State private var statisticsExpanded = true
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                header
-                metricChips
-                DisclosureGroup("Connections", isExpanded: $connectionsExpanded) {
-                    VStack(spacing: 8) {
-                        metricRow("Denied", summary.denied, "xmark.circle")
-                        metricRow("By default", summary.unresolved, "questionmark.circle")
-                        metricRow("Incoming", summary.incoming, "arrow.turn.down.left")
-                    }
-                    .padding(.top, 8)
-                }
-                .monitorSectionStyle()
-
-                DisclosureGroup("Statistics", isExpanded: $statisticsExpanded) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        rankedSection(
-                            "Top Apps",
-                            values: summary.topApplications,
-                            showsApplicationIcons: true
-                        )
-                        rankedSection("Top Destinations", values: summary.topDestinations)
-                    }
-                    .padding(.top, 9)
-                }
-                .monitorSectionStyle()
-
+            VStack(alignment: .leading, spacing: 18) {
                 if let selectedNode {
-                    Divider()
                     selection(node: selectedNode, row: selectedRow)
+                    Divider()
                 }
+                header
+                section("Traffic") {
+                    RiftPropertyRow(title: "Sent", symbol: "arrow.up") {
+                        Text(format(summary.sent)).monospacedDigit()
+                    }
+                    .help("Sent totals are counted when connections close.")
+                    .accessibilityValue(accessible(summary.sent))
+                    RiftPropertyRow(title: "Received", symbol: "arrow.down") {
+                        Text(format(summary.received)).monospacedDigit()
+                    }
+                    .help("Received totals are counted when connections close.")
+                    .accessibilityValue(accessible(summary.received))
+                }
+                section("Connections") {
+                    countRow("Denied", summary.denied, "xmark.circle")
+                    countRow("By default", summary.unresolved, "questionmark.circle")
+                    countRow("Incoming", summary.incoming, "arrow.down.left")
+                }
+                rankedSection("Top Apps", values: summary.topApplications, showsApplicationIcons: true)
+                rankedSection("Top Destinations", values: summary.topDestinations)
             }
-            .padding(12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
-        .background(.bar)
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Button(action: hideSummary) {
-                Image(systemName: "line.3.horizontal")
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .accessibilityLabel("Hide Summary")
-            .help("Hide summary")
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Summary").font(.title2.weight(.semibold))
-                if isMinimal {
-                    Text("Recent connections only")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Text(summaryCountLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .help(summary.isComplete
-                        ? "Counts include all matching activity."
-                        : "Some activity is missing, so these are minimum counts.")
-            }
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Summary").font(.title3.weight(.semibold))
+            Text(isMinimal ? "Recent connections only" : summaryCountLabel)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .help(summary.isComplete
+                    ? "Counts include all matching activity."
+                    : "Some activity is missing, so these are minimum counts.")
         }
     }
 
@@ -83,45 +62,21 @@ struct MonitorSummaryView: View {
         let prefix = summary.isComplete ? "" : "≥"
         let apps = summary.processCount == 1 ? "app" : "apps"
         let destinations = summary.destinationCount == 1 ? "destination" : "destinations"
-        return "\(prefix)\(summary.processCount) \(apps), \(prefix)\(summary.destinationCount) \(destinations)"
+        return "\(prefix)\(summary.processCount) \(apps) · \(prefix)\(summary.destinationCount) \(destinations)"
     }
 
-    private var metricChips: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) {
-                summaryChip("Sent", summary.sent, "arrow.up", RiftDesign.trafficSent)
-                summaryChip("Received", summary.received, "arrow.down", .blue)
-            }
-            VStack(spacing: 6) {
-                summaryChip("Sent", summary.sent, "arrow.up", RiftDesign.trafficSent)
-                summaryChip("Received", summary.received, "arrow.down", .blue)
-            }
-        }
-    }
-
-    private func summaryChip(
+    private func section<Content: View>(
         _ title: String,
-        _ total: ReportedByteTotal,
-        _ symbol: String,
-        _ color: Color
+        @ViewBuilder content: () -> Content
     ) -> some View {
-        HStack {
-            Image(systemName: symbol)
-            Text(format(total))
-                .font(.headline.monospacedDigit())
+        VStack(alignment: .leading, spacing: 8) {
+            RiftSectionHeader(title)
+            content()
         }
-        .foregroundStyle(color)
-        .frame(maxWidth: .infinity, minHeight: 31)
-        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
-        .accessibilityLabel("\(title), \(accessible(total))")
-        .help("\(title) totals are counted when connections close.")
     }
 
-    private func metricRow(_ label: String, _ value: Int, _ symbol: String) -> some View {
-        HStack {
-            Image(systemName: symbol).frame(width: 20).foregroundStyle(.secondary)
-            Text(label)
-            Spacer()
+    private func countRow(_ label: String, _ value: Int, _ symbol: String) -> some View {
+        RiftPropertyRow(title: label, symbol: symbol) {
             Text("\(value)").monospacedDigit()
         }
     }
@@ -131,27 +86,29 @@ struct MonitorSummaryView: View {
         values: [MonitorRankedItem],
         showsApplicationIcons: Bool = false
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
+        section(title) {
             if values.isEmpty {
-                Text("—").foregroundStyle(.secondary)
+                Text("None yet").font(.callout).foregroundStyle(.tertiary)
             } else {
                 ForEach(values) { value in
-                    HStack(alignment: .firstTextBaseline) {
+                    HStack(spacing: 8) {
                         if showsApplicationIcons {
                             ApplicationIdentityIcon(
                                 identity: value.presentationIdentity,
                                 fallbackSystemName: "app.dashed",
-                                size: 18,
+                                size: 16,
                                 artworkStore: artworkStore
                             )
                         }
-                        Text(value.label).lineLimit(1)
-                        Spacer()
-                        Text(flowCountLabel(value.count))
-                            .font(.caption.monospacedDigit())
+                        Text(value.label).lineLimit(1).truncationMode(.middle)
+                        Spacer(minLength: 8)
+                        Text("\(value.count)")
+                            .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
+                    .font(.callout)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityValue(flowCountLabel(value.count))
                 }
             }
         }
@@ -165,46 +122,43 @@ struct MonitorSummaryView: View {
         node: MonitorHierarchyNode,
         row: MonitorEventRow?
     ) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 12) {
             selectionHeader(node)
-            LabeledContent("Connections", value: "\(node.aggregate.flowCount)")
-            LabeledContent("Rule", value: monitorCoverageLabel(node.ruleCoverage.state))
             if let row, MonitorExactRuleSeed.make(from: row) != nil {
-                ControlGroup {
-                    Button("Allow") { apply(.allow, node) }
-                        .accessibilityLabel("Allow this connection")
-                    Button("Deny") { apply(.deny, node) }
-                        .accessibilityLabel("Deny this connection")
+                HStack(spacing: 8) {
+                    Button { apply(.allow, node) } label: {
+                        Label("Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
+                    }
+                    .accessibilityLabel("Allow this connection")
+                    Button { apply(.deny, node) } label: {
+                        Label("Deny", systemImage: "xmark").frame(maxWidth: .infinity)
+                    }
+                    .accessibilityLabel("Deny this connection")
                 }
-                .controlSize(.small)
+                .controlSize(.large)
                 .disabled(
                     applyingEventID == node.ruleSeedEventID
                         || monitorCoveragePending(node.ruleCoverage.state)
                 )
             }
-            if let row {
-                LabeledContent("Protocol", value: MonitorQuery.protocolLabel(row))
-                LabeledContent("Direction", value: row.event.flow.direction.rawValue.capitalized)
-                LabeledContent("Decision", value: decisionLabel(row.event.action))
-            }
-            DisclosureGroup("Details") {
-                VStack(alignment: .leading, spacing: 6) {
-                    if let row {
-                        LabeledContent("Application", value: MonitorQuery.applicationLabel(row))
-                        LabeledContent("Destination", value: MonitorQuery.endpointLabel(row))
-                        LabeledContent("Reason", value: reasonLabel(row.event.reason))
-                        if let policy = row.event.policy {
-                            LabeledContent("Rules version", value: "\(policy.generation)")
-                        }
-                        if let closedAt = row.closedAt {
-                            LabeledContent("Closed", value: closedAt.formatted())
-                        }
+            VStack(alignment: .leading, spacing: 7) {
+                RiftPropertyRow(title: "Connections") { Text("\(node.aggregate.flowCount)").monospacedDigit() }
+                RiftPropertyRow(title: "Rule") { Text(monitorCoverageLabel(node.ruleCoverage.state)).multilineTextAlignment(.trailing) }
+                if let row {
+                    RiftPropertyRow(title: "Decision") { Text(decisionLabel(row.event.action)) }
+                    RiftPropertyRow(title: "Reason") { Text(reasonLabel(row.event.reason)).multilineTextAlignment(.trailing) }
+                    RiftPropertyRow(title: "Destination") {
+                        Text(MonitorQuery.endpointLabel(row)).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                    }
+                    RiftPropertyRow(title: "Protocol") { Text(MonitorQuery.protocolLabel(row)) }
+                    RiftPropertyRow(title: "Direction") { Text(row.event.flow.direction.rawValue.capitalized) }
+                    if let closedAt = row.closedAt {
+                        RiftPropertyRow(title: "Closed") { Text(closedAt.formatted(date: .omitted, time: .shortened)) }
                     }
                 }
-                .font(.caption)
-                .padding(.top, 6)
             }
             Button("Show Matching Rules", action: showRules)
+                .buttonStyle(.link)
                 .disabled(node.ruleCoverage.ruleIDs.isEmpty)
         }
     }
@@ -257,12 +211,5 @@ struct MonitorSummaryView: View {
     private func accessible(_ total: ReportedByteTotal) -> String {
         guard total.value != nil else { return "not reported" }
         return total.isPartial ? "partial, at least \(format(total).dropFirst())" : format(total)
-    }
-}
-
-private extension View {
-    func monitorSectionStyle() -> some View {
-        padding(8)
-            .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 7))
     }
 }

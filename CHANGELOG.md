@@ -3,6 +3,14 @@
 The changelog records notable user-visible changes. Rift has no signed public
 release.
 
+## 0.3.0 (pre-release)
+
+- Redesigned the app to follow macOS conventions: a labeled view switcher
+  (Map, Activity, Rules, Status), native inspectors, clean lists with row
+  actions on hover, and a calmer color palette.
+- Settings now open in their own window (⌘,) with standard tabs.
+- The Status page uses a grouped layout like System Settings.
+
 ## 0.2.0 (pre-release)
 
 - The Live Map now shows the world's undersea internet cables on Apple Maps,

@@ -101,26 +101,25 @@ struct LiveMapView: View {
                 apply: { action, node in apply(action, node) },
                 investigate: investigate, showRules: showRules
             )
-            .frame(minWidth: 292, idealWidth: 315, maxWidth: 340, maxHeight: .infinity)
+            .frame(minWidth: 280, idealWidth: 320, maxWidth: 380, maxHeight: .infinity)
 
             mapWorkspace
-                .frame(minWidth: 470, maxWidth: .infinity, maxHeight: .infinity)
-
-            if showingSummary {
-                MonitorSummaryView(
-                    summary: summary,
-                    selectedNode: selectedNode,
-                    selectedRow: selectedRow,
-                    applyingEventID: applyingEventID,
-                    artworkStore: session.applicationArtwork,
-                    apply: { action, node in apply(action, node) },
-                    showRules: {
-                        selectedNode.map { showRules($0.ruleCoverage.ruleIDs) }
-                    },
-                    hideSummary: { showingSummary = false }, isMinimal: session.controlPlane.isMinimalActivity
-                )
-                .frame(minWidth: 290, idealWidth: 320, maxWidth: 340, maxHeight: .infinity)
-            }
+                .frame(minWidth: 460, maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .inspector(isPresented: $showingSummary) {
+            MonitorSummaryView(
+                summary: summary,
+                selectedNode: selectedNode,
+                selectedRow: selectedRow,
+                applyingEventID: applyingEventID,
+                artworkStore: session.applicationArtwork,
+                apply: { action, node in apply(action, node) },
+                showRules: {
+                    selectedNode.map { showRules($0.ruleCoverage.ruleIDs) }
+                },
+                isMinimal: session.controlPlane.isMinimalActivity
+            )
+            .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
         }
     }
 
@@ -140,56 +139,42 @@ struct LiveMapView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .secondaryAction) {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Menu {
+                Picker("Map Style", selection: $mapStyle) {
+                    ForEach(NetworkMapStyle.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.inline)
+                Divider()
+                Button("Show All Routes") {
+                    hierarchySelectionID = nil
+                    mapFitRequest &+= 1
+                }
+                Button("About the Map…") { showingMapInformation = true }
+            } label: {
+                Label("Map Options", systemImage: mapStyle == .satellite ? "globe.americas.fill" : "map")
+            }
+            .help("Map style and options")
+            .popover(isPresented: $showingMapInformation) { LiveMapInformation() }
+            originMenu
             Button {
                 withAnimation(reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.contextual)) {
                     showingTrafficChart.toggle()
                 }
             } label: {
-                Label(showingTrafficChart ? "Hide Traffic Chart" : "Show Traffic Chart",
-                      systemImage: "chart.bar.xaxis")
+                Label(showingTrafficChart ? "Hide Traffic" : "Show Traffic", systemImage: "chart.bar.xaxis")
             }
-            .help(showingTrafficChart ? "Hide traffic chart" : "Show traffic chart")
-            Button {
-                withAnimation(reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.contextual)) {
-                    showingSummary.toggle()
-                }
-            } label: {
-                Label(showingSummary ? "Hide Summary" : "Show Summary",
-                      systemImage: "sidebar.right")
+            .help(showingTrafficChart ? "Hide the traffic chart" : "Show the traffic chart")
+            Button { showingSummary.toggle() } label: {
+                Label(showingSummary ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
             }
-            .help(showingSummary ? "Hide summary" : "Show summary")
-            Picker("Map Style", selection: $mapStyle) {
-                ForEach(NetworkMapStyle.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .help("Choose the map style")
-            Button {
-                hierarchySelectionID = nil
-                mapFitRequest &+= 1
-            } label: {
-                Label("Show All Routes", systemImage: "arrow.up.left.and.down.right.magnifyingglass")
-            }
-            .help("Zoom to show every route")
-            originMenu
-            Button { showingMapInformation.toggle() } label: {
-                Label("About the Map", systemImage: "info.circle")
-            }
-            .help("About the map")
-            .popover(isPresented: $showingMapInformation) { LiveMapInformation() }
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button { scheduleReload(immediate: true) } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
-            }
+            .help(showingSummary ? "Hide the inspector" : "Show the inspector")
         }
     }
 
     private var originMenu: some View {
         LiveMapOriginControl(
-            isPlacing: originController.isPlacingManually,
             hasOrigin: originController.origin != nil,
-            cancelPlacement: originController.cancelPlacement,
             beginPlacement: originController.beginManualPlacement,
             clearOrigin: originController.clearOrigin
         )

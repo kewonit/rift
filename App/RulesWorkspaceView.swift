@@ -40,14 +40,6 @@ struct RulesWorkspaceView: View {
                     .padding(8)
                     .background(.orange.opacity(0.18))
                 }
-                if isPreview {
-                    Text("Preview")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                }
                 if model.errorMessage == nil {
                     RulesWorkspaceTable(
                         model: model,
@@ -68,28 +60,35 @@ struct RulesWorkspaceView: View {
             }
             .frame(minWidth: 400, idealWidth: 560, maxWidth: .infinity)
             .frame(maxHeight: .infinity)
-
-            if showingInspector, model.errorMessage == nil {
-                Group {
-                    if let row = model.selectedRow {
-                        RuleInspectorView(
-                            row: row,
-                            groups: model.groups,
-                            profiles: model.profiles,
-                            blocklists: model.blocklists,
-                            artworkStore: artworkStore
-                        )
-                    } else {
-                        ContentUnavailableView("Select a rule", systemImage: "sidebar.right")
-                    }
-                }
-                .frame(minWidth: 260, idealWidth: 300, maxWidth: 320)
-                .frame(maxHeight: .infinity)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .inspector(isPresented: $showingInspector) {
+            Group {
+                if let row = model.selectedRow, model.errorMessage == nil {
+                    RuleInspectorView(
+                        row: row,
+                        groups: model.groups,
+                        profiles: model.profiles,
+                        blocklists: model.blocklists,
+                        artworkStore: artworkStore
+                    )
+                } else {
+                    ContentUnavailableView("No Rule Selected", systemImage: "list.bullet.rectangle")
+                }
+            }
+            .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
+        }
         .navigationTitle(model.sidebarTitle)
-        .searchable(text: $model.search, prompt: "Search rules")
+        .searchable(text: $model.search, placement: .toolbar, prompt: "Search rules")
+        .searchScopes($model.searchScope) {
+            ForEach(RuleSearchScope.allCases) { scope in
+                Text(scope.rawValue).tag(scope)
+            }
+        }
+        .onDeleteCommand {
+            guard !isPreview, !model.historyCommandIsRunning, model.eligibleSelectionCount > 0 else { return }
+            showingDeleteConfirmation = true
+        }
         .focusedSceneValue(
             \.ruleWorkspaceHistoryAction,
             RuleWorkspaceHistoryAction(
@@ -102,69 +101,32 @@ struct RulesWorkspaceView: View {
             )
         )
         .toolbar {
-            Menu {
-                Picker("Search In", selection: $model.searchScope) {
-                    ForEach(RuleSearchScope.allCases) { scope in
-                        Text(scope.rawValue).tag(scope)
+            ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    Picker("Show", selection: $model.actionFilter) {
+                        ForEach(RuleActionFilter.allCases) { filter in
+                            Text(filter.rawValue).tag(filter)
+                        }
                     }
-                }
-            } label: {
-                Label("Search Scope", systemImage: "text.magnifyingglass")
-            }
-            .accessibilityLabel("Search Scope")
-            .accessibilityValue(model.searchScope.rawValue)
-            .help("Search in \(model.searchScope.rawValue.lowercased()).")
-            Menu {
-                Picker("Action", selection: $model.actionFilter) {
-                    ForEach(RuleActionFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+                    Picker("Sort By", selection: $model.sort) {
+                        ForEach(RuleWorkspaceSort.allCases) { sort in
+                            Text(sort.rawValue).tag(sort)
+                        }
                     }
+                } label: {
+                    Label("Filter and Sort", systemImage: model.actionFilter == .all
+                        ? "line.3.horizontal.decrease.circle"
+                        : "line.3.horizontal.decrease.circle.fill")
                 }
-            } label: {
-                Label("Filter by Action", systemImage: "line.3.horizontal.decrease.circle")
-            }
-            .accessibilityLabel("Filter by Action")
-            .accessibilityValue(model.actionFilter.rawValue)
-            .help(model.actionFilter.rawValue)
-            Menu {
-                Picker("Sort", selection: $model.sort) {
-                    ForEach(RuleWorkspaceSort.allCases) { sort in
-                        Text(sort.rawValue).tag(sort)
-                    }
+                .help("Filter and sort rules")
+                Button { showingEditor = true } label: { Label("Add Rule", systemImage: "plus") }
+                    .disabled(isPreview || model.historyCommandIsRunning)
+                    .help("Add a rule")
+                Button { showingInspector.toggle() } label: {
+                    Label(showingInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
                 }
-            } label: {
-                Label("Sort Rules", systemImage: "arrow.up.arrow.down")
+                .help(showingInspector ? "Hide the inspector" : "Show the inspector")
             }
-            .accessibilityLabel("Sort Rules")
-            .accessibilityValue(model.sort.rawValue)
-            .help("Sort by \(model.sort.rawValue.lowercased()).")
-            Button { Task { await model.performHistoryCommand() } } label: {
-                Label(
-                    model.historyCommandTitle ?? "Undo Rule Change",
-                    systemImage: "arrow.uturn.backward"
-                )
-            }
-            .disabled(
-                isPreview || model.historyCommandTitle == nil || model.historyCommandIsRunning
-            )
-            .help(model.historyCommandTitle ?? "Nothing to undo")
-            Button { showingEditor = true } label: { Label("Add Rule", systemImage: "plus") }
-                .disabled(isPreview || model.historyCommandIsRunning)
-            Button { editingRow = model.selectedRow } label: { Label("Edit", systemImage: "pencil") }
-                .disabled(
-                    isPreview || model.historyCommandIsRunning || !model.selectedRowIsEditable
-                )
-            Button { Task { await model.setSelectedEnabled(true) } } label: {
-                Label("Enable", systemImage: "checkmark.circle")
-            }.disabled(
-                isPreview || model.historyCommandIsRunning || model.eligibleSelectionCount == 0
-            )
-            Button { showingDeleteConfirmation = true } label: {
-                Label("Delete", systemImage: "trash")
-            }.disabled(
-                isPreview || model.historyCommandIsRunning || model.eligibleSelectionCount == 0
-            )
-            Button { showingInspector.toggle() } label: { Label("Inspector", systemImage: "sidebar.right") }
         }
         .sheet(isPresented: $showingEditor) {
             ManualRuleEditorView(

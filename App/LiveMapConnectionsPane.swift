@@ -42,7 +42,6 @@ struct LiveMapConnectionsPane: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .background(.bar)
         .animation(
             reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.contextual),
             value: showingTrafficChart
@@ -71,11 +70,11 @@ struct LiveMapConnectionsPane: View {
             if loading { ProgressView().controlSize(.small) }
         }
         .controlSize(.small)
-        .padding(.horizontal, 9)
-        .frame(height: 34)
-        .background(.quaternary.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
         .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .frame(height: 30)
+        .background(.quinary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
     }
 
     private var groupMenu: some View {
@@ -160,7 +159,7 @@ struct LiveMapConnectionsPane: View {
                 .tag(node.id)
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.inset)
         .overlay {
             if hierarchy.isEmpty && !loading {
                 ContentUnavailableView(
@@ -198,36 +197,41 @@ private struct LiveMapHierarchyRow: View {
     let apply: (FilterAction) -> Void
     let investigate: () -> Void
     let showRules: () -> Void
+    @State private var hovering = false
+
+    private var canDecide: Bool { row != nil && node.exactRuleSeed != nil }
 
     var body: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             identity
             VStack(alignment: .leading, spacing: 1) {
                 Text(node.title)
-                    .font(node.kind == .application ? .body.weight(.semibold) : .body)
                     .lineLimit(1)
+                    .truncationMode(.middle)
                 if let subtitle = node.subtitle {
                     Text(subtitle)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
-            Spacer(minLength: 4)
-            traffic
-            if row != nil, node.exactRuleSeed != nil {
+            Spacer(minLength: 6)
+            if canDecide, hovering {
                 exactActions
+            } else {
+                trailingDetail
             }
         }
-        .frame(minHeight: 31)
+        .frame(minHeight: 26)
         .contentShape(Rectangle())
+        .onHover { hovering = $0 }
         .accessibilityElement(children: .contain)
         .help(monitorCoverageLabel(node.ruleCoverage.state))
         .contextMenu {
             Button("Show in Activity", action: investigate)
             Button("Show Matching Rules", action: showRules)
                 .disabled(node.ruleCoverage.ruleIDs.isEmpty)
-            if row != nil, node.exactRuleSeed != nil {
+            if canDecide {
                 Divider()
                 Button("Allow This Connection") { apply(.allow) }
                     .disabled(isApplying || monitorCoveragePending(node.ruleCoverage.state))
@@ -243,50 +247,49 @@ private struct LiveMapHierarchyRow: View {
             ApplicationIdentityIcon(
                 identity: node.presentationIdentity,
                 fallbackSystemName: symbol,
-                size: 19,
+                size: 18,
                 artworkStore: artworkStore
             )
         } else {
             Image(systemName: symbol)
-                .frame(width: 19)
+                .frame(width: 18)
                 .foregroundStyle(symbolColor)
                 .accessibilityHidden(true)
         }
     }
 
-    private var traffic: some View {
-        MiniTrafficMeter(
-            sent: node.aggregate.bytesOutbound ?? 0,
-            received: node.aggregate.bytesInbound ?? 0,
-            seed: node.aggregate.flowCount
-        )
-        .help(totalBytes.map(byteLabel) ?? "No traffic data yet")
+    private var trailingDetail: some View {
+        HStack(spacing: 6) {
+            if node.aggregate.denied > 0 {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+                    .imageScale(.small)
+                    .help(node.aggregate.denied == 1 ? "1 denied" : "\(node.aggregate.denied) denied")
+                    .accessibilityLabel(node.aggregate.denied == 1 ? "1 denied" : "\(node.aggregate.denied) denied")
+            }
+            Text(totalBytes.map(byteLabel) ?? "\(node.aggregate.flowCount)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .help(totalBytes == nil ? "Connections" : "Total traffic")
+        }
     }
 
     private var exactActions: some View {
-        HStack(spacing: 0) {
-            Button { apply(.deny) } label: {
-                Image(systemName: "xmark")
-                    .frame(width: 19, height: 18)
-                    .foregroundStyle(node.aggregate.denied > 0 ? Color.white : .secondary)
-                    .background(node.aggregate.denied > 0 ? Color.red : Color.clear)
-            }
-                .accessibilityLabel("Deny this connection")
-            Divider().frame(height: 13)
+        HStack(spacing: 2) {
             Button { apply(.allow) } label: {
-                Image(systemName: "checkmark")
-                    .frame(width: 19, height: 18)
-                    .foregroundStyle(node.aggregate.allowed > 0 ? Color.white : .secondary)
-                    .background(node.aggregate.allowed > 0 ? Color.green : Color.clear)
+                Image(systemName: "checkmark.circle")
             }
-                .accessibilityLabel("Allow this connection")
+            .help("Allow this connection")
+            .accessibilityLabel("Allow this connection")
+            Button { apply(.deny) } label: {
+                Image(systemName: "xmark.circle")
+            }
+            .help("Deny this connection")
+            .accessibilityLabel("Deny this connection")
         }
         .buttonStyle(.borderless)
-        .controlSize(.mini)
-        .frame(width: 40, height: 19)
-        .background(.quinary, in: RoundedRectangle(cornerRadius: 5))
-        .clipShape(RoundedRectangle(cornerRadius: 5))
-        .overlay(RoundedRectangle(cornerRadius: 5).stroke(.separator.opacity(0.55)))
+        .imageScale(.large)
+        .foregroundStyle(.secondary)
         .disabled(isApplying || monitorCoveragePending(node.ruleCoverage.state))
     }
 
@@ -314,49 +317,6 @@ private struct LiveMapHierarchyRow: View {
         guard node.kind == .flow, let row else { return .secondary }
         if row.event.reason != .concreteDecision { return .orange }
         return row.event.action == .deny ? .red : .green
-    }
-}
-
-private struct MiniTrafficMeter: View {
-    let sent: UInt64
-    let received: UInt64
-    let seed: Int
-
-    var body: some View {
-        Canvas { context, size in
-            let count = 7
-            let gap: CGFloat = 1.5
-            let width = (size.width - gap * CGFloat(count - 1)) / CGFloat(count)
-            let middle = size.height / 2
-            let maximum = max(1, max(sent, received))
-            let sentRatio = CGFloat(sent) / CGFloat(maximum)
-            let receivedRatio = CGFloat(received) / CGFloat(maximum)
-            for index in 0..<count {
-                let x = CGFloat(index) * (width + gap)
-                let background = CGRect(x: x, y: 0, width: width, height: size.height)
-                context.fill(
-                    Path(roundedRect: background, cornerRadius: width / 2),
-                    with: .color(Color.secondary.opacity(0.10))
-                )
-                let modulation = CGFloat(((index + seed) % 4) + 5) / 8
-                let up = max(1, (middle - 1) * sentRatio * modulation)
-                let down = max(1, (middle - 1) * receivedRatio * modulation)
-                context.fill(
-                    Path(roundedRect: CGRect(
-                        x: x, y: middle - up, width: width, height: up
-                    ), cornerRadius: width / 2),
-                    with: .color(RiftDesign.trafficSent.opacity(0.9))
-                )
-                context.fill(
-                    Path(roundedRect: CGRect(
-                        x: x, y: middle, width: width, height: down
-                    ), cornerRadius: width / 2),
-                    with: .color(Color.blue.opacity(0.9))
-                )
-            }
-        }
-        .frame(width: 35, height: 20)
-        .accessibilityHidden(true)
     }
 }
 
