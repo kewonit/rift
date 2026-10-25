@@ -2,6 +2,7 @@ import RiftControl
 import RiftCore
 import RiftIPC
 import Foundation
+import AppKit
 
 enum ConfigurationRestorePhase: Sendable, Equatable {
     case preparing
@@ -199,11 +200,12 @@ extension ControlPlaneController {
         let handshake = try? await client.handshake()
         let settings = try? await history?.settings()
         let historyCounts = try? await history?.diagnosticCounts()
+        let activitySnapshot = supportsActivitySubscriptions ? try? await client.recentActivity() : nil
         let configuration = try? await repository?.currentConfiguration()
         let desired = try? await repository?.newestDesiredPolicy()
         let extensionVersion = Bundle(
             url: Bundle.main.bundleURL.appendingPathComponent(
-                "Contents/Library/SystemExtensions/RiftFilter.systemextension"
+                FilterActivationPreflight.embeddedExtensionPath
             )
         )?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         let observedLineages = [
@@ -223,7 +225,8 @@ extension ControlPlaneController {
         else if configurationRecovery != nil { configurationStatus = "recoveredAfterQuarantine" }
         else { configurationStatus = "healthy" }
         let historyStatus: String
-        if history == nil { historyStatus = "unavailable" }
+        if !persistentHistoryEnabled { historyStatus = "recordingDisabled" }
+        else if history == nil { historyStatus = "unavailable" }
         else if settings == nil || historyCounts == nil { historyStatus = "readFailed" }
         else if historyRecovery == nil { historyStatus = "healthy" }
         else { historyStatus = "recoveredAfterQuarantine" }
@@ -257,7 +260,7 @@ extension ControlPlaneController {
                 ?? CompiledPolicyPayload.currentSchemaVersion,
             snapshotSchemaMaximum: handshake?.snapshotSchemaRange.upperBound
                 ?? CompiledPolicyPayload.currentSchemaVersion,
-            historyEnabled: settings?.enabled,
+            historyEnabled: persistentHistoryEnabled,
             historyMaximumFlows: settings?.maximumFlows,
             visibleHistoryFlowCount: historyCounts?.visibleFlows,
             historyCoverageGapCount: historyCounts?.coverageGaps,
@@ -269,7 +272,22 @@ extension ControlPlaneController {
             activeBlocklistCount: configuration?.blocklists.filter { $0.status == .active }.count,
             disabledBlocklistCount: configuration?.blocklists.filter { $0.status == .disabled }.count,
             pendingPromptCount: pendingPrompts.count,
-            eventDropCount: lostEventCount
+            eventDropCount: lostEventCount,
+            activity: RedactedActivityDiagnostics(
+                desiredMode: desiredActivitySubscription.mode.rawValue,
+                activityViewVisible: monitorIsVisible,
+                historyDatabaseOpened: history != nil,
+                recentConnectionCount: recentActivityRows.count,
+                providerRecentConnectionCount: activitySnapshot.map { Set($0.events.map { $0.flow.flowID }).count },
+                providerActivityRevision: activitySnapshot?.revision,
+                applicationHidden: NSApplication.shared.isHidden,
+                mainWindows: NSApplication.shared.windows.filter(\.canBecomeMain).map {
+                    RedactedActivityWindowDiagnostics(
+                        visible: $0.isVisible, minimized: $0.isMiniaturized,
+                        occlusionVisible: $0.occlusionState.contains(.visible)
+                    )
+                }
+            )
         )
         return diagnostics
     }
@@ -342,91 +360,6 @@ extension ControlPlaneController {
     }
 }
 
-final class AppRelayHandler: NSObject, RiftAppRelayXPC, @unchecked Sendable {
-    private let operation: @Sendable (CLIRelayRequest) async throws -> CLIRelayResponse
-    private let runtimeSignal: @Sendable () async -> Void
-
-    init(
-        operation: @escaping @Sendable (CLIRelayRequest) async throws -> CLIRelayResponse,
-        runtimeSignal: @escaping @Sendable () async -> Void
-    ) {
-        self.operation = operation
-        self.runtimeSignal = runtimeSignal
-    }
-
-    func performCLIRequest(
-        _ request: SecureIPCEnvelope,
-        withReply reply: @escaping (SecureIPCReply) -> Void
-    ) {
-        let operation = self.operation
-        let reply = AppRelayReply(reply)
-        Task {
-            do {
-                guard request.messageKind == .cliRequest,
-                      request.protocolVersion.isCompatible(with: .current) else {
-                    throw ArchiveControllerError.invalidRelayRequest
-                }
-                let value = try SecureIPCCodec.decode(CLIRelayRequest.self, from: request.payload)
-                let response = try await operation(value)
-                reply.call(SecureIPCReply(
-                    requestID: request.requestID,
-                    status: .success,
-                    payload: try SecureIPCCodec.encode(response)
-                ))
-            } catch {
-                reply.call(SecureIPCReply(
-                    requestID: request.requestID,
-                    status: .rejected,
-                    redactedErrorCode: String(describing: type(of: error))
-                ))
-            }
-        }
-    }
-
-    func runtimeDataAvailable(withReply reply: @escaping () -> Void) {
-        let signal = runtimeSignal
-        let reply = AppRelayVoidReply(reply)
-        Task {
-            await signal()
-            reply.call()
-        }
-    }
-}
-
-private final class AppRelayReply: @unchecked Sendable {
-    private let lock = NSLock()
-    private var handler: ((SecureIPCReply) -> Void)?
-
-    init(_ handler: @escaping (SecureIPCReply) -> Void) {
-        self.handler = handler
-    }
-
-    func call(_ reply: SecureIPCReply) {
-        let pending = lock.withLock {
-            defer { handler = nil }
-            return handler
-        }
-        pending?(reply)
-    }
-}
-
-private final class AppRelayVoidReply: @unchecked Sendable {
-    private let lock = NSLock()
-    private var handler: (() -> Void)?
-
-    init(_ handler: @escaping () -> Void) {
-        self.handler = handler
-    }
-
-    func call() {
-        let pending = lock.withLock {
-            defer { handler = nil }
-            return handler
-        }
-        pending?()
-    }
-}
-
 private struct CLIProfileValue: Codable {
     let id: UUID
     let name: String
@@ -469,4 +402,22 @@ struct RedactedDiagnostics: Codable {
     let disabledBlocklistCount: Int?
     let pendingPromptCount: Int
     let eventDropCount: UInt64
+    let activity: RedactedActivityDiagnostics?
+}
+
+struct RedactedActivityDiagnostics: Codable {
+    let desiredMode: String
+    let activityViewVisible: Bool
+    let historyDatabaseOpened: Bool
+    let recentConnectionCount: Int
+    let providerRecentConnectionCount: Int?
+    let providerActivityRevision: UInt64?
+    let applicationHidden: Bool
+    let mainWindows: [RedactedActivityWindowDiagnostics]
+}
+
+struct RedactedActivityWindowDiagnostics: Codable {
+    let visible: Bool
+    let minimized: Bool
+    let occlusionVisible: Bool
 }

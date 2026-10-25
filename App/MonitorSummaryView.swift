@@ -11,6 +11,7 @@ struct MonitorSummaryView: View {
     let apply: (FilterAction, MonitorHierarchyNode) -> Void
     let showRules: () -> Void
     let hideSummary: () -> Void
+    var isMinimal = false
     @State private var connectionsExpanded = true
     @State private var statisticsExpanded = true
 
@@ -18,11 +19,7 @@ struct MonitorSummaryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 header
-#if DEBUG
-                if MonitorFixtureBytePresentation.isEnabled {
-                    metricChips
-                }
-#endif
+                metricChips
                 DisclosureGroup("Connections", isExpanded: $connectionsExpanded) {
                     VStack(spacing: 8) {
                         metricRow("Denied", summary.denied, "xmark.circle")
@@ -67,6 +64,10 @@ struct MonitorSummaryView: View {
             .help("Hide Summary")
             VStack(alignment: .leading, spacing: 1) {
                 Text("Summary").font(.title2.weight(.semibold))
+                if isMinimal {
+                    Text("Limited observed connections")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Text(summaryCountLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -82,15 +83,14 @@ struct MonitorSummaryView: View {
         return "\(prefix)\(summary.processCount) processes, \(prefix)\(summary.destinationCount) destinations"
     }
 
-#if DEBUG
     private var metricChips: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 6) {
-                summaryChip("Sent", summary.sent, "arrow.up", .purple)
+                summaryChip("Sent", summary.sent, "arrow.up", RiftDesign.trafficSent)
                 summaryChip("Received", summary.received, "arrow.down", .blue)
             }
             VStack(spacing: 6) {
-                summaryChip("Sent", summary.sent, "arrow.up", .purple)
+                summaryChip("Sent", summary.sent, "arrow.up", RiftDesign.trafficSent)
                 summaryChip("Received", summary.received, "arrow.down", .blue)
             }
         }
@@ -106,9 +106,6 @@ struct MonitorSummaryView: View {
             Image(systemName: symbol)
             Text(format(total))
                 .font(.headline.monospacedDigit())
-            if total.isPartial {
-                Text("Partial").font(.caption2)
-            }
         }
         .foregroundStyle(color)
         .frame(maxWidth: .infinity, minHeight: 31)
@@ -116,7 +113,6 @@ struct MonitorSummaryView: View {
         .accessibilityLabel("\(title), \(accessible(total))")
         .help("\(title) is reported when connections close")
     }
-#endif
 
     private func metricRow(_ label: String, _ value: Int, _ symbol: String) -> some View {
         HStack {
@@ -229,7 +225,6 @@ struct MonitorSummaryView: View {
         }
     }
 
-#if DEBUG
     private func format(_ total: ReportedByteTotal) -> String {
         guard let value = total.value else { return "—" }
         let formatted = ByteCountFormatter.string(
@@ -242,7 +237,6 @@ struct MonitorSummaryView: View {
         guard total.value != nil else { return "not reported" }
         return total.isPartial ? "partial, at least \(format(total).dropFirst())" : format(total)
     }
-#endif
 }
 
 private extension View {

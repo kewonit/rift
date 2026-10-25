@@ -31,7 +31,11 @@ static NSDictionary<NSString *, id> *RiftCopyLegacyEndpointParts(NWEndpoint *end
 }
 
 static NSDictionary<NSString *, id> *RiftCopyFlowEndpointParts(nw_endpoint_t endpoint) {
-    if (endpoint == nil || nw_endpoint_get_type(endpoint) != nw_endpoint_type_host) {
+    if (endpoint == nil) {
+        return nil;
+    }
+    nw_endpoint_type_t type = nw_endpoint_get_type(endpoint);
+    if (type != nw_endpoint_type_host && type != nw_endpoint_type_address) {
         return nil;
     }
     const char *host = nw_endpoint_get_hostname(endpoint);

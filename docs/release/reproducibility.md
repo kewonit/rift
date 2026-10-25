@@ -2,7 +2,7 @@
 
 The maintained local lane builds an unsigned Apple silicon product. The
 reference environment recorded on 2026-08-11 uses macOS 26.5.2 (`25F84`), Xcode
-26.6 (`17F113`), and Apple Swift 6.3.3. The deployment target remains macOS 14.
+26.6 (`17F113`), and Apple Swift 6.3.3. The deployment target is macOS 15.
 All three shipped executables contain only `arm64`.
 
 Run from a clean source checkout:
@@ -24,7 +24,7 @@ and third-party notices.
 The Release build emits these symbol bundles:
 
 - `Rift.app.dSYM`
-- `RiftFilter.systemextension.dSYM`
+- `io.rift.firewall.filter.systemextension.dSYM`
 - `riftctl.dSYM`
 
 Product verification requires each `arm64` DWARF UUID to match its

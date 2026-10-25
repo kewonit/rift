@@ -202,6 +202,7 @@ public final class PromptQueue: @unchecked Sendable {
             return entry.completion
         }
         completion(.answered(answer.action))
+        lock.withLock { activitySignal }?()
     }
 
     @discardableResult
@@ -214,13 +215,34 @@ public final class PromptQueue: @unchecked Sendable {
         }
         guard let completion else { return false }
         completion(.deadlineFallback)
+        lock.withLock { activitySignal }?()
         return true
     }
 
     public func cancel(_ nonce: UUID) {
-        lock.withLock {
-            entries.removeValue(forKey: nonce)
+        let removed = lock.withLock {
+            let removed = entries.removeValue(forKey: nonce) != nil
             order.removeAll { $0 == nonce }
+            return removed
+        }
+        if removed { lock.withLock { activitySignal }?() }
+    }
+
+    public func activeNonces(controllerLeaseID: UUID) throws -> Set<UUID> {
+        try lock.withLock {
+            guard controller?.leaseID == controllerLeaseID else { throw PromptQueueError.invalidLease }
+            return Set(entries.values.filter { $0.deadline > Date() }.map { $0.request.nonce })
+        }
+    }
+
+    public func redeliverActive(controllerLeaseID: UUID) throws {
+        try lock.withLock {
+            guard controller?.leaseID == controllerLeaseID else { throw PromptQueueError.invalidLease }
+            for nonce in order {
+                guard var entry = entries[nonce], entry.deadline > Date() else { continue }
+                entry.delivered = false
+                entries[nonce] = entry
+            }
         }
     }
 }

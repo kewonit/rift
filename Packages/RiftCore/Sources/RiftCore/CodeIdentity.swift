@@ -9,6 +9,7 @@ public enum CodeIdentityError: Error, Sendable, Equatable {
 
 public struct CodeDigest: Sendable, Hashable, Comparable, Codable, CustomStringConvertible {
     public let bytes: [UInt8]
+    private static let hexadecimalDigits = Array("0123456789abcdef".utf8)
 
     public init(hex: String, expectedByteCount: Int) throws {
         guard hex.count == expectedByteCount * 2 else {
@@ -32,7 +33,13 @@ public struct CodeDigest: Sendable, Hashable, Comparable, Codable, CustomStringC
     }
 
     public var description: String {
-        bytes.map { String(format: "%02x", $0) }.joined()
+        var text: [UInt8] = []
+        text.reserveCapacity(bytes.count * 2)
+        for byte in bytes {
+            text.append(Self.hexadecimalDigits[Int(byte >> 4)])
+            text.append(Self.hexadecimalDigits[Int(byte & 0x0f)])
+        }
+        return String(decoding: text, as: UTF8.self)
     }
 
     public static func < (lhs: CodeDigest, rhs: CodeDigest) -> Bool {

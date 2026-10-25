@@ -6,32 +6,35 @@ public struct MonitorQueryState: Sendable, Hashable {
     public var lens: MonitorLens
     public var decision: MonitorDecisionFilter
     public var direction: MonitorDirectionFilter
+    public var locality: MonitorLocalityFilter
+    public var owner: MonitorOwnerFilter
     public var time: MonitorTimeFilter
     public var timeAnchor: Date?
     public var selectedTimeRange: ClosedRange<Date>?
     public var sort: MonitorSort
-    public var focusedLocationID: String?
 
     public init(
         search: String = "",
         lens: MonitorLens = .application,
         decision: MonitorDecisionFilter = .all,
         direction: MonitorDirectionFilter = .all,
+        locality: MonitorLocalityFilter = .all,
+        owner: MonitorOwnerFilter = .all,
         time: MonitorTimeFilter = .day,
         timeAnchor: Date? = nil,
         selectedTimeRange: ClosedRange<Date>? = nil,
-        sort: MonitorSort = .recent,
-        focusedLocationID: String? = nil
+        sort: MonitorSort = .recent
     ) {
         self.search = search
         self.lens = lens
         self.decision = decision
         self.direction = direction
+        self.locality = locality
+        self.owner = owner
         self.time = time
         self.timeAnchor = time == .all ? nil : timeAnchor
         self.selectedTimeRange = selectedTimeRange
         self.sort = sort
-        self.focusedLocationID = focusedLocationID
     }
 
     public var isLiveTimeRange: Bool { timeAnchor == nil }
@@ -107,13 +110,11 @@ public struct MonitorQueryState: Sendable, Hashable {
 
     public func apply(
         to rows: [MonitorEventRow],
-        geography: [String: GeoResolution],
         now: Date = Date(),
         calendar: Calendar = .autoupdatingCurrent
     ) -> [MonitorDisplayRow] {
         apply(
             to: rows,
-            geography: geography,
             now: now,
             calendar: calendar,
             cancellationCheck: {}
@@ -122,13 +123,11 @@ public struct MonitorQueryState: Sendable, Hashable {
 
     public func applyCancellable(
         to rows: [MonitorEventRow],
-        geography: [String: GeoResolution],
         now: Date = Date(),
         calendar: Calendar = .autoupdatingCurrent
     ) throws -> [MonitorDisplayRow] {
         try apply(
             to: rows,
-            geography: geography,
             now: now,
             calendar: calendar,
             cancellationCheck: { try Task.checkCancellation() }
@@ -137,41 +136,33 @@ public struct MonitorQueryState: Sendable, Hashable {
 
     func apply(
         to rows: [MonitorEventRow],
-        geography: [String: GeoResolution],
         now: Date,
         calendar: Calendar = .autoupdatingCurrent,
         cancellationCheck: () throws -> Void
     ) rethrows -> [MonitorDisplayRow] {
         guard let window = effectiveTimeWindow(now: now, calendar: calendar) else { return [] }
-        let matching = try MonitorQuery.filter(
+        return try MonitorQuery.filter(
             rows,
             search: search,
             lens: lens,
             decision: decision,
             direction: direction,
+            locality: locality,
+            owner: owner,
             timeWindow: window,
             sort: sort,
-            geography: geography,
             cancellationCheck: cancellationCheck
         )
-        guard let focusedLocationID else { return matching }
-        var focused: [MonitorDisplayRow] = []
-        focused.reserveCapacity(matching.count)
-        for (index, row) in matching.enumerated() {
-            if index.isMultiple(of: 64) { try cancellationCheck() }
-            if row.geography.location?.stableID == focusedLocationID { focused.append(row) }
-        }
-        try cancellationCheck()
-        return focused
     }
 
     public mutating func clearExcludingFilters() {
         search = ""
         decision = .all
         direction = .all
+        locality = .all
+        owner = .all
         time = .all
         timeAnchor = nil
         selectedTimeRange = nil
-        focusedLocationID = nil
     }
 }

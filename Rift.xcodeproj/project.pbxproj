@@ -7,14 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1000000000000000000000A1 /* VisualActivitySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A1 /* VisualActivitySupport.swift */; };
 		100000000000000000000001 /* RiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* RiftApp.swift */; };
 		100000000000000000000002 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* SetupView.swift */; };
 		100000000000000000000003 /* FilterLifecycleController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* FilterLifecycleController.swift */; };
 		100000000000000000000004 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* main.swift */; };
 		100000000000000000000005 /* PolicyRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* PolicyRuntime.swift */; };
+		1000000000000000000000B4 /* PolicyRuntimeExpiry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000B4 /* PolicyRuntimeExpiry.swift */; };
 		100000000000000000000006 /* FilterServiceListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000006 /* FilterServiceListener.swift */; };
 		100000000000000000000007 /* FilterDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000007 /* FilterDataProvider.swift */; };
-		100000000000000000000008 /* RiftFilter.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* RiftFilter.systemextension */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		100000000000000000000008 /* io.rift.firewall.filter.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* io.rift.firewall.filter.systemextension */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		100000000000000000000009 /* SystemExtensions.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* SystemExtensions.framework */; };
 		10000000000000000000000A /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000B /* NetworkExtension.framework */; };
 		10000000000000000000000B /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000B /* NetworkExtension.framework */; };
@@ -61,14 +63,12 @@
 		100000000000000000000034 /* DiagnosticsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000036 /* DiagnosticsBundle.swift */; };
 		100000000000000000000035 /* AdvancedSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000037 /* AdvancedSettingsPane.swift */; };
 		100000000000000000000036 /* ControlPlaneHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000038 /* ControlPlaneHistory.swift */; };
+		1000000000000000000000B3 /* AppRelayHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000B3 /* AppRelayHandler.swift */; };
+		1000000000000000000000B2 /* ControlPlaneActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000B2 /* ControlPlaneActivity.swift */; };
+		1000000000000000000000B1 /* ControlPlaneReconciliation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000B1 /* ControlPlaneReconciliation.swift */; };
 		100000000000000000000037 /* ControlPlaneRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000039 /* ControlPlaneRecovery.swift */; };
-		100000000000000000000038 /* GeoFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003A /* GeoFileAccess.swift */; };
-		100000000000000000000039 /* GeolocationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003B /* GeolocationController.swift */; };
 		10000000000000000000003A /* MonitorFixtureData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003C /* MonitorFixtureData.swift */; };
-		10000000000000000000003B /* DestinationMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003D /* DestinationMapView.swift */; };
-		10000000000000000000003C /* MonitorMapSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003E /* MonitorMapSection.swift */; };
-		10000000000000000000003D /* GeoSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003F /* GeoSettingsPane.swift */; };
-		10000000000000000000003E /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000040 /* MapKit.framework */; };
+		10000000000000000000003B /* LiveMapOrigin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003D /* LiveMapOrigin.swift */; };
 		10000000000000000000003F /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000041 /* AppSession.swift */; };
 		100000000000000000000040 /* MonitorSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000042 /* MonitorSidebarView.swift */; };
 		100000000000000000000041 /* MonitorSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000043 /* MonitorSummaryView.swift */; };
@@ -92,6 +92,13 @@
 		100000000000000000000053 /* RulesWorkspaceDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000055 /* RulesWorkspaceDefinitions.swift */; };
 		100000000000000000000054 /* RulesWorkspaceDragSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000056 /* RulesWorkspaceDragSupport.swift */; };
 		100000000000000000000055 /* RuleWorkspaceCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000057 /* RuleWorkspaceCommands.swift */; };
+		100000000000000000000056 /* RiftDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000058 /* RiftDesign.swift */; };
+		100000000000000000000057 /* RiftWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000059 /* RiftWorkspaceView.swift */; };
+		100000000000000000000058 /* LiveMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005A /* LiveMapView.swift */; };
+		100000000000000000000071 /* LiveMapConnectionsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000071 /* LiveMapConnectionsPane.swift */; };
+		100000000000000000000073 /* LiveTrafficChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000073 /* LiveTrafficChart.swift */; };
+		100000000000000000000074 /* StatusMenuDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000074 /* StatusMenuDashboard.swift */; };
+		10000000000000000000005E /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000060 /* ThirdPartyNotices.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,7 +125,7 @@
 			dstPath = "Contents/Library/SystemExtensions";
 			dstSubfolderSpec = 1;
 			files = (
-				100000000000000000000008 /* RiftFilter.systemextension in Embed System Extensions */,
+				100000000000000000000008 /* io.rift.firewall.filter.systemextension in Embed System Extensions */,
 			);
 			name = "Embed System Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -137,15 +144,17 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2000000000000000000000A1 /* VisualActivitySupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualActivitySupport.swift; sourceTree = "<group>"; };
 		200000000000000000000001 /* RiftApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftApp.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
 		200000000000000000000003 /* FilterLifecycleController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLifecycleController.swift; sourceTree = "<group>"; };
 		200000000000000000000004 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		200000000000000000000005 /* PolicyRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolicyRuntime.swift; sourceTree = "<group>"; };
+		2000000000000000000000B4 /* PolicyRuntimeExpiry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolicyRuntimeExpiry.swift; sourceTree = "<group>"; };
 		200000000000000000000006 /* FilterServiceListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterServiceListener.swift; sourceTree = "<group>"; };
 		200000000000000000000007 /* FilterDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterDataProvider.swift; sourceTree = "<group>"; };
 		200000000000000000000008 /* Rift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rift.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		200000000000000000000009 /* RiftFilter.systemextension */ = {isa = PBXFileReference; explicitFileType = wrapper.system-extension; includeInIndex = 0; path = RiftFilter.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
+		200000000000000000000009 /* io.rift.firewall.filter.systemextension */ = {isa = PBXFileReference; explicitFileType = wrapper.system-extension; includeInIndex = 0; path = io.rift.firewall.filter.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 		20000000000000000000000A /* SystemExtensions.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemExtensions.framework; path = System/Library/Frameworks/SystemExtensions.framework; sourceTree = SDKROOT; };
 		20000000000000000000000B /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 		20000000000000000000000C /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
@@ -193,14 +202,12 @@
 		200000000000000000000036 /* DiagnosticsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsBundle.swift; sourceTree = "<group>"; };
 		200000000000000000000037 /* AdvancedSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsPane.swift; sourceTree = "<group>"; };
 		200000000000000000000038 /* ControlPlaneHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneHistory.swift; sourceTree = "<group>"; };
+		2000000000000000000000B3 /* AppRelayHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRelayHandler.swift; sourceTree = "<group>"; };
+		2000000000000000000000B2 /* ControlPlaneActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneActivity.swift; sourceTree = "<group>"; };
+		2000000000000000000000B1 /* ControlPlaneReconciliation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneReconciliation.swift; sourceTree = "<group>"; };
 		200000000000000000000039 /* ControlPlaneRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRecovery.swift; sourceTree = "<group>"; };
-		20000000000000000000003A /* GeoFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoFileAccess.swift; sourceTree = "<group>"; };
-		20000000000000000000003B /* GeolocationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeolocationController.swift; sourceTree = "<group>"; };
 		20000000000000000000003C /* MonitorFixtureData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureData.swift; sourceTree = "<group>"; };
-		20000000000000000000003D /* DestinationMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DestinationMapView.swift; sourceTree = "<group>"; };
-		20000000000000000000003E /* MonitorMapSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorMapSection.swift; sourceTree = "<group>"; };
-		20000000000000000000003F /* GeoSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoSettingsPane.swift; sourceTree = "<group>"; };
-		200000000000000000000040 /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		20000000000000000000003D /* LiveMapOrigin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapOrigin.swift; sourceTree = "<group>"; };
 		200000000000000000000041 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		200000000000000000000042 /* MonitorSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorSidebarView.swift; sourceTree = "<group>"; };
 		200000000000000000000043 /* MonitorSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorSummaryView.swift; sourceTree = "<group>"; };
@@ -224,6 +231,13 @@
 		200000000000000000000055 /* RulesWorkspaceDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesWorkspaceDefinitions.swift; sourceTree = "<group>"; };
 		200000000000000000000056 /* RulesWorkspaceDragSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesWorkspaceDragSupport.swift; sourceTree = "<group>"; };
 		200000000000000000000057 /* RuleWorkspaceCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleWorkspaceCommands.swift; sourceTree = "<group>"; };
+		200000000000000000000058 /* RiftDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftDesign.swift; sourceTree = "<group>"; };
+		200000000000000000000059 /* RiftWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftWorkspaceView.swift; sourceTree = "<group>"; };
+		20000000000000000000005A /* LiveMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapView.swift; sourceTree = "<group>"; };
+		200000000000000000000071 /* LiveMapConnectionsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapConnectionsPane.swift; sourceTree = "<group>"; };
+		200000000000000000000073 /* LiveTrafficChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTrafficChart.swift; sourceTree = "<group>"; };
+		200000000000000000000074 /* StatusMenuDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuDashboard.swift; sourceTree = "<group>"; };
+		200000000000000000000060 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -233,7 +247,6 @@
 			files = (
 				100000000000000000000009 /* SystemExtensions.framework in Frameworks */,
 				10000000000000000000000A /* NetworkExtension.framework in Frameworks */,
-				10000000000000000000003E /* MapKit.framework in Frameworks */,
 				10000000000000000000000C /* RiftCore in Frameworks */,
 				10000000000000000000000D /* RiftIPC in Frameworks */,
 				100000000000000000000011 /* RiftControl in Frameworks */,
@@ -273,6 +286,7 @@
 				800000000000000000000003 /* Extension */,
 				800000000000000000000007 /* CLI */,
 				800000000000000000000004 /* Configuration */,
+				800000000000000000000008 /* Resources */,
 				800000000000000000000005 /* Frameworks */,
 				800000000000000000000006 /* Products */,
 			);
@@ -283,6 +297,13 @@
 			children = (
 				200000000000000000000001 /* RiftApp.swift */,
 				200000000000000000000041 /* AppSession.swift */,
+				200000000000000000000058 /* RiftDesign.swift */,
+				200000000000000000000059 /* RiftWorkspaceView.swift */,
+				20000000000000000000005A /* LiveMapView.swift */,
+				2000000000000000000000A1 /* VisualActivitySupport.swift */,
+				200000000000000000000071 /* LiveMapConnectionsPane.swift */,
+				200000000000000000000073 /* LiveTrafficChart.swift */,
+				200000000000000000000074 /* StatusMenuDashboard.swift */,
 				200000000000000000000047 /* ApplicationArtworkStore.swift */,
 				200000000000000000000048 /* ApplicationIdentityIcon.swift */,
 				200000000000000000000002 /* SetupView.swift */,
@@ -324,13 +345,12 @@
 				200000000000000000000036 /* DiagnosticsBundle.swift */,
 				200000000000000000000037 /* AdvancedSettingsPane.swift */,
 				200000000000000000000038 /* ControlPlaneHistory.swift */,
+				2000000000000000000000B3 /* AppRelayHandler.swift */,
+				2000000000000000000000B2 /* ControlPlaneActivity.swift */,
+				2000000000000000000000B1 /* ControlPlaneReconciliation.swift */,
 				200000000000000000000039 /* ControlPlaneRecovery.swift */,
-				20000000000000000000003A /* GeoFileAccess.swift */,
-				20000000000000000000003B /* GeolocationController.swift */,
 				20000000000000000000003C /* MonitorFixtureData.swift */,
-				20000000000000000000003D /* DestinationMapView.swift */,
-				20000000000000000000003E /* MonitorMapSection.swift */,
-				20000000000000000000003F /* GeoSettingsPane.swift */,
+				20000000000000000000003D /* LiveMapOrigin.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -340,6 +360,7 @@
 			children = (
 				200000000000000000000004 /* main.swift */,
 				200000000000000000000005 /* PolicyRuntime.swift */,
+				2000000000000000000000B4 /* PolicyRuntimeExpiry.swift */,
 				200000000000000000000050 /* RuntimeEnvironment.swift */,
 				200000000000000000000051 /* PolicyRuntimeReset.swift */,
 				200000000000000000000006 /* FilterServiceListener.swift */,
@@ -382,7 +403,6 @@
 				200000000000000000000019 /* SystemConfiguration.framework */,
 				20000000000000000000001A /* libbsm.tbd */,
 				20000000000000000000001F /* Security.framework */,
-				200000000000000000000040 /* MapKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -391,7 +411,7 @@
 			isa = PBXGroup;
 			children = (
 				200000000000000000000008 /* Rift.app */,
-				200000000000000000000009 /* RiftFilter.systemextension */,
+				200000000000000000000009 /* io.rift.firewall.filter.systemextension */,
 				200000000000000000000032 /* riftctl */,
 			);
 			name = Products;
@@ -405,6 +425,14 @@
 				200000000000000000000031 /* CLIFileAccess.swift */,
 			);
 			path = CLI;
+			sourceTree = "<group>";
+		};
+		800000000000000000000008 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000060 /* ThirdPartyNotices.txt */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -455,7 +483,7 @@
 				A00000000000000000000006 /* RiftFilterRuntime */,
 			);
 			productName = RiftFilter;
-			productReference = 200000000000000000000009 /* RiftFilter.systemextension */;
+			productReference = 200000000000000000000009 /* io.rift.firewall.filter.systemextension */;
 			productType = "com.apple.product-type.system-extension";
 		};
 		700000000000000000000003 /* RiftCLI */ = {
@@ -519,7 +547,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		C00000000000000000000001 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		C00000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10000000000000000000005E /* ThirdPartyNotices.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C00000000000000000000002 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
@@ -530,6 +565,13 @@
 			files = (
 				100000000000000000000001 /* RiftApp.swift in Sources */,
 				10000000000000000000003F /* AppSession.swift in Sources */,
+				100000000000000000000056 /* RiftDesign.swift in Sources */,
+				100000000000000000000057 /* RiftWorkspaceView.swift in Sources */,
+				100000000000000000000058 /* LiveMapView.swift in Sources */,
+				1000000000000000000000A1 /* VisualActivitySupport.swift in Sources */,
+				100000000000000000000071 /* LiveMapConnectionsPane.swift in Sources */,
+				100000000000000000000073 /* LiveTrafficChart.swift in Sources */,
+				100000000000000000000074 /* StatusMenuDashboard.swift in Sources */,
 				100000000000000000000045 /* ApplicationArtworkStore.swift in Sources */,
 				100000000000000000000046 /* ApplicationIdentityIcon.swift in Sources */,
 				100000000000000000000002 /* SetupView.swift in Sources */,
@@ -571,13 +613,12 @@
 				100000000000000000000034 /* DiagnosticsBundle.swift in Sources */,
 				100000000000000000000035 /* AdvancedSettingsPane.swift in Sources */,
 				100000000000000000000036 /* ControlPlaneHistory.swift in Sources */,
+				1000000000000000000000B3 /* AppRelayHandler.swift in Sources */,
+				1000000000000000000000B2 /* ControlPlaneActivity.swift in Sources */,
+				1000000000000000000000B1 /* ControlPlaneReconciliation.swift in Sources */,
 				100000000000000000000037 /* ControlPlaneRecovery.swift in Sources */,
-				100000000000000000000038 /* GeoFileAccess.swift in Sources */,
-				100000000000000000000039 /* GeolocationController.swift in Sources */,
 				10000000000000000000003A /* MonitorFixtureData.swift in Sources */,
-				10000000000000000000003B /* DestinationMapView.swift in Sources */,
-				10000000000000000000003C /* MonitorMapSection.swift in Sources */,
-				10000000000000000000003D /* GeoSettingsPane.swift in Sources */,
+				10000000000000000000003B /* LiveMapOrigin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -587,6 +628,7 @@
 			files = (
 				100000000000000000000004 /* main.swift in Sources */,
 				100000000000000000000005 /* PolicyRuntime.swift in Sources */,
+				1000000000000000000000B4 /* PolicyRuntimeExpiry.swift in Sources */,
 				10000000000000000000004E /* RuntimeEnvironment.swift in Sources */,
 				10000000000000000000004F /* PolicyRuntimeReset.swift in Sources */,
 				100000000000000000000006 /* FilterServiceListener.swift in Sources */,
@@ -656,7 +698,8 @@
 				INFOPLIST_FILE = "Configuration/Extension-Info.plist";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(RIFT_BUNDLE_PREFIX).filter";
 				PRODUCT_MODULE_NAME = RiftFilter;
-				PRODUCT_NAME = RiftFilter;
+				PRODUCT_NAME = "$(RIFT_BUNDLE_PREFIX).filter";
+				EXECUTABLE_NAME = RiftFilter;
 				SKIP_INSTALL = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Extension/LoopbackSettings.h";
 				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift";
@@ -672,7 +715,8 @@
 				INFOPLIST_FILE = "Configuration/Extension-Info.plist";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(RIFT_BUNDLE_PREFIX).filter";
 				PRODUCT_MODULE_NAME = RiftFilter;
-				PRODUCT_NAME = RiftFilter;
+				PRODUCT_NAME = "$(RIFT_BUNDLE_PREFIX).filter";
+				EXECUTABLE_NAME = RiftFilter;
 				SKIP_INSTALL = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Extension/LoopbackSettings.h";
 				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift";
@@ -685,9 +729,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 20000000000000000000000C /* Debug.xcconfig */;
 			buildSettings = {
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_RiftMachServiceName = "$(RIFT_MACH_SERVICE)";
-				INFOPLIST_KEY_RiftTeamIdentifierPrefix = "$(TeamIdentifierPrefix)";
+				INFOPLIST_FILE = "Configuration/CLI-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift";
 				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(RIFT_BUNDLE_PREFIX).cli";
@@ -700,9 +744,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 20000000000000000000000D /* Release.xcconfig */;
 			buildSettings = {
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_RiftMachServiceName = "$(RIFT_MACH_SERVICE)";
-				INFOPLIST_KEY_RiftTeamIdentifierPrefix = "$(TeamIdentifierPrefix)";
+				INFOPLIST_FILE = "Configuration/CLI-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift";
 				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(RIFT_BUNDLE_PREFIX).cli";

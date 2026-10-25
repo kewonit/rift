@@ -3,7 +3,8 @@ import Foundation
 public struct ProtocolVersion: Sendable, Hashable, Codable {
     public static let baseline = ProtocolVersion(major: 1, minor: 0)
     public static let configurationReset = ProtocolVersion(major: 1, minor: 1)
-    public static let current = configurationReset
+    public static let activitySubscriptions = ProtocolVersion(major: 1, minor: 2)
+    public static let current = activitySubscriptions
 
     public let major: UInt16
     public let minor: UInt16

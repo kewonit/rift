@@ -3,6 +3,25 @@ import RiftCore
 import RiftIPC
 import SwiftUI
 
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case general = "General"
+    case alerts = "Alerts"
+    case history = "Monitor & Privacy"
+    case policies = "Policies"
+    case advanced = "Advanced"
+
+    var id: String { rawValue }
+    var symbol: String {
+        switch self {
+        case .general: "gear"
+        case .alerts: "bell"
+        case .history: "eye.slash"
+        case .policies: "switch.2"
+        case .advanced: "wrench.and.screwdriver"
+        }
+    }
+}
+
 struct GeneralSettingsPane: View {
     @Binding var baseMode: OperationMode
     @Binding var launchAtLogin: Bool
@@ -84,13 +103,13 @@ struct AlertSettingsPane: View {
                 Picker("Remember decisions", selection: $alertDefaultLifetime) {
                     Text("Once").tag("Once")
                     Text("One hour").tag("One hour")
-                    Text("Permanent").tag("Permanent")
+                    Text("Always").tag("Always")
                 }
                 Picker("Rule scope", selection: $alertDefaultScope) {
                     Text("Current profile").tag("Current profile")
                     Text("All profiles").tag("All profiles")
                 }
-                Stepper("Recent menu items: \(recentLimit)", value: $recentLimit, in: 0...25)
+                Stepper("Recent menu items: \(recentLimit)", value: $recentLimit, in: 0...10)
             } header: {
                 Text("Defaults")
             } footer: {
@@ -114,13 +133,17 @@ struct HistorySettingsPane: View {
             Section("History") {
                 Toggle("Persist connection history", isOn: $historyEnabled)
                 Stepper("Retention: \(retentionDays) days", value: $retentionDays, in: 1...30)
+                    .disabled(!historyEnabled)
                 Stepper(
                     "Maximum events: \(maximumFlows.formatted())",
                     value: $maximumFlows,
                     in: 1_000...50_000,
                     step: 1_000
                 )
+                .disabled(!historyEnabled)
                 Button("Apply", action: apply)
+                Text("With history off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) connections for five minutes while Activity or Live Map is visible, or five while only the menu is open. Nothing is collected for activity when those views are hidden. Saved rules still apply.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section {
                 ControlGroup {

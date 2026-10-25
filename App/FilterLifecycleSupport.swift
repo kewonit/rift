@@ -66,7 +66,7 @@ enum FilterActivationPreflight {
     static let appGroup = "group.io.rift.firewall"
     static let filterDataProviderClass = "RiftFilter.FilterDataProvider"
     static let embeddedExtensionPath =
-        "Contents/Library/SystemExtensions/RiftFilter.systemextension"
+        "Contents/Library/SystemExtensions/\(extensionIdentifier).systemextension"
 
     static func validate() throws -> ExtensionIdentity {
         let app = Bundle.main

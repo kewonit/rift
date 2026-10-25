@@ -12,6 +12,7 @@ struct MonitorSidebarView: View {
     let controlPlane: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
     let now: Date
+    let decisionSnapshot: DecisionBucketSnapshot
     let attentionMessage: String?
     let errorMessage: String?
     let loading: Bool
@@ -51,7 +52,8 @@ struct MonitorSidebarView: View {
                 trafficTotals
             }
 #endif
-            DecisionChartView(controlPlane: controlPlane, query: $query, now: now)
+            DecisionChartView(snapshot: decisionSnapshot, query: $query, now: now,
+                              refreshFailed: errorMessage != nil, isMinimal: controlPlane.isMinimalActivity)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 7)
         }
@@ -100,6 +102,12 @@ struct MonitorSidebarView: View {
             Picker("Direction", selection: $query.direction) {
                 ForEach(MonitorDirectionFilter.allCases) { Text($0.rawValue).tag($0) }
             }
+            Picker("Network", selection: $query.locality) {
+                ForEach(MonitorLocalityFilter.allCases) { Text($0.rawValue).tag($0) }
+            }
+            Picker("Owner", selection: $query.owner) {
+                ForEach(MonitorOwnerFilter.allCases) { Text($0.rawValue).tag($0) }
+            }
             Picker("Sort", selection: $query.sort) {
                 ForEach(availableSorts) { Text($0.rawValue).tag($0) }
             }
@@ -133,7 +141,14 @@ struct MonitorSidebarView: View {
         .listStyle(.sidebar)
         .overlay {
             if hierarchy.isEmpty && !loading {
-                ContentUnavailableView("No activity", systemImage: "network")
+                ContentUnavailableView(
+                    controlPlane.isMinimalActivity
+                        ? (rows.isEmpty && query.search.isEmpty ? "Waiting for new connections" : "No matching connections")
+                        : "No activity",
+                    systemImage: "network",
+                    description: controlPlane.isMinimalActivity
+                        ? Text("New connections appear while this view is visible. Up to \(ControlPlaneController.minimalFlowLimit) are kept for five minutes, without saving them.") : nil
+                )
             }
         }
     }
@@ -177,12 +192,10 @@ struct MonitorSidebarView: View {
 }
 
 struct MonitorToolbarContent: ToolbarContent {
-    let canShowMap: Bool
-    let showingMap: Bool
     let showingSummary: Bool
     let openRules: () -> Void
-    let toggleMap: () -> Void
     let showSummary: () -> Void
+    let openSettings: () -> Void
     let refresh: () -> Void
 
     @ToolbarContentBuilder
@@ -192,12 +205,6 @@ struct MonitorToolbarContent: ToolbarContent {
                 Label("Rules", systemImage: "list.bullet.rectangle")
             }
             .help("Open rules")
-            if canShowMap {
-                Button(action: toggleMap) {
-                    Label(showingMap ? "Hide Map" : "Show Map", systemImage: "map")
-                }
-                .help(showingMap ? "Hide map" : "Show map")
-            }
             if !showingSummary {
                 Button(action: showSummary) {
                     Label("Show Summary", systemImage: "sidebar.right")
@@ -210,10 +217,10 @@ struct MonitorToolbarContent: ToolbarContent {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
             .help("Refresh activity")
-            SettingsLink {
+            Button(action: openSettings) {
                 Label("Settings", systemImage: "gearshape")
             }
-            .help("Open settings")
+            .help("Open Settings")
         }
     }
 }
@@ -335,9 +342,6 @@ private struct MonitorHierarchyRow: View {
         case .route: "arrow.left.arrow.right"
         case .hostname: "globe"
         case .address: "network"
-        case .country: "globe.europe.africa"
-        case .city: "building.2"
-        case .nonGeographic: "mappin.slash"
         case .flow: row?.event.action == .deny ? "xmark.circle.fill" : "checkmark.circle.fill"
         }
     }

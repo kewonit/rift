@@ -6,33 +6,19 @@ import Testing
 
 @Test func monitorHierarchyHasStableCanonicalPathsForEveryLens() throws {
     let row = try monitorHierarchyRow()
-    let location = try GeoLocation(
-        continentCode: "NA", countryCode: "US", region: "California",
-        city: "Los Angeles", latitude: 34.05, longitude: -118.24
-    )
-    let geography = [row.id: GeoResolution.located(location)]
-    let display = MonitorQuery.filter(
-        [row], search: "", lens: .application, geography: geography
-    )
+    let display = MonitorQuery.filter([row], search: "", lens: .application)
     let coverage = [row.id: MonitorRuleCoverage(state: .noRule)]
     let appNodes = MonitorHierarchyBuilder.build(display, lens: .application, coverages: coverage)
     let hostnameNodes = MonitorHierarchyBuilder.build(
         display, lens: .hostname, coverages: coverage
     )
-    let locationNodes = MonitorHierarchyBuilder.build(
-        display, lens: .location, coverages: coverage
-    )
     #expect(appNodes.first?.kind == .application)
+    #expect(appNodes.first?.eventIDs == [row.id])
     #expect(appNodes.first?.exactRuleSeed != nil)
     #expect(hostnameNodes.first?.kind == .hostname)
-    #expect(locationNodes.first?.kind == .country)
-    #expect(locationNodes.first?.children?.first?.kind == .city)
     #expect(MonitorHierarchyBuilder.node(forEventID: row.id, in: appNodes)?.eventID == row.id)
     #expect(MonitorHierarchyBuilder.node(
         forEventID: row.id, in: hostnameNodes
-    )?.eventID == row.id)
-    #expect(MonitorHierarchyBuilder.node(
-        forEventID: row.id, in: locationNodes
     )?.eventID == row.id)
     let leaf = try #require(MonitorHierarchyBuilder.node(forEventID: row.id, in: appNodes))
     #expect(MonitorHierarchyBuilder.node(withID: leaf.id, in: appNodes)?.eventID == row.id)
@@ -44,20 +30,22 @@ import Testing
         lens: .hostname,
         decision: .denied,
         direction: .incoming,
+        locality: .local,
+        owner: .system,
         time: .hour,
         timeAnchor: Date(timeIntervalSince1970: 100),
         selectedTimeRange: Date(timeIntervalSince1970: 10)...Date(timeIntervalSince1970: 20),
-        sort: .name,
-        focusedLocationID: "location"
+        sort: .name
     )
     query.clearExcludingFilters()
     #expect(query.search.isEmpty)
     #expect(query.decision == .all)
     #expect(query.direction == .all)
+    #expect(query.locality == .all)
+    #expect(query.owner == .all)
     #expect(query.time == .all)
     #expect(query.timeAnchor == nil)
     #expect(query.selectedTimeRange == nil)
-    #expect(query.focusedLocationID == nil)
     #expect(query.lens == .hostname)
     #expect(query.sort == .name)
 }
@@ -72,6 +60,7 @@ import Testing
     let hostname = try #require(nodes.first)
     #expect(nodes.count == 1)
     #expect(hostname.kind == .hostname)
+    #expect(hostname.eventIDs == Set(rows.map(\.id)))
     #expect(hostname.title == DisplaySanitizer.plainText("api.example.test"))
     #expect(hostname.children?.first?.kind == .application)
     #expect(hostname.children?.contains { $0.kind == .hostname || $0.kind == .address } == false)

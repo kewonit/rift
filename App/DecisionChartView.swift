@@ -4,21 +4,29 @@ import SwiftUI
 
 struct DecisionChartView: View {
     @Environment(\.calendar) private var calendar
-    let controlPlane: ControlPlaneController
+    let snapshot: DecisionBucketSnapshot
     @Binding var query: MonitorQueryState
     let now: Date
-    @State private var buckets: [DecisionBucket] = []
-    @State private var coverage: HistoryCoverage = .gap
-    @State private var refreshFailed = false
+    private var buckets: [DecisionBucket] { snapshot.buckets }
+    private var coverage: HistoryCoverage { snapshot.coverage }
+    let refreshFailed: Bool
+    var isMinimal = false
     @State private var hoveredBucket: DecisionBucket?
 
     var body: some View {
         VStack(spacing: 5) {
             chart
             statusRow
-            controlsRow
+            if isMinimal {
+                Text("Up to \(ControlPlaneController.minimalFlowLimit) observed connections · Five minutes · Not saved")
+                    .font(.caption2).foregroundStyle(.secondary)
+            } else { controlsRow }
         }
-        .task(id: reloadID) { await reload() }
+        .onChange(of: snapshot.buckets) { _, updated in
+            if let hoveredBucket, !updated.contains(where: { $0.id == hoveredBucket.id }) {
+                self.hoveredBucket = nil
+            }
+        }
     }
 
     private var chart: some View {
@@ -93,7 +101,7 @@ struct DecisionChartView: View {
 
     private var statusRow: some View {
         HStack(spacing: 5) {
-            Text("Decisions")
+            Text(isMinimal ? "Observed decisions" : "Decisions")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if coverage != .complete || refreshFailed {
@@ -179,45 +187,9 @@ struct DecisionChartView: View {
         return "\(allowed) allowed, \(denied) denied, \(unresolved) unresolved\(selection)\(suffix)"
     }
 
-    private var reloadID: String {
-        let anchor = query.timeAnchor?.timeIntervalSinceReferenceDate ?? -1
-        let liveNow = query.timeAnchor == nil ? now.timeIntervalSinceReferenceDate : 0
-        return "\(query.time.rawValue)|\(anchor)|\(liveNow)"
-    }
-
     private func navigate(_ direction: MonitorTimeNavigation) {
         query.navigateTime(direction, now: now, calendar: calendar)
         hoveredBucket = nil
-    }
-
-    private func reload() async {
-        guard let window = baseWindow,
-              let range = window.resolvedBounds(
-                defaultStart: .distantPast,
-                defaultEnd: now.addingTimeInterval(1)
-              ) else {
-            buckets = []
-            coverage = .gap
-            refreshFailed = true
-            return
-        }
-        do {
-            let snapshot = try await controlPlane.decisionBuckets(
-                from: range.start,
-                to: range.end,
-                width: query.time.decisionBucketWidth,
-                anchor: window.start
-            )
-            buckets = snapshot.buckets
-            coverage = snapshot.coverage
-            refreshFailed = false
-            if let hoveredBucket, !snapshot.buckets.contains(where: { $0.id == hoveredBucket.id }) {
-                self.hoveredBucket = nil
-            }
-        } catch is CancellationError {
-        } catch {
-            refreshFailed = true
-        }
     }
 
     private func updateHover(
@@ -250,7 +222,7 @@ struct DecisionChartView: View {
         proxy: ChartProxy,
         geometry: GeometryProxy
     ) {
-        guard let start = chartDate(
+        guard !isMinimal, let start = chartDate(
             at: value.startLocation.x,
             proxy: proxy,
             geometry: geometry

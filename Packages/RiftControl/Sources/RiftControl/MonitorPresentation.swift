@@ -103,86 +103,95 @@ public enum MonitorSummaryBuilder {
         rangeCoverage: HistoryCoverage = .complete,
         topLimit: Int = 3
     ) -> MonitorSummarySnapshot {
-        let sources = rows.map(\.source)
-        let concrete = sources.filter { $0.event.reason == .concreteDecision }
-        let processKeys = Set(sources.map(processKey))
-        let destinationKeys = Set(sources.map(destinationKey))
-        let rowCoverage: HistoryCoverage = sources.contains { $0.coverage == .gap } ? .gap
-            : sources.contains { $0.coverage == .partial } ? .partial : .complete
+        var applications: [ProcessIdentity?: SummaryGroup] = [:]
+        var destinations: [SummaryDestination: SummaryGroup] = [:]
+        var allowed = 0
+        var denied = 0
+        var unresolved = 0
+        var incoming = 0
+        var rowCoverage = HistoryCoverage.complete
+        var sent = SummaryBytes()
+        var received = SummaryBytes()
+        for display in rows {
+            let row = display.source
+            let identity = row.event.flow.sourceAppIdentity ?? row.event.flow.sourceProcessIdentity
+            if applications[identity] != nil { applications[identity]?.count += 1 }
+            else { applications[identity] = SummaryGroup(first: row, count: 1) }
+            let destination: SummaryDestination
+            if let hostname = row.event.flow.observedHostname { destination = .hostname(hostname.ascii.lowercased()) }
+            else if let endpoint = row.event.flow.destinationEndpoint { destination = .address(endpoint.address) }
+            else { destination = .missing }
+            if destinations[destination] != nil { destinations[destination]?.count += 1 }
+            else { destinations[destination] = SummaryGroup(first: row, count: 1) }
+            if row.event.reason != .concreteDecision { unresolved += 1 }
+            else if row.event.action == .allow { allowed += 1 }
+            else if row.event.action == .deny { denied += 1 }
+            if row.event.flow.direction == .incoming { incoming += 1 }
+            rowCoverage = .combined(rowCoverage, row.coverage)
+            sent.add(row.bytesOutbound, closed: row.closedAt != nil)
+            received.add(row.bytesInbound, closed: row.closedAt != nil)
+        }
         let coverage = HistoryCoverage.combined(rowCoverage, rangeCoverage)
         return MonitorSummarySnapshot(
-            processCount: processKeys.count,
-            destinationCount: destinationKeys.count,
-            allowed: concrete.filter { $0.event.action == .allow }.count,
-            denied: concrete.filter { $0.event.action == .deny }.count,
-            unresolved: sources.count - concrete.count,
-            incoming: sources.filter { $0.event.flow.direction == .incoming }.count,
-            sent: byteTotal(
-                sources, value: \.bytesOutbound,
-                queryComplete: queryComplete, coverage: coverage
-            ),
-            received: byteTotal(
-                sources, value: \.bytesInbound,
-                queryComplete: queryComplete, coverage: coverage
-            ),
-            coverage: coverage,
-            isComplete: queryComplete && coverage == .complete,
+            processCount: applications.count, destinationCount: destinations.count,
+            allowed: allowed, denied: denied, unresolved: unresolved, incoming: incoming,
+            sent: sent.result(queryComplete: queryComplete, coverage: coverage),
+            received: received.result(queryComplete: queryComplete, coverage: coverage),
+            coverage: coverage, isComplete: queryComplete && coverage == .complete,
             topApplications: ranked(
-                sources, key: processKey, label: MonitorQuery.applicationLabel,
-                identity: { $0.event.flow.sourceAppIdentity ?? $0.event.flow.sourceProcessIdentity },
-                limit: topLimit
+                Array(applications.values), key: processKey, label: MonitorQuery.applicationLabel,
+                identity: { $0.event.flow.sourceAppIdentity ?? $0.event.flow.sourceProcessIdentity }, limit: topLimit
             ),
             topDestinations: ranked(
-                sources, key: destinationKey, label: destinationLabel,
-                limit: topLimit
+                Array(destinations.values), key: destinationKey, label: destinationLabel, limit: topLimit
             )
         )
     }
 
-    private static func byteTotal(
-        _ rows: [MonitorEventRow],
-        value: KeyPath<MonitorEventRow, UInt64?>,
-        queryComplete: Bool,
-        coverage: HistoryCoverage
-    ) -> ReportedByteTotal {
-        let measured = rows.compactMap { $0[keyPath: value] }
-        guard !measured.isEmpty else { return .unavailable }
+    private enum SummaryDestination: Hashable {
+        case hostname(String)
+        case address(IPAddress)
+        case missing
+    }
+
+    private struct SummaryGroup {
+        let first: MonitorEventRow
+        var count: Int
+    }
+
+    private struct SummaryBytes {
         var total: UInt64 = 0
-        for amount in measured {
-            let result = total.addingReportingOverflow(amount)
-            guard !result.overflow else { return .unavailable }
+        var measured = 0
+        var complete = true
+        var overflowed = false
+
+        mutating func add(_ value: UInt64?, closed: Bool) {
+            complete = complete && closed && value != nil
+            guard let value else { return }
+            measured += 1
+            let result = total.addingReportingOverflow(value)
+            overflowed = overflowed || result.overflow
             total = result.partialValue
         }
-        let complete = queryComplete && coverage == .complete && rows.allSatisfy {
-            $0.closedAt != nil && $0[keyPath: value] != nil
+
+        func result(queryComplete: Bool, coverage: HistoryCoverage) -> ReportedByteTotal {
+            guard measured > 0, !overflowed else { return .unavailable }
+            return complete && queryComplete && coverage == .complete ? .exact(total) : .lowerBound(total)
         }
-        return complete ? .exact(total) : .lowerBound(total)
     }
 
     private static func ranked(
-        _ rows: [MonitorEventRow],
+        _ groups: [SummaryGroup],
         key: (MonitorEventRow) -> String,
         label: (MonitorEventRow) -> String,
         identity: ((MonitorEventRow) -> ProcessIdentity?)? = nil,
         limit: Int
     ) -> [MonitorRankedItem] {
         guard limit > 0 else { return [] }
-        var values: [String: (label: String, count: Int, identity: ProcessIdentity?)] = [:]
-        for row in rows {
-            let identifier = key(row)
-            let current = values[identifier]
-            values[identifier] = (
-                current?.label ?? DisplaySanitizer.plainText(label(row)),
-                (current?.count ?? 0) + 1,
-                current?.identity ?? identity?(row)
-            )
-        }
-        return values.map { id, value in
+        return groups.map { group in
             MonitorRankedItem(
-                id: id,
-                label: value.label,
-                count: value.count,
-                presentationIdentity: value.identity
+                id: key(group.first), label: DisplaySanitizer.plainText(label(group.first)),
+                count: group.count, presentationIdentity: identity?(group.first)
             )
         }.sorted {
             if $0.count != $1.count { return $0.count > $1.count }
@@ -214,6 +223,10 @@ public enum MonitorSummaryBuilder {
     }
 }
 
+public enum CoarseMapCoordinateError: Error, Sendable, Equatable {
+    case invalidCoordinate
+}
+
 public struct CoarseMapCoordinate: Sendable, Hashable {
     public static let quantization = 0.25
     public let latitude: Double
@@ -221,7 +234,7 @@ public struct CoarseMapCoordinate: Sendable, Hashable {
 
     public init(latitude: Double, longitude: Double) throws {
         guard latitude.isFinite, longitude.isFinite else {
-            throw GeoLocationError.invalidCoordinate
+            throw CoarseMapCoordinateError.invalidCoordinate
         }
         let clampedLatitude = min(max(latitude, -85), 85)
         let wrappedLongitude = Self.wrap(longitude)
@@ -238,145 +251,5 @@ public struct CoarseMapCoordinate: Sendable, Hashable {
         if result >= 180 { result -= 360 }
         if result < -180 { result += 360 }
         return result
-    }
-}
-
-public struct MonitorMapPosition: Sendable, Hashable {
-    public let latitude: Double
-    public let longitude: Double
-
-    public init(latitude: Double, longitude: Double) throws {
-        guard latitude.isFinite, longitude.isFinite else {
-            throw GeoLocationError.invalidCoordinate
-        }
-        self.latitude = min(max(latitude, -85), 85)
-        self.longitude = MonitorMapGeometry.wrap(longitude)
-    }
-}
-
-public struct MonitorMapViewport: Sendable, Hashable {
-    public let centerLatitude: Double
-    public let centerLongitude: Double
-    public let latitudeDelta: Double
-    public let longitudeDelta: Double
-
-    public init(
-        centerLatitude: Double,
-        centerLongitude: Double,
-        latitudeDelta: Double,
-        longitudeDelta: Double
-    ) {
-        self.centerLatitude = centerLatitude
-        self.centerLongitude = centerLongitude
-        self.latitudeDelta = latitudeDelta
-        self.longitudeDelta = longitudeDelta
-    }
-}
-
-public enum MonitorMapGeometry {
-    public static func viewport(for positions: [MonitorMapPosition]) -> MonitorMapViewport? {
-        guard let first = positions.first else { return nil }
-        let latitudes = positions.map(\.latitude)
-        let minimumLatitude = latitudes.min() ?? first.latitude
-        let maximumLatitude = latitudes.max() ?? first.latitude
-        let latitudeDelta = min(170, max(2, (maximumLatitude - minimumLatitude) * 1.35))
-        let latitudeLimit = 85 - latitudeDelta / 2
-        let centerLatitude = min(
-            max((minimumLatitude + maximumLatitude) / 2, -latitudeLimit), latitudeLimit
-        )
-
-        let longitudes = positions.map { positiveLongitude($0.longitude) }.sorted()
-        var largestGap = -1.0
-        var arcStart = longitudes[0]
-        for index in longitudes.indices {
-            let next = index == longitudes.index(before: longitudes.endIndex)
-                ? longitudes[0] + 360 : longitudes[index + 1]
-            let gap = next - longitudes[index]
-            if gap > largestGap {
-                largestGap = gap
-                arcStart = next.truncatingRemainder(dividingBy: 360)
-            }
-        }
-        let longitudeSpan = max(0, 360 - largestGap)
-        let longitudeDelta = min(360, max(2, longitudeSpan * 1.18))
-        let centerLongitude = wrap(arcStart + longitudeSpan / 2)
-        return MonitorMapViewport(
-            centerLatitude: centerLatitude,
-            centerLongitude: centerLongitude,
-            latitudeDelta: latitudeDelta,
-            longitudeDelta: longitudeDelta
-        )
-    }
-
-    fileprivate static func wrap(_ value: Double) -> Double {
-        var result = value.truncatingRemainder(dividingBy: 360)
-        if result >= 180 { result -= 360 }
-        if result < -180 { result += 360 }
-        return result
-    }
-
-    private static func positiveLongitude(_ value: Double) -> Double {
-        let wrapped = wrap(value)
-        return wrapped < 0 ? wrapped + 360 : wrapped
-    }
-}
-
-public struct MonitorMapCandidate: Sendable, Hashable, Identifiable {
-    public let id: String
-    public let location: GeoLocation
-    public let count: Int
-
-    public init(id: String, location: GeoLocation, count: Int) {
-        self.id = id
-        self.location = location
-        self.count = count
-    }
-}
-
-public struct MonitorMapSelection: Sendable, Hashable {
-    public let markers: [MonitorMapCandidate]
-    public let links: [MonitorMapCandidate]
-    public let totalLocationCount: Int
-
-    public init(
-        markers: [MonitorMapCandidate],
-        links: [MonitorMapCandidate],
-        totalLocationCount: Int
-    ) {
-        self.markers = markers
-        self.links = links
-        self.totalLocationCount = totalLocationCount
-    }
-}
-
-public enum MonitorMapSelector {
-    public static func select(
-        from rows: [MonitorDisplayRow],
-        selectedID: String?,
-        markerLimit: Int = 200,
-        linkLimit: Int = 32
-    ) -> MonitorMapSelection {
-        var grouped: [String: (location: GeoLocation, count: Int)] = [:]
-        for row in rows {
-            guard let location = row.geography.location else { continue }
-            let id = location.stableID
-            grouped[id] = (location, (grouped[id]?.count ?? 0) + 1)
-        }
-        let ranked = grouped.map { id, value in
-            MonitorMapCandidate(id: id, location: value.location, count: value.count)
-        }.sorted {
-            if $0.id == selectedID || $1.id == selectedID {
-                return $0.id == selectedID && $1.id != selectedID
-            }
-            if $0.count != $1.count { return $0.count > $1.count }
-            return $0.id < $1.id
-        }
-        let markers = Array(ranked.prefix(max(0, min(markerLimit, 200))))
-        let links = Array(markers.prefix(max(0, min(linkLimit, 32))))
-        return MonitorMapSelection(
-            markers: markers,
-            links: links,
-            totalLocationCount: ranked.count
-        )
     }
 }

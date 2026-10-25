@@ -21,11 +21,10 @@ extension ControlPlaneController {
             desiredTuple: snapshot.desiredTuple,
             handshake: lastHandshake
         )
-        return MonitorCoverageEvaluator.evaluate(
+        return try await monitorCoverageCache.evaluate(
             rows,
-            configuration: snapshot.configuration,
-            enforcementState: enforcementState,
-            desiredTuple: snapshot.desiredTuple
+            snapshot: snapshot,
+            enforcementState: enforcementState
         )
     }
 

@@ -8,7 +8,7 @@ if (( $# != 1 )); then
 fi
 
 APP=$1
-EXTENSION="$APP/Contents/Library/SystemExtensions/RiftFilter.systemextension"
+EXTENSION="$APP/Contents/Library/SystemExtensions/io.rift.firewall.filter.systemextension"
 APP_BINARY="$APP/Contents/MacOS/Rift"
 EXTENSION_BINARY="$EXTENSION/Contents/MacOS/RiftFilter"
 CLI_BINARY="$APP/Contents/Helpers/riftctl"
@@ -44,13 +44,34 @@ verify_dsym() {
   fi
 }
 verify_dsym "$APP_BINARY" "$PRODUCTS/Rift.app.dSYM"
-verify_dsym "$EXTENSION_BINARY" "$PRODUCTS/RiftFilter.systemextension.dSYM"
+verify_dsym "$EXTENSION_BINARY" "$PRODUCTS/io.rift.firewall.filter.systemextension.dSYM"
 verify_dsym "$CLI_BINARY" "$PRODUCTS/riftctl.dSYM"
 
 if ! "$CLI_BINARY" --help >/dev/null; then
   echo "embedded CLI help failed" >&2
   exit 1
 fi
+
+python3 - "$APP" "$CLI_BINARY" <<'PY'
+from pathlib import Path
+import plistlib
+import re
+import subprocess
+import sys
+
+app = Path(sys.argv[1])
+binary = Path(sys.argv[2])
+commands = subprocess.run(["otool", "-l", str(binary)], capture_output=True, text=True, check=True).stdout
+section = re.search(r"sectname __info_plist\s+segname __TEXT\s+addr \S+\s+size (0x[0-9a-fA-F]+)\s+offset (\d+)", commands)
+if section is None:
+    raise SystemExit("CLI is missing its embedded connection settings")
+size, offset = int(section[1], 16), int(section[2])
+info = plistlib.loads(binary.read_bytes()[offset:offset + size])
+host = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+for key in ["RiftMachServiceName", "RiftTeamIdentifierPrefix"]:
+    if key not in info or info[key] != host[key]:
+        raise SystemExit(f"CLI connection setting does not match the host: {key}")
+PY
 
 if "$CLI_BINARY" rules import /dev/null >/dev/null 2>&1; then
   echo "CLI accepted import without required --dry-run" >&2
@@ -70,7 +91,12 @@ if find "$APP" -type f \( \
   -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o \
   -iname '*.csv' -o -iname '*.sqlite' -o -iname '*.mmdb' \
 \) | grep -q .; then
-  echo "app contains a forbidden reference image or bundled map database" >&2
+  echo "app contains a forbidden reference image or location database" >&2
+  exit 1
+fi
+
+if [[ ! -s "$APP/Contents/Resources/ThirdPartyNotices.txt" ]]; then
+  echo "missing third-party notices in app resources" >&2
   exit 1
 fi
 
@@ -122,7 +148,6 @@ fixture_canaries=(
   '--ui-fixture'
   'RIFT_UI_FIXTURE_ONLY_7F4C2A91'
   'RIFT_UI_FIXTURE_ARTWORK_ONLY_5C8E1D42'
-  'Preview database loaded. No live traffic is being filtered.'
   'The UI fixture cannot create'
   'MonitorFixtureData'
   'startFixtureDriverIfRequested'

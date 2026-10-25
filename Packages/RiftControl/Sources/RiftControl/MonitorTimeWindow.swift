@@ -55,10 +55,12 @@ extension MonitorTimeFilter {
 
     public var decisionBucketWidth: TimeInterval {
         switch self {
+        case .twoMinutes, .tenMinutes: 60
         case .hour: 300
+        case .fiveHours: 900
         case .day: 3_600
-        case .week: 21_600
-        case .month, .all: 86_400
+        case .threeDays, .week: 21_600
+        case .month, .thirtyDays, .all: 86_400
         }
     }
 
@@ -69,6 +71,12 @@ extension MonitorTimeFilter {
     ) -> MonitorTimeWindow? {
         guard now.timeIntervalSinceReferenceDate.isFinite,
               anchor.map({ $0.timeIntervalSinceReferenceDate.isFinite }) ?? true else { return nil }
+        if let duration = fixedDuration {
+            let end = anchor.map { $0.addingTimeInterval(duration) }
+                ?? MonitorTimeWindow.exclusiveEnd(after: now)
+            let start = anchor ?? now.addingTimeInterval(-duration)
+            return MonitorTimeWindow(start: start, end: end)
+        }
         guard let component = calendarComponent else {
             return MonitorTimeWindow(start: nil, end: nil)
         }
@@ -84,7 +92,10 @@ extension MonitorTimeFilter {
         containing date: Date,
         calendar: Calendar
     ) -> DateInterval? {
-        calendarComponent.flatMap { calendar.dateInterval(of: $0, for: date) }
+        if let duration = fixedDuration {
+            return DateInterval(start: date, duration: duration)
+        }
+        return calendarComponent.flatMap { calendar.dateInterval(of: $0, for: date) }
     }
 
     func date(
@@ -92,17 +103,31 @@ extension MonitorTimeFilter {
         to date: Date,
         calendar: Calendar
     ) -> Date? {
+        if let duration = fixedDuration {
+            return date.addingTimeInterval(Double(value) * duration)
+        }
         guard let component = calendarComponent else { return nil }
         return calendar.date(byAdding: component, value: value, to: date)
     }
 
     private var calendarComponent: Calendar.Component? {
         switch self {
-        case .all: nil
+        case .all, .twoMinutes, .tenMinutes, .fiveHours, .threeDays, .thirtyDays: nil
         case .hour: .hour
         case .day: .day
         case .week: .weekOfYear
         case .month: .month
+        }
+    }
+
+    private var fixedDuration: TimeInterval? {
+        switch self {
+        case .twoMinutes: 2 * 60
+        case .tenMinutes: 10 * 60
+        case .fiveHours: 5 * 3_600
+        case .threeDays: 3 * 86_400
+        case .thirtyDays: 30 * 86_400
+        case .all, .hour, .day, .week, .month: nil
         }
     }
 }

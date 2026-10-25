@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "RiftIPC",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     products: [
         .library(name: "RiftIPC", type: .static, targets: ["RiftIPC"]),
     ],

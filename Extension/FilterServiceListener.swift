@@ -18,9 +18,10 @@ final class FilterServiceListener: NSObject, NSXPCListenerDelegate {
             logger.fault("Control service is unavailable because its configured name is missing")
         }
         let relay = self.relay
-        RuntimeEnvironment.prompts.installActivitySignal { relay.notifyRuntimeDataAvailable() }
-        RuntimeEnvironment.events.installActivitySignal { relay.notifyRuntimeDataAvailable() }
-        RuntimeEnvironment.notifications.installActivitySignal { relay.notifyRuntimeDataAvailable() }
+        RuntimeEnvironment.prompts.installActivitySignal { relay.notifyRuntimeAttentionAvailable() }
+        RuntimeEnvironment.events.installActivitySignal { relay.notifyRuntimeActivityAvailable() }
+        RuntimeEnvironment.events.installAttentionSignal { relay.notifyRuntimeAttentionAvailable() }
+        RuntimeEnvironment.notifications.installActivitySignal { relay.notifyRuntimeAttentionAvailable() }
         if RuntimeEnvironment.reloads.install({ _ in relay.notifyRuntimeDataAvailable() }) == nil {
             logger.error("Runtime readiness signal observer could not be installed")
         }
@@ -125,7 +126,7 @@ enum PeerRole: Sendable, Equatable {
 }
 
 final class AppRelayRegistry: @unchecked Sendable {
-    private struct Entry {
+    private struct Entry: @unchecked Sendable {
         let connectionID: UUID
         let uid: UInt32
         let auditSessionID: Int32
@@ -136,8 +137,11 @@ final class AppRelayRegistry: @unchecked Sendable {
     private var candidates: [UUID: Entry] = [:]
     private var activeConnectionID: UUID?
     private var pendingRequestIDs: Set<UUID> = []
-    private var notificationPending = false
-    private var notificationDirty = false
+    private enum Signal: Sendable, Hashable { case control, attention, activity }
+    private var pendingSignals: Set<Signal> = []
+    private var dirtySignals: Set<Signal> = []
+    private var activityTask: Task<Void, Never>?
+    private var activeProtocolVersion = ProtocolVersion.baseline
 
     func registerCandidate(connection: NSXPCConnection, peer: PeerContext) -> Bool {
         lock.withLock {
@@ -152,12 +156,15 @@ final class AppRelayRegistry: @unchecked Sendable {
         }
     }
 
-    func activate(connectionID: UUID) -> Bool {
+    func activate(connectionID: UUID, version: ProtocolVersion) -> Bool {
         lock.withLock {
             guard candidates[connectionID] != nil else { return false }
             activeConnectionID = connectionID
-            notificationPending = false
-            notificationDirty = false
+            activeProtocolVersion = version
+            pendingSignals.removeAll()
+            dirtySignals.removeAll()
+            activityTask?.cancel()
+            activityTask = nil
             return true
         }
     }
@@ -167,44 +174,87 @@ final class AppRelayRegistry: @unchecked Sendable {
             candidates.removeValue(forKey: connectionID)
             if activeConnectionID == connectionID {
                 activeConnectionID = nil
-                notificationPending = false
-                notificationDirty = false
+                pendingSignals.removeAll()
+                dirtySignals.removeAll()
+                activityTask?.cancel()
+                activityTask = nil
             }
         }
     }
 
     func notifyRuntimeDataAvailable() {
-        let connection = lock.withLock { () -> NSXPCConnection? in
+        notify(.control)
+    }
+
+    func notifyRuntimeActivityAvailable() { notify(.activity) }
+    func notifyRuntimeAttentionAvailable() { notify(.attention) }
+
+    func cancelActivityNotification() {
+        lock.withLock {
+            activityTask?.cancel()
+            activityTask = nil
+            pendingSignals.remove(.activity)
+            dirtySignals.remove(.activity)
+        }
+    }
+
+    private func notify(_ requested: Signal) {
+        let scheduled = lock.withLock { () -> (Entry, Signal)? in
             guard let activeConnectionID,
                   let entry = candidates[activeConnectionID] else { return nil }
-            if notificationPending {
-                notificationDirty = true
+            let signal = activeProtocolVersion.supports(minimum: .activitySubscriptions) ? requested : .control
+            if pendingSignals.contains(signal) {
+                dirtySignals.insert(signal)
                 return nil
             }
-            notificationPending = true
-            return entry.connection
+            pendingSignals.insert(signal)
+            return (entry, signal)
         }
-        guard let connection else { return }
+        guard let (entry, signal) = scheduled else { return }
+        if signal == .activity {
+            let task = Task { [weak self] in
+                do { try await Task.sleep(for: .seconds(1)) }
+                catch { return }
+                guard !Task.isCancelled else { return }
+                self?.send(signal, to: entry)
+            }
+            lock.withLock {
+                if activeConnectionID == entry.connectionID, pendingSignals.contains(.activity) { activityTask = task }
+                else { task.cancel() }
+            }
+        } else { send(signal, to: entry) }
+    }
+
+    private func send(_ signal: Signal, to entry: Entry) {
+        guard lock.withLock({ activeConnectionID == entry.connectionID && pendingSignals.contains(signal) }) else { return }
         let gate = RelayVoidGate(timeout: .seconds(5)) { [weak self] in
-            self?.completeNotification()
+            self?.completeNotification(signal, connectionID: entry.connectionID)
         }
-        guard let proxy = connection.remoteObjectProxyWithErrorHandler({ _ in
+        guard let proxy = entry.connection.remoteObjectProxyWithErrorHandler({ _ in
             gate.call()
         }) as? RiftAppRelayXPC else {
             gate.call()
             return
         }
-        proxy.runtimeDataAvailable { gate.call() }
+        switch signal {
+        case .control: proxy.runtimeDataAvailable { gate.call() }
+        case .activity:
+            if let send = proxy.runtimeActivityAvailable { send { gate.call() } }
+            else { proxy.runtimeDataAvailable { gate.call() } }
+        case .attention:
+            if let send = proxy.runtimeAttentionAvailable { send { gate.call() } }
+            else { proxy.runtimeDataAvailable { gate.call() } }
+        }
     }
 
-    private func completeNotification() {
+    private func completeNotification(_ signal: Signal, connectionID: UUID) {
         let again = lock.withLock { () -> Bool in
-            notificationPending = false
-            guard notificationDirty else { return false }
-            notificationDirty = false
-            return activeConnectionID.flatMap { candidates[$0] } != nil
+            guard activeConnectionID == connectionID else { return false }
+            pendingSignals.remove(signal)
+            if signal == .activity { activityTask = nil }
+            return dirtySignals.remove(signal) != nil
         }
-        if again { notifyRuntimeDataAvailable() }
+        if again { notify(signal) }
     }
 
     func perform(

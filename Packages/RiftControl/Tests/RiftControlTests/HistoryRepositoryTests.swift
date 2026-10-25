@@ -53,22 +53,26 @@ import Testing
         )
     }
 
-    let gaps = try database.read { database in
+    let gaps = try await database.read { database in
         try Row.fetchAll(
             database,
             sql: "SELECT provider_epoch, observed_at, reason, dropped_count FROM coverage_gaps"
-        )
+        ).map { row in
+            (
+                providerEpoch: row["provider_epoch"] as String?,
+                observedAt: row["observed_at"] as Double,
+                reason: row["reason"] as String,
+                droppedCount: row["dropped_count"] as Int64
+            )
+        }
     }
     #expect(gaps.count == 2)
-    let counts = gaps.map { row -> UInt64 in
-        let stored: Int64 = row["dropped_count"]
-        return UInt64(bitPattern: stored)
-    }
+    let counts = gaps.map { UInt64(bitPattern: $0.droppedCount) }
     #expect(Set(counts) == [6, .max])
     let firstReason = "extensionRingOverflow:\(firstRuntime.uuidString.lowercased())"
-    let first = try #require(gaps.first { ($0["reason"] as String) == firstReason })
-    #expect((first["provider_epoch"] as String?) == secondEpoch.uuidString.lowercased())
-    #expect((first["observed_at"] as Double)
+    let first = try #require(gaps.first { $0.reason == firstReason })
+    #expect(first.providerEpoch == secondEpoch.uuidString.lowercased())
+    #expect(first.observedAt
         == observedAt.addingTimeInterval(1).timeIntervalSince1970)
 }
 
@@ -248,7 +252,7 @@ import Testing
     #expect(row.coverage == .complete)
     #expect(row.bytesInbound == UInt64.max)
     #expect(row.bytesOutbound == UInt64(Int64.max) + 1)
-    let displayed = MonitorQueryState(time: .all).apply(to: [row], geography: [:])
+    let displayed = MonitorQueryState(time: .all).apply(to: [row])
     let summary = MonitorSummaryBuilder.build(from: displayed)
     #expect(summary.received == .exact(.max))
     #expect(summary.sent == .exact(UInt64(Int64.max) + 1))
@@ -278,7 +282,7 @@ import Testing
     )
     #expect(legacyRow.coverage == .partial)
     #expect(legacyRow.bytesInbound == UInt64(Int64.max))
-    let legacyDisplay = MonitorQueryState(time: .all).apply(to: [legacyRow], geography: [:])
+    let legacyDisplay = MonitorQueryState(time: .all).apply(to: [legacyRow])
     #expect(MonitorSummaryBuilder.build(from: legacyDisplay).received == .lowerBound(UInt64(Int64.max)))
 }
 

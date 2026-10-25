@@ -32,7 +32,7 @@ struct ConnectionAlertView: View {
     enum Lifetime: String, CaseIterable, Identifiable {
         case once = "Once"
         case oneHour = "One hour"
-        case permanent = "Permanent"
+        case permanent = "Always"
 
         var id: String { rawValue }
         var duration: TimeInterval? {
@@ -57,7 +57,6 @@ struct ConnectionAlertView: View {
     @State private var lifetime: Lifetime = .once
     @State private var destinationScope: DestinationScope = .exact
     @State private var showingDetails = false
-    @State private var keyboardArmed = false
     @State private var note = ""
     @State private var scope: RuleScope = .currentProfile
     @State private var activeProfileResolution: ActiveProfileResolution = .loading
@@ -65,8 +64,10 @@ struct ConnectionAlertView: View {
     @State private var resolvedApplicationName: String?
     @State private var decisionMessage: String?
     @State private var decisionInProgress = false
+    @State private var pendingDecision: FilterAction?
     @State private var durableRuleSaved = false
     @State private var decisionNeedsAttention = false
+    @State private var initialDeadlineInterval: TimeInterval = 30
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -78,11 +79,12 @@ struct ConnectionAlertView: View {
                     artworkStore: artworkStore
                 )
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(DisplaySanitizer.plainText(resolvedApplicationName ?? identityTitle))
+                    Text("Connection request")
                         .font(.title2.weight(.semibold))
-                    Text(DisplaySanitizer.plainText(alertSubtitle))
-                        .font(.caption)
+                    Text("\(applicationName) wants to connect to \(DisplaySanitizer.plainText(destination)).")
+                        .font(.body)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
                 Image(systemName: identitySymbol)
@@ -91,14 +93,33 @@ struct ConnectionAlertView: View {
                     .help(identityTitle)
             }
 
-            GroupBox("Connection") {
-                Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 7) {
-                    row("Destination", destination)
-                    row("Source", destinationSource)
-                    row("Direction", prompt.direction == .outgoing ? "Outgoing" : "Incoming")
-                    row("Protocol", protocolLabel)
-                    row("Owner", ownerLabel)
+            DisclosureGroup("Connection evidence", isExpanded: $showingDetails) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 7) {
+                        row("Destination", destination)
+                        row("Source", destinationSource)
+                        row("Direction", prompt.direction == .outgoing ? "Outgoing" : "Incoming")
+                        row("Protocol", protocolLabel)
+                        row("Owner", ownerLabel)
+                    }
+                    if let appIdentity = prompt.appIdentity {
+                        LabeledContent(
+                            "Application",
+                            value: DisplaySanitizer.plainText(identityEvidence(for: appIdentity))
+                        )
+                    }
+                    if let processIdentity = prompt.processIdentity,
+                       processIdentity != prompt.appIdentity {
+                        LabeledContent(
+                            "Helper",
+                            value: DisplaySanitizer.plainText(identityEvidence(for: processIdentity))
+                        )
+                    }
+                    Text("Policy generation \(prompt.generation) • prompt \(prompt.nonce.uuidString.lowercased())")
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
                 }
+                .padding(.top, 7)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -111,7 +132,7 @@ struct ConnectionAlertView: View {
                 .foregroundStyle(.secondary)
             }
 
-            Picker("Remember", selection: $lifetime) {
+            Picker("Apply this decision", selection: $lifetime) {
                 ForEach(Lifetime.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
@@ -168,28 +189,6 @@ struct ConnectionAlertView: View {
                 }
             }
 
-            DisclosureGroup("Technical details", isExpanded: $showingDetails) {
-                VStack(alignment: .leading, spacing: 5) {
-                    if let appIdentity = prompt.appIdentity {
-                        LabeledContent(
-                            "Application",
-                            value: DisplaySanitizer.plainText(identityEvidence(for: appIdentity))
-                        )
-                    }
-                    if let processIdentity = prompt.processIdentity,
-                       processIdentity != prompt.appIdentity {
-                        LabeledContent(
-                            "Helper",
-                            value: DisplaySanitizer.plainText(identityEvidence(for: processIdentity))
-                        )
-                    }
-                    Text("Policy generation \(prompt.generation) • prompt \(prompt.nonce.uuidString.lowercased())")
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                }
-                .padding(.top, 5)
-            }
-
             if let decisionMessage {
                 Label(
                     decisionMessage,
@@ -202,36 +201,56 @@ struct ConnectionAlertView: View {
             }
 
             TimelineView(.periodic(from: .now, by: 1)) { context in
-                HStack {
-                    Button("Deny") { decide(.deny) }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.red)
-                        .disabled(
-                            !noteValid || context.date >= prompt.deadline
-                                || decisionInProgress || durableRuleSaved
+                VStack(spacing: 10) {
+                    if let pendingDecision {
+                        HStack(spacing: 7) {
+                            ProgressView().controlSize(.small)
+                            Text("Delivering \(pendingDecision == .deny ? "Deny" : "Allow")…")
+                                .font(.callout)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    HStack(spacing: 10) {
+                        Button("Deny") { decide(.deny) }
+                            .buttonStyle(.bordered)
+                            .tint(.red)
+                            .keyboardShortcut("d", modifiers: .command)
+                            .frame(maxWidth: .infinity)
+                            .controlSize(.large)
+                            .disabled(decisionDisabled(at: context.date))
+                        Button("Allow") { decide(.allow) }
+                            .buttonStyle(.bordered)
+                            .tint(.accentColor)
+                            .keyboardShortcut("a", modifiers: .command)
+                            .frame(maxWidth: .infinity)
+                            .controlSize(.large)
+                            .disabled(decisionDisabled(at: context.date))
+                    }
+                    VStack(spacing: 4) {
+                        ProgressView(
+                            value: max(0, prompt.deadline.timeIntervalSince(context.date)),
+                            total: max(1, initialDeadlineInterval)
                         )
-                    Button("Allow") { decide(.allow) }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(
-                            !noteValid || context.date >= prompt.deadline
-                                || decisionInProgress || durableRuleSaved
-                        )
-                    Spacer()
-                    Text(deadlineLabel(at: context.date))
-                        .font(.caption.monospacedDigit())
+                        .tint(context.date >= prompt.deadline ? .orange : .secondary)
+                        HStack {
+                            Text("⌘D Deny  •  ⌘A Allow")
+                            Spacer()
+                            Text(deadlineLabel(at: context.date))
+                                .monospacedDigit()
+                        }
+                        .font(.caption)
                         .foregroundStyle(context.date >= prompt.deadline ? .orange : .secondary)
+                    }
                 }
             }
         }
         .padding(22)
         .frame(width: 540)
         .task {
+            if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
+            initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
             scope = RuleScope(rawValue: alertDefaultScope) ?? .currentProfile
             await resolveActiveProfile()
-        }
-        .task {
-            try? await Task.sleep(for: .seconds(1))
-            keyboardArmed = true
         }
         .task(id: presentationIdentity) {
             resolvedApplicationName = nil
@@ -242,13 +261,7 @@ struct ConnectionAlertView: View {
             guard !Task.isCancelled else { return }
             resolvedApplicationName = name
         }
-        .onKeyPress(.return) {
-            guard keyboardArmed, Date() < prompt.deadline else { return .ignored }
-            decide(.allow)
-            return .handled
-        }
         .onKeyPress(.escape) {
-            guard keyboardArmed else { return .ignored }
             PromptPanelController.shared.dismiss()
             return .handled
         }
@@ -281,10 +294,14 @@ struct ConnectionAlertView: View {
             selectedProfileID = nil
         }
         decisionInProgress = true
+        pendingDecision = action
         decisionMessage = nil
         decisionNeedsAttention = false
         Task { @MainActor in
-            defer { decisionInProgress = false }
+            defer {
+                decisionInProgress = false
+                pendingDecision = nil
+            }
             if selected == .once {
                 do {
                     try await controller.answerOnce(prompt, action: action)
@@ -317,6 +334,10 @@ struct ConnectionAlertView: View {
 
     private var noteValid: Bool {
         lifetime == .once || note.unicodeScalars.count <= PolicyLimits.maximumNotesScalars
+    }
+
+    private func decisionDisabled(at date: Date) -> Bool {
+        !noteValid || date >= prompt.deadline || decisionInProgress || durableRuleSaved
     }
 
     private func deadlineLabel(at date: Date) -> String {
@@ -362,9 +383,10 @@ struct ConnectionAlertView: View {
         }
     }
 
-    private var alertSubtitle: String {
-        guard prompt.cohortCount > 1 else { return identityEvidence }
-        return "\(identityEvidence) • \(prompt.cohortCount) connections"
+    private var applicationName: String {
+        let value = resolvedApplicationName ?? MonitorQuery.identityLabel(presentationIdentity)
+        let sanitized = DisplaySanitizer.plainText(value)
+        return prompt.cohortCount > 1 ? "\(sanitized) (\(prompt.cohortCount) connections)" : sanitized
     }
 
     private var presentationIdentity: ProcessIdentity? {
@@ -419,7 +441,7 @@ struct ConnectionAlertView: View {
 
     private var identityEvidence: String {
         guard let identity = prompt.appIdentity ?? prompt.processIdentity else {
-            return "No stable signing identity was available. Permanent rules are disabled."
+            return "No stable signing identity was available. Always rules are disabled."
         }
         return identityEvidence(for: identity)
     }

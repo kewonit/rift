@@ -5,6 +5,18 @@ import RiftIPC
 import Foundation
 
 enum MonitorFixtureData {
+    enum Scenario: String {
+        case live
+        case empty
+        case burst
+        case denied
+        case unresolved
+        case missingOrigin = "missing-origin"
+        case rulesFailure = "rules-failure"
+        case healthSetup = "health-setup"
+        case alertDeliveryFailure = "alert-delivery-failure"
+    }
+
     static let canary = "RIFT_UI_FIXTURE_ONLY_7F4C2A91"
     static let referenceNow = Date(timeIntervalSince1970: 1_786_444_800)
     private static let previewProfileID = UUID(uuid: (
@@ -21,8 +33,15 @@ enum MonitorFixtureData {
         ProcessInfo.processInfo.arguments.contains("--ui-fixture")
     }
 
-    static var usesLiveMap: Bool {
-        ProcessInfo.processInfo.arguments.contains("--ui-fixture-live-map")
+    static var usesStatusMenuPreview: Bool {
+        ProcessInfo.processInfo.arguments.contains("--ui-fixture-status-menu")
+    }
+
+    static var scenario: Scenario {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "--ui-fixture-state"),
+              arguments.indices.contains(flag + 1) else { return .live }
+        return Scenario(rawValue: arguments[flag + 1].lowercased()) ?? .live
     }
 
     static func signalVisualReadiness() {
@@ -48,17 +67,21 @@ enum MonitorFixtureData {
         FileHandle.standardError.write(Data("Rift fixture readiness: \(message)\n".utf8))
     }
 
-    static let geoMetadata = GeoDatabaseMetadata(
-        sourceName: "Rift preview locations",
-        sourceVersion: "fixed fixture",
-        sourceModifiedAt: nil,
-        importedAt: referenceNow,
-        recordCount: 54
-    )
-
-    static let rows: [MonitorEventRow] = (try? makeRows()) ?? []
+    private static let baseRows: [MonitorEventRow] = (try? makeRows()) ?? []
+    static var rows: [MonitorEventRow] {
+        switch scenario {
+        case .empty: []
+        case .denied:
+            baseRows.filter {
+                $0.event.reason == .concreteDecision && $0.event.action == .deny
+            }
+        case .unresolved:
+            baseRows.filter { $0.event.reason != .concreteDecision }
+        case .live, .burst, .missingOrigin, .rulesFailure, .healthSetup, .alertDeliveryFailure:
+            baseRows
+        }
+    }
     static let rules: [Rule] = (try? makeRules()) ?? []
-    private static let locations: [String: GeoResolution] = makeLocations()
 
     static let ruleWorkspaceSnapshot: RuleWorkspaceSnapshot = {
         let lineage = rules.first?.lineageID
@@ -125,27 +148,6 @@ enum MonitorFixtureData {
         ruleWorkspaceSnapshot.rows(filter: filter, search: search)
     }
 
-    static func geography(for rows: [MonitorEventRow]) -> [String: GeoResolution] {
-        Dictionary(uniqueKeysWithValues: rows.map { row in
-            let endpoint = row.event.flow.destinationEndpoint
-            let value = GeoEndpointClassifier.nonGeographic(endpoint)
-                ?? endpoint.flatMap { locations[$0.address.description] }
-                ?? .notFound
-            return (row.id, value)
-        })
-    }
-
-    static func approximateNetworkLocation() throws -> GeoLocation {
-        try GeoLocation(
-            continentCode: "EU",
-            countryCode: "FR",
-            region: "Île-de-France",
-            city: "Paris",
-            latitude: 48.8566,
-            longitude: 2.3522
-        )
-    }
-
     static func decisionBuckets(
         from start: Date,
         to end: Date,
@@ -197,7 +199,7 @@ enum MonitorFixtureData {
                 classes: [],
                 interfaceSnapshotGeneration: 1
             )
-            let occurredAt = referenceNow.addingTimeInterval(TimeInterval(-index * 1_080))
+            let occurredAt = referenceNow.addingTimeInterval(-fixtureAge(for: index))
             let flow = FlowDescriptor(
                 flowID: try requiredUUID(String(
                     format: "00000000-0000-4000-8000-%012d", index + 1
@@ -295,50 +297,19 @@ enum MonitorFixtureData {
         return manualRules + [blocklistRule]
     }
 
-    private static func makeLocations() -> [String: GeoResolution] {
-        let samples: [(
-            country: String,
-            region: String,
-            city: String,
-            latitude: Double,
-            longitude: Double
-        )] = [
-            ("IE", "Leinster", "Dublin", 53.3498, -6.2603),
-            ("GB", "England", "London", 51.5074, -0.1278),
-            ("GB", "England", "Manchester", 53.4808, -2.2426),
-            ("FR", "Île-de-France", "Paris", 48.8566, 2.3522),
-            ("FR", "Provence-Alpes-Côte d’Azur", "Marseille", 43.2965, 5.3698),
-            ("ES", "Community of Madrid", "Madrid", 40.4168, -3.7038),
-            ("DE", "Berlin", "Berlin", 52.5200, 13.4050),
-            ("DE", "Hamburg", "Hamburg", 53.5511, 9.9937),
-            ("DK", "Capital Region", "Copenhagen", 55.6761, 12.5683),
-            ("CZ", "Prague", "Prague", 50.0755, 14.4378),
-            ("DE", "Bavaria", "Munich", 48.1351, 11.5820),
-            ("CH", "Zürich", "Zurich", 47.3769, 8.5417),
-            ("IT", "Lombardy", "Milan", 45.4642, 9.1900),
-            ("IT", "Lazio", "Rome", 41.9028, 12.4964),
-            ("NL", "North Holland", "Amsterdam", 52.3676, 4.9041),
-        ]
-        return Dictionary(uniqueKeysWithValues: (0..<54).map { index in
-            let sample = samples[index % samples.count]
-            let location = try? GeoLocation(
-                continentCode: "EU",
-                countryCode: sample.country,
-                region: sample.region,
-                city: sample.city,
-                latitude: sample.latitude,
-                longitude: sample.longitude
-            )
-            return (address(for: index), location.map(GeoResolution.located) ?? .notFound)
-        })
-    }
-
     private static func address(for index: Int) -> String {
         switch index % 3 {
         case 0: "192.0.2.\(index + 1)"
         case 1: "198.51.100.\(index + 1)"
         default: "203.0.113.\(index + 1)"
         }
+    }
+
+    private static func fixtureAge(for index: Int) -> TimeInterval {
+        if index < 12 { return TimeInterval(index * 45) }
+        if index < 24 { return 600 + TimeInterval(index - 11) * 1_800 }
+        if index < 36 { return 22_200 + TimeInterval(index - 23) * 21_600 }
+        return 281_400 + TimeInterval(index - 35) * 129_600
     }
 
     private static func requiredUUID(_ value: String) throws -> UUID {

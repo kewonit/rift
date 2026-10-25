@@ -108,53 +108,11 @@ import Testing
     #expect(opposite.longitude == 179)
     #expect(try CoarseMapCoordinate(latitude: 0, longitude: 179.99).longitude == -180)
     #expect(try CoarseMapCoordinate(latitude: 0, longitude: 540).longitude == -180)
-    #expect(throws: GeoLocationError.invalidCoordinate) {
+    #expect(throws: CoarseMapCoordinateError.invalidCoordinate) {
         _ = try CoarseMapCoordinate(latitude: .nan, longitude: 0)
     }
-    #expect(throws: GeoLocationError.invalidCoordinate) {
+    #expect(throws: CoarseMapCoordinateError.invalidCoordinate) {
         _ = try CoarseMapCoordinate(latitude: 0, longitude: .infinity)
-    }
-}
-
-@Test func mapSelectionIsBoundedStableAndKeepsSelection() throws {
-    var locations: [MonitorDisplayRow] = []
-    for index in 0..<240 {
-        let row = try displayRow(
-            sequence: UInt64(index + 1),
-            hostname: "\(index).example",
-            inbound: 1,
-            outbound: 1,
-            latitude: Double((index % 120) - 60),
-            longitude: Double(index - 120)
-        )
-        locations.append(row)
-    }
-    let selectedID = locations.last?.geography.location?.stableID
-    let selection = MonitorMapSelector.select(from: locations, selectedID: selectedID)
-    #expect(selection.totalLocationCount == 240)
-    #expect(selection.markers.count == 200)
-    #expect(selection.links.count == 32)
-    #expect(selection.markers.first?.id == selectedID)
-}
-
-@Test func mapViewportUsesTheShortAntimeridianArcAndBoundsPoles() throws {
-    let antimeridian = MonitorMapGeometry.viewport(for: [
-        try MonitorMapPosition(latitude: 10, longitude: 179),
-        try MonitorMapPosition(latitude: 12, longitude: -179),
-    ])
-    let wrapped = try #require(antimeridian)
-    #expect(abs(abs(wrapped.centerLongitude) - 180) < 0.001)
-    #expect(wrapped.longitudeDelta < 3)
-
-    let poles = MonitorMapGeometry.viewport(for: [
-        try MonitorMapPosition(latitude: 90, longitude: 0),
-        try MonitorMapPosition(latitude: -90, longitude: 0),
-    ])
-    let bounded = try #require(poles)
-    #expect(bounded.centerLatitude == 0)
-    #expect(bounded.latitudeDelta == 170)
-    #expect(throws: GeoLocationError.invalidCoordinate) {
-        _ = try MonitorMapPosition(latitude: .infinity, longitude: 0)
     }
 }
 
@@ -167,9 +125,7 @@ private func displayRow(
     action: FilterAction = .allow,
     direction: TrafficDirection = .outgoing,
     reason: RuntimeEventReason = .concreteDecision,
-    coverage: HistoryCoverage = .complete,
-    latitude: Double = 51.5,
-    longitude: Double = -0.1
+    coverage: HistoryCoverage = .complete
 ) throws -> MonitorDisplayRow {
     let provider = try #require(UUID(uuidString: "612E26C2-C04B-42EA-90E9-78BD0567799C"))
     let identity = ProcessIdentity.developerID(try SignedCodeIdentity(
@@ -216,18 +172,9 @@ private func displayRow(
         bytesOutbound: outbound,
         flowEndReason: closed ? .networkExtensionReport : nil
     )
-    let location = try GeoLocation(
-        continentCode: "EU",
-        countryCode: "GB",
-        region: "Test",
-        city: hostname,
-        latitude: latitude,
-        longitude: longitude
-    )
     return MonitorDisplayRow(
         source: row,
         primary: "io.rift.preview",
-        secondary: hostname,
-        geography: .located(location)
+        secondary: hostname
     )
 }

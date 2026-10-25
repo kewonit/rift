@@ -37,13 +37,29 @@ public final class VisibleFlowReportTracker: @unchecked Sendable {
         lock.withLock { decisions[flowID] }
     }
 
+    public func retainRecent(flowID: UUID, decision: RuntimeEventSeed, maximum: Int, now: Date) {
+        guard decision.action == .allow else { return }
+        lock.withLock {
+            decisions = decisions.filter { $0.value.flow.observedAt.addingTimeInterval(ActivitySubscription.recentLifetime) > now }
+            decisions[flowID] = decision
+            while decisions.count > maximum,
+                  let oldest = decisions.min(by: { $0.value.flow.observedAt < $1.value.flow.observedAt })?.key {
+                decisions.removeValue(forKey: oldest)
+            }
+        }
+    }
+
     public func take(flowID: UUID) -> RuntimeEventSeed? {
         lock.withLock { decisions.removeValue(forKey: flowID) }
     }
 
+    public func remove(flowIDs: [UUID]) {
+        lock.withLock { for id in flowIDs { decisions.removeValue(forKey: id) } }
+    }
+
     public func takeAll() -> [RuntimeEventSeed] {
         lock.withLock {
-            defer { decisions.removeAll(keepingCapacity: true) }
+            defer { decisions.removeAll(keepingCapacity: false) }
             return Array(decisions.values)
         }
     }

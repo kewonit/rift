@@ -15,6 +15,9 @@ release.
 - Added explicit fail-open recovery behavior, preservation of corrupt
   configuration and history, bounded persistence, XPC authorization and
   timeouts, and release documentation.
+- Removed IP geolocation: the DB-IP database and importer, the vendored
+  libmaxminddb reader, and the ipify public-IP request. The Live Map now shows
+  only the location you place for this Mac, saved locally.
 
 The signed Network Extension, clean-machine, soak, fault-injection, and
 notarization gates remain open. This section does not announce a release.

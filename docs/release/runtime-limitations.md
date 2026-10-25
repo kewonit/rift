@@ -1,20 +1,20 @@
 # Runtime limitations and recovery
 
 Rift is a pre-release project. The unsigned source build exercises the
-interface, rule engine, persistence, IPC models, and offline map components. It
-cannot activate the macOS content filter. Do not rely on an unsigned build as a
+interface, rule engine, persistence, and IPC models. It cannot activate the
+macOS content filter. Do not rely on an unsigned build as a
 system-wide firewall.
 
 ## Supported environment
 
 - Apple silicon Macs only
-- macOS 14 or later
+- macOS 15 or later
 - One interactive console user controls the installed filter
 - A signed host app and system extension with matching Apple-authorized
   capabilities for live filtering
 
-Intel Macs, remote administration, automatic remote list updates, and App Store
-distribution are outside this release scope.
+Intel Macs, remote administration, and automatic remote list updates are outside
+this release scope. Mac App Store validation remains a signed release gate.
 
 ## Filtering behavior
 
@@ -36,6 +36,14 @@ metadata when Rift cannot establish privacy eligibility.
 
 ## Activity and byte totals
 
+New installations use temporary observed activity: up to 10 connections for five
+minutes while Activity or Live Map is visible, or five for the menu panel alone.
+Hidden, minimized, fully obscured, and closed activity views stop optional
+collection and release its buffers. Opening a view starts a new observation
+period. Charts cover these limited observations; historical navigation requires
+opting into persistent history. Existing history preferences and old logs are
+preserved, and saved rules remain enforced in either mode.
+
 Rift bounds monitor history. History can be partial after provider restarts,
 storage failures, dropped runtime events, or periods when the app cannot persist
 activity. Rift displays partial byte totals as lower bounds. It uses an
@@ -46,23 +54,14 @@ History stays on the Mac. Rift excludes privacy-hidden flows from persisted
 history and user-visible aggregates. Exported diagnostics are redacted and are
 never uploaded automatically.
 
-## Destination map
+## Map
 
-Destination locations are approximate database matches. They are not device
-locations or observed packet routes. Rift does not plot private, loopback,
-link-local, multicast, broadcast, missing, or failed lookups. CDNs, VPNs, and
-relays can make a plotted endpoint differ from the service owner or user-facing
-site.
-
-Rift does not bundle a location database or send destination IP addresses to a
-remote IP-geolocation API. If Rift admits the map lane, it will use a
-user-supplied DB-IP City Lite CSV and resolve locations locally. To
-estimate the connection-link origin, the map requests the public egress IP from
-ipify once per map session. It stores no raw response and keeps only a `0.25°`
-session coordinate. VPNs, relays, and shared gateways can make that origin
-inaccurate. Apple MapKit requests map tiles for the viewed region. The live map
-and database-import controls remain unavailable until their signed runtime,
-production-size import, attribution, and accessibility gates pass.
+The Live Map doesn't show where connections go. Rift doesn't geolocate
+destination addresses and doesn't send them to any lookup service. The map
+shows only the location you place for this Mac, rounded to `0.25°` and saved on
+this Mac. Apple MapKit supplies the basemap and communicates with Apple for the
+visible map region; Rift doesn't give Apple destination IPs, hostnames, app
+identities, or firewall decisions.
 
 ## Recover from a filter problem
 

@@ -35,8 +35,11 @@ public struct TransientHistoryBuffer: Sendable {
     private var replayStartedAt: Date?
     private var replayEndedAt: Date?
     private var replayWasTruncated = false
+    private let flowLimit: Int
 
-    public init() {}
+    public init(maximumFlows: Int = TransientHistoryBuffer.maximumFlows) {
+        flowLimit = min(max(1, maximumFlows), Self.maximumFlows)
+    }
 
     public mutating func ingest(_ batch: RuntimeEventBatch) {
         for event in batch.events {
@@ -157,8 +160,8 @@ public struct TransientHistoryBuffer: Sendable {
     }
 
     private mutating func trim() {
-        if rows.count > Self.maximumFlows {
-            let removeCount = rows.count - Self.maximumFlows
+        if rows.count > flowLimit {
+            let removeCount = rows.count - flowLimit
             let oldest = rows.sorted {
                 $0.value.event.occurredAt < $1.value.event.occurredAt
             }.prefix(removeCount).map(\.key)
@@ -167,8 +170,8 @@ public struct TransientHistoryBuffer: Sendable {
                 closures.removeValue(forKey: key)
             }
         }
-        if closures.count > Self.maximumFlows {
-            let removeCount = closures.count - Self.maximumFlows
+        if closures.count > flowLimit {
+            let removeCount = closures.count - flowLimit
             let oldest = closures.sorted {
                 $0.value.observedAt < $1.value.observedAt
             }.prefix(removeCount).map(\.key)

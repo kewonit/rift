@@ -84,6 +84,7 @@ public enum MonitorHierarchyBuilder {
                 ruleCoverage: MonitorCoverageEvaluator.aggregate(members.map {
                     coverages[$0.id] ?? MonitorRuleCoverage(state: .noRule)
                 }),
+                eventIDs: Set(members.map(\.id)),
                 eventID: nil,
                 exactRuleSeed: exactSeed,
                 ruleSeedEventID: exactSeed == nil ? nil : members.first?.id,
@@ -108,6 +109,7 @@ public enum MonitorHierarchyBuilder {
             ),
             aggregate: MonitorAggregate(rows: [row.source]),
             ruleCoverage: coverages[row.id] ?? MonitorRuleCoverage(state: .noRule),
+            eventIDs: [row.id],
             eventID: row.id,
             exactRuleSeed: exactSeed,
             ruleSeedEventID: exactSeed == nil ? nil : row.id,
@@ -134,8 +136,6 @@ public enum MonitorHierarchyBuilder {
                 + hostnameComponents(flow)
         case .hostname:
             return hostnameComponents(flow) + [appComponent] + helper
-        case .location:
-            return locationComponents(row) + [appComponent] + helper
         }
     }
 
@@ -162,36 +162,6 @@ public enum MonitorHierarchyBuilder {
             title: endpoint.address.description,
             subtitle: "IP address"
         )]
-    }
-
-    private static func locationComponents(_ row: MonitorDisplayRow) -> [Component] {
-        switch row.geography {
-        case .located(let value):
-            let countryKey = value.countryCode.isEmpty ? "unknown-country" : value.countryCode
-            var components = [Component(
-                kind: .country,
-                key: countryKey,
-                title: value.countryName,
-                subtitle: value.countryCode.isEmpty ? nil : value.countryCode
-            )]
-            let locality = value.city.isEmpty ? value.region : value.city
-            if !locality.isEmpty {
-                components.append(Component(
-                    kind: .city,
-                    key: value.region + "|" + value.city,
-                    title: locality,
-                    subtitle: value.city.isEmpty || value.region.isEmpty ? nil : value.region
-                ))
-            }
-            return components
-        case .nonGeographic, .notFound:
-            return [Component(
-                kind: .nonGeographic,
-                key: row.geography.displayName,
-                title: row.geography.displayName,
-                subtitle: "Not plotted"
-            )]
-        }
     }
 
     private static func helperComponent(_ flow: FlowDescriptor) -> [Component] {

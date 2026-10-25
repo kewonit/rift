@@ -5,12 +5,11 @@ import SwiftUI
 
 struct SettingsView: View {
     let controlPlane: ControlPlaneController
-    let geolocation: GeolocationController
     let lifecycle: FilterLifecycleController?
     let isPreview: Bool
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationSensitiveDetails") private var sensitiveDetails = false
-    @AppStorage("statusRecentLimit") private var recentLimit = 10
+    @AppStorage("statusRecentLimit") private var recentLimit = 5
     @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = "Once"
     @AppStorage("alertDefaultScope") private var alertDefaultScope = "Current profile"
     @State private var section: SettingsSection = .general
@@ -20,7 +19,7 @@ struct SettingsView: View {
     @State private var effectiveMode: OperationMode = .silentAllow
     @State private var confirmedBaseMode: OperationMode = .silentAllow
     @State private var isChangingBaseMode = false
-    @State private var historyEnabled = true
+    @State private var historyEnabled = false
     @State private var retentionDays = 30
     @State private var maximumFlows = 50_000
     @State private var message: String?
@@ -45,7 +44,7 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(availableSections, selection: $section) { item in
+            List(SettingsSection.allCases, selection: $section) { item in
                 Label(item.rawValue, systemImage: item.symbol).tag(item)
             }
             .navigationTitle("Settings")
@@ -88,7 +87,8 @@ struct SettingsView: View {
                 return
             }
             recentLimit = min(max(recentLimit, 0), 25)
-            if !["Once", "One hour", "Permanent"].contains(alertDefaultLifetime) {
+            if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
+            if !["Once", "One hour", "Always"].contains(alertDefaultLifetime) {
                 alertDefaultLifetime = "Once"
             }
             if !["Current profile", "All profiles"].contains(alertDefaultScope) {
@@ -98,11 +98,6 @@ struct SettingsView: View {
             loginItemLoaded = true
             await load()
             loaded = true
-        }
-        .onChange(of: geolocation.isMapUIAdmitted) { _, isAdmitted in
-            if !isAdmitted, section == .map {
-                section = .general
-            }
         }
         .safeAreaInset(edge: .bottom) {
             if let message {
@@ -189,7 +184,6 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { editingGroup = nil }
         }
     }
-
     @ViewBuilder
     private var pane: some View {
         switch section {
@@ -224,8 +218,6 @@ struct SettingsView: View {
                 clear: { showingClearHistoryConfirmation = true },
                 export: { pendingHistoryExport = $0 }
             )
-        case .map:
-            GeoSettingsPane(geolocation: geolocation)
         case .policies:
             PolicySettingsPane(
                 controlPlane: controlPlane,
@@ -251,12 +243,6 @@ struct SettingsView: View {
                 showingRestoreConfirmation: $showingRestoreConfirmation,
                 restoreNeedsRetry: $restoreNeedsRetry
             )
-        }
-    }
-
-    private var availableSections: [SettingsSection] {
-        SettingsSection.allCases.filter {
-            $0 != .map || geolocation.isMapUIAdmitted
         }
     }
 
@@ -357,6 +343,7 @@ struct SettingsView: View {
     }
 
     private func requestNotificationPermission(_ enabled: Bool) {
+        controlPlane.requestActivitySubscriptionUpdate()
         guard enabled else { return }
         Task {
             do {
@@ -369,6 +356,7 @@ struct SettingsView: View {
                 notificationsEnabled = false
                 message = "Notification permission could not be requested."
             }
+            controlPlane.requestActivitySubscriptionUpdate()
         }
     }
 
@@ -495,27 +483,6 @@ struct SettingsView: View {
         } catch {
             launchAtLogin = SMAppService.mainApp.status == .enabled
             message = "macOS did not change the login-item setting."
-        }
-    }
-}
-
-private enum SettingsSection: String, CaseIterable, Identifiable {
-    case general = "General"
-    case alerts = "Alerts"
-    case history = "Monitor & Privacy"
-    case map = "Map Data"
-    case policies = "Policies"
-    case advanced = "Advanced"
-
-    var id: String { rawValue }
-    var symbol: String {
-        switch self {
-        case .general: "gear"
-        case .alerts: "bell"
-        case .history: "eye.slash"
-        case .map: "map"
-        case .policies: "switch.2"
-        case .advanced: "wrench.and.screwdriver"
         }
     }
 }

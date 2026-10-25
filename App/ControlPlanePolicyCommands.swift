@@ -164,7 +164,8 @@ extension ControlPlaneController {
                     || rule.owner == .system
             }
         }
-        if let rows = try await history?.page(limit: 1_000) {
+        let rows = isMinimalActivity ? recentActivityRows : (try await history?.page(limit: 1_000) ?? [])
+        if !rows.isEmpty {
             for row in rows {
                 let flow = row.event.flow
                 let permitsSystemOwner = flow.owner == .system

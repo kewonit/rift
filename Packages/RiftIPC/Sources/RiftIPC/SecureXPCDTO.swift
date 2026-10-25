@@ -14,6 +14,9 @@ public enum IPCMessageKind: String, Sendable, Codable {
     case answerPrompt
     case drainEvents
     case drainNotifications
+    case setActivitySubscription
+    case recentActivity
+    case drainAttention
     case prepareUninstall
     case cliRequest
 }
@@ -130,6 +133,9 @@ public final class SecureIPCReply: NSObject, NSSecureCoding, @unchecked Sendable
 }
 
 @objc public protocol RiftFilterControlXPC {
+    @objc optional func setActivitySubscription(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void)
+    @objc optional func recentActivity(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void)
+    @objc optional func drainAttention(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void)
     func handshake(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void)
     func claimController(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void)
     func beginConfigurationReset(
@@ -155,6 +161,8 @@ public final class SecureIPCReply: NSObject, NSSecureCoding, @unchecked Sendable
         withReply reply: @escaping (SecureIPCReply) -> Void
     )
     func runtimeDataAvailable(withReply reply: @escaping () -> Void)
+    @objc optional func runtimeActivityAvailable(withReply reply: @escaping () -> Void)
+    @objc optional func runtimeAttentionAvailable(withReply reply: @escaping () -> Void)
 }
 
 public enum SecureIPCCodec {

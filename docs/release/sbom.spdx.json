@@ -1,14 +1,14 @@
 {
   "SPDXID": "SPDXRef-DOCUMENT",
   "creationInfo": {
-    "created": "2026-08-10T23:20:00Z",
+    "created": "2026-10-25T00:00:00Z",
     "creators": [
       "Organization: Rift contributors",
       "Tool: manual-source-inventory"
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://spdx.org/spdxdocs/rift-0.1.0-pre-release-20260811",
+  "documentNamespace": "https://spdx.org/spdxdocs/rift-0.1.0-pre-release-20261025",
   "name": "Rift 0.1.0 pre-release source SBOM",
   "packages": [
     {

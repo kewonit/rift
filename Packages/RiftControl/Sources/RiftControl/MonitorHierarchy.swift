@@ -8,9 +8,6 @@ public enum MonitorHierarchyKind: String, Sendable, Hashable {
     case route
     case hostname
     case address
-    case country
-    case city
-    case nonGeographic
     case flow
 }
 
@@ -91,6 +88,7 @@ public struct MonitorHierarchyNode: Sendable, Hashable, Identifiable {
     public let subtitle: String?
     public let aggregate: MonitorAggregate
     public let ruleCoverage: MonitorRuleCoverage
+    public let eventIDs: Set<String>
     public let eventID: String?
     public let exactRuleSeed: MonitorExactRuleSeed?
     public let ruleSeedEventID: String?
@@ -170,7 +168,21 @@ public enum MonitorCoverageEvaluator {
         desiredTuple: PolicyTuple? = nil,
         now: Date = Date()
     ) -> [String: MonitorRuleCoverage] {
-        let matcher = CompiledRuleMatcher(rules: configuration.rules)
+        evaluate(
+            rows, configuration: configuration, enforcementState: enforcementState,
+            desiredTuple: desiredTuple, now: now,
+            matcher: CompiledRuleMatcher(rules: configuration.rules)
+        )
+    }
+
+    static func evaluate(
+        _ rows: [MonitorEventRow],
+        configuration: PolicyConfigurationDraft,
+        enforcementState: PolicyOutboxState,
+        desiredTuple: PolicyTuple?,
+        now: Date,
+        matcher: CompiledRuleMatcher
+    ) -> [String: MonitorRuleCoverage] {
         let context = MatchContext(
             activeProfileID: configuration.activeProfileID,
             enabledLocalGroupIDs: configuration.enabledLocalGroupIDs,

@@ -41,16 +41,3 @@ Library Exception:
 > portions of this Software are embedded into the binary product as a result,
 > you may redistribute such product without providing attribution as would
 > otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
-
-## DB-IP City Lite (optional, user-provided data)
-
-DB-IP City Lite is not bundled with Rift and is not downloaded automatically.
-Users can obtain a current CSV snapshot from [DB-IP City Lite](https://db-ip.com/db/lite.php).
-DB-IP provides the data under the [Creative Commons Attribution 4.0
-International license](https://creativecommons.org/licenses/by/4.0/).
-
-Required attribution: **IP Geolocation by DB-IP**.
-
-When a user imports the CSV, Rift converts its ranges into a local SQLite index
-for offline lookup. Rift does not intentionally change the source location
-values. DB-IP data is approximate and may be stale or wrong.

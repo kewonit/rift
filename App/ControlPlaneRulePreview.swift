@@ -3,7 +3,12 @@ import RiftControl
 extension ControlPlaneController {
     func ruleWorkspaceSnapshot() async throws -> RuleWorkspaceSnapshot? {
 #if DEBUG
-        if isUIFixture { return MonitorFixtureData.ruleWorkspaceSnapshot }
+        if isUIFixture {
+            if MonitorFixtureData.scenario == .rulesFailure {
+                throw RuleCommandError.missingConfiguration
+            }
+            return MonitorFixtureData.ruleWorkspaceSnapshot
+        }
 #endif
         guard let snapshot = try await repository?.ruleWorkspaceSnapshot() else { return nil }
         let state = PolicyEnforcementPresentation.state(

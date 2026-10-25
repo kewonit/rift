@@ -25,6 +25,7 @@ final class FilterLifecycleController: NSObject {
     private var activeRequest: OSSystemExtensionRequest?
     private var activeRequestKind: RequestKind?
     private var retryAction: RetryAction?
+    private var installedExtensionUpdateAvailable = false
     private(set) var initialStatusResolved = false
     private(set) var activationPreflightFailure:
         SystemExtensionActivationPreflightFailure?
@@ -173,6 +174,7 @@ final class FilterLifecycleController: NSObject {
 
     private func refreshInstalledState() {
         retryAction = nil
+        installedExtensionUpdateAvailable = false
         let request = OSSystemExtensionRequest.propertiesRequest(
             forExtensionWithIdentifier: Self.extensionIdentifier,
             queue: .main
@@ -267,10 +269,12 @@ final class FilterLifecycleController: NSObject {
         for observations: [InstalledExtensionObservation]
     ) async -> LifecycleState {
         guard !observations.isEmpty else { return .notInstalled }
-        guard observations.count == 1 else {
+        let current = observations.filter { !$0.uninstalling }
+        guard !current.isEmpty else { return .uninstalling }
+        guard current.count == 1 else {
             return failed(.ambiguousInstalledExtension)
         }
-        let observation = observations[0]
+        let observation = current[0]
         guard observation.identity.bundleIdentifier == Self.extensionIdentifier else {
             return failed(.installedExtensionMismatch)
         }
@@ -286,6 +290,9 @@ final class FilterLifecycleController: NSObject {
             return failed(.invalidEmbeddedExtension)
         }
         guard observation.identity == expected else {
+            installedExtensionUpdateAvailable = permitsReplacement(
+                existing: observation.identity, incoming: expected
+            )
             return failed(.installedExtensionMismatch)
         }
         guard observation.enabled else { return .disabled }
@@ -325,8 +332,10 @@ final class FilterLifecycleController: NSObject {
         activeRequest = nil
         activeRequestKind = nil
         switch state {
-        case .awaitingApproval, .failed:
+        case .awaitingApproval:
             retryAction = .status
+        case .failed:
+            retryAction = installedExtensionUpdateAvailable ? .activation : .status
         case .disabled:
             retryAction = .activation
         default:

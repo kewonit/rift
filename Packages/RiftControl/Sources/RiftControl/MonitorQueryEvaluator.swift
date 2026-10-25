@@ -2,16 +2,13 @@ import Foundation
 
 public struct MonitorQueryEvaluation: Sendable, Hashable {
     public let displayed: [MonitorDisplayRow]
-    public let mapRows: [MonitorDisplayRow]
     public let summary: MonitorSummarySnapshot
 
     public init(
         displayed: [MonitorDisplayRow],
-        mapRows: [MonitorDisplayRow],
         summary: MonitorSummarySnapshot
     ) {
         self.displayed = displayed
-        self.mapRows = mapRows
         self.summary = summary
     }
 }
@@ -37,7 +34,6 @@ public enum MonitorQueryPublication {
 public enum MonitorQueryEvaluator {
     public static func evaluate(
         rows: [MonitorEventRow],
-        geography: [String: GeoResolution],
         state: MonitorQueryState,
         now: Date,
         queryComplete: Bool,
@@ -47,7 +43,6 @@ public enum MonitorQueryEvaluator {
         return try await MonitorQueryWorker.run {
             try evaluate(
                 rows: rows,
-                geography: geography,
                 state: state,
                 now: now,
                 queryComplete: queryComplete,
@@ -59,7 +54,6 @@ public enum MonitorQueryEvaluator {
 
     static func evaluate(
         rows: [MonitorEventRow],
-        geography: [String: GeoResolution],
         state: MonitorQueryState,
         now: Date,
         queryComplete: Bool,
@@ -69,16 +63,6 @@ public enum MonitorQueryEvaluator {
         try cancellationCheck()
         let filtered = try state.apply(
             to: rows,
-            geography: geography,
-            now: now,
-            cancellationCheck: cancellationCheck
-        )
-        try cancellationCheck()
-        var mapState = state
-        mapState.focusedLocationID = nil
-        let mapRows = try mapState.apply(
-            to: rows,
-            geography: geography,
             now: now,
             cancellationCheck: cancellationCheck
         )
@@ -93,17 +77,17 @@ public enum MonitorQueryEvaluator {
         try cancellationCheck()
         return MonitorQueryEvaluation(
             displayed: filtered,
-            mapRows: mapRows,
             summary: summary
         )
     }
 }
 
-enum MonitorQueryWorker {
-    static func run<Value: Sendable>(
+public enum MonitorQueryWorker {
+    public static func run<Value: Sendable>(
+        priority: TaskPriority = .userInitiated,
         _ operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
-        let worker = Task.detached(priority: .userInitiated, operation: operation)
+        let worker = Task.detached(priority: priority, operation: operation)
         return try await withTaskCancellationHandler {
             try await worker.value
         } onCancel: {

@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "RiftFilterRuntime",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     products: [
         .library(name: "RiftFilterRuntime", type: .static, targets: ["RiftFilterRuntime"]),
     ],

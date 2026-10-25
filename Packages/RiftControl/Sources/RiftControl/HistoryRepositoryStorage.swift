@@ -10,9 +10,10 @@ enum HistoryRepositoryStorage {
         in database: Database,
         encoder: JSONEncoder,
         now: Date
-    ) throws {
+    ) throws -> Set<HistoryFlowKey> {
         let events = Array(batch.events.prefix(IPCProtocolLimits.maximumEventBatchCount))
         var recordedEvents: [RuntimeEvent] = []
+        var changed = Set<HistoryFlowKey>()
         for event in events {
             try database.execute(
                 sql: """
@@ -30,6 +31,7 @@ enum HistoryRepositoryStorage {
             if database.changesCount > 0 {
                 try updateLifecycle(event, in: database, encoder: encoder)
                 recordedEvents.append(event)
+                changed.insert(HistoryFlowKey(providerEpoch: event.providerEpoch, flowID: event.flow.flowID))
             }
         }
         try HistoryCoverageStore.noteRecordedEvents(recordedEvents, in: database)
@@ -39,13 +41,15 @@ enum HistoryRepositoryStorage {
             in: database,
             now: now
         )
+        return changed
     }
 
     static func monitorRows(
         in database: Database,
         coverage: HistoryCoverageSnapshot,
         limit: Int,
-        offset: Int
+        offset: Int,
+        window: MonitorTimeWindow? = nil
     ) throws -> [MonitorEventRow] {
         let rows = try Row.fetchAll(
             database,
@@ -53,12 +57,41 @@ enum HistoryRepositoryStorage {
                 SELECT decision_event, closed_at, bytes_inbound, bytes_outbound, flow_end_reason
                 FROM flow_lifecycle
                 WHERE decision_event IS NOT NULL
+                  AND decision_at >= ? AND decision_at < ?
                 ORDER BY decision_at DESC, decision_sequence DESC,
                          provider_epoch DESC, flow_id DESC
                 LIMIT ? OFFSET ?
                 """,
-            arguments: [limit, offset]
+            arguments: [
+                window?.start?.timeIntervalSince1970 ?? -Double.greatestFiniteMagnitude,
+                window?.end?.timeIntervalSince1970 ?? Double.greatestFiniteMagnitude,
+                limit, offset,
+            ]
         )
+        return try decode(rows, coverage: coverage)
+    }
+
+    static func monitorRows(
+        for keys: Set<HistoryFlowKey>,
+        in database: Database,
+        coverage: HistoryCoverageSnapshot
+    ) throws -> [MonitorEventRow] {
+        var records: [Row] = []
+        for key in keys {
+            if let row = try Row.fetchOne(
+                database,
+                sql: """
+                    SELECT decision_event, closed_at, bytes_inbound, bytes_outbound, flow_end_reason
+                    FROM flow_lifecycle
+                    WHERE provider_epoch = ? AND flow_id = ? AND decision_event IS NOT NULL
+                    """,
+                arguments: [key.providerEpoch.uuidString.lowercased(), key.flowID.uuidString.lowercased()]
+            ) { records.append(row) }
+        }
+        return try decode(records, coverage: coverage)
+    }
+
+    private static func decode(_ rows: [Row], coverage: HistoryCoverageSnapshot) throws -> [MonitorEventRow] {
         let decoder = CanonicalPolicyJSON.decoder()
         let coverageIndex = HistoryCoverageIndex(coverage)
         return try rows.map { row in
@@ -88,57 +121,44 @@ enum HistoryRepositoryStorage {
         }
     }
 
+    @discardableResult
     static func enforceRetention(
         in database: Database,
         settings: HistorySettings,
         now: Date
-    ) throws {
+    ) throws -> Set<HistoryFlowKey> {
         let cutoff = now.addingTimeInterval(TimeInterval(-settings.retentionDays * 86_400))
-        try database.execute(
+        let expired = try Row.fetchAll(
+            database,
             sql: """
-                DELETE FROM flow_lifecycle
+                SELECT provider_epoch, flow_id FROM flow_lifecycle
                 WHERE COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0) < ?
                 """,
             arguments: [cutoff.timeIntervalSince1970]
         )
+        var removed = try deleteFlows(expired, in: database)
         let flowCount = try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM flow_lifecycle") ?? 0
         if flowCount > settings.maximumFlows {
-            let capacityDiscardedThrough = try Double.fetchOne(
+            let overflow = try Row.fetchAll(
                 database,
                 sql: """
-                    SELECT MAX(COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0))
-                    FROM flow_lifecycle WHERE rowid IN (
-                        SELECT rowid FROM flow_lifecycle
-                        ORDER BY CASE
-                                     WHEN decision_event IS NOT NULL THEN 2
-                                     WHEN closed_at IS NOT NULL THEN 1
-                                     ELSE 0
-                                 END DESC,
-                                 COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0) DESC,
-                                 COALESCE(decision_sequence, 0) DESC,
-                                 provider_epoch DESC, flow_id DESC
-                        LIMIT -1 OFFSET ?
-                    )
+                    SELECT provider_epoch, flow_id,
+                           COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0) AS latest_at
+                    FROM flow_lifecycle
+                    ORDER BY CASE
+                                 WHEN decision_event IS NOT NULL THEN 2
+                                 WHEN closed_at IS NOT NULL THEN 1
+                                 ELSE 0
+                             END DESC,
+                             COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0) DESC,
+                             COALESCE(decision_sequence, 0) DESC,
+                             provider_epoch DESC, flow_id DESC
+                    LIMIT -1 OFFSET ?
                     """,
                 arguments: [settings.maximumFlows]
             )
-            try database.execute(
-                sql: """
-                    DELETE FROM flow_lifecycle WHERE rowid IN (
-                        SELECT rowid FROM flow_lifecycle
-                        ORDER BY CASE
-                                     WHEN decision_event IS NOT NULL THEN 2
-                                     WHEN closed_at IS NOT NULL THEN 1
-                                     ELSE 0
-                                 END DESC,
-                                 COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0) DESC,
-                                 COALESCE(decision_sequence, 0) DESC,
-                                 provider_epoch DESC, flow_id DESC
-                        LIMIT -1 OFFSET ?
-                    )
-                """,
-                arguments: [settings.maximumFlows]
-            )
+            let capacityDiscardedThrough = overflow.map { row -> Double in row["latest_at"] }.max()
+            removed.formUnion(try deleteFlows(overflow, in: database))
             if let capacityDiscardedThrough {
                 try HistoryCoverageStore.advanceBaseline(
                     to: Date(timeIntervalSince1970: capacityDiscardedThrough),
@@ -146,15 +166,28 @@ enum HistoryRepositoryStorage {
                 )
             }
         }
-        try database.execute(sql: """
-            DELETE FROM flow_events
-            WHERE NOT EXISTS (
-                SELECT 1 FROM flow_lifecycle
-                WHERE flow_lifecycle.provider_epoch = flow_events.provider_epoch
-                  AND flow_lifecycle.flow_id = flow_events.flow_id
-            )
-            """)
         try HistoryCoverageStore.enforceRetention(in: database, cutoff: cutoff)
+        return removed
+    }
+
+    private static func deleteFlows(_ rows: [Row], in database: Database) throws -> Set<HistoryFlowKey> {
+        var keys = Set<HistoryFlowKey>()
+        for row in rows {
+            let epoch: String = row["provider_epoch"]
+            let flowID: String = row["flow_id"]
+            try database.execute(
+                sql: "DELETE FROM flow_events WHERE provider_epoch = ? AND flow_id = ?",
+                arguments: [epoch, flowID]
+            )
+            try database.execute(
+                sql: "DELETE FROM flow_lifecycle WHERE provider_epoch = ? AND flow_id = ?",
+                arguments: [epoch, flowID]
+            )
+            if let providerEpoch = UUID(uuidString: epoch), let id = UUID(uuidString: flowID) {
+                keys.insert(HistoryFlowKey(providerEpoch: providerEpoch, flowID: id))
+            }
+        }
+        return keys
     }
 
     private static func updateLifecycle(

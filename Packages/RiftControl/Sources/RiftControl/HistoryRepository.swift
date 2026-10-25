@@ -16,7 +16,7 @@ public enum HistoryCoverage: String, Sendable, Hashable, Codable {
 }
 
 public struct MonitorEventRow: Sendable, Hashable, Identifiable {
-    public var id: String { "\(event.providerEpoch.uuidString)-\(event.sequence)" }
+    public let id: String
     public let event: RuntimeEvent
     public let coverage: HistoryCoverage
     public let closedAt: Date?
@@ -32,6 +32,7 @@ public struct MonitorEventRow: Sendable, Hashable, Identifiable {
         bytesOutbound: UInt64? = nil,
         flowEndReason: RuntimeFlowEndReason? = nil
     ) {
+        self.id = "\(event.providerEpoch.uuidString)-\(event.sequence)"
         self.event = event
         self.coverage = coverage
         self.closedAt = closedAt
@@ -45,15 +46,18 @@ public struct HistoryMonitorSnapshot: Sendable, Hashable {
     public let rows: [MonitorEventRow]
     public let isComplete: Bool
     public let coverage: HistoryCoverageSnapshot
+    public let cursor: HistoryChangeCursor?
 
     public init(
         rows: [MonitorEventRow],
         isComplete: Bool,
-        coverage: HistoryCoverageSnapshot
+        coverage: HistoryCoverageSnapshot,
+        cursor: HistoryChangeCursor? = nil
     ) {
         self.rows = rows
         self.isComplete = isComplete
         self.coverage = coverage
+        self.cursor = cursor
     }
 }
 
@@ -94,6 +98,7 @@ public struct HistoryDiagnosticCounts: Sendable, Hashable {
 
 public actor HistoryRepository {
     private let database: DatabasePool
+    private var changes = HistoryChangeJournal()
 
     public init(database: DatabasePool) {
         self.database = database
@@ -138,8 +143,9 @@ public actor HistoryRepository {
             } else if !wasEnabled && enabled {
                 try HistoryCoverageStore.markEnabled(in: database, now: now)
             }
-            try HistoryRepositoryStorage.enforceRetention(in: database, settings: next, now: now)
+            _ = try HistoryRepositoryStorage.enforceRetention(in: database, settings: next, now: now)
         }
+        changes.reset()
     }
 
     public func recordAuthenticatedRuntimeDrain(
@@ -147,7 +153,7 @@ public actor HistoryRepository {
         at drainedAt: Date
     ) throws -> HistoryRuntimeTransition {
         let current = try settings()
-        return try database.write { database in
+        let transition = try database.write { database in
             let transition = try HistoryRuntimeCoverageStore.recordSuccessfulDrain(
                 runtimeInstanceID: runtimeInstanceID,
                 at: drainedAt,
@@ -155,7 +161,7 @@ public actor HistoryRepository {
                 in: database
             )
             if transition.detectedRestart, current.enabled {
-                try HistoryRepositoryStorage.enforceRetention(
+                _ = try HistoryRepositoryStorage.enforceRetention(
                     in: database,
                     settings: current,
                     now: drainedAt
@@ -163,6 +169,8 @@ public actor HistoryRepository {
             }
             return transition
         }
+        if transition.detectedRestart { changes.reset() }
+        return transition
     }
 
     public func ingest(
@@ -194,14 +202,15 @@ public actor HistoryRepository {
 
     public func recordCoverageGap(_ interval: HistoryCoverageInterval, now: Date) throws {
         let current = try settings()
-        try database.write { database in
+        let removed = try database.write { database in
             try HistoryCoverageStore.record(interval, in: database)
-            try HistoryRepositoryStorage.enforceRetention(
+            return try HistoryRepositoryStorage.enforceRetention(
                 in: database,
                 settings: current,
                 now: now
             )
         }
+        changes.record(removed)
     }
 
     public func page(limit: Int = 500, offset: Int = 0) throws -> [MonitorEventRow] {
@@ -217,20 +226,47 @@ public actor HistoryRepository {
         }
     }
 
-    public func monitorSnapshot(maximum: Int = 50_000) throws -> HistoryMonitorSnapshot {
+    public func monitorSnapshot(
+        maximum: Int = 50_000,
+        window: MonitorTimeWindow? = nil
+    ) throws -> HistoryMonitorSnapshot {
         let boundedMaximum = min(max(1, maximum), 50_000)
+        let cursor = changes.cursor
         return try database.read { database in
             let coverage = try HistoryCoverageStore.snapshot(in: database)
             let rows = try HistoryRepositoryStorage.monitorRows(
                 in: database,
                 coverage: coverage,
                 limit: boundedMaximum + 1,
-                offset: 0
+                offset: 0, window: window
             )
             return HistoryMonitorSnapshot(
                 rows: Array(rows.prefix(boundedMaximum)),
                 isComplete: rows.count <= boundedMaximum,
-                coverage: coverage
+                coverage: coverage, cursor: cursor
+            )
+        }
+    }
+
+    public func monitorChanges(after cursor: HistoryChangeCursor) throws -> HistoryMonitorDelta {
+        let changedKeys = changes.changes(after: cursor)
+        let nextCursor = changes.cursor
+        return try database.read { database in
+            let coverage = try HistoryCoverageStore.snapshot(in: database)
+            guard let changedKeys else {
+                return HistoryMonitorDelta(
+                    cursor: nextCursor, updatedRows: [], removedFlowKeys: [],
+                    coverage: coverage, requiresFullRefresh: true
+                )
+            }
+            let rows = try HistoryRepositoryStorage.monitorRows(
+                for: changedKeys, in: database, coverage: coverage
+            )
+            let present = Set(rows.map(\.flowKey))
+            return HistoryMonitorDelta(
+                cursor: nextCursor, updatedRows: rows,
+                removedFlowKeys: changedKeys.subtracting(present),
+                coverage: coverage, requiresFullRefresh: false
             )
         }
     }
@@ -295,6 +331,7 @@ public actor HistoryRepository {
             try database.execute(sql: "DELETE FROM flow_lifecycle")
             try HistoryCoverageStore.reset(in: database, enabled: enabled, now: now)
         }
+        changes.reset()
     }
 
     public func markOpenFlowsAbandoned() throws {
@@ -308,6 +345,7 @@ public actor HistoryRepository {
                 arguments: [RuntimeFlowEndReason.appRestartAbandoned.rawValue]
             )
         }
+        changes.reset()
     }
 
     public func diagnosticCounts() throws -> HistoryDiagnosticCounts {
@@ -349,24 +387,27 @@ public actor HistoryRepository {
         let current = try settings()
         guard current.enabled else { return }
         let encoder = CanonicalPolicyJSON.encoder()
-        try database.write { database in
+        let changed = try database.write { database in
+            var keys = Set<HistoryFlowKey>()
             for (batch, runtimeInstanceID) in batches {
-                try HistoryRepositoryStorage.persist(
+                keys.formUnion(try HistoryRepositoryStorage.persist(
                     batch,
                     runtimeInstanceID: runtimeInstanceID,
                     in: database,
                     encoder: encoder,
                     now: now
-                )
+                ))
             }
             if let coverageInterval {
                 try HistoryCoverageStore.record(coverageInterval, in: database)
             }
-            try HistoryRepositoryStorage.enforceRetention(
+            keys.formUnion(try HistoryRepositoryStorage.enforceRetention(
                 in: database,
                 settings: current,
                 now: now
-            )
+            ))
+            return keys
         }
+        changes.record(changed)
     }
 }

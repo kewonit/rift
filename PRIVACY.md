@@ -2,9 +2,9 @@
 
 Rift makes firewall decisions on the Mac. It does not use analytics, an
 advertising SDK, a telemetry service, automatic diagnostics upload, or
-packet-payload capture. It does not send destination IP addresses to a remote
-geolocation service. Core 1.0 does not enable a remote blocklist, automatic
-geolocation updates, or software updates.
+packet-payload capture. It doesn't geolocate connections, and it doesn't send
+destination IP addresses to any service. Core 1.0 does not enable a remote
+blocklist or software updates.
 
 ## Data kept on the Mac
 
@@ -14,45 +14,38 @@ geolocation updates, or software updates.
 - The system extension's separate, root-owned container stores only the
   validated compiled current and previous policies, ownership state, bounded
   expiry metadata, and recovery indexes. It does not store connection history.
-- By default, Rift retains connection history for up to 30 days and 50,000 flows.
-  History contains bounded decision metadata and close-reported byte totals when
-  macOS supplies them. Users can lower retention, turn persistence off, or clear
-  history. Privacy-hidden decisions do not enter visible history or aggregates.
+- New installations do not save connection history. Optional activity keeps at
+  most 10 recent connections in memory for five minutes while Activity or Live
+  Map is visible, or five when only the menu panel is open. Collection stops and
+  these buffers are released when all activity views are hidden, minimized,
+  fully obscured, or closed. Rules and prompt handling remain active.
+- Persistent history is opt-in, with default limits of 30 days and 50,000 flows.
+  It contains bounded decision metadata and close-reported byte totals when
+  macOS supplies them. Existing history preferences are preserved. Turning
+  recording off keeps old logs; deleting them requires Clear History.
+  Privacy-hidden decisions do not enter visible history or aggregates.
 - Rule-use counters are separate from connection history. Users can clear them
-  separately.
+  separately. New usage is recorded only while persistent history is enabled.
 - Rift keeps notifications private by default. It never includes complete URLs
   or packet contents in prompts, history, logs, or diagnostics.
 - Rift reads application names and icons only from installed local apps. It
   shows artwork only when a candidate exactly matches the recorded code-signing
   identity. It caches artwork in memory, does not add it to history or exports,
   and never uploads it. Unavailable or ambiguous matches use a generic icon.
-- When a user imports DB-IP City Lite, Rift stores validated IP ranges and
-  approximate locations in an owner-only local SQLite index. It also stores the
-  source version and date and the import date. Lookups occur only on the Mac. A
-  rejected import does not replace the last valid index.
+- If you place this Mac on the map, Rift saves that location in the app's local
+  preferences, rounded to `0.25°`. Rift never looks up your location: it makes
+  no IP-address request and doesn't use Location Services. Choose **Clear My
+  Location** in the map's **My Location** menu to remove it.
 
-## Destination map network behavior
+## Map network behavior
 
-The destination map is hidden by default. The live map is not available in the
-current Debug or Release app. When Rift admits the live map and a user shows it,
-Apple MapKit requests map tiles for the coordinate regions in view. Rift
-supplies approximate coordinates to MapKit. It does not send destination IP
-addresses, hostnames, application identities, rules, or connection history to
-DB-IP or a remote lookup service. Apple's services and privacy terms govern how
-Apple handles map requests.
+The Live Map uses Apple MapKit for map imagery, labels, and geographic context.
+MapKit communicates with Apple while the map is visible and when you pan or
+zoom. Rift doesn't give Apple destination IP addresses, hostnames, application
+identities, rules, firewall decisions, or connection history.
 
-When Rift admits the live map, it makes one HTTPS request per map session to the
-[ipify public IP API](https://www.ipify.org/). ipify returns the Mac's public
-egress IP address. Rift resolves that address against the user-imported local
-DB-IP database and immediately rounds the result to a `0.25°` coordinate. Rift
-keeps only the rounded coordinate in memory. It does not add the public IP to
-settings, history, diagnostics, or logs. ipify observes the request's source IP
-and standard HTTPS metadata. A VPN, relay, carrier gateway, or corporate egress
-can make this location differ substantially from the Mac's location.
-
-Rift does not plot local, private, loopback, multicast, broadcast, Bonjour,
-missing, or database-unmatched endpoints. Approximate IP geolocation can be
-stale or wrong. Do not treat it as a person's identity or exact address.
+The map shows only the location you place for this Mac. Rift doesn't look up
+where connections go and doesn't plot destinations.
 
 ## Exports and sharing
 

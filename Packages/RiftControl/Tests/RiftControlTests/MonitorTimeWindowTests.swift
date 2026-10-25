@@ -55,6 +55,30 @@ import Testing
     #expect(sundayWindow.start != mondayWindow.start)
 }
 
+@Test func fixedMonitorWindowsUseExactDurationsAndPageBackToNow() throws {
+    let now = Date(timeIntervalSince1970: 2_000_000)
+    let cases: [(MonitorTimeFilter, TimeInterval)] = [
+        (.twoMinutes, 120),
+        (.tenMinutes, 600),
+        (.fiveHours, 18_000),
+        (.threeDays, 259_200),
+        (.thirtyDays, 2_592_000),
+    ]
+    for (filter, duration) in cases {
+        let live = try #require(filter.window(now: now))
+        #expect(try #require(live.start) == now.addingTimeInterval(-duration))
+        #expect(try #require(live.end) > now)
+
+        var query = MonitorQueryState(time: filter)
+        query.navigateTime(.previous, now: now)
+        let previous = try #require(query.baseTimeWindow(now: now))
+        #expect(try #require(previous.start) == now.addingTimeInterval(-duration))
+        #expect(try #require(previous.end) == now)
+        query.navigateTime(.next, now: now)
+        #expect(query.isLiveTimeRange)
+    }
+}
+
 @Test func historicNavigationIsStableAndReturnsToNow() throws {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
@@ -99,7 +123,7 @@ import Testing
         now: now,
         calendar: calendar
     )
-    #expect(query.apply(to: rows, geography: [:], now: now, calendar: calendar).map(\.id)
+    #expect(query.apply(to: rows, now: now, calendar: calendar).map(\.id)
         == [rows[1].id])
 
     query.selectTimeRange(

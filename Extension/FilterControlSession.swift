@@ -152,6 +152,33 @@ final class FilterControlSession: NSObject, RiftFilterControlXPC {
         }
     }
 
+    func setActivitySubscription(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void) {
+        let payload = request.payload
+        let relay = relay
+        performMutation(request, expected: .setActivitySubscription, reply: reply) { runtime, peer, lease in
+            let value = try SecureIPCCodec.decode(ActivitySubscription.self, from: payload)
+            try await runtime.setActivitySubscription(value, connectionID: peer.connectionID, leaseID: lease)
+            if value.mode == .off { relay.cancelActivityNotification() }
+            return Data()
+        }
+    }
+
+    func recentActivity(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void) {
+        performMutation(request, expected: .recentActivity, reply: reply) { runtime, peer, lease in
+            try await SecureIPCCodec.encode(runtime.recentActivity(connectionID: peer.connectionID, leaseID: lease))
+        }
+    }
+
+    func drainAttention(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void) {
+        let payload = request.payload
+        performMutation(request, expected: .drainAttention, reply: reply) { runtime, peer, lease in
+            let value = try SecureIPCCodec.decode(RuntimeAttentionRequest.self, from: payload)
+            return try await SecureIPCCodec.encode(runtime.drainAttention(
+                connectionID: peer.connectionID, leaseID: lease, resyncPrompts: value.resyncPrompts
+            ))
+        }
+    }
+
     func prepareUninstall(_ request: SecureIPCEnvelope, withReply reply: @escaping (SecureIPCReply) -> Void) {
         performMutation(request, expected: .prepareUninstall, reply: reply) { runtime, peer, leaseID in
             try await runtime.prepareVerifiedUninstall(
@@ -203,6 +230,10 @@ final class FilterControlSession: NSObject, RiftFilterControlXPC {
             throw FilterControlSessionError.incompatibleProtocol
         }
         guard request.messageKind == kind else { throw FilterControlSessionError.wrongMethodKind }
+        if [.setActivitySubscription, .recentActivity, .drainAttention].contains(kind),
+           !request.protocolVersion.supports(minimum: .activitySubscriptions) {
+            throw FilterControlSessionError.incompatibleProtocol
+        }
         guard request.payload.count <= IPCProtocolLimits.maximumSnapshotBytes else {
             throw FilterControlSessionError.oversizedPayload
         }
@@ -274,9 +305,12 @@ final class FilterControlSession: NSObject, RiftFilterControlXPC {
                         lineageID: claim.lineageID,
                         isCurrentConsoleUser: ConsoleSessionAuthorizer.isCurrentConsole(peer)
                     )
-                    guard relay.activate(connectionID: peer.connectionID) else {
+                    guard relay.activate(connectionID: peer.connectionID, version: request.protocolVersion) else {
                         throw FilterControlSessionError.relayUnavailable
                     }
+                    try await runtime.prepareActivityProtocol(
+                        connectionID: peer.connectionID, leaseID: leaseID, version: request.protocolVersion
+                    )
                     reply.success(try SecureIPCCodec.encode(leaseID))
                 } catch { reply.failure(error) }
             }
@@ -386,6 +420,7 @@ private final class ReplyOnce: @unchecked Sendable {
 }
 
 enum PolicyRuntimeError: Error, Sendable {
+    case invalidActivitySubscription
     case notCurrentConsoleSession
     case controllerBusy
     case foreignOwner

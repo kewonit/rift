@@ -64,7 +64,7 @@ extension FlowResolutionCoordinator {
     }
 
     func reporting(_ verdict: NEFilterNewFlowVerdict, hidden: Bool) -> NEFilterNewFlowVerdict {
-        verdict.shouldReport = !hidden
+        verdict.shouldReport = !hidden && events.captureMode != .off
         return verdict
     }
 
@@ -87,6 +87,14 @@ extension FlowResolutionCoordinator {
             ))
         }
         guard !hidden else { return }
+        if !shouldNotify, events.notifyImplicitDecisions,
+           action == .deny || reason != .concreteDecision {
+            notifications.append(EphemeralNotificationEvent(
+                occurredAt: Date(), flow: flow, action: action, reason: reason
+            ))
+        }
+        if action == .deny { events.noteDeny(at: Date()) }
+        guard events.captureMode != .off else { return }
         let seed = RuntimeEventSeed(
             occurredAt: Date(),
             flow: flow,

@@ -5,17 +5,7 @@ import Foundation
 public enum MonitorLens: String, CaseIterable, Sendable, Identifiable {
     case application = "App"
     case hostname = "Hostname"
-    case location = "Location"
     public var id: String { rawValue }
-
-    public static func available(
-        mapUIAdmitted: Bool,
-        geolocationDatabaseAvailable: Bool
-    ) -> [MonitorLens] {
-        allCases.filter {
-            $0 != .location || (mapUIAdmitted && geolocationDatabaseAvailable)
-        }
-    }
 }
 
 public enum MonitorDecisionFilter: String, CaseIterable, Sendable, Identifiable {
@@ -33,12 +23,32 @@ public enum MonitorDirectionFilter: String, CaseIterable, Sendable, Identifiable
     public var id: String { rawValue }
 }
 
+public enum MonitorLocalityFilter: String, CaseIterable, Sendable, Identifiable {
+    case all = "All networks"
+    case internet = "Internet"
+    case local = "Local network"
+    public var id: String { rawValue }
+}
+
+public enum MonitorOwnerFilter: String, CaseIterable, Sendable, Identifiable {
+    case all = "All owners"
+    case user = "User processes"
+    case system = "System processes"
+    case unknown = "Unknown owner"
+    public var id: String { rawValue }
+}
+
 public enum MonitorTimeFilter: String, CaseIterable, Sendable, Identifiable {
+    case twoMinutes = "2 minutes"
+    case tenMinutes = "10 minutes"
     case all = "All retained"
     case hour = "Hour"
+    case fiveHours = "5 hours"
     case day = "Day"
+    case threeDays = "3 days"
     case week = "Week"
     case month = "Month"
+    case thirtyDays = "30 days"
     public var id: String { rawValue }
 }
 
@@ -60,19 +70,16 @@ public struct MonitorDisplayRow: Sendable, Hashable, Identifiable {
     public let source: MonitorEventRow
     public let primary: String
     public let secondary: String
-    public let geography: GeoResolution
     public var id: String { source.id }
 
     public init(
         source: MonitorEventRow,
         primary: String,
-        secondary: String,
-        geography: GeoResolution
+        secondary: String
     ) {
         self.source = source
         self.primary = primary
         self.secondary = secondary
-        self.geography = geography
     }
 }
 
@@ -83,15 +90,17 @@ public enum MonitorQuery {
         lens: MonitorLens,
         decision: MonitorDecisionFilter = .all,
         direction: MonitorDirectionFilter = .all,
+        locality: MonitorLocalityFilter = .all,
+        owner: MonitorOwnerFilter = .all,
         time: MonitorTimeFilter = .all,
         sort: MonitorSort = .recent,
-        geography: [String: GeoResolution] = [:],
         now: Date = Date()
     ) -> [MonitorDisplayRow] {
         filter(
             rows, search: search, lens: lens, decision: decision,
-            direction: direction, time: time, sort: sort,
-            geography: geography, now: now, cancellationCheck: {}
+            direction: direction, locality: locality, owner: owner,
+            time: time, sort: sort,
+            now: now, cancellationCheck: {}
         )
     }
 
@@ -101,15 +110,17 @@ public enum MonitorQuery {
         lens: MonitorLens,
         decision: MonitorDecisionFilter = .all,
         direction: MonitorDirectionFilter = .all,
+        locality: MonitorLocalityFilter = .all,
+        owner: MonitorOwnerFilter = .all,
         time: MonitorTimeFilter = .all,
         sort: MonitorSort = .recent,
-        geography: [String: GeoResolution] = [:],
         now: Date = Date()
     ) throws -> [MonitorDisplayRow] {
         try filter(
             rows, search: search, lens: lens, decision: decision,
-            direction: direction, time: time, sort: sort,
-            geography: geography, now: now,
+            direction: direction, locality: locality, owner: owner,
+            time: time, sort: sort,
+            now: now,
             cancellationCheck: { try Task.checkCancellation() }
         )
     }
@@ -120,9 +131,10 @@ public enum MonitorQuery {
         lens: MonitorLens,
         decision: MonitorDecisionFilter,
         direction: MonitorDirectionFilter,
+        locality: MonitorLocalityFilter,
+        owner: MonitorOwnerFilter,
         time: MonitorTimeFilter,
         sort: MonitorSort,
-        geography: [String: GeoResolution],
         now: Date,
         cancellationCheck: () throws -> Void
     ) rethrows -> [MonitorDisplayRow] {
@@ -133,9 +145,10 @@ public enum MonitorQuery {
             lens: lens,
             decision: decision,
             direction: direction,
+            locality: locality,
+            owner: owner,
             timeWindow: timeWindow,
             sort: sort,
-            geography: geography,
             cancellationCheck: cancellationCheck
         )
     }
@@ -146,9 +159,10 @@ public enum MonitorQuery {
         lens: MonitorLens,
         decision: MonitorDecisionFilter,
         direction: MonitorDirectionFilter,
+        locality: MonitorLocalityFilter,
+        owner: MonitorOwnerFilter,
         timeWindow: MonitorTimeWindow,
         sort: MonitorSort,
-        geography: [String: GeoResolution],
         cancellationCheck: () throws -> Void
     ) rethrows -> [MonitorDisplayRow] {
         try cancellationCheck()
@@ -156,28 +170,29 @@ public enum MonitorQuery {
         guard !searchQuery.isRejected else { return [] }
         var values: [MonitorDisplayRow] = []
         values.reserveCapacity(rows.count)
+        var labels: [String: String] = [:]
+        var endpointLabels: [Endpoint?: String] = [:]
         for (index, row) in rows.enumerated() {
             if index.isMultiple(of: 64) { try cancellationCheck() }
             guard timeWindow.contains(row.event.occurredAt),
                   matches(row, decision: decision),
-                  matches(row, direction: direction) else { continue }
-            let app = applicationLabel(row)
-            let endpoint = endpointLabel(row)
-            let hostname = hostnameLabel(row)
-            let resolution = geography[row.id]
-                ?? GeoEndpointClassifier.nonGeographic(row.event.flow.destinationEndpoint)
-                ?? .notFound
-            guard searchQuery.matches(row, geography: resolution) else { continue }
-            let labels: (String, String) = switch lens {
-            case .application: (app, endpoint)
-            case .hostname: (hostname, app)
-            case .location: (resolution.displayName, app)
+                  matches(row, direction: direction),
+                  matches(row, locality: locality),
+                  matches(row, owner: owner) else { continue }
+            guard searchQuery.matches(row) else { continue }
+            let rawLabels: (String, String)
+            switch lens {
+            case .application:
+                let endpoint = row.event.flow.destinationEndpoint
+                let label = endpointLabels[endpoint] ?? endpointLabel(row)
+                if endpointLabels.count < 4_096 { endpointLabels[endpoint] = label }
+                rawLabels = (applicationLabel(row), label)
+            case .hostname: rawLabels = (hostnameLabel(row), applicationLabel(row))
             }
             values.append(MonitorDisplayRow(
                 source: row,
-                primary: DisplaySanitizer.plainText(labels.0),
-                secondary: DisplaySanitizer.plainText(labels.1),
-                geography: resolution
+                primary: sanitized(rawLabels.0, cache: &labels),
+                secondary: sanitized(rawLabels.1, cache: &labels)
             ))
         }
         try cancellationCheck()
@@ -203,6 +218,13 @@ public enum MonitorQuery {
         }
         try cancellationCheck()
         return sorted
+    }
+
+    private static func sanitized(_ value: String, cache: inout [String: String]) -> String {
+        if let cached = cache[value] { return cached }
+        let result = DisplaySanitizer.plainText(value)
+        if cache.count < 4_096 { cache[value] = result }
+        return result
     }
 
     public static func applicationLabel(_ row: MonitorEventRow) -> String {
@@ -267,6 +289,29 @@ public enum MonitorQuery {
         case .all: true
         case .incoming: row.event.flow.direction == .incoming
         case .outgoing: row.event.flow.direction == .outgoing
+        }
+    }
+
+    private static func matches(
+        _ row: MonitorEventRow,
+        locality: MonitorLocalityFilter
+    ) -> Bool {
+        guard locality != .all else { return true }
+        guard let endpoint = row.event.flow.destinationEndpoint else { return false }
+        let localClasses: Set<EndpointClass> = [
+            .loopback, .linkLocal, .broadcast, .multicast, .bonjour, .localNetwork,
+        ]
+        let isLocal = !endpoint.classes.isDisjoint(with: localClasses)
+        return locality == .local ? isLocal : !isLocal
+    }
+
+    private static func matches(
+        _ row: MonitorEventRow,
+        owner: MonitorOwnerFilter
+    ) -> Bool {
+        switch (owner, row.event.flow.owner) {
+        case (.all, _), (.user, .user), (.system, .system), (.unknown, .unknown): true
+        default: false
         }
     }
 

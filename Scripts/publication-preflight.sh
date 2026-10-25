@@ -31,6 +31,9 @@ for required in \
   Scripts/test-nonfiltering.sh \
   Scripts/release-local-audit.sh \
   Scripts/publication-preflight.sh \
+  Scripts/verify-built-products.sh \
+  Scripts/test-endpoint-parts.m \
+  Resources/ThirdPartyNotices.txt \
   docs/release/build-signing.md \
   docs/security/threat-model.md \
   README.md LICENSE SECURITY.md \
@@ -52,10 +55,10 @@ done
 
 for path in ${(k)tracked}; do
   case "$path" in
-    GOAL.md|docs/plans/*|docs/research/*|.agents/*|*/.agents/*)
+    GOAL.md|docs/plans/*|docs/research/*|local-plans/*|.agents/*|*/.agents/*)
       fail "publication inventory contains internal development material: $path"
       ;;
-    .DS_Store|*/.DS_Store|inspiration_images/*|*/inspiration_images/*)
+    .DS_Store|*/.DS_Store|inspiration_images/*|*/inspiration_images/*|screenshots/*)
       fail "publication inventory contains non-redistributable reference material: $path"
       ;;
     .build/*|*/.build/*|.derived-data*/*|*/DerivedData/*|*.xcarchive/*|*.app/*|*.systemextension/*)
@@ -92,4 +95,4 @@ if (( failed )); then
   exit 1
 fi
 
-echo "PASS: tracked files form the expected source-only publication inventory"
+echo "PASS: tracked files form the expected source publication inventory"

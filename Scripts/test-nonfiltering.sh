@@ -10,6 +10,13 @@ swift test --package-path "$ROOT/Packages/RiftIPC" --jobs 2
 swift test --package-path "$ROOT/Packages/RiftControl" --jobs 2
 swift test --package-path "$ROOT/Packages/RiftFilterRuntime" --jobs 2
 
+mkdir -p "$ROOT/.build"
+xcrun clang -fobjc-arc -Wno-deprecated-declarations \
+  "$ROOT/Scripts/test-endpoint-parts.m" \
+  -framework Foundation -framework Network -framework NetworkExtension -lbsm \
+  -o "$ROOT/.build/EndpointPartsTests"
+"$ROOT/.build/EndpointPartsTests"
+
 xcodebuild \
   -quiet \
   -project "$ROOT/Rift.xcodeproj" \

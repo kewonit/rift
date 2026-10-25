@@ -160,7 +160,7 @@ public enum SystemExtensionActivationPreflight {
             throw SystemExtensionActivationPreflightFailure.extensionEntitlementsMismatch
         }
         let prefix = team + "."
-        let service = prefix + expected.appGroup + ".control"
+        let service = expected.appGroup + ".control." + host.shortVersion + "." + host.buildVersion
         guard host.configuredAppGroup == expected.appGroup,
               filter.configuredAppGroup == expected.appGroup,
               host.teamIdentifierPrefix == prefix,

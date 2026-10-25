@@ -25,13 +25,20 @@ struct RulesWorkspaceView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
+        HSplitView {
             RulesWorkspaceSidebarView(model: model, isPreview: isPreview)
-            .navigationSplitViewColumnWidth(min: 150, ideal: 180, max: 220)
-        } content: {
+                .frame(minWidth: 160, idealWidth: 190, maxWidth: 220)
+                .frame(maxHeight: .infinity)
+
             VStack(spacing: 0) {
                 if let message = model.errorMessage {
-                    Text(message).frame(maxWidth: .infinity).padding(8).background(.orange.opacity(0.18))
+                    HStack(spacing: 10) {
+                        Label(message, systemImage: "exclamationmark.triangle")
+                        Spacer()
+                        Button("Retry") { Task { await model.reload() } }
+                    }
+                    .padding(8)
+                    .background(.orange.opacity(0.18))
                 }
                 if isPreview {
                     Text("Preview")
@@ -41,33 +48,47 @@ struct RulesWorkspaceView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
                 }
-                RulesWorkspaceTable(
-                    model: model,
-                    artworkStore: artworkStore,
-                    isPreview: isPreview,
-                    editingRow: $editingRow,
-                    showingEditor: $showingEditor,
-                    showingInspector: $showingInspector,
-                    showingDeleteConfirmation: $showingDeleteConfirmation
-                )
-            }
-            .navigationTitle(model.sidebarTitle)
-            .navigationSplitViewColumnWidth(min: 440, ideal: 578, max: .infinity)
-        } detail: {
-            Group {
-                if showingInspector, let row = model.selectedRow {
-                    RuleInspectorView(
-                        row: row,
-                        groups: model.groups,
-                        profiles: model.profiles,
-                        artworkStore: artworkStore
+                if model.errorMessage == nil {
+                    RulesWorkspaceTable(
+                        model: model,
+                        artworkStore: artworkStore,
+                        isPreview: isPreview,
+                        editingRow: $editingRow,
+                        showingEditor: $showingEditor,
+                        showingInspector: $showingInspector,
+                        showingDeleteConfirmation: $showingDeleteConfirmation
                     )
                 } else {
-                    ContentUnavailableView("Select a rule", systemImage: "sidebar.right")
+                    ContentUnavailableView(
+                        "Rules unavailable",
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 320)
+            .frame(minWidth: 400, idealWidth: 560, maxWidth: .infinity)
+            .frame(maxHeight: .infinity)
+
+            if showingInspector, model.errorMessage == nil {
+                Group {
+                    if let row = model.selectedRow {
+                        RuleInspectorView(
+                            row: row,
+                            groups: model.groups,
+                            profiles: model.profiles,
+                            blocklists: model.blocklists,
+                            artworkStore: artworkStore
+                        )
+                    } else {
+                        ContentUnavailableView("Select a rule", systemImage: "sidebar.right")
+                    }
+                }
+                .frame(minWidth: 260, idealWidth: 300, maxWidth: 320)
+                .frame(maxHeight: .infinity)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle(model.sidebarTitle)
         .searchable(text: $model.search, prompt: "Search rules")
         .focusedSceneValue(
             \.ruleWorkspaceHistoryAction,
@@ -214,25 +235,33 @@ private struct RuleInspectorView: View {
     let row: RuleRowViewValue
     let groups: [LocalRuleGroup]
     let profiles: [PolicyProfile]
+    let blocklists: [BlocklistSource]
     let artworkStore: ApplicationArtworkStore
 
     var body: some View {
         Form {
             Section("Rule") {
-                if let identity = applicationIdentity(row.rule.process) {
-                    HStack(spacing: 9) {
+                HStack(spacing: 9) {
+                    if let identity = applicationIdentity(row.rule.process) {
                         ApplicationIdentityIcon(
                             identity: identity,
                             fallbackSystemName: "app.dashed",
                             size: 28,
                             artworkStore: artworkStore
                         )
-                        Text(row.conditionSummary).font(.headline)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(row.applicationLabel).font(.headline)
+                        Text(row.conditionSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 LabeledContent("Action", value: row.actionLabel)
-                LabeledContent("Condition", value: row.conditionSummary)
+                LabeledContent("Enabled", value: row.rule.isEnabled ? "Yes" : "No")
+                LabeledContent("Review", value: reviewState)
                 LabeledContent("Priority", value: priority)
+                LabeledContent("Enforcement", value: enforcementState)
                 if let groupID = row.rule.localGroupID {
                     LabeledContent("Local group", value: groupName(groupID))
                 }
@@ -241,6 +270,27 @@ private struct RuleInspectorView: View {
                 }
                 if row.rule.flags.contains(.sourceManaged) {
                     LabeledContent("Management", value: "Blocklist source")
+                }
+                if row.rule.flags.contains(.protected) {
+                    LabeledContent("Protection", value: "Protected")
+                }
+            }
+            Section("Connection match") {
+                LabeledContent("Destination", value: destinationLabel)
+                LabeledContent("Protocol", value: protocolLabel)
+                LabeledContent("Port", value: portLabel)
+                LabeledContent("Direction", value: row.rule.direction.rawValue.capitalized)
+                LabeledContent("Owner", value: ownerLabel)
+            }
+            Section("Identity") {
+                identityDetails(row.rule.process)
+            }
+            Section("Source and lifetime") {
+                LabeledContent("Source", value: sourceLabel)
+                if let expiresAt = row.rule.expiresAt {
+                    LabeledContent("Expires", value: expiresAt.formatted())
+                } else {
+                    LabeledContent("Expires", value: "Never")
                 }
             }
             Section("Usage") {
@@ -279,6 +329,107 @@ private struct RuleInspectorView: View {
         case .elevatedUser: "User exception"
         case .blocklistDeny: "Blocklist"
         case .normal: "Normal"
+        }
+    }
+
+    private var reviewState: String {
+        row.rule.reviewState == .reviewed ? "Reviewed" : "Needs review"
+    }
+
+    private var enforcementState: String {
+        switch row.enforcementState {
+        case .enforced: "Enforced"
+        case .savedPendingEnforcement: "Saved, pending enforcement"
+        case .persistedPendingProvider: "Persisted, provider pending"
+        case .applyFailed: "Apply failed"
+        }
+    }
+
+    private var destinationLabel: String {
+        switch row.rule.destination {
+        case .ipSet(let values): values.map(\.description).joined(separator: ", ")
+        case .exactHostnameSet(let values): values.map(\.ascii).joined(separator: ", ")
+        case .domainSet(let values): values.map { "*." + $0.ascii }.joined(separator: ", ")
+        case .endpointClass(let value): value.rawValue
+        case .anyEndpoint: "Any destination"
+        }
+    }
+
+    private var protocolLabel: String {
+        switch row.rule.transportProtocol {
+        case .tcp: "TCP"
+        case .udp: "UDP"
+        case .anySupportedProtocol: "TCP or UDP"
+        }
+    }
+
+    private var portLabel: String {
+        guard let port = row.rule.port else { return "Any port" }
+        return port.lowerBound == port.upperBound
+            ? String(port.lowerBound) : "\(port.lowerBound)–\(port.upperBound)"
+    }
+
+    private var ownerLabel: String {
+        switch row.rule.owner {
+        case .authorizedUser: "Authorized user"
+        case .specificUser(let uid): "User \(uid)"
+        case .system: "System"
+        }
+    }
+
+    private var sourceLabel: String {
+        switch row.rule.source {
+        case .manual: "Manual"
+        case .imported: "Imported"
+        case .feature(let identifier): "Rift feature · \(identifier)"
+        case .blocklist(let sourceID):
+            blocklists.first { $0.id == sourceID }?.name ?? "Unavailable blocklist"
+        }
+    }
+
+    @ViewBuilder
+    private func identityDetails(_ condition: ProcessCondition) -> some View {
+        switch condition {
+        case .anyProcess:
+            LabeledContent("Process", value: "Any process")
+        case .exact(let identity):
+            identityRows(identity, label: "Process")
+        case .appViaHelper(let app, let helper):
+            identityRows(app, label: "Application")
+            identityRows(helper, label: "Helper")
+        }
+    }
+
+    @ViewBuilder
+    private func identityRows(_ identity: ProcessIdentity, label: String) -> some View {
+        LabeledContent(label, value: MonitorQuery.identityLabel(identity))
+        switch identity {
+        case .applePlatform(let signed):
+            signedRows(signed, kind: "Apple platform")
+        case .developerID(let signed):
+            signedRows(signed, kind: "Developer ID")
+        case .appStore(let signed):
+            signedRows(signed, kind: "Mac App Store")
+        case .otherSigner(let hash, let identifier):
+            LabeledContent("Identity type", value: "Other signer")
+            LabeledContent("Signing identifier", value: identifier)
+            LabeledContent("Public-key hash", value: hash.description)
+        case .adHoc(let hash):
+            LabeledContent("Identity type", value: "Ad hoc")
+            LabeledContent("Code-directory hash", value: hash.description)
+        case .unsigned(let path, let hash):
+            LabeledContent("Identity type", value: "Unsigned")
+            LabeledContent("Verified path", value: path)
+            LabeledContent("File hash", value: hash.description)
+        }
+    }
+
+    @ViewBuilder
+    private func signedRows(_ value: SignedCodeIdentity, kind: String) -> some View {
+        LabeledContent("Identity type", value: kind)
+        LabeledContent("Signing identifier", value: value.signingIdentifier)
+        if let team = value.teamIdentifier {
+            LabeledContent("Team identifier", value: team)
         }
     }
 

@@ -8,6 +8,7 @@ extension ControlPlaneController {
     func markRecentDenyViewed() {
         recentDenyTask?.cancel()
         recentDenyUntil = nil
+        recentDenyVisible = false
     }
 
     func refreshCurrentMode(_ mode: OperationMode) { currentMode = mode }
@@ -15,7 +16,7 @@ extension ControlPlaneController {
     var statusSymbolName: String {
         guard case .connected(.ready) = state else { return "shield.slash" }
         if !pendingPrompts.isEmpty { return "exclamationmark.shield" }
-        if let recentDenyUntil, recentDenyUntil > Date() { return "xmark.shield.fill" }
+        if recentDenyVisible { return "xmark.shield.fill" }
         switch currentMode {
         case .alert: return "questionmark.shield"
         case .silentAllow: return "checkmark.shield"
@@ -28,7 +29,7 @@ extension ControlPlaneController {
     var statusAccessibilityLabel: String {
         guard case .connected(.ready) = state else { return "Rift filter needs attention" }
         if !pendingPrompts.isEmpty { return "Rift has pending connection decisions" }
-        if let recentDenyUntil, recentDenyUntil > Date() {
+        if recentDenyVisible {
             return "Rift recently denied a connection"
         }
         switch currentMode {
@@ -45,15 +46,21 @@ extension ControlPlaneController {
             .filter({ $0.kind == .decision && $0.action == .deny })
             .map(\.occurredAt)
             .max() else { return }
+        recordRecentDeny(at: deniedAt)
+    }
+
+    func recordRecentDeny(at deniedAt: Date) {
         let expiry = deniedAt.addingTimeInterval(30)
         guard expiry > Date() else { return }
         recentDenyUntil = expiry
+        if !recentDenyVisible { recentDenyVisible = true }
         recentDenyTask?.cancel()
         recentDenyTask = Task { [weak self] in
             let delay = max(0, expiry.timeIntervalSinceNow)
             try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled, self?.recentDenyUntil == expiry else { return }
             self?.recentDenyUntil = nil
+            self?.recentDenyVisible = false
         }
     }
 }
@@ -62,24 +69,44 @@ struct StatusMenuView: View {
     @Environment(\.openWindow) private var openWindow
     @Bindable var session: AppSession
     @AppStorage("statusPreviousFilteringMode") private var previousMode = OperationMode.silentAllow.rawValue
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @State private var mode: OperationMode = .silentAllow
     @State private var profiles: [PolicyProfile] = []
     @State private var activeProfileID: UUID?
     @State private var recent: [MonitorEventRow] = []
+    @State private var sourceSnapshot: MonitorRowsSnapshot?
+    @State private var refreshCoordinator = VisualRefreshCoordinator()
+    @State private var windowIsVisible = false
     @State private var showingObserveOnlyConfirmation = false
     @State private var showingQuitConfirmation = false
     @State private var profileActivationMessage: String?
     @State private var profileActivationNeedsAttention = false
     @State private var errorMessage: String?
+    @State private var fixtureNotificationsEnabled = true
 
     private var controller: ControlPlaneController { session.controlPlane }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text(statusLabel).font(.headline)
-            Text("Mode: \(modeLabel)")
-            Text("Profile: \(activeProfileName)")
-            Text("\(controller.pendingPrompts.count) pending")
+        VStack(alignment: .leading, spacing: 8) {
+            StatusMenuDashboard(
+                status: statusLabel,
+                mode: modeLabel,
+                profile: activeProfileName,
+                filteringConfirmed: session.isUIFixture || session.hasConfirmedFilterService,
+                pendingCount: controller.pendingPrompts.count,
+                notificationsEnabled: session.isUIFixture
+                    ? fixtureNotificationsEnabled : notificationsEnabled,
+                rows: recent,
+                recentLimit: configuredRecentLimit,
+                now: dashboardNow,
+                artworkStore: session.applicationArtwork,
+                toggleNotifications: toggleNotifications,
+                openLiveMap: {
+                    session.destination = .liveMap
+                    showMainWindow()
+                },
+                openActivity: openActivity
+            )
             if let errorMessage {
                 Text(errorMessage).font(.caption).foregroundStyle(.orange)
             }
@@ -96,21 +123,19 @@ struct StatusMenuView: View {
                     .font(.caption)
             }
             Divider()
-            Button("Open Next Alert") {
-                PromptPanelController.shared.update(
-                    prompts: controller.pendingPrompts,
-                    controller: controller,
-                    artworkStore: session.applicationArtwork
+            if !controller.pendingPrompts.isEmpty && !session.isUIFixture {
+                StatusMenuActionRow("Open Next Alert", action: openNextAlert)
+            }
+            if !session.isUIFixture && mode == .filterOff {
+                StatusMenuActionRow("Resume Filtering", action: { setFilteringEnabled(true) })
+            } else if !session.isUIFixture {
+                StatusMenuActionRow(
+                    "Switch to Observe Only…",
+                    action: { showingObserveOnlyConfirmation = true }
                 )
             }
-            .disabled(controller.pendingPrompts.isEmpty || session.isUIFixture)
-            if !session.isUIFixture && mode == .filterOff {
-                Button("Resume Filtering") { setFilteringEnabled(true) }
-            } else if !session.isUIFixture {
-                Button("Switch to Observe Only…") { showingObserveOnlyConfirmation = true }
-            }
             if !profiles.isEmpty {
-                Menu("Switch Profile") {
+                Menu {
                     Button("None") { activateProfile(nil) }
                     ForEach(profiles) { profile in
                         Button {
@@ -123,38 +148,54 @@ struct StatusMenuView: View {
                             }
                         }
                     }
+                } label: {
+                    StatusMenuRowLabel(
+                        title: "Switch Profile",
+                        trailing: activeProfileName,
+                        showsChevron: true
+                    )
                 }
-            }
-            if !recent.isEmpty {
-                Divider()
-                Text("Recent activity").font(.caption).foregroundStyle(.secondary)
-                ForEach(recent) { row in
-                    Button("\(activityLabel(row)) • \(row.event.occurredAt.formatted(date: .omitted, time: .shortened))") {
-                        if row.event.reason == .concreteDecision,
-                           row.event.action == .deny {
-                            controller.markRecentDenyViewed()
-                        }
-                        session.requestedMonitorEventID = row.id
-                        showMainWindow()
-                    }
-                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize(horizontal: false, vertical: true)
             }
             Divider()
-            Button("Open Rift") { showMainWindow() }
-            Button("Rules…") { showRulesWindow() }
+            StatusMenuActionRow("Open Rift", action: showMainWindow)
+            StatusMenuActionRow("Manage Rules…") {
+                session.destination = .rules
+                showMainWindow()
+            }
             if !session.isUIFixture {
-                Button("Filter Status…") {
-                    session.requestFilterStatus()
+                StatusMenuActionRow("Filter Status…") {
+                    session.destination = .health
                     showMainWindow()
                 }
             }
-            SettingsLink { Text("Settings…") }
-            Button("Quit Rift…") { requestQuit() }
+            StatusMenuActionRow("Rift Settings…") {
+                session.destination = .settings
+                showMainWindow()
+            }
+            Divider()
+            StatusMenuActionRow("Quit Rift…", action: requestQuit)
         }
+        .frame(width: 292)
         .padding(10)
+        .font(.system(size: 12.5, weight: .regular))
         .onAppear {
-            Task { await load() }
+            refreshCoordinator.request(immediate: true) { await load() }
         }
+        .background(ActivityWindowVisibility(changed: visibilityChanged))
+        .onDisappear {
+            refreshCoordinator.stop()
+            if windowIsVisible { session.monitorDidDisappear(menu: true) }
+            windowIsVisible = false
+            recent.removeAll(keepingCapacity: false)
+            sourceSnapshot = nil
+        }
+        .modifier(ActivityRefreshSignal(controller: controller, changed: {
+            refreshCoordinator.request { await loadActivity() }
+        }))
+        .onChange(of: notificationsEnabled) { _, _ in controller.requestActivitySubscriptionUpdate() }
         .confirmationDialog(
             "Switch to Observe Only?",
             isPresented: $showingObserveOnlyConfirmation,
@@ -198,7 +239,6 @@ struct StatusMenuView: View {
     }
 
     private var modeLabel: String {
-        if session.isUIFixture { return "Preview" }
         switch mode {
         case .alert: return "Alert"
         case .silentAllow: return "Silent Allow"
@@ -212,6 +252,20 @@ struct StatusMenuView: View {
         profiles.first { $0.id == activeProfileID }?.name ?? "None"
     }
 
+    private var configuredRecentLimit: Int {
+        let value = UserDefaults.standard.object(forKey: "statusRecentLimit") == nil
+            ? 5 : UserDefaults.standard.integer(forKey: "statusRecentLimit")
+        return min(max(value, 0), controller.isMinimalActivity ? 5 : 10)
+    }
+
+    private var dashboardNow: Date {
+#if DEBUG
+        session.isUIFixture ? MonitorFixtureData.referenceNow : Date()
+#else
+        Date()
+#endif
+    }
+
     private func activateProfile(_ id: UUID?) {
         Task {
             do {
@@ -219,7 +273,7 @@ struct StatusMenuView: View {
                 profileActivationMessage = result.message
                 profileActivationNeedsAttention = result != .enforced(backupFailed: false)
                 errorMessage = nil
-                await load()
+                refreshCoordinator.request(immediate: true) { await load() }
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
@@ -230,11 +284,6 @@ struct StatusMenuView: View {
 
     private func showMainWindow() {
         openWindow(id: "main")
-        NSApplication.shared.activate(ignoringOtherApps: true)
-    }
-
-    private func showRulesWindow() {
-        openWindow(id: "rules")
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
 
@@ -263,7 +312,7 @@ struct StatusMenuView: View {
                 profileActivationMessage = result.requiresAttention ? result.message : nil
                 profileActivationNeedsAttention = result.requiresAttention
                 errorMessage = nil
-                await load()
+                refreshCoordinator.request(immediate: true) { await load() }
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
@@ -272,28 +321,155 @@ struct StatusMenuView: View {
         }
     }
 
-    private func activityLabel(_ row: MonitorEventRow) -> String {
-        if row.event.reason != .concreteDecision { return "Fallback" }
-        return row.event.action == .deny ? "Denied" : "Allowed"
+    private func openNextAlert() {
+        PromptPanelController.shared.update(
+            prompts: controller.pendingPrompts,
+            controller: controller,
+            artworkStore: session.applicationArtwork
+        )
+    }
+
+    private func toggleNotifications() {
+        if session.isUIFixture {
+            fixtureNotificationsEnabled.toggle()
+            return
+        }
+        if notificationsEnabled {
+            notificationsEnabled = false
+            errorMessage = nil
+            return
+        }
+        Task {
+            do {
+                let granted = try await controller.requestNotificationPermission()
+                notificationsEnabled = granted
+                errorMessage = granted ? nil : "Notification permission was not granted."
+            } catch {
+                notificationsEnabled = false
+                errorMessage = "Notification permission could not be requested."
+            }
+        }
+    }
+
+    private func openActivity(_ eventID: String) {
+        if recent.first(where: { $0.id == eventID }).map({
+            $0.event.reason == .concreteDecision && $0.event.action == .deny
+        }) == true {
+            controller.markRecentDenyViewed()
+        }
+        session.requestedMonitorEventID = eventID
+        session.destination = .activity
+        showMainWindow()
     }
 
     private func load() async {
         if let presentation = try? await controller.policyPresentation() {
-            mode = presentation.effectiveMode
+            if windowIsVisible, !Task.isCancelled { mode = presentation.effectiveMode }
         }
         if let definitions = try? await controller.policyDefinitions() {
-            profiles = definitions.profiles
-            activeProfileID = definitions.active
+            if windowIsVisible, !Task.isCancelled {
+                profiles = definitions.profiles
+                activeProfileID = definitions.active
+            }
         }
-        let configuredLimit = UserDefaults.standard.object(forKey: "statusRecentLimit") == nil
-            ? 10 : UserDefaults.standard.integer(forKey: "statusRecentLimit")
-        let limit = min(max(configuredLimit, 0), 25)
-        guard limit > 0 else {
-            recent = []
-            return
+        await loadActivity()
+    }
+
+    private func visibilityChanged(_ visible: Bool) {
+        guard visible != windowIsVisible else { return }
+        windowIsVisible = visible
+        if visible { controller.monitorDidAppear(menu: true) }
+        else {
+            session.monitorDidDisappear(menu: true)
+            recent.removeAll(keepingCapacity: false)
+            sourceSnapshot = nil
         }
-        if let rows = try? await controller.monitorPage(limit: 100) {
-            recent = Array(rows.prefix(limit))
-        }
+        refreshCoordinator.setVisible(visible)
+        if visible { refreshCoordinator.request(immediate: true) { await load() } }
+    }
+
+    private func loadActivity() async {
+        guard windowIsVisible else { return }
+        let interval = ActivityPerformance.signposter.beginInterval("Menu Refresh")
+        defer { ActivityPerformance.signposter.endInterval("Menu Refresh", interval) }
+        guard let snapshot = try? await controller.monitorRowsSnapshot(
+            maximum: 1_000, previous: sourceSnapshot
+        ), windowIsVisible, !Task.isCancelled else { return }
+        sourceSnapshot = snapshot
+        if recent != snapshot.rows { recent = snapshot.rows }
     }
 }
+
+private struct StatusMenuActionRow: View {
+    let title: String
+    let action: () -> Void
+    @State private var isHovered = false
+
+    init(_ title: String, action: @escaping () -> Void) {
+        self.title = title
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            StatusMenuRowLabel(title: title)
+                .background(
+                    isHovered ? Color.accentColor.opacity(0.18) : .clear,
+                    in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+}
+
+private struct StatusMenuRowLabel: View {
+    let title: String
+    var trailing: String?
+    var showsChevron = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.system(size: 12.5, weight: .regular))
+            Spacer(minLength: 8)
+            if let trailing {
+                Text(trailing)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 23)
+        .padding(.horizontal, 3)
+        .contentShape(Rectangle())
+    }
+}
+
+#if DEBUG
+struct StatusMenuFixtureHost: View {
+    @Bindable var session: AppSession
+
+    var body: some View {
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
+            StatusMenuView(session: session)
+                .background(
+                    .regularMaterial,
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(.separator.opacity(0.55))
+                }
+                .shadow(color: .black.opacity(0.22), radius: 18, y: 8)
+        }
+        .frame(minWidth: 330, minHeight: 560)
+    }
+}
+#endif

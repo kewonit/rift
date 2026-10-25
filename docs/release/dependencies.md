@@ -1,4 +1,4 @@
-# Dependency and data inventory
+# Dependency inventory
 
 | Component | Exact version/revision | License | Shipping scope | Removal seam |
 |---|---|---|---|---|
@@ -12,10 +12,12 @@ Database, and the Swift Package Index record. The last local review was
 2026-08-12. Before they change a version or revision, they review the license,
 transitive dependencies, product linkage, and signed runtime.
 
-Rift has no shipping dependencies for UI, charts, maps, updates, or geolocation.
+Rift has no paid UI, chart, or update service dependency, and it doesn't use
+IP geolocation. Apple MapKit is a system framework and service; it supplies
+basemap imagery and labels over the network.
 Swift Charts, AppKit and SwiftUI, NetworkExtension, Security, CryptoKit,
 ServiceManagement, UserNotifications, and SystemConfiguration are system
-frameworks. Rift does not ship third-party blocklist or geolocation data. GRDB's
+frameworks. Rift ships no third-party data files or blocklists. GRDB's
 optional SQLCipher and plugin dependencies are not enabled. The workspace lock
 pins both remote packages, and the standalone `RiftControl` package lock also
 pins GRDB. Neither dependency uses a floating branch.

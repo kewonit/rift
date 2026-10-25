@@ -57,9 +57,22 @@ import Testing
     expectFailure(.machServiceMismatch, facts: activationFacts(
         host: component(role: .host, teamIdentifierPrefix: "WRONG.")
     ))
+    expectFailure(.machServiceMismatch, facts: activationFacts(
+        host: component(role: .host, machServiceName: "RIFT12345.group.io.rift.firewall.control"),
+        filter: component(role: .filter, machServiceName: "RIFT12345.group.io.rift.firewall.control")
+    ))
 }
 
 private enum ComponentRole { case host, filter }
+
+@Test func activationPreflightRejectsUnversionedAndStaleMachServices() {
+    for service in ["group.io.rift.firewall.control", "group.io.rift.firewall.control.1.0.0"] {
+        expectFailure(.machServiceMismatch, facts: activationFacts(
+            host: component(role: .host, machServiceName: service),
+            filter: component(role: .filter, machServiceName: service)
+        ))
+    }
+}
 
 private let activationExpectations = SystemExtensionActivationExpectations(
     hostBundleIdentifier: "io.rift.firewall",
@@ -87,7 +100,7 @@ private func component(
     networkExtensionCapabilities: Set<String> = ["content-filter-provider-systemextension"],
     appGroups: Set<String> = ["group.io.rift.firewall"],
     teamIdentifierPrefix: String? = "RIFT12345.",
-    machServiceName: String? = "RIFT12345.group.io.rift.firewall.control"
+    machServiceName: String? = "group.io.rift.firewall.control.1.0.1"
 ) -> SystemExtensionComponentFacts {
     let isHost = role == .host
     let identifier = bundleIdentifier ?? (isHost ? "io.rift.firewall" : "io.rift.firewall.filter")

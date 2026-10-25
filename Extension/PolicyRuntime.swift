@@ -21,7 +21,7 @@ actor PolicyRuntime {
         var access: Access
     }
 
-    private let logger = Logger(subsystem: "io.rift.firewall.filter", category: "runtime")
+    let logger = Logger(subsystem: "io.rift.firewall.filter", category: "runtime")
     private let runtimeInstanceID = UUID()
     let store: RootPolicyStore?
     let transfer: SnapshotTransferCoordinator?
@@ -51,6 +51,7 @@ actor PolicyRuntime {
         self.tombstones = bootstrap.tombstoneStore
         self.prompts = prompts
         self.events = events
+        events.configure(ActivitySubscription(mode: .off))
         self.notifications = notifications
         self.reloads = reloads
     }
@@ -250,6 +251,7 @@ actor PolicyRuntime {
         if lease.access == .full {
             prompts.activate(controllerLeaseID: lease.leaseID, providerEpoch: providerEpoch)
         }
+        reloads.publish(activePolicy.load())
         return lease.leaseID
     }
 
@@ -334,6 +336,7 @@ actor PolicyRuntime {
                 providerEpoch: epoch
             )
         }
+        reloads.publish(activePolicy.load())
         return SnapshotFinishResult(
             disposition: .persisted,
             tuple: recovered.tuple,
@@ -375,6 +378,36 @@ actor PolicyRuntime {
         return notifications.drain(now: Date())
     }
 
+    func prepareActivityProtocol(connectionID: UUID, leaseID: UUID, version: ProtocolVersion) throws {
+        guard let controller, controller.connectionID == connectionID, controller.leaseID == leaseID else {
+            throw PolicyRuntimeError.invalidControllerLease
+        }
+        if !version.supports(minimum: .activitySubscriptions), controller.access == .full {
+            events.configure(ActivitySubscription(mode: .persistent))
+        }
+    }
+
+    func setActivitySubscription(_ value: ActivitySubscription, connectionID: UUID, leaseID: UUID) throws {
+        try requireController(connectionID: connectionID, leaseID: leaseID)
+        guard value.isValid else { throw PolicyRuntimeError.invalidActivitySubscription }
+        events.configure(value)
+    }
+
+    func recentActivity(connectionID: UUID, leaseID: UUID) throws -> RecentActivitySnapshot {
+        try requireController(connectionID: connectionID, leaseID: leaseID)
+        return events.recentSnapshot()
+    }
+
+    func drainAttention(connectionID: UUID, leaseID: UUID, resyncPrompts: Bool) throws -> RuntimeAttentionBatch {
+        try requireController(connectionID: connectionID, leaseID: leaseID)
+        if resyncPrompts { try prompts.redeliverActive(controllerLeaseID: leaseID) }
+        return RuntimeAttentionBatch(
+            providerEpoch: providerEpoch, prompts: try prompts.drain(controllerLeaseID: leaseID),
+            activePromptNonces: try prompts.activeNonces(controllerLeaseID: leaseID),
+            notifications: notifications.drain(now: Date()), recentDenyAt: events.takeRecentDeny()
+        )
+    }
+
     func prepareVerifiedUninstall(connectionID: UUID, leaseID: UUID) async throws {
         try requireController(
             connectionID: connectionID,
@@ -386,6 +419,8 @@ actor PolicyRuntime {
         guard let store, let tombstones else { throw PolicyRuntimeError.persistenceUnavailable }
         self.controller?.access = .verifiedUninstallRecovery
         prompts.deactivate(controllerLeaseID: controller.leaseID)
+        events.configure(ActivitySubscription(mode: .off))
+        reloads.publish(activePolicy.load())
         try await store.beginVerifiedUninstall(uid: controller.uid)
         activePolicy.store(nil)
         persistedTuple = nil
@@ -401,6 +436,9 @@ actor PolicyRuntime {
         guard let controller, controller.connectionID == connectionID else { return }
         prompts.deactivate(controllerLeaseID: controller.leaseID)
         self.controller = nil
+        if events.captureMode == .persistent { events.recordAnonymousLoss() }
+        events.configure(ActivitySubscription(mode: .off))
+        reloads.publish(activePolicy.load())
         if let transfer { await transfer.abort() }
     }
 
@@ -423,72 +461,5 @@ actor PolicyRuntime {
         default:
             throw PolicyRuntimeError.resetInProgress
         }
-    }
-
-    private func reconcileExpiryMetadata(
-        afterSuccessfulPolicyLoadIn store: RootPolicyStore
-    ) async -> ExpiryMetadata {
-        guard let tombstones else { return .unavailable }
-        return await ExpiryTombstoneReconciler.reconcileAfterSuccessfulPolicyLoad(
-            policyStore: store,
-            tombstoneStore: tombstones
-        )
-    }
-
-    private func loadedExpiryMetadata(_ metadata: ExpiryMetadata) -> ExpiryMetadata {
-        switch metadata {
-        case .available(let keys):
-            return persistenceState.tombstonesLoaded(keys)
-        case .unavailable:
-            logger.error("Expiry tombstone reconciliation failed with a redacted storage error")
-            return persistenceState.tombstonePersistenceFailed()
-        }
-    }
-
-    private func scheduleExpiry(for policy: RuntimePolicy?, epoch: UUID?) {
-        expiryTask?.cancel()
-        expiryTask = nil
-        guard let policy, let epoch, let deadline = policy.nextExpiry(after: Date()) else { return }
-        let nanoseconds = UInt64(
-            min(max(0, deadline.timeIntervalSinceNow), TimeInterval(UInt64.max / 1_000_000_000))
-                * 1_000_000_000
-        )
-        expiryTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: nanoseconds)
-            guard !Task.isCancelled else { return }
-            await self?.expireRules(epoch: epoch, tuple: policy.tuple)
-        }
-    }
-
-    private func expireRules(epoch: UUID, tuple: PolicyTuple) async {
-        guard providerEpoch == epoch, activeTuple == tuple, let policy = activePolicy.load() else { return }
-        let additions = policy.expiryKeys(dueAt: Date()).subtracting(policy.recordedExpiryKeys)
-        guard !additions.isEmpty else {
-            scheduleExpiry(for: policy, epoch: epoch)
-            return
-        }
-        let persistedKeys: Set<ExpiredRuleKey>?
-        if let tombstones {
-            do {
-                persistedKeys = try await tombstones.record(additions)
-            } catch {
-                persistedKeys = nil
-            }
-        } else {
-            persistedKeys = nil
-        }
-        guard providerEpoch == epoch, activeTuple == tuple,
-              activePolicy.load()?.tuple == tuple else { return }
-        let expiry: ExpiryMetadata
-        if let persistedKeys {
-            expiry = persistenceState.tombstonesPersisted(persistedKeys)
-        } else {
-            expiry = persistenceState.tombstonePersistenceFailed()
-            logger.error("Expiry tombstone persistence failed with a redacted storage error")
-        }
-        let updated = policy.replacingExpiryMetadata(expiry)
-        activePolicy.store(updated)
-        reloads.publish(updated)
-        scheduleExpiry(for: updated, epoch: epoch)
     }
 }

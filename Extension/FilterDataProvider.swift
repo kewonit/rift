@@ -82,7 +82,7 @@ final class FilterDataProvider: NEFilterDataProvider {
         _ verdict: NEFilterNewFlowVerdict,
         hidden: Bool
     ) -> NEFilterNewFlowVerdict {
-        verdict.shouldReport = !hidden
+        verdict.shouldReport = !hidden && RuntimeEnvironment.events.captureMode != .off
         return verdict
     }
 }
@@ -93,9 +93,17 @@ final class LiveFlowTracker: @unchecked Sendable {
 
     init(events: RuntimeEventRing) {
         self.events = events
+        events.installCaptureChangeHandler { [weak self] in _ = self?.reports.takeAll() }
+        events.installRecentExpiryHandler { [weak self] in self?.reports.remove(flowIDs: $0) }
     }
 
     func retain(_ flow: NEFilterFlow, decision: RuntimeEventSeed) {
+        if events.captureMode == .recent {
+            reports.retainRecent(flowID: flow.identifier as UUID, decision: decision,
+                                 maximum: events.recentCapacity, now: Date())
+            return
+        }
+        guard events.captureMode == .persistent else { return }
         if reports.retain(flowID: flow.identifier as UUID, decision: decision)
             == .capacityExceeded {
             events.recordAnonymousLoss()
@@ -104,6 +112,10 @@ final class LiveFlowTracker: @unchecked Sendable {
 
     func handle(_ report: NEFilterReport) {
         guard let flow = report.flow else { return }
+        guard events.shouldReport(flowID: flow.identifier as UUID) else {
+            _ = reports.take(flowID: flow.identifier as UUID)
+            return
+        }
         switch report.event {
         case .flowClosed:
             guard let decision = reports.take(flowID: flow.identifier as UUID) else { return }

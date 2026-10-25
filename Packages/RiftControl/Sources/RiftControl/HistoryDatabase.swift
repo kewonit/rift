@@ -240,6 +240,24 @@ public enum HistoryDatabase {
                 table.add(column: "last_successful_drain_at", .double)
             }
         }
+        migrator.registerMigration("history-v6-retention-indexes") { database in
+            try database.execute(sql: """
+                CREATE INDEX flow_lifecycle_expiration ON flow_lifecycle(
+                    COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0)
+                )
+                """)
+            try database.execute(sql: """
+                CREATE INDEX flow_lifecycle_capacity ON flow_lifecycle(
+                    CASE WHEN decision_event IS NOT NULL THEN 2
+                         WHEN closed_at IS NOT NULL THEN 1 ELSE 0 END DESC,
+                    COALESCE(MAX(decision_at, closed_at), decision_at, closed_at, 0) DESC,
+                    COALESCE(decision_sequence, 0) DESC, provider_epoch DESC, flow_id DESC
+                )
+                """)
+            try database.create(
+                index: "flow_events_flow", on: "flow_events", columns: ["provider_epoch", "flow_id"]
+            )
+        }
         return migrator
     }
 

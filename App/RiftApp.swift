@@ -11,30 +11,15 @@ struct RiftApp: App {
     var body: some Scene {
         Window("Rift", id: "main") {
             if let session = startup.session {
-                MonitorView(session: session)
+                RiftRootView(session: session)
             }
         }
-        .defaultSize(width: 1_280, height: 679)
-        .windowResizability(.contentMinSize)
-        .windowStyle(.hiddenTitleBar)
-
-        Window("Rules", id: "rules") {
-            if let session = startup.session {
-                RulesWorkspaceView(
-                    controlPlane: session.controlPlane,
-                    requestedSelection: Binding(
-                        get: { session.requestedRuleIDs },
-                        set: { session.requestedRuleIDs = $0 }
-                    ),
-                    artworkStore: session.applicationArtwork,
-                    isPreview: session.isUIFixture
-                )
-                .frame(minWidth: 880, minHeight: 560)
-            }
-        }
-        .defaultSize(width: 1_080, height: 680)
+        .defaultSize(width: 1_360, height: 780)
         .windowResizability(.contentMinSize)
         .commands {
+            if let session = startup.session {
+                RiftNavigationCommands(session: session)
+            }
             RuleWorkspaceCommands()
         }
 
@@ -44,28 +29,50 @@ struct RiftApp: App {
             }
         } label: {
             if let session = startup.session {
-                Image(systemName: session.statusSymbolName)
-                    .accessibilityLabel(
-                        session.isUIFixture
-                            ? "Rift preview"
-                            : session.statusAccessibilityLabel
-                    )
+                RiftStatusIcon(session: session)
             }
         }
         .menuBarExtraStyle(.window)
+    }
+}
 
-        Settings {
-            if let session = startup.session {
-                SettingsView(
-                    controlPlane: session.controlPlane,
-                    geolocation: session.geolocation,
-                    lifecycle: session.lifecycle,
-                    isPreview: session.isUIFixture
-                )
-            }
-        }
-        .defaultSize(width: 760, height: 500)
-        .windowResizability(.contentMinSize)
+private struct RiftStatusIcon: View {
+    let session: AppSession
+    private static let images: [String: NSImage] = {
+        let names = ["eye", "shield.slash", "exclamationmark.shield", "xmark.shield.fill",
+                     "questionmark.shield", "checkmark.shield", "xmark.shield"]
+        return Dictionary(uniqueKeysWithValues: names.compactMap { name in
+            guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil),
+                  let bitmap = NSBitmapImageRep(
+                    bitmapDataPlanes: nil, pixelsWide: Int(symbol.size.width * 2),
+                    pixelsHigh: Int(symbol.size.height * 2), bitsPerSample: 8,
+                    samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                    colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+                  ), let context = NSGraphicsContext(bitmapImageRep: bitmap) else { return nil }
+            bitmap.size = symbol.size
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = context
+            symbol.draw(in: NSRect(origin: .zero, size: symbol.size))
+            NSGraphicsContext.restoreGraphicsState()
+            let image = NSImage(size: symbol.size)
+            image.addRepresentation(bitmap)
+            image.isTemplate = true
+            return (name, image)
+        })
+    }()
+
+    var body: some View {
+        statusImage
+            .accessibilityLabel(
+                session.isUIFixture
+                    ? "Rift preview"
+                    : session.statusAccessibilityLabel
+            )
+    }
+
+    private var statusImage: Image {
+        if let image = Self.images[session.statusSymbolName] { return Image(nsImage: image) }
+        return Image(systemName: session.statusSymbolName)
     }
 }
 

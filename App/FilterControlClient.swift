@@ -41,13 +41,15 @@ actor FilterControlClient {
             throw FilterControlClientError.unsignedBuild
         }
         let connection = NSXPCConnection(machServiceName: serviceName, options: .privileged)
+        let connectionID = UUID()
         connection.remoteObjectInterface = NSXPCInterface(with: RiftFilterControlXPC.self)
         if let appRelay {
             connection.exportedInterface = NSXPCInterface(with: RiftAppRelayXPC.self)
-            connection.exportedObject = appRelay
+            connection.exportedObject = (appRelay as? AppRelayHandler)?.bound(
+                to: self, connectionID: connectionID
+            ) ?? appRelay
         }
         connection.setCodeSigningRequirement(requirement)
-        let connectionID = UUID()
         connection.interruptionHandler = { [weak self] in
             Task { await self?.connectionEnded(connectionID) }
         }
@@ -230,6 +232,37 @@ actor FilterControlClient {
         let request = SecureIPCEnvelope(kind: .drainNotifications, controllerLeaseID: lease)
         let reply = try await successfulReply(request) { $0.drainNotifications($1, withReply: $2) }
         return try SecureIPCCodec.decode([EphemeralNotificationEvent].self, from: reply.payload)
+    }
+
+    func setActivitySubscription(_ value: ActivitySubscription) async throws {
+        guard let lease = controllerLeaseID else { throw FilterControlClientError.rejected("noLease") }
+        let request = SecureIPCEnvelope(kind: .setActivitySubscription, controllerLeaseID: lease,
+                                        payload: try SecureIPCCodec.encode(value))
+        _ = try await successfulReply(request) { proxy, request, reply in
+            if let send = proxy.setActivitySubscription { send(request, reply) }
+            else { reply(SecureIPCReply(requestID: request.requestID, status: .incompatible)) }
+        }
+    }
+
+    func recentActivity() async throws -> RecentActivitySnapshot {
+        guard let lease = controllerLeaseID else { throw FilterControlClientError.rejected("noLease") }
+        let request = SecureIPCEnvelope(kind: .recentActivity, controllerLeaseID: lease)
+        let reply = try await successfulReply(request) { proxy, request, reply in
+            if let send = proxy.recentActivity { send(request, reply) }
+            else { reply(SecureIPCReply(requestID: request.requestID, status: .incompatible)) }
+        }
+        return try SecureIPCCodec.decode(RecentActivitySnapshot.self, from: reply.payload)
+    }
+
+    func drainAttention(resyncPrompts: Bool = false) async throws -> RuntimeAttentionBatch {
+        guard let lease = controllerLeaseID else { throw FilterControlClientError.rejected("noLease") }
+        let request = SecureIPCEnvelope(kind: .drainAttention, controllerLeaseID: lease,
+            payload: try SecureIPCCodec.encode(RuntimeAttentionRequest(resyncPrompts: resyncPrompts)))
+        let reply = try await successfulReply(request) { proxy, request, reply in
+            if let send = proxy.drainAttention { send(request, reply) }
+            else { reply(SecureIPCReply(requestID: request.requestID, status: .incompatible)) }
+        }
+        return try SecureIPCCodec.decode(RuntimeAttentionBatch.self, from: reply.payload)
     }
 
     func prepareUninstall() async throws {

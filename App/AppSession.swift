@@ -27,15 +27,14 @@ final class AppSession {
     let launchMode: AppLaunchMode
 #endif
     let controlPlane: ControlPlaneController
-    let geolocation: GeolocationController
     let lifecycle: FilterLifecycleController?
     let applicationArtwork: ApplicationArtworkStore
+    var destination: AppDestination = .liveMap
     var requestedMonitorEventID: String?
     var requestedRuleIDs: Set<UUID> = []
     var showingFilterStatus = false
 
     @ObservationIgnored private var startupTask: Task<Void, Never>?
-    @ObservationIgnored private var geolocationTask: Task<Void, Never>?
     @ObservationIgnored private var observingPrompts = false
     @ObservationIgnored private var observingLifecycle = false
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
@@ -78,13 +77,13 @@ final class AppSession {
         self.launchMode = launchMode
         applicationArtwork = ApplicationArtworkStore(uiFixture: launchMode == .uiFixture)
         if launchMode == .uiFixture {
-            NSApplication.shared.appearance = NSAppearance(named: .aqua)
+            if ProcessInfo.processInfo.arguments.contains("--ui-fixture") {
+                NSApplication.shared.appearance = NSAppearance(named: .aqua)
+            }
             controlPlane = ControlPlaneController(runtimeMode: .uiFixture)
-            geolocation = GeolocationController(fixtureEnabled: true)
             lifecycle = nil
         } else {
             controlPlane = ControlPlaneController()
-            geolocation = GeolocationController()
             lifecycle = FilterLifecycleController()
         }
         start()
@@ -93,7 +92,6 @@ final class AppSession {
     init() {
         applicationArtwork = ApplicationArtworkStore()
         controlPlane = ControlPlaneController()
-        geolocation = GeolocationController()
         lifecycle = FilterLifecycleController()
         start()
     }
@@ -104,15 +102,12 @@ final class AppSession {
         showingFilterStatus = true
     }
 
-    func waitForGeolocation() async {
-        await geolocationTask?.value
+    func monitorDidDisappear(menu: Bool = false) {
+        controlPlane.monitorDidDisappear(menu: menu)
     }
 
     private func start() {
         guard startupTask == nil else { return }
-        geolocationTask = Task { [geolocation] in
-            await geolocation.start()
-        }
         startupTask = Task { [controlPlane] in
             await controlPlane.start()
         }

@@ -22,9 +22,9 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         isRejected = false
     }
 
-    public func matches(_ row: MonitorEventRow, geography: GeoResolution) -> Bool {
+    public func matches(_ row: MonitorEventRow) -> Bool {
         guard !isRejected else { return false }
-        let document = Document(row: row, geography: geography)
+        let document = Document(row: row)
         return terms.allSatisfy { term in
             switch term {
             case .unqualified(let value):
@@ -82,7 +82,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         let direction: TrafficDirection
         let unqualified: [String]
 
-        init(row: MonitorEventRow, geography: GeoResolution) {
+        init(row: MonitorEventRow) {
             let flow = row.event.flow
             let applicationIdentity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
             application = normalizedMonitorSearchText(MonitorQuery.identityLabel(applicationIdentity))
@@ -124,7 +124,6 @@ public struct MonitorSearchQuery: Sendable, Hashable {
                 protocolValue,
                 flow.direction.rawValue,
                 row.event.reason.rawValue,
-                geography.searchableText,
             ].map(normalizedMonitorSearchText)
         }
     }

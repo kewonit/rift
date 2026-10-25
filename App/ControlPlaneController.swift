@@ -8,6 +8,7 @@ import Observation
 @MainActor
 @Observable
 final class ControlPlaneController {
+    static let minimalFlowLimit = 10
 #if DEBUG
     enum RuntimeMode: Equatable {
         case live
@@ -30,8 +31,11 @@ final class ControlPlaneController {
     private(set) var pendingPrompts: [PromptRequest] = []
     private(set) var lostEventCount: UInt64 = 0
     private(set) var activityRevision: UInt64 = 0
+    private(set) var visualActivityRevision: UInt64 = 0
     var currentMode: OperationMode = .silentAllow
-    var recentDenyUntil: Date?
+    @ObservationIgnored var recentDenyUntil: Date?
+    var recentDenyVisible = false
+    var persistentHistoryEnabled = false
     private(set) var historyRecovery: HistoryDatabaseRecovery?
     private(set) var configurationRecovery: ConfigurationDatabaseRecovery?
     private(set) var startupIssue: String?
@@ -40,9 +44,26 @@ final class ControlPlaneController {
     var supportDirectoryURL: URL?
     var backups: DailyConfigurationBackup?
     var history: HistoryRepository?
+    @ObservationIgnored var historyDatabaseURL: URL?
     var pendingRestoreBackupURL: URL?
-    var transientHistory = TransientHistoryBuffer()
+    var transientHistory = TransientHistoryBuffer(maximumFlows: ControlPlaneController.minimalFlowLimit)
     @ObservationIgnored var monitorIsVisible = false
+    @ObservationIgnored var visibleMonitorCount = 0
+    @ObservationIgnored var visibleMenuCount = 0
+    @ObservationIgnored var supportsActivitySubscriptions = false
+    @ObservationIgnored var desiredActivitySubscription = ActivitySubscription(mode: .off)
+    @ObservationIgnored var appliedActivitySubscription: ActivitySubscription?
+    @ObservationIgnored var activitySubscriptionTask: Task<Void, Never>?
+    @ObservationIgnored var activityDrain = VisualRefreshCoordinator()
+    @ObservationIgnored var recentActivity: RecentActivitySnapshot?
+    @ObservationIgnored var recentActivityRows: [MonitorEventRow] = []
+    @ObservationIgnored var activityExpiryTask: Task<Void, Never>?
+    @ObservationIgnored var attentionDrainRunning = false
+    @ObservationIgnored var attentionDrainPending = false
+    @ObservationIgnored var promptResyncPending = false
+    @ObservationIgnored var activityConnectionGeneration: UInt64 = 0
+    @ObservationIgnored private let visualActivityUpdates = VisualRefreshCoordinator()
+    @ObservationIgnored let monitorCoverageCache = MonitorCoverageCache()
 #if DEBUG
     private let runtimeMode: RuntimeMode
 #endif
@@ -79,6 +100,8 @@ final class ControlPlaneController {
         false
 #endif
     }
+
+    var isMinimalActivity: Bool { !isUIFixture && !persistentHistoryEnabled }
 
 #if DEBUG
     init(runtimeMode: RuntimeMode = .live) {
@@ -136,17 +159,35 @@ final class ControlPlaneController {
                     recovery.backupName, isDirectory: false
                 )
             }
-            let historyOpenResult = Result {
-                try HistoryDatabase.openRecovering(
-                    at: support.appendingPathComponent("history.sqlite")
-                )
-            }
-            if case .success(let historyResult) = historyOpenResult {
-                history = HistoryRepository(database: historyResult.database)
-                try await history?.markOpenFlowsAbandoned()
-                historyRecovery = historyResult.recovery
+            let historyURL = support.appendingPathComponent("history.sqlite")
+            historyDatabaseURL = historyURL
+            let isNewHistory = !FileManager.default.fileExists(atPath: historyURL.path)
+            let savedHistoryPreference = UserDefaults.standard.object(forKey: "persistentHistoryEnabled") as? Bool
+            if savedHistoryPreference == false || (savedHistoryPreference == nil && isNewHistory) {
+                UserDefaults.standard.set(false, forKey: "persistentHistoryEnabled")
             } else {
-                startupIssue = "Connection history could not be opened or safely quarantined. Rift did not delete it; filtering configuration remains separate."
+                persistentHistoryEnabled = savedHistoryPreference ?? true
+                transientHistory = TransientHistoryBuffer()
+                let historyOpenResult = Result {
+                    try HistoryDatabase.openRecovering(
+                        at: historyURL
+                    )
+                }
+                if case .success(let historyResult) = historyOpenResult {
+                    history = HistoryRepository(database: historyResult.database)
+                    if isNewHistory {
+                        try await history?.configure(enabled: persistentHistoryEnabled, retentionDays: 30, maximumFlows: 50_000)
+                    }
+                    persistentHistoryEnabled = try await history?.settings().enabled ?? false
+                    UserDefaults.standard.set(persistentHistoryEnabled, forKey: "persistentHistoryEnabled")
+                    if persistentHistoryEnabled {
+                        transientHistory = TransientHistoryBuffer()
+                        try await history?.markOpenFlowsAbandoned()
+                    } else { history = nil }
+                    historyRecovery = historyResult.recovery
+                } else {
+                    startupIssue = "Connection history could not be opened or safely quarantined. Rift did not delete it; filtering configuration remains separate."
+                }
             }
             state = .databaseReady
             await installConnectionHooks()
@@ -176,6 +217,10 @@ final class ControlPlaneController {
             return try await self.handleCLIRequest(request)
         } runtimeSignal: { [weak self] in
             await self?.handleRuntimeSignal()
+        } activitySignal: { [weak self] in
+            await self?.scheduleActivityDrain()
+        } attentionSignal: { [weak self] in
+            await self?.drainRuntimeAttention()
         }
         await client.installAppRelay(relay)
         await client.installInvalidationHandler { [weak self] in
@@ -224,13 +269,14 @@ final class ControlPlaneController {
         await refreshAuthenticatedRootHighWater(from: current)
         presentRuntimeHandshake(current)
 #if DEBUG
-        if !(await startFixtureDriverIfRequested()) { await drainRuntimeData() }
+        if !(await startFixtureDriverIfRequested()) { await resumeRuntimeCollection() }
 #else
-        await drainRuntimeData()
+        await resumeRuntimeCollection()
 #endif
     }
 
     private func filterConnectionInvalidated() {
+        resetActivityConnection()
         lastHandshake = nil
         activePolicyTuple = nil
         pendingPrompts.removeAll()
@@ -262,23 +308,35 @@ final class ControlPlaneController {
             }
         }
 
-        await drainRuntimeData()
+        await resumeRuntimeCollection()
         if refreshFailed { requestReconnect() }
     }
 
+    func requestRuntimeControlRefresh() {
+        Task { [weak self] in await self?.handleRuntimeSignal() }
+    }
+
     private func presentRuntimeHandshake(_ handshake: HandshakeState?) {
+        if let handshake, lastHandshake?.providerEpoch != handshake.providerEpoch {
+            clearRecentActivity()
+        }
         lastHandshake = handshake
+        supportsActivitySubscriptions = handshake?.protocolRange.maximum.supports(
+            minimum: .activitySubscriptions
+        ) ?? false
         activePolicyTuple = handshake?.active
         guard let handshake else {
-            pendingPrompts.removeAll()
+            if !pendingPrompts.isEmpty { pendingPrompts.removeAll() }
             if !configurationRecoveryRequired { state = .integrationUnavailable }
             return
         }
         state = .connected(handshake.readiness)
         if let epoch = handshake.providerEpoch {
-            pendingPrompts.removeAll { $0.providerEpoch != epoch }
+            if pendingPrompts.contains(where: { $0.providerEpoch != epoch }) {
+                pendingPrompts.removeAll { $0.providerEpoch != epoch }
+            }
         } else {
-            pendingPrompts.removeAll()
+            if !pendingPrompts.isEmpty { pendingPrompts.removeAll() }
         }
     }
 
@@ -294,10 +352,22 @@ final class ControlPlaneController {
     }
 
     func recordRuntimeActivity(_ changed: Bool) {
-        if changed, activityRevision < .max { activityRevision += 1 }
+        guard changed else { return }
+        if activityRevision < .max { activityRevision += 1 }
+        guard monitorIsVisible else { return }
+        visualActivityUpdates.request { [weak self] in
+            guard let self, monitorIsVisible else { return }
+            if visualActivityRevision < .max { visualActivityRevision += 1 }
+        }
+    }
+
+    func setVisualActivityVisible(_ visible: Bool) {
+        if visible { visualActivityUpdates.setVisible(true) }
+        else { visualActivityUpdates.stop() }
     }
 
     func mergeIncomingPrompts(_ incoming: [PromptRequest], now: Date) {
+        guard !incoming.isEmpty || !pendingPrompts.isEmpty else { return }
         for prompt in incoming where prompt.deadline > now {
             pendingPrompts.removeAll {
                 $0.nonce == prompt.nonce ||
@@ -308,7 +378,14 @@ final class ControlPlaneController {
         pendingPrompts.removeAll { $0.deadline <= now }
     }
 
+    func retainActivePrompts(_ nonces: Set<UUID>) {
+        if pendingPrompts.contains(where: { !nonces.contains($0.nonce) }) {
+            pendingPrompts.removeAll { !nonces.contains($0.nonce) }
+        }
+    }
+
     func reconcilePendingPrompts(with batch: RuntimeEventBatch) {
+        guard !pendingPrompts.isEmpty else { return }
         guard let epoch = batch.providerEpoch else {
             pendingPrompts.removeAll()
             return
@@ -321,50 +398,6 @@ final class ControlPlaneController {
         }
     }
 
-    func reconcileNewest(lineageID: UUID) async throws {
-        guard let repository,
-              let desired = try await repository.newestDesiredPolicy() else { return }
-        desiredPolicyTuple = desired.tuple
-        let handshake = try await client.handshake()
-        lastHandshake = handshake
-        activePolicyTuple = handshake.active
-        if handshake.active == desired.tuple, let epoch = handshake.providerEpoch {
-            try await repository.markEnforced(
-                desired.tuple,
-                providerEpoch: epoch,
-                at: Date()
-            )
-            try await repository.clearPendingRestoreRecovery(
-                throughGeneration: desired.tuple.generation
-            )
-            pendingRestoreBackupURL = nil
-            return
-        }
-        if handshake.persisted == desired.tuple, handshake.providerEpoch == nil {
-            try await repository.markPersisted(desired.tuple, at: Date())
-            return
-        }
-        _ = try await client.claimController(lineageID: lineageID)
-        let result = try await client.apply(DesiredTransfer(
-            tuple: desired.tuple,
-            bytes: desired.artifact.bytes
-        ))
-        switch result.disposition {
-        case .persisted, .idempotent:
-            try await repository.markPersisted(result.tuple, at: Date())
-        case .active:
-            guard let epoch = result.providerEpoch else {
-                throw ControlPlaneControllerError.missingProviderEpoch
-            }
-            try await repository.markEnforced(result.tuple, providerEpoch: epoch, at: Date())
-            activePolicyTuple = result.tuple
-            try await repository.clearPendingRestoreRecovery(
-                throughGeneration: result.tuple.generation
-            )
-            pendingRestoreBackupURL = nil
-        }
-    }
-
     func installRecoveredConfiguration(
         _ result: ConfigurationDatabaseOpenResult, support: URL
     ) async throws {
@@ -372,16 +405,20 @@ final class ControlPlaneController {
         repository = PolicyRepository(database: result.database)
         let backupDirectory = support.appendingPathComponent("Backups", isDirectory: true)
         backups = DailyConfigurationBackup(database: result.database, directory: backupDirectory)
-        let opened = Result {
-            try HistoryDatabase.openRecovering(at: support.appendingPathComponent("history.sqlite"))
-        }
-        if case .success(let result) = opened {
-            history = HistoryRepository(database: result.database)
-            try await history?.markOpenFlowsAbandoned()
-            historyRecovery = result.recovery
-            startupIssue = nil
-        } else {
-            startupIssue = "Connection history is unavailable, but configuration recovery can continue. Rift did not delete the history database."
+        historyDatabaseURL = support.appendingPathComponent("history.sqlite")
+        if persistentHistoryEnabled {
+            let opened = Result {
+                try HistoryDatabase.openRecovering(at: support.appendingPathComponent("history.sqlite"))
+            }
+            if case .success(let result) = opened {
+                history = HistoryRepository(database: result.database)
+                persistentHistoryEnabled = try await history?.settings().enabled ?? false
+                if persistentHistoryEnabled { try await history?.markOpenFlowsAbandoned() }
+                historyRecovery = result.recovery
+                startupIssue = nil
+            } else {
+                startupIssue = "Connection history is unavailable, but configuration recovery can continue. Rift did not delete the history database."
+            }
         }
         configurationRecovery = result.recovery
         configurationRecoveryRequired = false
@@ -392,18 +429,21 @@ final class ControlPlaneController {
     }
     func markConfigurationRecoveryPending() { state = .integrationUnavailable }
     func recordSavedDesiredPolicy(_ tuple: PolicyTuple) { desiredPolicyTuple = tuple }
-
-    func reconcileSavedPolicy(_ desired: DesiredPolicy, lineageID: UUID) async throws {
-        desiredPolicyTuple = desired.tuple
-        do {
-            try await reconcileNewest(lineageID: lineageID)
-        } catch {
-            guard let repository else { throw error }
-            try await repository.markApplyFailed(desired.tuple, at: Date())
-            throw error
-        }
+    func recordHandshake(_ handshake: HandshakeState) {
+        lastHandshake = handshake; activePolicyTuple = handshake.active
     }
+    func recordActivePolicy(_ tuple: PolicyTuple) { activePolicyTuple = tuple }
+
     func answerOnce(_ prompt: PromptRequest, action: FilterAction) async throws {
+#if DEBUG
+        if isUIFixture {
+            if MonitorFixtureData.scenario == .alertDeliveryFailure {
+                throw ControlPlaneSafetyError.stalePrompt
+            }
+            pendingPrompts.removeAll { $0.nonce == prompt.nonce }
+            return
+        }
+#endif
         try await client.answerPrompt(PromptAnswer(
             nonce: prompt.nonce,
             providerEpoch: prompt.providerEpoch,
@@ -434,47 +474,16 @@ final class ControlPlaneController {
     func removePendingPrompt(_ nonce: UUID) { pendingPrompts.removeAll { $0.nonce == nonce } }
     func markFailed() { state = .failed }
     func recordStartupIssue(_ message: String) { startupIssue = message }
+    func recordHistoryRecovery(_ recovery: HistoryDatabaseRecovery?) { historyRecovery = recovery }
 
     func requestNotificationPermission() async throws -> Bool {
         try await notifications.requestPermission()
     }
 
-    private func establishController(handshake: HandshakeState) async throws {
-        guard let repository else { return }
-        if let configuration = try await repository.currentConfiguration() {
-            _ = try await client.claimController(lineageID: configuration.lineageID)
-            try await reconcileNewest(lineageID: configuration.lineageID)
-            return
-        }
-        let lineageID: UUID
-        switch try ControlPlaneSafety.initialLineageResolution(handshake: handshake) {
-        case .resume(let existingLineageID):
-            lineageID = existingLineageID
-        case .unclaimed:
-            lineageID = UUID()
-        }
-        _ = try await client.claimController(lineageID: lineageID)
-        let initial = PolicyConfigurationDraft(
-            lineageID: lineageID,
-            authorizedUID: getuid(),
-            operationMode: .silentAllow,
-            activeProfileID: nil,
-            enabledLocalGroupIDs: [],
-            rules: []
-        )
-        let desired = try await repository.save(
-            initial,
-            extensionHighWater: handshake.acceptedGenerationHighWater,
-            commandKind: "initialPolicy",
-            redactedSummary: "silentAllow",
-            now: Date()
-        )
-        try await reconcileSavedPolicy(desired, lineageID: lineageID)
-    }
 
 }
 
-private enum ControlPlaneControllerError: Error {
+enum ControlPlaneControllerError: Error {
     case appGroupUnavailable
     case missingProviderEpoch
     case localConfigurationMissing

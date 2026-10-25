@@ -6,16 +6,18 @@ signing boundary.
 ## Prepare your environment
 
 Use Xcode 26.6 or newer with Swift 6 strict concurrency. Run
-`Scripts/release-local-audit.sh` for the Apple silicon local lane. Pull requests
-must pass the matching unsigned, non-filtering GitHub Actions job.
+`Scripts/release-local-audit.sh` for the Apple silicon local lane, and make sure
+it passes before you open a pull request. The unsigned, non-filtering GitHub
+Actions job runs on `main`.
 
 ## Keep changes safe
 
 - Keep production files below 500 lines.
 - Preserve existing formatting.
 - Add bounded tests for parsers and state machines.
-- Do not add payload capture, remote lookups of destination IP addresses,
-  insecure blocklist URLs, broad signing requirements, or unbounded buffers.
+- Do not add payload capture, IP geolocation or remote lookups of destination
+  addresses, insecure blocklist URLs, broad signing requirements, or unbounded
+  buffers.
 
 ## Work with signed features
 

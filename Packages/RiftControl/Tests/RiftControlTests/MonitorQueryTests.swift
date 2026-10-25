@@ -4,24 +4,6 @@ import Foundation
 import Testing
 @testable import RiftControl
 
-@Test func locationLensRequiresAdmissionAndDatabase() {
-    let cases = [
-        (mapUIAdmitted: false, databaseAvailable: false, expectsLocation: false),
-        (mapUIAdmitted: false, databaseAvailable: true, expectsLocation: false),
-        (mapUIAdmitted: true, databaseAvailable: false, expectsLocation: false),
-        (mapUIAdmitted: true, databaseAvailable: true, expectsLocation: true),
-    ]
-    for value in cases {
-        let lenses = MonitorLens.available(
-            mapUIAdmitted: value.mapUIAdmitted,
-            geolocationDatabaseAvailable: value.databaseAvailable
-        )
-        #expect(lenses.contains(.application))
-        #expect(lenses.contains(.hostname))
-        #expect(lenses.contains(.location) == value.expectsLocation)
-    }
-}
-
 @Test func hostnameLensAndByteSortAvailabilityAreTruthful() throws {
     #expect(MonitorLens.hostname.rawValue == "Hostname")
     #expect(MonitorSort.available(allowsUnverifiedBytePreview: false).map(\.rawValue) == [
@@ -62,11 +44,6 @@ import Testing
         action: .deny, reason: .concreteDecision, policy: nil
     )
     let row = MonitorEventRow(event: event, coverage: .complete)
-    let location = try GeoLocation(
-        continentCode: "NA", countryCode: "US", region: "California",
-        city: "Los Angeles", latitude: 34.05, longitude: -118.24
-    )
-    let geography = [row.id: GeoResolution.located(location)]
     #expect(MonitorQuery.filter([row], search: "client deny tcp", lens: .application).count == 1)
     #expect(MonitorQuery.filter([row], search: "client udp", lens: .application).isEmpty)
     #expect(MonitorQuery.filter(
@@ -81,14 +58,6 @@ import Testing
     #expect(MonitorQuery.filter(
         [row], search: "", lens: .application, time: .hour,
         now: event.occurredAt.addingTimeInterval(3_601)
-    ).isEmpty)
-    let locationRows = MonitorQuery.filter(
-        [row], search: "los angeles california", lens: .location,
-        geography: geography
-    )
-    #expect(locationRows.first?.primary.contains("Los Angeles, United States") == true)
-    #expect(MonitorQuery.filter(
-        [row], search: "france", lens: .location, geography: geography
     ).isEmpty)
 }
 
@@ -106,21 +75,32 @@ import Testing
     }
 }
 
+@Test func monitorNetworkAndOwnerFiltersUseAuthoritativeFlowMetadata() throws {
+    let row = try monitorQueryRow(hostname: "api.example.test")
+    #expect(MonitorQuery.filter(
+        [row], search: "", lens: .application, locality: .internet
+    ).map(\.id) == [row.id])
+    #expect(MonitorQuery.filter(
+        [row], search: "", lens: .application, locality: .local
+    ).isEmpty)
+    #expect(MonitorQuery.filter(
+        [row], search: "", lens: .application, owner: .user
+    ).map(\.id) == [row.id])
+    #expect(MonitorQuery.filter(
+        [row], search: "", lens: .application, owner: .system
+    ).isEmpty)
+}
+
 @Test func monitorSearchSupportsQuotedPhrasesAndExplicitFields() throws {
     let row = try detailedMonitorQueryRow()
-    let location = try GeoLocation(
-        continentCode: "NA", countryCode: "US", region: "California",
-        city: "Los Angeles", latitude: 34.05, longitude: -118.24
-    )
-    let geography = [row.id: GeoResolution.located(location)]
     let query = """
         app:com.example.client process:com.example.helper host:API.EXAMPLE.TEST. \
         ip:2001:0db8:0:0:0:0:0:10 port:443 decision:denied direction:outgoing \
-        \"los angeles\"
+        \"deny denied\"
         """
 
     #expect(MonitorQuery.filter(
-        [row], search: query, lens: .application, geography: geography
+        [row], search: query, lens: .application
     ).map(\.id) == [row.id])
     #expect(MonitorQuery.filter(
         [row], search: "host:example.test", lens: .application
@@ -183,9 +163,10 @@ import Testing
             lens: .application,
             decision: .all,
             direction: .all,
+            locality: .all,
+            owner: .all,
             time: .all,
             sort: .recent,
-            geography: [:],
             now: Date(),
             cancellationCheck: {
                 checks += 1
