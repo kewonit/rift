@@ -18,7 +18,7 @@ struct DecisionChartView: View {
             chart
             statusRow
             if isMinimal {
-                Text("Up to \(ControlPlaneController.minimalFlowLimit) observed connections · Five minutes · Not saved")
+                Text("Up to \(ControlPlaneController.minimalFlowLimit) recent connections · 5 minutes · Not saved")
                     .font(.caption2).foregroundStyle(.secondary)
             } else { controlsRow }
         }
@@ -59,10 +59,10 @@ struct DecisionChartView: View {
                 .foregroundStyle(by: .value("Result", "Denied"))
                 BarMark(
                     x: .value("Time", bucket.start),
-                    y: .value("Unresolved", bucket.unresolved),
+                    y: .value("By default", bucket.unresolved),
                     width: .fixed(7)
                 )
-                .foregroundStyle(by: .value("Result", "Unresolved"))
+                .foregroundStyle(by: .value("Result", "By default"))
             }
             if let hoveredBucket {
                 RuleMark(x: .value("Hovered time", hoveredBucket.start))
@@ -73,7 +73,7 @@ struct DecisionChartView: View {
         .chartForegroundStyleScale([
             "Allowed": Color.accentColor,
             "Denied": Color.red,
-            "Unresolved": Color.orange,
+            "By default": Color.orange,
         ])
         .chartLegend(.hidden)
         .chartXAxis(.hidden)
@@ -94,21 +94,21 @@ struct DecisionChartView: View {
             }
         }
         .frame(height: 88)
-        .accessibilityLabel("Delivered decisions in the displayed time range")
+        .accessibilityLabel("Decisions over time")
         .accessibilityValue(accessibilitySummary)
-        .accessibilityHint("Independent of search and map filters. Drag to filter Monitor by time.")
+        .accessibilityHint("Drag to show activity from a time range. Search and filters don’t change this chart.")
     }
 
     private var statusRow: some View {
         HStack(spacing: 5) {
-            Text(isMinimal ? "Observed decisions" : "Decisions")
+            Text(isMinimal ? "Recent decisions" : "Decisions")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if coverage != .complete || refreshFailed {
                 Text("Partial")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel("Decision history is partial")
+                    .accessibilityLabel("Some history is missing")
             }
             if refreshFailed {
                 Text("Couldn’t refresh")
@@ -132,15 +132,15 @@ struct DecisionChartView: View {
         HStack(spacing: 5) {
             ControlGroup {
                 Button { navigate(.previous) } label: {
-                    Label("Previous range", systemImage: "chevron.left")
+                    Label("Previous Range", systemImage: "chevron.left")
                 }
                 .disabled(!query.canNavigateBackward)
                 Button { query.showNow(); hoveredBucket = nil } label: {
-                    Label("Now", systemImage: "scope")
+                    Label("Show Now", systemImage: "scope")
                 }
                 .disabled(query.isLiveTimeRange && query.selectedTimeRange == nil)
                 Button { navigate(.next) } label: {
-                    Label("Next range", systemImage: "chevron.right")
+                    Label("Next Range", systemImage: "chevron.right")
                 }
                 .disabled(!query.canNavigateForward)
             }
@@ -150,7 +150,7 @@ struct DecisionChartView: View {
                     query.selectTimeRange(nil, now: now, calendar: calendar)
                     hoveredBucket = nil
                 } label: {
-                    Label("Clear time selection", systemImage: "xmark.circle.fill")
+                    Label("Clear Time Selection", systemImage: "xmark.circle.fill")
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
@@ -182,9 +182,9 @@ struct DecisionChartView: View {
         let allowed = buckets.reduce(0) { $0 + $1.allowed }
         let denied = buckets.reduce(0) { $0 + $1.denied }
         let unresolved = buckets.reduce(0) { $0 + $1.unresolved }
-        let selection = query.selectedTimeRange == nil ? "" : ", time selection active"
-        let suffix = coverage == .complete && !refreshFailed ? "" : ", partial history"
-        return "\(allowed) allowed, \(denied) denied, \(unresolved) unresolved\(selection)\(suffix)"
+        let selection = query.selectedTimeRange == nil ? "" : ", time range selected"
+        let suffix = coverage == .complete && !refreshFailed ? "" : ", some history missing"
+        return "\(allowed) allowed, \(denied) denied, \(unresolved) decided by default\(selection)\(suffix)"
     }
 
     private func navigate(_ direction: MonitorTimeNavigation) {
@@ -248,6 +248,6 @@ struct DecisionChartView: View {
 
     private func hoverLabel(_ bucket: DecisionBucket) -> String {
         let time = bucket.start.formatted(date: .omitted, time: .shortened)
-        return "\(time) · \(bucket.allowed)/\(bucket.denied)/\(bucket.unresolved)"
+        return "\(time) · \(bucket.allowed) allowed, \(bucket.denied) denied, \(bucket.unresolved) by default"
     }
 }

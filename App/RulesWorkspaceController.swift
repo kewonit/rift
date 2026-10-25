@@ -109,7 +109,7 @@ final class RulesWorkspaceController {
         let available = ids.intersection(Set(rows.map(\.id)))
         selection = available
         if available.isEmpty, !ids.isEmpty {
-            errorMessage = "The corresponding rule was removed or is not available to this policy owner."
+            errorMessage = "That rule no longer exists or isn’t available to your account."
             return .notFound
         }
         return .focused
@@ -169,7 +169,7 @@ final class RulesWorkspaceController {
             errorMessage = nil
             return true
         } catch {
-            errorMessage = "Rules could not be loaded. Retry after the control plane reconnects."
+            errorMessage = "Couldn’t load rules. Try again once Rift reconnects to the filter."
             return false
         }
     }
@@ -243,11 +243,11 @@ final class RulesWorkspaceController {
             errorMessage = nil
             return request
         } catch RuleWorkspaceDropError.noEligibleRules {
-            errorMessage = "Protected and blocklist-managed rules cannot be reorganized."
+            errorMessage = "Protected and blocklist rules can’t be moved."
         } catch RuleWorkspaceDropError.noChanges {
-            errorMessage = "The selected rules are already assigned to that collection."
+            errorMessage = "These rules are already there."
         } catch {
-            errorMessage = "The selected rules changed. Reload and try the drop again."
+            errorMessage = "The selected rules changed. Try dragging them again."
         }
         return nil
     }
@@ -296,7 +296,7 @@ final class RulesWorkspaceController {
         guard !historyCommandIsRunning, let plan = historyPlan else { return }
         guard generation == plan.expectedGeneration else {
             clearHistoryCommand()
-            reportNotSaved("Undo is no longer available because the configuration changed.")
+            reportNotSaved("Undo isn’t available because your rules changed.")
             return
         }
         let previousRules = allRules
@@ -311,14 +311,14 @@ final class RulesWorkspaceController {
             await reload()
             clearHistoryCommand()
             reportNotSaved(
-                "\(wasRedo ? "Redo" : "Undo") was not saved because the configuration changed."
+                "Couldn’t \(wasRedo ? "redo" : "undo") because your rules changed."
             )
             return
         }
         guard await reload() else {
             clearHistoryCommand()
             reportNotSaved(
-                "\(wasRedo ? "Redo" : "Undo") was saved, but the current rules could not reload."
+                "\(wasRedo ? "Redo" : "Undo") worked, but Rift couldn’t reload your rules."
             )
             return
         }
@@ -326,7 +326,7 @@ final class RulesWorkspaceController {
         guard !overflow, generation == expectedGeneration else {
             clearHistoryCommand()
             reportNotSaved(
-                "\(wasRedo ? "Redo" : "Undo") completed, but a newer configuration is already active."
+                "\(wasRedo ? "Redo" : "Undo") worked, but newer changes are already active."
             )
             present(result)
             return
@@ -340,7 +340,7 @@ final class RulesWorkspaceController {
         } catch {
             clearHistoryCommand()
             reportNotSaved(
-                "\(wasRedo ? "Redo" : "Undo") was saved, but the reverse command is unavailable."
+                "\(wasRedo ? "Redo" : "Undo") worked, but it can’t be reversed."
             )
             present(result)
             return
@@ -376,7 +376,7 @@ final class RulesWorkspaceController {
         } catch {
             await reload()
             reportNotSaved(
-                "The command was not saved. The configuration changed; review and retry."
+                "The change wasn’t saved. Your rules may have changed, so check them and try again."
             )
             return false
         }
@@ -390,7 +390,7 @@ final class RulesWorkspaceController {
         let (expectedGeneration, overflow) = previousGeneration.addingReportingOverflow(1)
         guard !overflow, generation == expectedGeneration else {
             clearHistoryCommand()
-            reportNotSaved("Saved, but Undo is unavailable because the configuration changed again.")
+            reportNotSaved("Saved, but Undo isn’t available because your rules changed again.")
             return
         }
         do {
@@ -406,7 +406,7 @@ final class RulesWorkspaceController {
             clearHistoryCommand()
         } catch {
             clearHistoryCommand()
-            reportNotSaved("Saved, but this change cannot be undone safely.")
+            reportNotSaved("Saved, but this change can’t be undone.")
         }
     }
 

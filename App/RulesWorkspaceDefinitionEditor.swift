@@ -51,9 +51,9 @@ struct RuleDefinitionEditorSheet: View {
                     }
                 }
                 if isExistingProfile {
-                    Section("Connection Mode") {
+                    Section("Mode") {
                         Picker("Mode", selection: $mode) {
-                            Text("Use Base Mode").tag(OperationMode?.none)
+                            Text("Use Default Mode").tag(OperationMode?.none)
                             Text("Alert").tag(Optional(OperationMode.alert))
                             Text("Silent Allow").tag(Optional(OperationMode.silentAllow))
                             Text("Silent Deny").tag(Optional(OperationMode.silentDeny))
@@ -106,7 +106,7 @@ struct RuleDefinitionEditorSheet: View {
             _ = try PolicyDefinitionValidator.name(name)
             if isGroup { _ = try PolicyDefinitionValidator.note(note) }
         } catch {
-            failureMessage = "Check the name and note length."
+            failureMessage = "Use a shorter name or note."
             return
         }
         isSaving = true
@@ -116,7 +116,7 @@ struct RuleDefinitionEditorSheet: View {
             if didSave {
                 dismiss()
             } else {
-                failureMessage = "The change was not saved. Review the Rules status and retry."
+                failureMessage = "The change wasn’t saved. Make sure the name isn’t already in use, then try again."
             }
         }
     }
@@ -133,13 +133,13 @@ struct RuleBlocklistImportSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Source name", text: $name)
+                    TextField("Blocklist name", text: $name)
                 }
                 Section {
                     Button("Choose File and Import…") { chooseFile() }
                         .disabled(isImporting || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 } footer: {
-                    Text("Imports a bounded local hosts, domain, IP, CIDR, or IP-range list.")
+                    Text("Choose a hosts file or a list of domains, IP addresses, or IP ranges stored on this Mac.")
                 }
                 if let failureMessage {
                     Section { Text(failureMessage).foregroundStyle(.red) }
@@ -170,10 +170,10 @@ struct RuleBlocklistImportSheet: View {
                 if await model.importBlocklist(data: data, name: name) {
                     dismiss()
                 } else {
-                    failureMessage = "The file was rejected; the active blocklist was not changed."
+                    failureMessage = "Rift couldn’t import this file. Your blocklists haven’t changed."
                 }
             } catch {
-                failureMessage = "The file could not be read safely."
+                failureMessage = "Rift couldn’t read this file."
             }
             isImporting = false
         }

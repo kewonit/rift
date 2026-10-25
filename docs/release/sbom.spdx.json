@@ -1,15 +1,15 @@
 {
   "SPDXID": "SPDXRef-DOCUMENT",
   "creationInfo": {
-    "created": "2026-10-25T00:00:00Z",
+    "created": "2026-10-26T00:00:00Z",
     "creators": [
       "Organization: Rift contributors",
       "Tool: manual-source-inventory"
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://spdx.org/spdxdocs/rift-0.1.0-pre-release-20261025",
-  "name": "Rift 0.1.0 pre-release source SBOM",
+  "documentNamespace": "https://spdx.org/spdxdocs/rift-0.2.0-pre-release-20261026",
+  "name": "Rift 0.2.0 pre-release source SBOM",
   "packages": [
     {
       "SPDXID": "SPDXRef-Package-Rift",
@@ -20,7 +20,7 @@
       "licenseDeclared": "Apache-2.0",
       "name": "Rift",
       "primaryPackagePurpose": "APPLICATION",
-      "versionInfo": "0.1.0-pre-release"
+      "versionInfo": "0.2.0-pre-release"
     },
     {
       "SPDXID": "SPDXRef-Package-GRDB",
@@ -45,6 +45,39 @@
       "primaryPackagePurpose": "LIBRARY",
       "supplier": "Organization: Apple Inc. and Swift project contributors",
       "versionInfo": "1.8.2"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-ServerCountry",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "git+https://github.com/sapics/ip-location-db.git@6953822901329539b856e9cf48aa95f2de579e87",
+      "filesAnalyzed": false,
+      "licenseConcluded": "PDDL-1.0",
+      "licenseDeclared": "PDDL-1.0",
+      "name": "ip-location-db server-country",
+      "primaryPackagePurpose": "DATA",
+      "versionInfo": "6953822901329539b856e9cf48aa95f2de579e87"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-OpenStreetMapCables",
+      "copyrightText": "© OpenStreetMap contributors",
+      "downloadLocation": "https://overpass-api.de/api/interpreter",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ODbL-1.0",
+      "licenseDeclared": "ODbL-1.0",
+      "name": "OpenStreetMap undersea cables",
+      "primaryPackagePurpose": "DATA",
+      "versionInfo": "2026-10-25T00:00:00Z"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-NaturalEarthCountries",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://naciscdn.org/naturalearth/50m/cultural/ne_50m_admin_0_countries.zip",
+      "filesAnalyzed": false,
+      "licenseConcluded": "LicenseRef-PublicDomain",
+      "licenseDeclared": "LicenseRef-PublicDomain",
+      "name": "Natural Earth 1:50m admin-0 countries",
+      "primaryPackagePurpose": "DATA",
+      "versionInfo": "5.1.1"
     }
   ],
   "relationships": [
@@ -62,7 +95,29 @@
       "relatedSpdxElement": "SPDXRef-Package-SwiftArgumentParser",
       "relationshipType": "DEPENDS_ON",
       "spdxElementId": "SPDXRef-Package-Rift"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-ServerCountry",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-Rift"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-OpenStreetMapCables",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-Rift"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-NaturalEarthCountries",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-Rift"
     }
   ],
-  "spdxVersion": "SPDX-2.3"
+  "spdxVersion": "SPDX-2.3",
+  "hasExtractedLicensingInfos": [
+    {
+      "licenseId": "LicenseRef-PublicDomain",
+      "extractedText": "Natural Earth data is in the public domain. https://www.naturalearthdata.com/about/terms-of-use/",
+      "name": "Public domain"
+    }
+  ]
 }

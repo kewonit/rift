@@ -6,10 +6,10 @@ struct RuleImpactPreviewView: View {
     let hasRetainedSamples: Bool
 
     var body: some View {
-        GroupBox("Sample impact") {
+        GroupBox("Recent Connections") {
             if let preview {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Evaluated \(preview.evaluatedCount) recent visible flows • \(preview.affectedCount) match • \(preview.changedCount) results change")
+                    Text("Checked \(preview.evaluatedCount) recent connections • \(preview.affectedCount) match • \(preview.changedCount) would change")
                         .font(.caption)
                     ForEach(preview.samples.prefix(5)) { sample in
                         HStack {
@@ -32,7 +32,7 @@ struct RuleImpactPreviewView: View {
                                   ? "checkmark.seal.fill" : "circle.dashed")
                                 .foregroundStyle(sample.candidateWins ? .green : .secondary)
                                 .accessibilityLabel(sample.candidateWins
-                                                    ? "Proposed rule wins" : "Another rule wins")
+                                                    ? "This rule decides" : "Another rule decides")
                         }
                         if let precedence = sample.precedence {
                             Text(precedence)
@@ -42,15 +42,15 @@ struct RuleImpactPreviewView: View {
                         }
                     }
                     if preview.samples.count > 5 {
-                        Text("\(preview.samples.count - 5) additional matching samples")
+                        Text("\(preview.samples.count - 5) more matching connections")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(hasRetainedSamples
-                     ? "Enter a valid condition to preview it with the current matcher."
-                     : "No retained visible flows are available for a sample preview.")
+                     ? "Finish the rule to see how it would affect recent connections."
+                     : "There are no recent connections to preview.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

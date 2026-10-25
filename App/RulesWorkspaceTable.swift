@@ -32,11 +32,11 @@ struct RulesWorkspaceTable: View {
                 .width(min: 90, ideal: 125)
             TableColumn("Source") { node in Text(source(node)) }
                 .width(min: 75, ideal: 105)
-            TableColumn("Use") { node in
+            TableColumn("Uses") { node in
                 Text(usage(node)).help(usageHelp(node))
             }
             .width(55)
-            TableColumn("State") { node in Text(state(node)) }
+            TableColumn("Status") { node in Text(state(node)) }
                 .width(min: 90, ideal: 130)
         }
         .contextMenu(forSelectionType: RuleWorkspaceNodeID.self) { ids in
@@ -100,9 +100,9 @@ struct RulesWorkspaceTable: View {
             }
             .disabled(isPreview || eligibleCount(ids) == 0)
             Divider()
-            Button("Show Affecting Rules") { focusAffectingRules(ids) }
+            Button("Show Rules for This App") { focusAffectingRules(ids) }
                 .disabled(selectedApplicationIdentity(ids) == nil)
-            Button("Reveal Application") { revealApplication(ids) }
+            Button("Show App in Finder") { revealApplication(ids) }
                 .disabled(isPreview || selectedApplicationIdentity(ids) == nil)
             Button("Copy Details") { copyDetails(ids) }
                 .disabled(isPreview || selectedRows(ids).count != 1)
@@ -114,7 +114,9 @@ struct RulesWorkspaceTable: View {
             .disabled(isPreview || eligibleCount(ids) == 0)
             let skipped = selectedRuleIDs(ids).count - eligibleCount(ids)
             if skipped > 0 {
-                Text("\(skipped) protected or managed rule(s) will be skipped.")
+                Text(skipped == 1
+                    ? "1 protected or blocklist rule will be skipped."
+                    : "\(skipped) protected or blocklist rules will be skipped.")
             }
         } primaryAction: { ids in
             applySelection(ids)
@@ -122,14 +124,14 @@ struct RulesWorkspaceTable: View {
         }
         .accessibilityActions {
             if selectedApplicationIdentity(nodeSelection) != nil {
-                Button("Show Affecting Rules") { focusAffectingRules(nodeSelection) }
+                Button("Show Rules for This App") { focusAffectingRules(nodeSelection) }
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             if let focusedApplication {
                 HStack(spacing: 6) {
                     Label(
-                        "Affecting \(RuleWorkspacePresentation.identity(focusedApplication))",
+                        "Rules for \(RuleWorkspacePresentation.identity(focusedApplication))",
                         systemImage: "scope"
                     )
                     .lineLimit(1)
@@ -138,14 +140,14 @@ struct RulesWorkspaceTable: View {
                         Image(systemName: "xmark.circle.fill")
                     }
                     .buttonStyle(.borderless)
-                    .accessibilityLabel("Clear application focus")
+                    .accessibilityLabel("Show All Rules")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background(.bar)
-                .help("Rules whose application scope can include this application. Other conditions still apply.")
+                .help("Showing rules that can apply to this app. Each rule’s other conditions still apply.")
             }
         }
         .disabled(model.historyCommandIsRunning)
@@ -158,7 +160,7 @@ struct RulesWorkspaceTable: View {
         .onChange(of: model.selection) { _, _ in synchronizeSelection() }
         .onChange(of: model.rows) { _, _ in synchronizeSelection() }
         .alert(
-            "Command Unavailable",
+            "Couldn’t complete this action",
             isPresented: Binding(
                 get: { contextMessage != nil },
                 set: { if !$0 { contextMessage = nil } }
@@ -166,7 +168,7 @@ struct RulesWorkspaceTable: View {
         ) {
             Button("OK") { contextMessage = nil }
         } message: {
-            Text(contextMessage ?? "The command could not be completed.")
+            Text(contextMessage ?? "Try again.")
         }
     }
 
@@ -194,7 +196,7 @@ struct RulesWorkspaceTable: View {
         }
         .help([node.title, node.subtitle].compactMap { $0 }.joined(separator: " — "))
         .accessibilityElement(children: .combine)
-        .accessibilityValue(node.row == nil ? "\(node.ruleIDs.count) rules" : "")
+        .accessibilityValue(node.row == nil ? ruleCountLabel(node.ruleIDs.count) : "")
 
         if let ruleIDs = draggableRuleIDs(for: node) {
             cell
@@ -330,7 +332,7 @@ struct RulesWorkspaceTable: View {
         guard let identity = selectedApplicationIdentity(ids) else { return }
         Task {
             guard await artworkStore.revealApplication(for: identity) else {
-                contextMessage = "The installed application could not be verified uniquely."
+                contextMessage = "Rift couldn’t find exactly one installed copy of this app."
                 return
             }
         }
@@ -358,7 +360,7 @@ struct RulesWorkspaceTable: View {
             RuleWorkspaceCopyDetails.text(for: row.rule, context: context),
             forType: .string
         ) else {
-            contextMessage = "Rule details could not be copied."
+            contextMessage = "Rift couldn’t copy the rule details. Try again."
             return
         }
     }
@@ -379,12 +381,12 @@ struct RulesWorkspaceTable: View {
         switch enabledSymbol(node) {
         case "checkmark.circle.fill": "Enabled"
         case "circle": "Disabled"
-        default: "Mixed enabled state"
+        default: "Some enabled"
         }
     }
 
     private func action(_ node: RuleWorkspaceNode) -> String {
-        node.row?.actionLabel ?? "\(node.ruleIDs.count) rules"
+        node.row?.actionLabel ?? ruleCountLabel(node.ruleIDs.count)
     }
 
     private func scope(_ node: RuleWorkspaceNode) -> String {
@@ -428,9 +430,9 @@ struct RulesWorkspaceTable: View {
     private func usageHelp(_ node: RuleWorkspaceNode) -> String {
         let values = rows(node)
         if values.allSatisfy({ $0.usage.coverage == .complete }) {
-            return "Retained usage is complete for the available history window."
+            return "How many times this rule was used in saved history."
         }
-        return "A lower bound because some retained history is incomplete."
+        return "At least this many. Some history is missing."
     }
 
     private func state(_ node: RuleWorkspaceNode) -> String {
@@ -439,11 +441,15 @@ struct RulesWorkspaceTable: View {
 
     private func state(_ state: PolicyOutboxState) -> String {
         switch state {
-        case .savedPendingEnforcement: "Saved"
-        case .persistedPendingProvider: "Persisted"
-        case .enforced: "Enforced"
-        case .applyFailed: "Apply failed"
+        case .savedPendingEnforcement: "Pending"
+        case .persistedPendingProvider: "Pending"
+        case .enforced: "Active"
+        case .applyFailed: "Not applied"
         }
+    }
+
+    private func ruleCountLabel(_ count: Int) -> String {
+        count == 1 ? "1 rule" : "\(count) rules"
     }
 
     private func uniform(_ values: [String]) -> String {

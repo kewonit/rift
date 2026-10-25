@@ -143,7 +143,7 @@ final class ControlPlaneController {
             }
             guard case .success(let database) = configurationResult else {
                 configurationRecoveryRequired = true
-                startupIssue = "The editable configuration database failed validation. Rift did not replace it; the last validated extension policy may still be active. Import a known-good configuration from Settings › Advanced to preserve the invalid database and recover safely."
+                startupIssue = "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules. To recover, import a configuration you exported earlier in Settings › Advanced."
                 state = .failed
                 await prepareConfigurationRecoveryConnection()
                 return
@@ -186,7 +186,7 @@ final class ControlPlaneController {
                     } else { history = nil }
                     historyRecovery = historyResult.recovery
                 } else {
-                    startupIssue = "Connection history could not be opened or safely quarantined. Rift did not delete it; filtering configuration remains separate."
+                    startupIssue = "Rift couldn’t open your connection history and left it untouched. Your rules aren’t affected."
                 }
             }
             state = .databaseReady
@@ -417,7 +417,7 @@ final class ControlPlaneController {
                 historyRecovery = result.recovery
                 startupIssue = nil
             } else {
-                startupIssue = "Connection history is unavailable, but configuration recovery can continue. Rift did not delete the history database."
+                startupIssue = "Connection history isn’t available right now, and Rift left it untouched. You can still recover your rules and settings."
             }
         }
         configurationRecovery = result.recovery

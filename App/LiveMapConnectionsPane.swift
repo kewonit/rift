@@ -62,7 +62,7 @@ struct LiveMapConnectionsPane: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                    .accessibilityLabel("Clear connection search")
+                    .accessibilityLabel("Clear Search")
             }
             Divider().frame(height: 20)
             groupMenu
@@ -166,7 +166,7 @@ struct LiveMapConnectionsPane: View {
                 ContentUnavailableView(
                     query.search.isEmpty ? (isMinimal ? "Waiting for new connections" : "No connections yet") : "No matching connections",
                     systemImage: "network.slash",
-                    description: isMinimal ? Text("New connections appear while this view is visible. They are not saved.") : nil
+                    description: isMinimal ? Text("New connections appear while this view is open. They aren’t saved.") : nil
                 )
             }
         }
@@ -224,14 +224,14 @@ private struct LiveMapHierarchyRow: View {
         .accessibilityElement(children: .contain)
         .help(monitorCoverageLabel(node.ruleCoverage.state))
         .contextMenu {
-            Button("Investigate in Activity", action: investigate)
-            Button("Show Corresponding Rules", action: showRules)
+            Button("Show in Activity", action: investigate)
+            Button("Show Matching Rules", action: showRules)
                 .disabled(node.ruleCoverage.ruleIDs.isEmpty)
             if row != nil, node.exactRuleSeed != nil {
                 Divider()
-                Button("Allow Exact Connection") { apply(.allow) }
+                Button("Allow This Connection") { apply(.allow) }
                     .disabled(isApplying || monitorCoveragePending(node.ruleCoverage.state))
-                Button("Deny Exact Connection") { apply(.deny) }
+                Button("Deny This Connection") { apply(.deny) }
                     .disabled(isApplying || monitorCoveragePending(node.ruleCoverage.state))
             }
         }
@@ -260,7 +260,7 @@ private struct LiveMapHierarchyRow: View {
             received: node.aggregate.bytesInbound ?? 0,
             seed: node.aggregate.flowCount
         )
-        .help(totalBytes.map(byteLabel) ?? "Traffic volume unavailable")
+        .help(totalBytes.map(byteLabel) ?? "No traffic data yet")
     }
 
     private var exactActions: some View {
@@ -271,7 +271,7 @@ private struct LiveMapHierarchyRow: View {
                     .foregroundStyle(node.aggregate.denied > 0 ? Color.white : .secondary)
                     .background(node.aggregate.denied > 0 ? Color.red : Color.clear)
             }
-                .accessibilityLabel("Deny exact connection")
+                .accessibilityLabel("Deny this connection")
             Divider().frame(height: 13)
             Button { apply(.allow) } label: {
                 Image(systemName: "checkmark")
@@ -279,7 +279,7 @@ private struct LiveMapHierarchyRow: View {
                     .foregroundStyle(node.aggregate.allowed > 0 ? Color.white : .secondary)
                     .background(node.aggregate.allowed > 0 ? Color.green : Color.clear)
             }
-                .accessibilityLabel("Allow exact connection")
+                .accessibilityLabel("Allow this connection")
         }
         .buttonStyle(.borderless)
         .controlSize(.mini)
@@ -361,12 +361,12 @@ private struct MiniTrafficMeter: View {
 }
 
 private enum LiveHierarchySort: String, CaseIterable, Identifiable {
-    case activity = "Network Activity"
+    case activity = "Most Recent"
     case name = "Name"
-    case traffic = "Traffic Volume"
-    case sent = "Sent"
-    case received = "Received"
-    case denied = "Deny Count"
+    case traffic = "Total Traffic"
+    case sent = "Data Sent"
+    case received = "Data Received"
+    case denied = "Most Denied"
     var id: String { rawValue }
 
     func comparator(_ lhs: MonitorHierarchyNode, _ rhs: MonitorHierarchyNode) -> Bool {
@@ -408,8 +408,8 @@ private enum LiveHierarchySort: String, CaseIterable, Identifiable {
 private extension MonitorLens {
     var menuLabel: String {
         switch self {
-        case .application: "Application"
-        case .hostname: "Domain"
+        case .application: "App"
+        case .hostname: "Hostname"
         }
     }
 

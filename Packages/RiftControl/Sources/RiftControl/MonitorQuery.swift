@@ -12,7 +12,7 @@ public enum MonitorDecisionFilter: String, CaseIterable, Sendable, Identifiable 
     case all = "All decisions"
     case allowed = "Allowed"
     case denied = "Denied"
-    case unresolved = "Fallback / unresolved"
+    case unresolved = "Decided by default"
     public var id: String { rawValue }
 }
 
@@ -41,7 +41,7 @@ public enum MonitorOwnerFilter: String, CaseIterable, Sendable, Identifiable {
 public enum MonitorTimeFilter: String, CaseIterable, Sendable, Identifiable {
     case twoMinutes = "2 minutes"
     case tenMinutes = "10 minutes"
-    case all = "All retained"
+    case all = "All history"
     case hour = "Hour"
     case fiveHours = "5 hours"
     case day = "Day"
@@ -263,9 +263,9 @@ public enum MonitorQuery {
         case .applePlatform(let value), .developerID(let value), .appStore(let value):
             value.signingIdentifier
         case .otherSigner(_, let identifier): identifier
-        case .adHoc: "Ad-hoc signed process"
+        case .adHoc: "Ad hoc signed app"
         case .unsigned(let path, _): path
-        case nil: "Unknown process"
+        case nil: "Unknown app"
         }
     }
 

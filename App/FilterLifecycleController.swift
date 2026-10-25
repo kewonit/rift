@@ -64,12 +64,12 @@ final class FilterLifecycleController: NSObject {
         switch state {
         case .notInstalled: "Ready to protect this Mac"
         case .activating: "Installing the network filter…"
-        case .awaitingApproval: "Approval is required"
+        case .awaitingApproval: "Waiting for your approval"
         case .active: "Network filter installed"
-        case .savingFilterConfiguration: "Enabling the network filter…"
+        case .savingFilterConfiguration: "Turning on the network filter…"
         case .enabled: "Rift is active"
-        case .denied: "Approval was denied"
-        case .disabled: "Rift is disabled in macOS"
+        case .denied: "The filter wasn’t approved"
+        case .disabled: "The filter is turned off in macOS"
         case .stale: "Refreshing filter settings…"
         case .replacing: "Updating the network filter…"
         case .failed: "Rift needs attention"
@@ -80,17 +80,17 @@ final class FilterLifecycleController: NSObject {
     var guidance: String {
         switch state {
         case .notInstalled:
-            "Install Rift from Applications, then approve its network extension when macOS asks. Traffic remains allowed during this foundation setup."
+            "Make sure Rift is in your Applications folder. Then click Install and Enable, and approve the filter when macOS asks. All traffic is allowed until setup is done."
         case .awaitingApproval:
-            "Open Login Items & Extensions in System Settings, select Network Extensions, and enable Rift. Return here when approval finishes."
+            "In System Settings, open Login Items & Extensions, choose Network Extensions, and turn on Rift. Then come back here."
         case .denied(let message), .failed(let message):
             message
         case .disabled:
-            "The extension is installed but disabled outside Rift. No filtering or activity reporting is available until it is enabled again."
+            "The filter is installed but was turned off outside Rift. Turn it back on to filter connections and see activity."
         case .enabled:
-            "The network provider is enabled. Rift reports enforcement only after the control plane confirms the active policy generation."
+            "The network filter is on. Rift shows your rules as active once the filter confirms it’s using them."
         default:
-            "Rift is applying the requested system configuration."
+            "Rift is updating the filter settings in macOS."
         }
     }
 
@@ -100,7 +100,7 @@ final class FilterLifecycleController: NSObject {
             .resolvingSymlinksInPath().standardizedFileURL.path
         guard applicationPath.hasPrefix("/Applications/") else {
             retryAction = .activation
-            transition(.fail("Move Rift to Applications before installing its system extension."))
+            transition(.fail("Move Rift to your Applications folder, then try again."))
             return
         }
         activationPreflightFailure = nil
@@ -139,7 +139,7 @@ final class FilterLifecycleController: NSObject {
                 submitDeactivation()
             } catch {
                 retryAction = .status
-                transition(.fail("macOS could not prepare the filter for removal. The error was \(sanitized(error))."))
+                transition(.fail("macOS couldn’t prepare the filter for removal. Try again. Error code: \(sanitized(error))."))
             }
         }
     }
@@ -204,7 +204,7 @@ final class FilterLifecycleController: NSObject {
 
     private func redactedDiagnostics() -> String {
         [
-            "Rift health (redacted)",
+            "Rift status report (redacted)",
             "state=\(state)",
             "activationPreflight=\(activationPreflightFailure?.rawValue ?? "none")",
             "os=\(ProcessInfo.processInfo.operatingSystemVersionString)",
@@ -219,7 +219,7 @@ final class FilterLifecycleController: NSObject {
             refreshInstalledState()
         } catch {
             retryAction = .activation
-            transition(.fail("macOS could not enable the filter. The error was \(sanitized(error)). Traffic is not claimed as filtered."))
+            transition(.fail("macOS couldn’t turn on the filter, so connections aren’t being filtered. Try again. Error code: \(sanitized(error))."))
         }
     }
 
@@ -302,7 +302,7 @@ final class FilterLifecycleController: NSObject {
             try await manager.loadFromPreferences()
         } catch {
             return .failed(
-                message: "Installed-state query failed with \(sanitized(error))."
+                message: "Rift couldn’t check the filter’s status with macOS. Try again. Error code: \(sanitized(error))."
             )
         }
         guard manager.isEnabled else { return .disabled }
@@ -349,7 +349,7 @@ final class FilterLifecycleController: NSObject {
             let newState = try machine.apply(event)
             logger.notice("Lifecycle entered \(String(describing: newState), privacy: .public)")
         } catch {
-            machine = LifecycleStateMachine(state: .failed(message: "An internal lifecycle transition failed. Traffic is not claimed as filtered."))
+            machine = LifecycleStateMachine(state: .failed(message: "Something went wrong while updating the filter. Rift can’t confirm that connections are being filtered. Try again."))
             retryAction = .status
             logger.error("Rejected lifecycle transition")
         }
@@ -376,7 +376,7 @@ extension FilterLifecycleController: OSSystemExtensionRequestDelegate {
             Task { @MainActor [weak self] in
                 self?.retryAction = .activation
                 self?.transition(.fail(
-                    "Rift refused to replace the installed network filter with an older or mismatched copy."
+                    "Rift didn’t replace the installed filter because this copy of Rift is older or doesn’t match. Use the latest version of Rift."
                 ))
             }
             return .cancel
@@ -410,15 +410,15 @@ extension FilterLifecycleController: OSSystemExtensionRequestDelegate {
                 switch kind {
                 case .activation:
                     self.transition(.fail(
-                        "macOS will finish installing the network filter after a restart. Restart this Mac, then reopen Rift."
+                        "macOS will finish installing the filter after a restart. Restart your Mac, then open Rift again."
                     ))
                 case .deactivation:
                     self.transition(.fail(
-                        "macOS will finish removing the network filter after a restart. Restart this Mac before reinstalling Rift."
+                        "macOS will finish removing the filter after a restart. Restart your Mac before you install Rift again."
                     ))
                 case .properties:
                     self.finishPropertiesRequest(with: .failed(
-                        message: "macOS deferred the installed-state query until after a restart."
+                        message: "macOS can’t report the filter’s status until you restart your Mac."
                     ))
                 case nil:
                     break
@@ -452,17 +452,17 @@ extension FilterLifecycleController: OSSystemExtensionRequestDelegate {
                 self.initialStatusResolved = true
                 self.retryAction = .status
                 self.machine = LifecycleStateMachine(
-                    state: .failed(message: "Installed-state query failed with \(self.sanitized(error)).")
+                    state: .failed(message: "Rift couldn’t check the filter’s status with macOS. Try again. Error code: \(self.sanitized(error)).")
                 )
                 return
             }
             if value.domain == OSSystemExtensionErrorDomain,
                value.code == OSSystemExtensionError.authorizationRequired.rawValue {
                 self.retryAction = .activation
-                self.transition(.permissionDenied("macOS did not authorize the extension. Approve Rift in System Settings, then try again."))
+                self.transition(.permissionDenied("macOS didn’t allow the filter. Approve Rift in System Settings, then try again."))
             } else {
                 self.retryAction = kind == .activation ? .activation : .status
-                self.transition(.fail("System extension setup failed with \(value.domain) (\(value.code)). Traffic remains unclaimed."))
+                self.transition(.fail("The filter couldn’t be set up, so connections aren’t being filtered. Try again. Error code: \(value.domain) (\(value.code))."))
             }
         }
     }

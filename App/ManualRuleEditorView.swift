@@ -35,7 +35,7 @@ struct ManualRuleEditorView: View {
     @State private var previewTask: Task<Void, Never>?
 
     enum DestinationKind: String, CaseIterable, Identifiable {
-        case hostOrAddress = "Hosts or addresses"
+        case hostOrAddress = "Specific hosts or addresses"
         case broadcast = "Broadcast"
         case multicast = "Multicast"
         case bonjour = "Bonjour"
@@ -127,15 +127,15 @@ struct ManualRuleEditorView: View {
                     ForEach(EditorAction.allCases) { Text($0.rawValue).tag($0) }
                 }
                 if action == .hide {
-                    Text("New matches are omitted from Monitor and history. Existing records remain.")
+                    Text("Matching connections won’t appear in Activity or history. Past records stay.")
                         .foregroundStyle(.orange)
                 }
                 if action == .notify {
-                    Text("Notifications are rate-limited and do not change filtering.")
+                    Text("Rift notifies you when this rule matches, up to a limit. It doesn’t change filtering.")
                         .foregroundStyle(.secondary)
                 }
                 if action == .allow {
-                    Toggle("Override managed blocklist denies", isOn: $overrideBlocklists)
+                    Toggle("Allow even if a blocklist denies it", isOn: $overrideBlocklists)
                 }
             }
 
@@ -146,12 +146,12 @@ struct ManualRuleEditorView: View {
                     }
                 }
                 Picker("Owner", selection: $owner) {
-                    Text("Current policy owner").tag(OwnerCondition.authorizedUser)
-                    Text("Observed system process").tag(OwnerCondition.system)
+                    Text("Your account").tag(OwnerCondition.authorizedUser)
+                    Text("System process").tag(OwnerCondition.system)
                         .disabled(!selectedIdentityPermitsSystemOwner)
                 }
                 if owner == .system {
-                    Text("System scope applies across login sessions.")
+                    Text("System rules apply no matter who is logged in.")
                         .foregroundStyle(.orange)
                 }
                 Picker("Destination", selection: $destinationKind) {
@@ -159,20 +159,22 @@ struct ManualRuleEditorView: View {
                 }
                 if destinationKind == .hostOrAddress {
                     TextField(
-                        "Hosts, domains, IPs, CIDRs, or IP ranges",
+                        "Hostnames, IP addresses, or IP ranges",
                         text: $destinationText,
                         axis: .vertical
                     )
                     .lineLimit(3...7)
                     .disabled(includesChildren)
                     if includesChildren {
-                        Text("Child-domain matching is preserved. Editing it requires public-suffix validation.")
+                        Text("This rule also matches subdomains, so these entries can’t be edited here.")
                             .foregroundStyle(.secondary)
                     } else {
-                        Text("Hostnames match exactly. Child-domain matching requires public-suffix validation.")
+                        Text("Separate entries with commas or new lines. Hostnames match exactly and don’t include subdomains.")
                             .foregroundStyle(.secondary)
                     }
-                    Text("\(remainingDestinationCapacity) destination entries available")
+                    Text(remainingDestinationCapacity == 1
+                        ? "You can add 1 more entry."
+                        : "You can add \(remainingDestinationCapacity) more entries.")
                         .foregroundStyle(.secondary)
                 }
                 Picker("Protocol", selection: $transport) {
@@ -193,7 +195,7 @@ struct ManualRuleEditorView: View {
                         Text(profile.name).tag(Optional(profile.id))
                     }
                 }
-                Picker("Local group", selection: $localGroupID) {
+                Picker("Group", selection: $localGroupID) {
                     Text("No group").tag(UUID?.none)
                     ForEach(groups) { group in
                         Text(group.name).tag(Optional(group.id))
@@ -209,7 +211,7 @@ struct ManualRuleEditorView: View {
                 TextField("Note", text: $note, axis: .vertical).lineLimit(2...4)
             }
 
-            Section("Impact") {
+            Section("Preview") {
                 RuleImpactPreviewView(
                     preview: preview,
                     hasRetainedSamples: previewEnvironment?.samples.isEmpty == false
@@ -224,7 +226,7 @@ struct ManualRuleEditorView: View {
         .frame(width: 600, height: 620)
         .safeAreaInset(edge: .bottom) {
             HStack {
-                Text("Changes apply to new and pending connections.")
+                Text("Changes apply to new connections and ones waiting for a decision.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -249,7 +251,7 @@ struct ManualRuleEditorView: View {
         .task { schedulePreview(previewDraft) }
         .onDisappear { previewTask?.cancel() }
         .confirmationDialog(
-            "Save Blocklist Exception?",
+            "Save blocklist exception?",
             isPresented: $showingOverrideConfirmation,
             titleVisibility: .visible
         ) {
@@ -262,7 +264,7 @@ struct ManualRuleEditorView: View {
         } message: {
             if let draft = pendingOverrideDraft {
                 let label = availableIdentities.first { $0.process == draft.process }?.label
-                    ?? "Selected application identity"
+                    ?? "Selected app"
                 Text(ManualRuleOverrideConfirmation.message(
                     draft: draft,
                     applicationLabel: label
@@ -286,14 +288,18 @@ struct ManualRuleEditorView: View {
         } catch let error as RuleValidationError {
             switch error {
             case .elevatedPriorityRequiresExactProcess:
-                validation = "Choose one specific application or app-and-helper identity."
+                validation = "Choose a specific app for a blocklist exception."
             case .elevatedPriorityRequiresExactDestination:
-                validation = "Choose exact hostnames or an exact IP set for this exception."
+                validation = "Enter exact hostnames or IP addresses for a blocklist exception."
             default:
-                validation = "Narrow the exception before saving."
+                validation = "Make the exception more specific, then save."
             }
+        } catch DestinationEditorError.mixedTypes {
+            validation = "Use either hostnames or IP addresses in one rule, not both."
+        } catch DestinationEditorError.overLimit {
+            validation = "There are too many entries. Split them into more than one rule."
         } catch {
-            validation = "Enter a valid destination, address range, or domain."
+            validation = "Enter a valid hostname, IP address, or IP range."
         }
     }
 
@@ -449,15 +455,15 @@ struct ManualRuleEditorView: View {
         var message: String {
             switch self {
             case .incomingDomain:
-                "Hostname and domain matches support outgoing connections only."
+                "Hostname rules work only for outgoing connections."
             case .expired:
-                "Choose an expiry time in the future."
+                "Choose an expiration time in the future."
             case .noteTooLong:
-                "Shorten the note before saving."
+                "This note is too long."
             case .port:
-                "Enter one port or an ascending port range."
+                "Enter a port, like 443, or a range, like 8000-8080."
             case .unavailableIdentity:
-                "Choose an available application and owner scope."
+                "Choose an available app and owner."
             }
         }
     }

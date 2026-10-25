@@ -79,15 +79,15 @@ struct MonitorSidebarView: View {
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .help("Preview data. This is not live filtering.")
-                .accessibilityLabel("Preview data. This is not live filtering.")
+                .help("Preview mode. Rift isn’t filtering.")
+                .accessibilityLabel("Preview mode. Rift isn’t filtering.")
             } else {
                 Button(action: showFilterStatus) {
                     Label("Filter Status", systemImage: "shield")
                         .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.plain)
-                .help("Filter status")
+                .help("Show filter status")
             }
         }
         .padding(.horizontal, 8)
@@ -133,7 +133,7 @@ struct MonitorSidebarView: View {
             }
             if hasMore {
                 Button(action: loadMore) {
-                    Label("Load more", systemImage: "arrow.down.circle")
+                    Label("Load More", systemImage: "arrow.down.circle")
                 }
                 .disabled(loading)
             }
@@ -144,10 +144,10 @@ struct MonitorSidebarView: View {
                 ContentUnavailableView(
                     controlPlane.isMinimalActivity
                         ? (rows.isEmpty && query.search.isEmpty ? "Waiting for new connections" : "No matching connections")
-                        : "No activity",
+                        : "No activity yet",
                     systemImage: "network",
                     description: controlPlane.isMinimalActivity
-                        ? Text("New connections appear while this view is visible. Up to \(ControlPlaneController.minimalFlowLimit) are kept for five minutes, without saving them.") : nil
+                        ? Text("New connections appear while this view is open. Rift keeps up to \(ControlPlaneController.minimalFlowLimit) for five minutes and doesn’t save them.") : nil
                 )
             }
         }
@@ -204,7 +204,7 @@ struct MonitorToolbarContent: ToolbarContent {
             Button(action: openRules) {
                 Label("Rules", systemImage: "list.bullet.rectangle")
             }
-            .help("Open rules")
+            .help("Show rules")
             if !showingSummary {
                 Button(action: showSummary) {
                     Label("Show Summary", systemImage: "sidebar.right")
@@ -263,8 +263,8 @@ private struct TrafficTotalChip: View {
 
     private var helpText: String {
         total.isPartial
-            ? "Lower bound from reported completed connections"
-            : "Reported when connections closed"
+            ? "At least this much, based on connections that have closed"
+            : "Counted when connections close"
     }
 }
 #endif
@@ -312,14 +312,14 @@ private struct MonitorHierarchyRow: View {
                     }
                     .buttonStyle(.borderless)
                     .frame(width: 20, height: 18)
-                    .accessibilityLabel("Allow exact connection")
+                    .accessibilityLabel("Allow this connection")
                     Divider().frame(height: 13)
                     Button { apply(.deny) } label: {
                         Image(systemName: "xmark")
                     }
                     .buttonStyle(.borderless)
                     .frame(width: 20, height: 18)
-                    .accessibilityLabel("Deny exact connection")
+                    .accessibilityLabel("Deny this connection")
                 }
                 .controlSize(.mini)
                 .background(.quinary, in: RoundedRectangle(cornerRadius: 5))
@@ -330,7 +330,7 @@ private struct MonitorHierarchyRow: View {
         .frame(minHeight: 25)
         .help(monitorCoverageLabel(node.ruleCoverage.state))
         .contextMenu {
-            Button("Show Corresponding Rules", action: showRules)
+            Button("Show Matching Rules", action: showRules)
                 .disabled(node.ruleCoverage.ruleIDs.isEmpty)
         }
     }
@@ -359,19 +359,19 @@ func monitorCoveragePending(_ state: MonitorRuleCoverageState) -> Bool {
 
 func monitorCoverageLabel(_ state: MonitorRuleCoverageState) -> String {
     switch state {
-    case .exact: "Exact rule"
-    case .broader: "Broader rule"
-    case .narrower: "Partial coverage"
-    case .mixed: "Mixed rules"
-    case .savedPendingEnforcement: "Saved"
-    case .persistedPendingProvider: "Persisted"
-    case .applyFailed: "Apply failed"
-    case .unresolved: "Unresolved"
-    case .policyChanged: "Policy changed"
-    case .historicalRuleMissing: "Historical rule missing"
-    case .identityChanged: "Identity changed"
+    case .exact: "Matched by an exact rule"
+    case .broader: "Matched by a broader rule"
+    case .narrower: "Partly covered by rules"
+    case .mixed: "Covered by different rules"
+    case .savedPendingEnforcement: "Rule saved, waiting for the filter"
+    case .persistedPendingProvider: "Rule saved, waiting for the filter"
+    case .applyFailed: "Rule couldn’t be applied"
+    case .unresolved: "Decided by default"
+    case .policyChanged: "Rules changed since this connection"
+    case .historicalRuleMissing: "The rule that decided this was removed"
+    case .identityChanged: "The app’s identity changed"
     case .hostnameUnavailable: "Hostname unavailable"
-    case .noRule: "No rule"
+    case .noRule: "No matching rule"
     }
 }
 
@@ -395,7 +395,7 @@ struct MonitorManagedListOverrideConfirmation: ViewModifier {
 
     func body(content: Content) -> some View {
         content.confirmationDialog(
-            "Allow a Managed-List Exception?",
+            "Allow this blocklisted connection?",
             isPresented: Binding(
                 get: { pending != nil },
                 set: { if !$0 { pending = nil } }
@@ -403,14 +403,14 @@ struct MonitorManagedListOverrideConfirmation: ViewModifier {
             titleVisibility: .visible
         ) {
             if let pending {
-                Button("Allow Exact Connection") {
+                Button("Allow This Connection") {
                     self.pending = nil
                     confirm(pending)
                 }
             }
             Button("Cancel", role: .cancel) { pending = nil }
         } message: {
-            Text("This exact allow applies only to the selected application and destination, and outranks matching managed lists.")
+            Text("This allows only this app and destination, and overrides your blocklists for them.")
         }
     }
 }

@@ -193,7 +193,7 @@ public enum MonitorHierarchyBuilder {
             return Component(
                 kind: .route,
                 key: direction + "Unknown locality",
-                title: direction + " • Unknown locality",
+                title: direction + " • Unknown network",
                 subtitle: nil
             )
         }

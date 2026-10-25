@@ -255,7 +255,7 @@ struct MonitorView: View {
         } catch is CancellationError {
         } catch {
             guard windowIsVisible, queryMayPublish(requestID) else { return }
-            loadError = "Couldn’t refresh. Showing saved activity."
+            loadError = "Couldn’t refresh. Showing the last activity Rift loaded."
         }
     }
 
@@ -290,7 +290,7 @@ struct MonitorView: View {
                 pendingManagedListOverride = node
                 loadError = nil
             } catch {
-                loadError = "The exact rule wasn’t applied. Retry after Rift reconnects."
+                loadError = "The rule wasn’t added. Try again after Rift reconnects."
             }
             applyingEventID = nil
         }
@@ -319,7 +319,7 @@ struct MonitorView: View {
             query.clearExcludingFilters()
         } else if rowsAreComplete
                     && historyCoverage.coverage(for: .all, now: queryNow) == .complete {
-            loadError = "That activity is no longer retained or was privacy-hidden."
+            loadError = "That activity is no longer available. It may have been removed from history or hidden by a rule."
             session.requestedMonitorEventID = nil
         }
     }

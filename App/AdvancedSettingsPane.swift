@@ -29,20 +29,20 @@ struct AdvancedSettingsPane: View {
                     .disabled(resettingConfiguration || isPreview)
                 }
                 if restoreNeedsRetry || controlPlane.canRollbackLastRestore {
-                    Button("Retry Applying Restored Configuration", action: retryRestore)
-                    Button("Roll Back Restored Configuration", role: .destructive, action: rollbackRestore)
+                    Button("Apply Restored Configuration Again", action: retryRestore)
+                    Button("Undo Restore", role: .destructive, action: rollbackRestore)
                         .disabled(!controlPlane.canRollbackLastRestore)
                 }
             }
             Section {
-                DisclosureGroup("Bundle Contents") {
+                DisclosureGroup("What’s Included") {
                     VStack(alignment: .leading, spacing: 5) {
                         ForEach(diagnosticsPreview?.defaultSections ?? [], id: \.self) {
                             Label($0, systemImage: "checkmark.shield")
                         }
-                        Toggle("Pseudonymized recent visible activity", isOn: option(.recentActivity))
-                        Toggle("Pseudonymized rule summaries", isOn: option(.ruleSummaries))
-                        Toggle("Current-process log excerpts", isOn: option(.appLogExcerpts))
+                        Toggle("Recent activity (masked)", isOn: option(.recentActivity))
+                        Toggle("Rule summaries (masked)", isOn: option(.ruleSummaries))
+                        Toggle("Recent Rift log entries", isOn: option(.appLogExcerpts))
                         ForEach(diagnosticsPreview?.optionalSections ?? [], id: \.self) {
                             Label($0, systemImage: "exclamationmark.lock")
                                 .foregroundStyle(.orange)
@@ -50,11 +50,11 @@ struct AdvancedSettingsPane: View {
                     }
                     .padding(.top, 6)
                 }
-                Button("Save Diagnostics Bundle…", action: saveDiagnostics)
+                Button("Save Diagnostics…", action: saveDiagnostics)
             } header: {
                 Text("Diagnostics")
             } footer: {
-                Text("Optional values are freshly pseudonymized for each bundle and are never uploaded automatically.")
+                Text("Optional items are masked differently each time you save. Rift never uploads diagnostics.")
             }
             if lifecycle != nil {
                 Section("Network Filter") {
@@ -78,10 +78,10 @@ struct AdvancedSettingsPane: View {
             Button("Uninstall Network Filter", role: .destructive, action: uninstall)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Rift will first verify fail-open policy cleanup, then ask macOS to remove the filter extension.")
+            Text("Rift will first make sure all traffic is allowed, then ask macOS to remove the filter.")
         }
         .alert(
-            "Reset the invalid configuration?",
+            "Reset the damaged configuration?",
             isPresented: $showingResetConfirmation
         ) {
             TextField("Type RESET", text: $resetConfirmation)
@@ -89,7 +89,7 @@ struct AdvancedSettingsPane: View {
                 .disabled(resetConfirmation != "RESET")
             Button("Cancel", role: .cancel) { resetConfirmation = "" }
         } message: {
-            Text("This removes editable rules, profiles, groups, and blocklists. The invalid database is preserved in an owner-only quarantine. Filtering stays fail-open until a new empty Silent Allow policy is durably verified.")
+            Text("This deletes your rules, profiles, groups, and blocklists, and starts fresh in Silent Allow mode. Rift keeps a private copy of the damaged configuration. All traffic is allowed until the reset finishes.")
         }
     }
 
@@ -104,7 +104,7 @@ struct AdvancedSettingsPane: View {
     }
 
     private func exportConfiguration() {
-        perform("The configuration export was not saved.") {
+        perform("Couldn’t export the configuration.") {
             let data = try await controlPlane.configurationArchiveData()
             try await ArchiveFileAccess.save(
                 data: data, suggestedName: "Rift Configuration.json"
@@ -123,14 +123,14 @@ struct AdvancedSettingsPane: View {
                 importData = nil
                 message = ArchiveFileAccess.message(
                     for: error,
-                    fallback: "The selected configuration archive could not be validated."
+                    fallback: "Rift couldn’t read this file. Choose a configuration file exported from Rift."
                 )
             }
         }
     }
 
     private func saveDiagnostics() {
-        perform("The diagnostics export was not saved.") {
+        perform("Couldn’t save diagnostics.") {
             let data = try await controlPlane.diagnosticsBundleData(options: diagnosticsOptions)
             try await ArchiveFileAccess.save(
                 data: data, suggestedName: "Rift Diagnostics.json"
@@ -144,10 +144,10 @@ struct AdvancedSettingsPane: View {
                 let outcome = try await controlPlane.retryPendingConfiguration()
                 restoreNeedsRetry = outcome == .savedPendingEnforcement
                 message = outcome == .enforced
-                    ? "The restored configuration is enforced."
-                    : "The restored configuration remains saved but is not enforced."
+                    ? "The restored configuration is now active."
+                    : "The restored configuration is saved, but the filter isn’t using it yet."
             } catch {
-                message = "The restored configuration remains saved but is not enforced."
+                message = "The restored configuration is saved, but the filter isn’t using it yet."
             }
         }
     }
@@ -158,10 +158,10 @@ struct AdvancedSettingsPane: View {
                 let outcome = try await controlPlane.rollbackLastRestore()
                 restoreNeedsRetry = outcome == .savedPendingEnforcement
                 message = outcome == .enforced
-                    ? "The pre-restore configuration was restored and enforced."
-                    : "The pre-restore configuration is saved but not enforced."
+                    ? "Your previous configuration is back and active."
+                    : "Your previous configuration is back, but the filter isn’t using it yet."
             } catch {
-                message = "The pre-restore configuration was not saved. The current configuration was not changed."
+                message = "Couldn’t undo the restore. Your current configuration hasn’t changed."
             }
         }
     }
@@ -173,7 +173,7 @@ struct AdvancedSettingsPane: View {
             let prepared = await controlPlane.prepareForUninstall()
             preparingUninstall = false
             guard prepared else {
-                message = "Fail-open preparation could not be verified. The extension was not removed."
+                message = "Rift couldn’t confirm that all traffic is allowed, so the filter wasn’t removed. Try again."
                 return
             }
             lifecycle.uninstall()
@@ -188,10 +188,10 @@ struct AdvancedSettingsPane: View {
             do {
                 let outcome = try await controlPlane.resetConfiguration()
                 message = outcome == .enforced
-                    ? "A fresh empty configuration is enforced in Silent Allow mode."
-                    : "A fresh empty configuration is saved. Filtering remains fail-open until enforcement reconnects."
+                    ? "Configuration reset. Rift is starting fresh in Silent Allow mode."
+                    : "Configuration reset. All traffic is allowed until the filter reconnects."
             } catch {
-                message = "The configuration was not reset. If root cleanup had already started, filtering remains fail-open; retry from the policy-owner account."
+                message = "The configuration wasn’t reset, and all traffic may be allowed for now. Try again while signed in to the Mac account that manages Rift."
             }
             resettingConfiguration = false
         }

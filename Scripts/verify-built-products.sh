@@ -100,6 +100,19 @@ if [[ ! -s "$APP/Contents/Resources/ThirdPartyNotices.txt" ]]; then
   exit 1
 fi
 
+network_data=(
+  'ip-country.bin:5f9ecbf930e99e7ea3577030bc3915f3af8d3064aed3fc8869df286d53db06c1'
+  'country-grid.bin:eb16de794d1b218058a80e94de275f0eb64a96c991baf1677bbb3d277a1f7c9a'
+  'network-map.json:0c5f5adeed56f93bb112a29a2288fe2ea4731a266c5374c6b2c560519908aec7'
+)
+for entry in "${network_data[@]}"; do
+  file="$APP/Contents/Resources/${entry%%:*}"
+  if [[ ! -f "$file" || "$(shasum -a 256 "$file" | awk '{print $1}')" != "${entry#*:}" ]]; then
+    echo "missing or changed network map data: ${entry%%:*}" >&2
+    exit 1
+  fi
+done
+
 for binary in "$EXTENSION_BINARY" "$CLI_BINARY"; do
   dependencies=$(otool -L "$binary" | awk '/compatibility version/ {print $1}')
   while IFS= read -r dependency; do

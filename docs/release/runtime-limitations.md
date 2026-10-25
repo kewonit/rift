@@ -56,12 +56,23 @@ never uploaded automatically.
 
 ## Map
 
-The Live Map doesn't show where connections go. Rift doesn't geolocate
-destination addresses and doesn't send them to any lookup service. The map
-shows only the location you place for this Mac, rounded to `0.25°` and saved on
-this Mac. Apple MapKit supplies the basemap and communicates with Apple for the
-visible map region; Rift doesn't give Apple destination IPs, hostnames, app
-identities, or firewall decisions.
+The Live Map shows undersea internet cables and the location you place for this
+Mac, rounded to `0.25°` and saved on this Mac. For each public destination,
+Rift looks up the country in a bundled table on the Mac and estimates the cables
+the connection most likely uses. It never sends destination addresses to a
+lookup service.
+
+These are estimates. Country data describes where an address is routed and can
+be wrong for VPNs, relays, and content delivery networks. Solid cable lines come
+from OpenStreetMap, which doesn't map every cable; dashed lines are main sea
+routes drawn from where cables come ashore. Rift can't observe the physical path
+a connection takes. Local, private, and unknown destinations aren't plotted, and
+blocked connections show a marker without a path because they never left the
+Mac.
+
+Apple MapKit supplies the basemap and communicates with Apple for the visible
+map region; Rift doesn't give Apple destination IPs, hostnames, app identities,
+or firewall decisions.
 
 ## Recover from a filter problem
 

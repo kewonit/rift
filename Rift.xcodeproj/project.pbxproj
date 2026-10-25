@@ -95,10 +95,17 @@
 		100000000000000000000056 /* RiftDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000058 /* RiftDesign.swift */; };
 		100000000000000000000057 /* RiftWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000059 /* RiftWorkspaceView.swift */; };
 		100000000000000000000058 /* LiveMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005A /* LiveMapView.swift */; };
+		1000000000000000000000C4 /* NetworkMapOverlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C4 /* NetworkMapOverlays.swift */; };
+		1000000000000000000000C3 /* NetworkMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C3 /* NetworkMapView.swift */; };
+		1000000000000000000000C2 /* NetworkMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C2 /* NetworkMapStore.swift */; };
+		1000000000000000000000C1 /* LiveMapCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C1 /* LiveMapCanvas.swift */; };
 		100000000000000000000071 /* LiveMapConnectionsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000071 /* LiveMapConnectionsPane.swift */; };
 		100000000000000000000073 /* LiveTrafficChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000073 /* LiveTrafficChart.swift */; };
 		100000000000000000000074 /* StatusMenuDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000074 /* StatusMenuDashboard.swift */; };
 		10000000000000000000005E /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000060 /* ThirdPartyNotices.txt */; };
+		1000000000000000000000C7 /* ip-country.bin in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C7 /* ip-country.bin */; };
+		1000000000000000000000C6 /* country-grid.bin in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C6 /* country-grid.bin */; };
+		1000000000000000000000C5 /* network-map.json in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C5 /* network-map.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -234,10 +241,17 @@
 		200000000000000000000058 /* RiftDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftDesign.swift; sourceTree = "<group>"; };
 		200000000000000000000059 /* RiftWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftWorkspaceView.swift; sourceTree = "<group>"; };
 		20000000000000000000005A /* LiveMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapView.swift; sourceTree = "<group>"; };
+		2000000000000000000000C4 /* NetworkMapOverlays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMapOverlays.swift; sourceTree = "<group>"; };
+		2000000000000000000000C3 /* NetworkMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMapView.swift; sourceTree = "<group>"; };
+		2000000000000000000000C2 /* NetworkMapStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMapStore.swift; sourceTree = "<group>"; };
+		2000000000000000000000C1 /* LiveMapCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapCanvas.swift; sourceTree = "<group>"; };
 		200000000000000000000071 /* LiveMapConnectionsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapConnectionsPane.swift; sourceTree = "<group>"; };
 		200000000000000000000073 /* LiveTrafficChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTrafficChart.swift; sourceTree = "<group>"; };
 		200000000000000000000074 /* StatusMenuDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuDashboard.swift; sourceTree = "<group>"; };
 		200000000000000000000060 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
+		2000000000000000000000C7 /* ip-country.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NetworkData/ip-country.bin"; sourceTree = "<group>"; };
+		2000000000000000000000C6 /* country-grid.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NetworkData/country-grid.bin"; sourceTree = "<group>"; };
+		2000000000000000000000C5 /* network-map.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "NetworkData/network-map.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -300,6 +314,10 @@
 				200000000000000000000058 /* RiftDesign.swift */,
 				200000000000000000000059 /* RiftWorkspaceView.swift */,
 				20000000000000000000005A /* LiveMapView.swift */,
+				2000000000000000000000C4 /* NetworkMapOverlays.swift */,
+				2000000000000000000000C3 /* NetworkMapView.swift */,
+				2000000000000000000000C2 /* NetworkMapStore.swift */,
+				2000000000000000000000C1 /* LiveMapCanvas.swift */,
 				2000000000000000000000A1 /* VisualActivitySupport.swift */,
 				200000000000000000000071 /* LiveMapConnectionsPane.swift */,
 				200000000000000000000073 /* LiveTrafficChart.swift */,
@@ -431,6 +449,9 @@
 			isa = PBXGroup;
 			children = (
 				200000000000000000000060 /* ThirdPartyNotices.txt */,
+				2000000000000000000000C7 /* ip-country.bin */,
+				2000000000000000000000C6 /* country-grid.bin */,
+				2000000000000000000000C5 /* network-map.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -552,6 +573,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				10000000000000000000005E /* ThirdPartyNotices.txt in Resources */,
+				1000000000000000000000C7 /* ip-country.bin in Resources */,
+				1000000000000000000000C6 /* country-grid.bin in Resources */,
+				1000000000000000000000C5 /* network-map.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -568,6 +592,10 @@
 				100000000000000000000056 /* RiftDesign.swift in Sources */,
 				100000000000000000000057 /* RiftWorkspaceView.swift in Sources */,
 				100000000000000000000058 /* LiveMapView.swift in Sources */,
+				1000000000000000000000C4 /* NetworkMapOverlays.swift in Sources */,
+				1000000000000000000000C3 /* NetworkMapView.swift in Sources */,
+				1000000000000000000000C2 /* NetworkMapStore.swift in Sources */,
+				1000000000000000000000C1 /* LiveMapCanvas.swift in Sources */,
 				1000000000000000000000A1 /* VisualActivitySupport.swift in Sources */,
 				100000000000000000000071 /* LiveMapConnectionsPane.swift in Sources */,
 				100000000000000000000073 /* LiveTrafficChart.swift in Sources */,

@@ -93,6 +93,17 @@ public enum RuleWorkspacePresentation {
         }
         return DisplaySanitizer.plainText(value)
     }
+
+    public static func endpointClass(_ value: EndpointClass) -> String {
+        switch value {
+        case .loopback: "This Mac (loopback)"
+        case .linkLocal: "Link-local network"
+        case .broadcast: "Broadcast"
+        case .multicast: "Multicast"
+        case .bonjour: "Bonjour"
+        case .localNetwork: "Local network"
+        }
+    }
 }
 
 public enum RuleWorkspaceQuery {

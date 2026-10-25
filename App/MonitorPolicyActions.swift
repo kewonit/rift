@@ -83,7 +83,7 @@ extension ControlPlaneController {
             expiresAt: nil,
             isEnabled: true,
             reviewState: .reviewed,
-            note: "Created from Network Monitor"
+            note: "Created from a recent connection"
         )
         try await validateManualDraft(ruleDraft, editingRuleID: nil)
         try await mutateRules(

@@ -7,6 +7,7 @@ struct LiveMapView: View {
     @Bindable var session: AppSession
     @AppStorage("liveMapTrafficChartVisible") private var showingTrafficChart = true
     @AppStorage("liveMapSummaryVisible") private var showingSummary = true
+    @AppStorage("liveMapStyle") private var mapStyle = NetworkMapStyle.standard
     @State private var query = MonitorQueryState(time: .tenMinutes)
     @State private var queryNow: Date
     @State private var rows: [MonitorEventRow] = []
@@ -30,6 +31,7 @@ struct LiveMapView: View {
     @State private var loading = false
     @State private var loadError: String?
     @State private var showingMapInformation = false
+    @State private var mapFitRequest = 0
     @State private var queryTask: Task<Void, Never>?
     @State private var activeQueryRequestID = MonitorQueryRequestID()
 
@@ -123,35 +125,17 @@ struct LiveMapView: View {
     }
 
     private var mapWorkspace: some View {
-        ZStack(alignment: .topLeading) {
-            OriginMapView(
-                origin: $originController.origin,
-                isPlacingOrigin: $originController.isPlacingManually,
-                activityVisible: windowIsVisible,
-                onReady: signalFixtureReadiness
-            )
-            if originController.origin == nil && !originController.isPlacingManually {
-                ContentUnavailableView {
-                    Label("Set your location", systemImage: "location.circle")
-                } description: {
-                    Text("Place this Mac on the map. Rift doesn’t look up your location or where connections go.")
-                } actions: {
-                    Button("Set My Location") { originController.beginManualPlacement() }
-                }
-                .frame(maxWidth: 390)
-                .padding(40)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                .padding(24)
-            }
-            if let loadError {
-                Label(loadError, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .padding(8)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                    .padding(10)
-            }
-        }
+        LiveMapCanvas(
+            displayed: displayed,
+            originController: originController,
+            selectedEventIDs: Set(selectedNode?.eventIDs ?? []),
+            windowIsVisible: windowIsVisible,
+            isPreview: session.isUIFixture,
+            loadError: loadError,
+            style: mapStyle,
+            fitRequest: mapFitRequest,
+            onReady: signalFixtureReadiness
+        )
     }
 
     @ToolbarContentBuilder
@@ -175,10 +159,23 @@ struct LiveMapView: View {
                       systemImage: "sidebar.right")
             }
             .help(showingSummary ? "Hide summary" : "Show summary")
+            Picker("Map Style", selection: $mapStyle) {
+                ForEach(NetworkMapStyle.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .help("Choose the map style")
+            Button {
+                hierarchySelectionID = nil
+                mapFitRequest &+= 1
+            } label: {
+                Label("Show All Routes", systemImage: "arrow.up.left.and.down.right.magnifyingglass")
+            }
+            .help("Zoom to show every route")
             originMenu
             Button { showingMapInformation.toggle() } label: {
-                Label("Map Information", systemImage: "info.circle")
+                Label("About the Map", systemImage: "info.circle")
             }
+            .help("About the map")
             .popover(isPresented: $showingMapInformation) { LiveMapInformation() }
         }
         ToolbarItem(placement: .primaryAction) {

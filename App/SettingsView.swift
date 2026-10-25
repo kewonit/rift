@@ -45,14 +45,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(SettingsSection.allCases, selection: $section) { item in
-                Label(item.rawValue, systemImage: item.symbol).tag(item)
+                Label(item.title, systemImage: item.symbol).tag(item)
             }
             .navigationTitle("Settings")
             .navigationSplitViewColumnWidth(min: 180, ideal: 195, max: 220)
         } detail: {
             VStack(spacing: 0) {
                 if isPreview {
-                    Label("Preview data — settings are read-only", systemImage: "eye")
+                    Label("Preview mode — settings can’t be changed", systemImage: "eye")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,7 +66,7 @@ struct SettingsView: View {
                     .allowsHitTesting(!isPreview)
                     .accessibilityHidden(isPreview)
             }
-            .navigationTitle(section.rawValue)
+            .navigationTitle(section.title)
         }
         .navigationSplitViewStyle(.balanced)
         .frame(
@@ -119,11 +119,11 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { importData = nil }
         } message: {
             Text(controlPlane.configurationRecoveryRequired
-                ? "The invalid database will be preserved in an owner-only quarantine before recovery."
-                : "A backup is created first. Local policy lineage and generation counters are preserved.")
+                ? "Rift will keep a private copy of the damaged configuration before restoring."
+                : "Rift backs up your current configuration first.")
         }
         .confirmationDialog(
-            "Export sensitive connection history?",
+            "Export connection history?",
             isPresented: Binding(
                 get: { pendingHistoryExport != nil },
                 set: { if !$0 { pendingHistoryExport = nil } }
@@ -133,23 +133,23 @@ struct SettingsView: View {
             Button("Export", action: exportHistory)
             Button("Cancel", role: .cancel) { pendingHistoryExport = nil }
         } message: {
-            Text("The export can contain app identities, destinations, ports, and connection times.")
+            Text("The file can include app names, destinations, ports, and connection times. Share it with care.")
         }
         .confirmationDialog(
-            "Turn off persistent history?",
+            "Turn off connection history?",
             isPresented: $showingDisableHistoryChoice,
             titleVisibility: .visible
         ) {
-            Button("Turn Off and Keep Existing") { applyHistorySettings(clearHistory: false) }
+            Button("Turn Off and Keep History") { applyHistorySettings(clearHistory: false) }
             Button("Turn Off and Clear History", role: .destructive) {
                 applyHistorySettings(clearHistory: true)
             }
-            Button("Turn Off and Clear History and Usage", role: .destructive) {
+            Button("Turn Off and Clear History and Rule Usage", role: .destructive) {
                 applyHistorySettings(clearHistory: true, clearUsage: true)
             }
             Button("Cancel", role: .cancel) { historyEnabled = true }
         } message: {
-            Text("New connections will not be persisted.")
+            Text("Rift will stop saving new connections.")
         }
         .confirmationDialog(
             "Clear connection history?",
@@ -164,7 +164,7 @@ struct SettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This cannot be undone. Rules and configuration are not deleted.")
+            Text("This can’t be undone. Your rules and settings aren’t affected.")
         }
         .alert("Rename Profile", isPresented: Binding(
             get: { editingProfile != nil },
@@ -174,7 +174,7 @@ struct SettingsView: View {
             Button("Save", action: saveProfileName)
             Button("Cancel", role: .cancel) { editingProfile = nil }
         }
-        .alert("Edit Local Group", isPresented: Binding(
+        .alert("Edit Group", isPresented: Binding(
             get: { editingGroup != nil },
             set: { if !$0 { editingGroup = nil } }
         )) {
@@ -272,7 +272,7 @@ struct SettingsView: View {
             }
             await loadDefinitions()
         } catch {
-            message = "Settings could not be loaded. Retry after Rift reconnects."
+            message = "Couldn’t load settings. Try again in a moment."
         }
     }
 
@@ -284,7 +284,7 @@ struct SettingsView: View {
             activeProfileID = definitions.active
             blocklists = try await controlPlane.blocklistSources()
         } catch {
-            message = "Policy definitions could not be loaded."
+            message = "Couldn’t load profiles, groups, and blocklists."
         }
     }
 
@@ -303,7 +303,7 @@ struct SettingsView: View {
                 wasSaved = true
                 if result.requiresAttention { failureMessage = result.message }
             } catch {
-                failureMessage = "The base mode was not saved."
+                failureMessage = "Couldn’t change the default mode. Try again."
             }
             do {
                 let presentation = try await controlPlane.policyPresentation()
@@ -315,8 +315,8 @@ struct SettingsView: View {
                 confirmedBaseMode = wasSaved ? value : previous
                 failureMessage = failureMessage
                     ?? (wasSaved
-                        ? "The base mode was saved, but Settings could not refresh it."
-                        : "Settings could not refresh the base mode.")
+                        ? "The default mode was saved, but Settings couldn’t show the update."
+                        : "Couldn’t refresh the default mode.")
             }
             message = failureMessage
             isChangingBaseMode = false
@@ -324,7 +324,7 @@ struct SettingsView: View {
     }
 
     private func applyHistorySettings(clearHistory: Bool, clearUsage: Bool = false) {
-        perform("History settings were not changed.") {
+        perform("Couldn’t change history settings. Try again.") {
             try await controlPlane.configureHistory(
                 enabled: historyEnabled,
                 retentionDays: retentionDays,
@@ -336,8 +336,8 @@ struct SettingsView: View {
 
     private func clearHistory(clearUsage: Bool) {
         perform(clearUsage
-            ? "Connection history and rule usage were not cleared."
-            : "Connection history was not cleared.") {
+            ? "Couldn’t clear connection history and rule usage."
+            : "Couldn’t clear connection history.") {
             try await controlPlane.clearHistory(clearUsage: clearUsage)
         }
     }
@@ -350,11 +350,11 @@ struct SettingsView: View {
                 let granted = try await controlPlane.requestNotificationPermission()
                 if !granted {
                     notificationsEnabled = false
-                    message = "macOS did not grant notification permission."
+                    message = "Notifications aren’t allowed. Turn them on in System Settings › Notifications."
                 }
             } catch {
                 notificationsEnabled = false
-                message = "Notification permission could not be requested."
+                message = "Rift couldn’t ask for notification permission. Try again."
             }
             controlPlane.requestActivitySubscriptionUpdate()
         }
@@ -368,10 +368,10 @@ struct SettingsView: View {
                 switch outcome {
                 case .enforced:
                     restoreNeedsRetry = false
-                    message = "Configuration restored and enforced."
+                    message = "Configuration restored and active."
                 case .savedPendingEnforcement:
                     restoreNeedsRetry = true
-                    message = "The restored configuration is saved but not enforced."
+                    message = "The restored configuration is saved, but the filter isn’t using it yet."
                 }
                 self.importData = nil
             } catch {
@@ -383,26 +383,26 @@ struct SettingsView: View {
 
     private func restoreFailureMessage(_ error: any Error) -> String {
         guard let databaseError = error as? ConfigurationDatabaseError else {
-            return "The restore did not save a new configuration. The original configuration remains in place."
+            return "Nothing was restored. Your current configuration hasn’t changed."
         }
         switch databaseError {
         case .unsupportedSchema:
-            return "The configuration database was created by a newer Rift version. It was not quarantined or changed. Update Rift before retrying."
+            return "This configuration was saved by a newer version of Rift, so Rift left it unchanged. Update Rift, then try again."
         case .recoveryRollbackFailed:
-            return "Database recovery did not complete, and the original could not be restored automatically. Inspect the owner-only Configuration Quarantine before retrying."
+            return "Recovery didn’t finish, and Rift couldn’t put the original configuration back. A private copy is in the Configuration Quarantine folder. Check it before you try again."
         case .recoveryPreparationCleanupFailed:
-            return "The replacement was not activated and the original remains in place, but the staged recovery database could not be closed cleanly."
+            return "Nothing was restored, and your current configuration hasn’t changed. Rift couldn’t clean up a temporary file."
         case .schemaPreflightCleanupFailed:
-            return "The database was not changed, but Rift could not remove its private schema-check copy. Recovery did not continue."
+            return "Recovery stopped. Your configuration hasn’t changed, but Rift couldn’t remove a temporary copy."
         case .invalidDatabaseDirectory, .integrityCheckFailed:
-            return "The restore did not save a new configuration. The original configuration remains in place."
+            return "Nothing was restored. Your current configuration hasn’t changed."
         }
     }
 
     private func exportHistory() {
         guard let format = pendingHistoryExport else { return }
         pendingHistoryExport = nil
-        perform("The history export was not saved.") {
+        perform("Couldn’t export connection history.") {
             let data = try await controlPlane.historyExportData(format: format)
             try await ArchiveFileAccess.save(
                 data: data,
@@ -425,7 +425,7 @@ struct SettingsView: View {
     private func saveProfileName() {
         guard let profile = editingProfile else { return }
         editingProfile = nil
-        performDefinitionMutation("The profile was not renamed.") {
+        performDefinitionMutation("Couldn’t rename the profile.") {
             try await controlPlane.updateProfile(profile.id, name: definitionName)
         }
     }
@@ -433,7 +433,7 @@ struct SettingsView: View {
     private func saveGroup() {
         guard let group = editingGroup else { return }
         editingGroup = nil
-        performDefinitionMutation("The group was not updated.") {
+        performDefinitionMutation("Couldn’t update the group.") {
             try await controlPlane.updateLocalGroup(
                 group.id, name: definitionName, note: definitionNote
             )
@@ -474,7 +474,7 @@ struct SettingsView: View {
     private func configureLoginItem(_ enabled: Bool) {
         guard loginItemLoaded else {
             launchAtLogin = false
-            message = "Rift is still checking the login-item setting. Try again in a moment."
+            message = "Rift is still checking whether it opens at login. Try again in a moment."
             return
         }
         do {
@@ -482,7 +482,7 @@ struct SettingsView: View {
             else { try SMAppService.mainApp.unregister() }
         } catch {
             launchAtLogin = SMAppService.mainApp.status == .enabled
-            message = "macOS did not change the login-item setting."
+            message = "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings."
         }
     }
 }

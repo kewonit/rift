@@ -80,9 +80,9 @@ struct RulesWorkspaceSidebarView: View {
                     Button("New Profile…") { editor = .newProfile }
                     Button("New Group…") { editor = .newGroup }
                     Divider()
-                    Button("Import Local Blocklist…") { showingBlocklistImport = true }
+                    Button("Import Blocklist…") { showingBlocklistImport = true }
                 } label: {
-                    Label("Add Collection", systemImage: "plus")
+                    Label("Add", systemImage: "plus")
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
@@ -91,7 +91,7 @@ struct RulesWorkspaceSidebarView: View {
                 Label(policyState, systemImage: policyStateSymbol)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .help("Current desired policy state")
+                    .help("Whether the filter is using your latest rules")
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
@@ -169,7 +169,7 @@ struct RulesWorkspaceSidebarView: View {
         }
         .tag(RulesSidebarSelection.profile(profile.id))
         .contextMenu {
-            Button(model.activeProfileID == profile.id ? "Use Base Profile" : "Activate") {
+            Button(model.activeProfileID == profile.id ? "Deactivate" : "Activate") {
                 Task { await model.activateProfile(model.activeProfileID == profile.id ? nil : profile.id) }
             }
             .disabled(isPreview)
@@ -268,24 +268,24 @@ struct RulesWorkspaceSidebarView: View {
         switch removal {
         case .profile(let profile, let impact):
             if impact.protectedRules == 0 {
-                Button("Detach \(impact.totalRules) Rules and Remove") {
+                Button("Remove and Keep \(ruleCount(impact.totalRules, title: true))") {
                     Task { await model.removeProfile(profile.id, deletingRules: false) }
                 }
-                Button("Delete \(impact.totalRules) Rules and Remove", role: .destructive) {
+                Button("Remove and Delete \(ruleCount(impact.totalRules, title: true))", role: .destructive) {
                     Task { await model.removeProfile(profile.id, deletingRules: true) }
                 }
             }
         case .group(let group, let impact):
             if impact.protectedRules == 0 {
-                Button("Detach \(impact.totalRules) Rules and Remove") {
+                Button("Remove and Keep \(ruleCount(impact.totalRules, title: true))") {
                     Task { await model.removeGroup(group.id, deletingRules: false) }
                 }
-                Button("Delete \(impact.totalRules) Rules and Remove", role: .destructive) {
+                Button("Remove and Delete \(ruleCount(impact.totalRules, title: true))", role: .destructive) {
                     Task { await model.removeGroup(group.id, deletingRules: true) }
                 }
             }
         case .blocklist(let source, let impact):
-            Button("Remove Source and \(impact.totalRules) Managed Rules", role: .destructive) {
+            Button("Remove Blocklist and \(ruleCount(impact.totalRules, title: true))", role: .destructive) {
                 Task { await model.removeBlocklist(source.id) }
             }
         }
@@ -293,7 +293,7 @@ struct RulesWorkspaceSidebarView: View {
     }
 
     private var removalTitle: String {
-        guard let pendingRemoval else { return "Remove collection?" }
+        guard let pendingRemoval else { return "Remove this item?" }
         return "Remove “\(display(pendingRemoval.name))”?"
     }
 
@@ -301,20 +301,30 @@ struct RulesWorkspaceSidebarView: View {
         switch removal {
         case .profile(_, let impact), .group(_, let impact):
             if impact.protectedRules > 0 {
-                return "This collection has \(impact.protectedRules) protected or managed rule(s), so it cannot be removed."
+                let locked = impact.protectedRules == 1
+                    ? "1 rule that’s protected or comes from a blocklist"
+                    : "\(impact.protectedRules) rules that are protected or come from a blocklist"
+                return "This can’t be removed because it contains \(locked)."
             }
-            return "Choose whether to detach or delete its \(impact.totalRules) rule(s). Existing connections keep their current decision."
+            let kept: String
+            if case .profile = removal {
+                kept = "Kept rules will apply to all profiles."
+            } else {
+                kept = "Kept rules won’t belong to any group."
+            }
+            return "Choose whether to keep or delete its \(ruleCount(impact.totalRules)). \(kept) Open connections aren’t affected."
         case .blocklist(let source, let impact):
-            return "This removes \(source.entryCount.formatted()) imported entries and \(impact.totalRules) managed rule(s). Existing connections keep their current decision."
+            let entries = source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries"
+            return "This removes \(entries) and \(ruleCount(impact.totalRules)) from this blocklist. Open connections aren’t affected."
         }
     }
 
     private var policyState: String {
         switch model.enforcementState {
-        case .savedPendingEnforcement: "Saved"
-        case .persistedPendingProvider: "Persisted"
-        case .enforced: "Enforced"
-        case .applyFailed: "Apply failed"
+        case .savedPendingEnforcement: "Rules pending"
+        case .persistedPendingProvider: "Rules pending"
+        case .enforced: "Rules active"
+        case .applyFailed: "Rules not applied"
         }
     }
 
@@ -335,6 +345,11 @@ struct RulesWorkspaceSidebarView: View {
     }
 
     private func display(_ value: String) -> String { DisplaySanitizer.plainText(value) }
+
+    private func ruleCount(_ count: Int, title: Bool = false) -> String {
+        let noun = title ? (count == 1 ? "Rule" : "Rules") : (count == 1 ? "rule" : "rules")
+        return "\(count) \(noun)"
+    }
 }
 
 enum RuleDefinitionEditor: Identifiable {

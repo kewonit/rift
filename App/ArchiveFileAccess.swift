@@ -50,17 +50,17 @@ enum ArchiveFileAccess {
         guard let error = error as? SecureArchiveFileError else { return fallback }
         switch error {
         case .ownerOnlyPermissionsUnsupported:
-            return "This volume cannot enforce owner-only permissions. Nothing was replaced. Choose a local Mac-formatted volume."
+            return "This disk can’t keep the file private to your account, so nothing was saved. Choose a location on your Mac’s disk."
         case .nonLocalFile:
-            return "Choose a regular file on a local volume. Network and cloud-only files are not accepted."
+            return "Choose a file stored on this Mac. Network and cloud-only files aren’t supported."
         case .wrongOwner, .notRegularFile, .symbolicLink:
-            return "Choose a regular, non-symlink file owned by your macOS account."
+            return "Choose a regular file that belongs to your Mac account. Links to other files aren’t supported."
         case .oversized:
-            return "The selected file exceeds Rift’s safe import limit. Nothing was changed."
+            return "This file is too large for Rift to import. Nothing was changed."
         case .fileChangedWhileReading:
-            return "The selected file changed while it was being read. Nothing was changed."
+            return "The file changed while Rift was reading it. Nothing was changed. Try again."
         case .destinationChanged:
-            return "The selected destination changed before saving. Nothing was replaced."
+            return "The save location changed before Rift could save. Nothing was replaced. Try again."
         case .invalidPath, .ioFailure:
             return fallback
         }

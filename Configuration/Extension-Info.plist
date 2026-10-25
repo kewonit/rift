@@ -23,7 +23,7 @@
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>NSSystemExtensionUsageDescription</key>
-    <string>Rift uses a network system extension to apply your local connection rules.</string>
+    <string>Rift uses a network filter to apply your connection rules on this Mac.</string>
     <key>NetworkExtension</key>
     <dict>
         <key>NEMachServiceName</key>

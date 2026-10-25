@@ -29,7 +29,7 @@ struct PolicySettingsPane: View {
         }
         .formStyle(.grouped)
         .confirmationDialog(
-            "Disable this entry across blocklists?",
+            "Disable this entry in all blocklists?",
             isPresented: $showingDisableConfirmation,
             presenting: pendingDisableImpact
         ) { impact in
@@ -47,7 +47,7 @@ struct PolicySettingsPane: View {
                 get: { activeProfileID },
                 set: { value in
                     activeProfileID = value
-                    perform("The active profile was not changed.") {
+                    perform("Couldn’t switch profiles. Try again.") {
                         try await controlPlane.activateProfile(value)
                     }
                 }
@@ -63,7 +63,7 @@ struct PolicySettingsPane: View {
                         }
                         Button("Rename…") { editProfile(profile) }
                         Divider()
-                        Button("Remove and Detach Rules") {
+                        Button("Remove and Keep Rules") {
                             removeProfile(profile, deletingRules: false)
                         }
                         Button("Remove and Delete Rules", role: .destructive) {
@@ -81,7 +81,7 @@ struct PolicySettingsPane: View {
     }
 
     private var groupsSection: some View {
-        Section("Local Rule Groups") {
+        Section("Rule Groups") {
             ForEach(groups) { group in
                 HStack {
                     Toggle(group.name, isOn: Binding(
@@ -90,8 +90,8 @@ struct PolicySettingsPane: View {
                     ))
                     Button("Edit…") { editGroup(group) }
                     Menu("Remove") {
-                        Button("Detach Rules") { removeGroup(group, deletingRules: false) }
-                        Button("Delete Group Rules", role: .destructive) {
+                        Button("Remove and Keep Rules") { removeGroup(group, deletingRules: false) }
+                        Button("Remove and Delete Rules", role: .destructive) {
                             removeGroup(group, deletingRules: true)
                         }
                     }
@@ -106,7 +106,7 @@ struct PolicySettingsPane: View {
     }
 
     private var blocklistsSection: some View {
-        Section("Local Deny Blocklists") {
+        Section("Blocklists") {
             ForEach(blocklists) { source in
                 HStack {
                     Toggle(source.name, isOn: Binding(
@@ -114,16 +114,16 @@ struct PolicySettingsPane: View {
                         set: { setBlocklist(source, enabled: $0) }
                     ))
                     Spacer()
-                    Text("\(source.entryCount.formatted()) entries")
+                    Text(source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries")
                         .foregroundStyle(.secondary)
                     Button("Remove", role: .destructive) { removeBlocklist(source) }
                 }
             }
-            TextField("Imported source name", text: $blocklistName)
-            Button("Import Local Blocklist…", action: importBlocklist)
+            TextField("Name for imported blocklist", text: $blocklistName)
+            Button("Import Blocklist…", action: importBlocklist)
                 .disabled(blocklistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             Divider()
-            TextField("Exact domain, IP, CIDR, or range", text: $blocklistEntry)
+            TextField("Domain, IP address, or IP range", text: $blocklistEntry)
                 .onChange(of: blocklistEntry) { _, _ in entryImpact = nil }
             HStack {
                 Button("Check Entry", action: inspectBlocklistEntry)
@@ -131,9 +131,9 @@ struct PolicySettingsPane: View {
                 if let entryImpact {
                     Spacer()
                     if entryImpact.isDisabled {
-                        Button("Re-enable") { setEntryOverride(entryImpact, disabled: false) }
+                        Button("Enable Again") { setEntryOverride(entryImpact, disabled: false) }
                     } else {
-                        Button("Disable Across Lists…") {
+                        Button("Disable in All Blocklists…") {
                             pendingDisableImpact = entryImpact
                             showingDisableConfirmation = true
                         }
@@ -150,7 +150,7 @@ struct PolicySettingsPane: View {
 
     @ViewBuilder
     private func modeButtons(_ profile: PolicyProfile) -> some View {
-        Button("Use Base Mode") { updateProfileMode(profile, mode: nil) }
+        Button("Use Default Mode") { updateProfileMode(profile, mode: nil) }
         Button("Alert") { updateProfileMode(profile, mode: .alert) }
         Button("Silent Allow") { updateProfileMode(profile, mode: .silentAllow) }
         Button("Silent Deny") { updateProfileMode(profile, mode: .silentDeny) }
@@ -160,17 +160,17 @@ struct PolicySettingsPane: View {
     private func addProfile() {
         let name = newProfileName
         newProfileName = ""
-        perform("The profile was not created.") { try await controlPlane.createProfile(name: name) }
+        perform("Couldn’t create the profile.") { try await controlPlane.createProfile(name: name) }
     }
 
     private func removeProfile(_ profile: PolicyProfile, deletingRules: Bool) {
-        perform("The profile was not removed. Protected or managed rules were preserved.") {
+        perform("Couldn’t remove the profile. It may contain protected or blocklist rules.") {
             try await controlPlane.removeProfile(profile.id, deletingRules: deletingRules)
         }
     }
 
     private func updateProfileMode(_ profile: PolicyProfile, mode: OperationMode?) {
-        perform("The profile mode was not changed.") {
+        perform("Couldn’t change the profile’s mode.") {
             try await controlPlane.updateProfile(profile.id, operationModeOverride: .some(mode))
         }
     }
@@ -178,29 +178,29 @@ struct PolicySettingsPane: View {
     private func addGroup() {
         let name = newGroupName
         newGroupName = ""
-        perform("The group was not created.") { try await controlPlane.createLocalGroup(name: name) }
+        perform("Couldn’t create the group.") { try await controlPlane.createLocalGroup(name: name) }
     }
 
     private func setGroup(_ group: LocalRuleGroup, enabled: Bool) {
-        perform("The group state was not changed.") {
+        perform("Couldn’t turn the group on or off.") {
             try await controlPlane.setLocalGroup(group.id, enabled: enabled)
         }
     }
 
     private func removeGroup(_ group: LocalRuleGroup, deletingRules: Bool) {
-        perform("The group was not removed. Protected or managed rules were preserved.") {
+        perform("Couldn’t remove the group. It may contain protected or blocklist rules.") {
             try await controlPlane.removeLocalGroup(group.id, deletingRules: deletingRules)
         }
     }
 
     private func setBlocklist(_ source: BlocklistSource, enabled: Bool) {
-        perform("The blocklist state was not changed.") {
+        perform("Couldn’t turn the blocklist on or off.") {
             try await controlPlane.setBlocklist(source.id, enabled: enabled)
         }
     }
 
     private func removeBlocklist(_ source: BlocklistSource) {
-        perform("The blocklist was not removed.") { try await controlPlane.removeBlocklist(source.id) }
+        perform("Couldn’t remove the blocklist.") { try await controlPlane.removeBlocklist(source.id) }
     }
 
     private func importBlocklist() {
@@ -216,7 +216,7 @@ struct PolicySettingsPane: View {
                 message = result.message
                 await reload()
             } catch {
-                message = "The blocklist was rejected; the active policy was not changed."
+                message = "Couldn’t import the blocklist. Your rules haven’t changed."
                 await reload()
             }
         }
@@ -228,7 +228,7 @@ struct PolicySettingsPane: View {
                 entryImpact = try await controlPlane.blocklistEntryImpact(blocklistEntry)
             } catch {
                 entryImpact = nil
-                message = "That exact entry is not supplied by an imported blocklist."
+                message = "None of your blocklists contain that exact entry."
             }
         }
     }
@@ -243,7 +243,7 @@ struct PolicySettingsPane: View {
                 await reload()
                 entryImpact = try await controlPlane.blocklistEntryImpact(blocklistEntry)
             } catch {
-                message = "The blocklist entry state was not changed."
+                message = "Couldn’t change that entry."
                 await reload()
             }
         }
@@ -256,7 +256,8 @@ struct PolicySettingsPane: View {
         let shownNames = impact.sourceNames.prefix(3).joined(separator: ", ")
         let remaining = max(0, totalCount - 3)
         let suffix = remaining == 0 ? shownNames : "\(shownNames) +\(remaining)"
-        return "\(state) • \(activeCount) active of \(totalCount) • \(suffix)"
+        let lists = totalCount == 1 ? "1 blocklist" : "\(totalCount) blocklists"
+        return "\(state) • In \(lists) (\(activeCount) active) • \(suffix)"
     }
 
     private func perform(

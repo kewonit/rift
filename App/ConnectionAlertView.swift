@@ -93,11 +93,11 @@ struct ConnectionAlertView: View {
                     .help(identityTitle)
             }
 
-            DisclosureGroup("Connection evidence", isExpanded: $showingDetails) {
+            DisclosureGroup("Details", isExpanded: $showingDetails) {
                 VStack(alignment: .leading, spacing: 10) {
                     Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 7) {
                         row("Destination", destination)
-                        row("Source", destinationSource)
+                        row("Identified by", destinationSource)
                         row("Direction", prompt.direction == .outgoing ? "Outgoing" : "Incoming")
                         row("Protocol", protocolLabel)
                         row("Owner", ownerLabel)
@@ -111,11 +111,11 @@ struct ConnectionAlertView: View {
                     if let processIdentity = prompt.processIdentity,
                        processIdentity != prompt.appIdentity {
                         LabeledContent(
-                            "Helper",
+                            "Helper process",
                             value: DisplaySanitizer.plainText(identityEvidence(for: processIdentity))
                         )
                     }
-                    Text("Policy generation \(prompt.generation) • prompt \(prompt.nonce.uuidString.lowercased())")
+                    Text("Rules version \(prompt.generation) • Alert ID \(prompt.nonce.uuidString.lowercased())")
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
                 }
@@ -125,7 +125,7 @@ struct ConnectionAlertView: View {
 
             if prompt.endpoint?.hostname == nil {
                 Label(
-                    "This is an IP-only connection. Domain rules and domain blocklists cannot decide it.",
+                    "This connection uses only an IP address, so domain rules and domain blocklists can’t match it.",
                     systemImage: "info.circle"
                 )
                 .font(.callout)
@@ -152,11 +152,11 @@ struct ConnectionAlertView: View {
                     .foregroundStyle(.secondary)
             case .failed:
                 HStack {
-                    Label("Profile status unavailable", systemImage: "exclamationmark.circle")
+                    Label("Couldn’t check the active profile", systemImage: "exclamationmark.circle")
                         .font(.caption)
                         .foregroundStyle(.orange)
                     Spacer()
-                    Button("Retry") {
+                    Button("Try Again") {
                         Task { @MainActor in await resolveActiveProfile() }
                     }
                     .controlSize(.small)
@@ -171,21 +171,21 @@ struct ConnectionAlertView: View {
                 }
                 if destinationScope == .any {
                     Label(
-                        "This rule will apply to every destination for this app, protocol, direction, and owner.",
+                        "This rule will apply to all destinations for this app with the same protocol, direction, and owner.",
                         systemImage: "exclamationmark.triangle"
                     )
                     .font(.caption)
                     .foregroundStyle(.orange)
                 }
                 if activeProfileResolution.profile != nil {
-                    Picker("Scope", selection: $scope) {
+                    Picker("Apply to", selection: $scope) {
                         ForEach(RuleScope.allCases) { Text($0.rawValue).tag($0) }
                     }
                 }
                 TextField("Note (optional)", text: $note, axis: .vertical)
                     .lineLimit(2...4)
                 if !noteValid {
-                    Text("The note is too long.").font(.caption).foregroundStyle(.red)
+                    Text("This note is too long.").font(.caption).foregroundStyle(.red)
                 }
             }
 
@@ -205,7 +205,7 @@ struct ConnectionAlertView: View {
                     if let pendingDecision {
                         HStack(spacing: 7) {
                             ProgressView().controlSize(.small)
-                            Text("Delivering \(pendingDecision == .deny ? "Deny" : "Allow")…")
+                            Text(pendingDecision == .deny ? "Denying…" : "Allowing…")
                                 .font(.callout)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -285,7 +285,7 @@ struct ConnectionAlertView: View {
         if selected != .once, scope == .currentProfile {
             guard let profile = activeProfileResolution.profile else {
                 lifetime = .once
-                decisionMessage = "The active profile changed. Choose the rule scope again."
+                decisionMessage = "The active profile changed. Choose where the rule applies, then try again."
                 decisionNeedsAttention = true
                 return
             }
@@ -306,7 +306,7 @@ struct ConnectionAlertView: View {
                 do {
                     try await controller.answerOnce(prompt, action: action)
                 } catch {
-                    decisionMessage = "The answer could not be delivered. This prompt remains open."
+                    decisionMessage = "Rift couldn’t send your answer. This alert is still open, so you can try again."
                     decisionNeedsAttention = true
                 }
             } else {
@@ -325,7 +325,7 @@ struct ConnectionAlertView: View {
                     decisionMessage = result.message
                     decisionNeedsAttention = result.requiresAttention
                 } catch {
-                    decisionMessage = "The rule was not saved. Rift did not dismiss this prompt."
+                    decisionMessage = "The rule wasn’t saved. This alert is still open, so you can try again."
                     decisionNeedsAttention = true
                 }
             }
@@ -343,8 +343,8 @@ struct ConnectionAlertView: View {
     private func deadlineLabel(at date: Date) -> String {
         let remaining = max(0, Int(prompt.deadline.timeIntervalSince(date).rounded(.up)))
         return remaining == 0
-            ? "Timed out — allow fallback used"
-            : "\(remaining)s until allow fallback"
+            ? "Timed out — connection allowed"
+            : "Allowing in \(remaining)s"
     }
 
     private var canCreateRule: Bool {
@@ -400,7 +400,7 @@ struct ConnectionAlertView: View {
     }
 
     private var destinationSource: String {
-        prompt.endpoint?.hostname == nil ? "Socket address" : "Observed hostname"
+        prompt.endpoint?.hostname == nil ? "IP address" : "Hostname"
     }
 
     private var protocolLabel: String {
@@ -414,20 +414,20 @@ struct ConnectionAlertView: View {
     private var ownerLabel: String {
         switch prompt.owner {
         case .user: "Current user"
-        case .system: "System process — broader scope warning"
+        case .system: "System process (affects all users)"
         case .unknown: "Unknown owner"
         }
     }
 
     private var identityTitle: String {
         switch prompt.appIdentity ?? prompt.processIdentity {
-        case .applePlatform: "Apple platform process"
-        case .developerID: "Developer ID application"
-        case .appStore: "Mac App Store application"
-        case .otherSigner: "Signed application"
-        case .adHoc: "Ad-hoc signed application"
-        case .unsigned: "Unsigned application"
-        case nil: "Unknown application"
+        case .applePlatform: "Apple software"
+        case .developerID: "App from an identified developer"
+        case .appStore: "Mac App Store app"
+        case .otherSigner: "Signed app"
+        case .adHoc: "Ad hoc signed app"
+        case .unsigned: "Unsigned app"
+        case nil: "Unknown app"
         }
     }
 
@@ -441,7 +441,7 @@ struct ConnectionAlertView: View {
 
     private var identityEvidence: String {
         guard let identity = prompt.appIdentity ?? prompt.processIdentity else {
-            return "No stable signing identity was available. Always rules are disabled."
+            return "Rift couldn’t identify this app, so you can’t create a lasting rule for it."
         }
         return identityEvidence(for: identity)
     }
@@ -451,7 +451,7 @@ struct ConnectionAlertView: View {
         case .applePlatform(let value), .developerID(let value), .appStore(let value):
             return "\(value.teamIdentifier ?? "No Team ID") • \(value.signingIdentifier)"
         case .otherSigner(_, let identifier): return identifier
-        case .adHoc: return "Identity is tied to this code directory hash."
+        case .adHoc: return "Identified only by this exact build of the app."
         case .unsigned(let path, _): return path
         }
     }

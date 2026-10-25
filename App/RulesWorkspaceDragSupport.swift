@@ -90,15 +90,15 @@ struct RuleWorkspaceDropRequest: Identifiable {
         operation == .copy ? Set(newRuleIDs) : ruleIDs
     }
 
-    var title: String { "\(verb) \(countLabel) to “\(displayName)”?" }
+    var title: String { "\(verb) \(countText) to “\(displayName)”?" }
     var actionTitle: String { "\(verb) \(countLabel)" }
 
     var message: String {
         let preservedScope = target.isGroup
-            ? "Profile assignments stay unchanged."
-            : "Group assignments stay unchanged."
+            ? "Their profiles won’t change."
+            : "Their groups won’t change."
         var parts = operation == .copy
-            ? ["Copies receive new rule identities.", preservedScope]
+            ? ["The copies are saved as new rules.", preservedScope]
             : [preservedScope]
         if unchangedCount > 0 {
             parts.append(unchangedMessage)
@@ -106,7 +106,7 @@ struct RuleWorkspaceDropRequest: Identifiable {
         if skippedCount > 0 {
             parts.append(skippedMessage)
         }
-        parts.append("Existing connections keep their current decision.")
+        parts.append("Open connections aren’t affected.")
         return parts.joined(separator: " ")
     }
 
@@ -114,19 +114,22 @@ struct RuleWorkspaceDropRequest: Identifiable {
     private var countLabel: String {
         affectedCount == 1 ? "1 Rule" : "\(affectedCount) Rules"
     }
+    private var countText: String {
+        affectedCount == 1 ? "1 rule" : "\(affectedCount) rules"
+    }
     private var displayName: String {
         let sanitized = DisplaySanitizer.plainText(targetName)
         return sanitized.isEmpty ? (target.isGroup ? "Group" : "Profile") : sanitized
     }
     private var unchangedMessage: String {
         unchangedCount == 1
-            ? "1 rule is already assigned and will stay unchanged."
-            : "\(unchangedCount) rules are already assigned and will stay unchanged."
+            ? "1 rule is already there and won’t change."
+            : "\(unchangedCount) rules are already there and won’t change."
     }
     private var skippedMessage: String {
         skippedCount == 1
-            ? "1 protected or managed rule will be skipped."
-            : "\(skippedCount) protected or managed rules will be skipped."
+            ? "1 protected or blocklist rule will be skipped."
+            : "\(skippedCount) protected or blocklist rules will be skipped."
     }
 }
 
@@ -166,7 +169,7 @@ private struct RuleWorkspaceDropTargetModifier: ViewModifier {
             .listRowBackground(
                 activeSelection == selection ? Color.accentColor.opacity(0.14) : Color.clear
             )
-            .help("Drop selected rules here. Hold Option while dropping to copy.")
+            .help("Drop rules here to move them. Hold Option to copy them instead.")
             .onDrop(
                 of: [.riftRuleWorkspaceDragToken],
                 isTargeted: isTargeted

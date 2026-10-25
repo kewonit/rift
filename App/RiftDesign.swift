@@ -42,7 +42,7 @@ enum RiftStatusTone: String, CaseIterable {
         switch self {
         case .allowed: "Allowed"
         case .denied: "Denied"
-        case .unresolved: "Unresolved"
+        case .unresolved: "Inactive"
         case .warning: "Needs attention"
         case .protected: "Protected"
         }

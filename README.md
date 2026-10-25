@@ -36,7 +36,7 @@ In short:
 |---|---:|---:|
 | Read, modify, and run package tests | Yes | No |
 | Compile the unsigned app, extension, and CLI | Yes | No |
-| Test the MapKit UI fixtures | Yes | No |
+| Test the Live Map, cable map, and UI fixtures | Yes | No |
 | Exercise pure rule/history/archive/IPC logic | Yes | No |
 | Activate the system-wide content filter | No | Yes, with matching capabilities and profiles |
 | Publish a notarized GitHub download | No | Yes, with Developer ID and notarization |
@@ -100,12 +100,22 @@ live macOS filtering works.
 
 ## Map
 
-The Live Map uses Apple MapKit for the basemap. It shows only the location you
-place for this Mac. Rift doesn't look up your location or where connections
-go, and it doesn't send destination addresses to any service. The location you
-place is rounded to `0.25°` and saved on this Mac only. MapKit requests imagery
-and labels from Apple as you pan and zoom; Rift doesn't give Apple destination
-IP addresses, hostnames, app identities, or firewall decisions.
+The Live Map draws the world's undersea internet cables on Apple Maps and shows
+which cables your connections most likely use, with traffic flowing along them.
+You place this Mac on the map yourself; Rift never looks up your location. For
+each public destination, Rift finds the country in a bundled IP-to-country table
+on the Mac, then estimates the path from your location across the cable map.
+Destination addresses never leave the Mac.
+
+Paths are estimates. Solid lines are cables mapped in OpenStreetMap; dashed
+lines are main sea routes drawn from where cables come ashore, because
+OpenStreetMap doesn't map every cable. Country data can be wrong for VPNs,
+relays, and content delivery networks. The bundled data and how to rebuild it
+are described in the [third-party notices](THIRD_PARTY_NOTICES.md).
+
+MapKit requests imagery and labels from Apple as you pan and zoom; Rift doesn't
+give Apple destination IP addresses, hostnames, app identities, or firewall
+decisions.
 
 ## Signed integration and distribution
 
@@ -128,9 +138,9 @@ performance tests. Direct distribution has a separate notarization gate.
   Persistent history is opt-in; saved rules remain enforced either way.
 - The app owns editable user configuration. The extension owns the validated,
   durable enforcement cache.
-- Rift does not enable a remote blocklist URL or an automatic updater. It
-  doesn't geolocate connections. Apple MapKit requests the visible basemap
-  region.
+- Rift does not enable a remote blocklist URL or an automatic updater. Country
+  lookups for the map use a bundled table on the Mac. Apple MapKit requests the
+  visible basemap region.
 
 Read the [runtime limitations and recovery](docs/release/runtime-limitations.md),
 [threat model](docs/security/threat-model.md), [privacy notice](PRIVACY.md),

@@ -34,19 +34,19 @@ enum ConfigurationMutationResult: Sendable, Equatable {
         let backupFailed: Bool
         switch self {
         case .enforced(let failed):
-            base = "Saved and enforced."
+            base = "Saved and applied."
             backupFailed = failed
         case .savedPending(let failed):
-            base = "Saved. Enforcement confirmation is pending."
+            base = "Saved. Waiting for the filter to apply it."
             backupFailed = failed
         case .persistedPendingProvider(let failed):
-            base = "Saved by the filter. Waiting for the provider."
+            base = "Saved. The filter will apply it once it’s running."
             backupFailed = failed
         case .applyFailed(let failed):
-            base = "Saved, but applying failed. Retry after Rift reconnects."
+            base = "Saved, but the filter couldn’t apply it. Try again after Rift reconnects."
             backupFailed = failed
         }
-        return backupFailed ? base + " Automatic backup failed." : base
+        return backupFailed ? base + " The automatic backup didn’t complete." : base
     }
 
     var requiresAttention: Bool {

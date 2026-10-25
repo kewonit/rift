@@ -66,10 +66,10 @@ final class AppSession {
     }
 
     var statusAccessibilityLabel: String {
-        if isUIFixture { return "Rift preview data. Filtering is inactive." }
+        if isUIFixture { return "Preview mode. Rift isn’t filtering." }
         return hasConfirmedFilterService
             ? controlPlane.statusAccessibilityLabel
-            : "Rift filter needs attention"
+            : "The Rift filter needs attention"
     }
 
 #if DEBUG

@@ -29,3 +29,17 @@ Source: https://github.com/apple/swift-argument-parser/tree/1.8.2
 Copyright (c) Apple Inc. and the Swift project authors.
 Licensed under the Apache License, Version 2.0, with the Runtime Library
 Exception: https://www.apache.org/licenses/LICENSE-2.0
+
+Undersea cable data
+© OpenStreetMap contributors. Available under the Open Database License 1.0:
+https://opendatacommons.org/licenses/odbl/1-0/
+The bundled network-map.json is a derivative database made available under the
+Open Database License 1.0.
+
+IP-to-country data
+ip-location-db server-country (https://github.com/sapics/ip-location-db),
+Public Domain Dedication and License 1.0.
+
+Country shapes
+Natural Earth (https://www.naturalearthdata.com/), public domain.
+

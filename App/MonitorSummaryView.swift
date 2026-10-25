@@ -1,5 +1,6 @@
 import RiftControl
 import RiftCore
+import RiftIPC
 import SwiftUI
 
 struct MonitorSummaryView: View {
@@ -23,7 +24,7 @@ struct MonitorSummaryView: View {
                 DisclosureGroup("Connections", isExpanded: $connectionsExpanded) {
                     VStack(spacing: 8) {
                         metricRow("Denied", summary.denied, "xmark.circle")
-                        metricRow("Unresolved", summary.unresolved, "questionmark.circle")
+                        metricRow("By default", summary.unresolved, "questionmark.circle")
                         metricRow("Incoming", summary.incoming, "arrow.turn.down.left")
                     }
                     .padding(.top, 8)
@@ -61,26 +62,28 @@ struct MonitorSummaryView: View {
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .accessibilityLabel("Hide Summary")
-            .help("Hide Summary")
+            .help("Hide summary")
             VStack(alignment: .leading, spacing: 1) {
                 Text("Summary").font(.title2.weight(.semibold))
                 if isMinimal {
-                    Text("Limited observed connections")
+                    Text("Recent connections only")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Text(summaryCountLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .help(summary.isComplete
-                        ? "Counts cover the complete matching range."
-                        : "Counts are minimums from the available matching activity.")
+                        ? "Counts include all matching activity."
+                        : "Some activity is missing, so these are minimum counts.")
             }
         }
     }
 
     private var summaryCountLabel: String {
         let prefix = summary.isComplete ? "" : "≥"
-        return "\(prefix)\(summary.processCount) processes, \(prefix)\(summary.destinationCount) destinations"
+        let apps = summary.processCount == 1 ? "app" : "apps"
+        let destinations = summary.destinationCount == 1 ? "destination" : "destinations"
+        return "\(prefix)\(summary.processCount) \(apps), \(prefix)\(summary.destinationCount) \(destinations)"
     }
 
     private var metricChips: some View {
@@ -111,7 +114,7 @@ struct MonitorSummaryView: View {
         .frame(maxWidth: .infinity, minHeight: 31)
         .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
         .accessibilityLabel("\(title), \(accessible(total))")
-        .help("\(title) is reported when connections close")
+        .help("\(title) totals are counted when connections close.")
     }
 
     private func metricRow(_ label: String, _ value: Int, _ symbol: String) -> some View {
@@ -155,7 +158,7 @@ struct MonitorSummaryView: View {
     }
 
     private func flowCountLabel(_ count: Int) -> String {
-        count == 1 ? "1 flow" : "\(count) flows"
+        count == 1 ? "1 connection" : "\(count) connections"
     }
 
     private func selection(
@@ -169,9 +172,9 @@ struct MonitorSummaryView: View {
             if let row, MonitorExactRuleSeed.make(from: row) != nil {
                 ControlGroup {
                     Button("Allow") { apply(.allow, node) }
-                        .accessibilityLabel("Allow exact connection")
+                        .accessibilityLabel("Allow this connection")
                     Button("Deny") { apply(.deny, node) }
-                        .accessibilityLabel("Deny exact connection")
+                        .accessibilityLabel("Deny this connection")
                 }
                 .controlSize(.small)
                 .disabled(
@@ -182,16 +185,16 @@ struct MonitorSummaryView: View {
             if let row {
                 LabeledContent("Protocol", value: MonitorQuery.protocolLabel(row))
                 LabeledContent("Direction", value: row.event.flow.direction.rawValue.capitalized)
-                LabeledContent("Decision", value: row.event.action.rawValue.capitalized)
+                LabeledContent("Decision", value: decisionLabel(row.event.action))
             }
             DisclosureGroup("Details") {
                 VStack(alignment: .leading, spacing: 6) {
                     if let row {
                         LabeledContent("Application", value: MonitorQuery.applicationLabel(row))
                         LabeledContent("Destination", value: MonitorQuery.endpointLabel(row))
-                        LabeledContent("Reason", value: row.event.reason.rawValue)
+                        LabeledContent("Reason", value: reasonLabel(row.event.reason))
                         if let policy = row.event.policy {
-                            LabeledContent("Policy generation", value: "\(policy.generation)")
+                            LabeledContent("Rules version", value: "\(policy.generation)")
                         }
                         if let closedAt = row.closedAt {
                             LabeledContent("Closed", value: closedAt.formatted())
@@ -201,7 +204,7 @@ struct MonitorSummaryView: View {
                 .font(.caption)
                 .padding(.top, 6)
             }
-            Button("Show Corresponding Rules", action: showRules)
+            Button("Show Matching Rules", action: showRules)
                 .disabled(node.ruleCoverage.ruleIDs.isEmpty)
         }
     }
@@ -222,6 +225,24 @@ struct MonitorSummaryView: View {
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    private func decisionLabel(_ action: FilterAction) -> String {
+        switch action {
+        case .allow: "Allowed"
+        case .deny: "Denied"
+        case .ask: "Asked"
+        }
+    }
+
+    private func reasonLabel(_ reason: RuntimeEventReason) -> String {
+        switch reason {
+        case .concreteDecision: "Matched a rule"
+        case .unmatchedModeFallback: "No rule matched, so the mode decided"
+        case .promptUnavailableFallback: "Alert couldn’t be shown, so the default was used"
+        case .promptDeadlineFallback: "Alert timed out, so the default was used"
+        case .noActivePolicy: "No rules were active"
         }
     }
 

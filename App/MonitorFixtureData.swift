@@ -297,6 +297,13 @@ enum MonitorFixtureData {
         return manualRules + [blocklistRule]
     }
 
+    /// Preview countries for the documentation-only addresses fixture rows use.
+    static func countryCode(for address: IPAddress) -> String? {
+        let countries = ["US", "DE", "JP", "GB", "SG", "IE", "FR", "BR", "AU", "NL", "IN", "CA"]
+        guard address.family == .ipv4, let last = address.bytes.last else { return nil }
+        return countries[Int(last) % countries.count]
+    }
+
     private static func address(for index: Int) -> String {
         switch index % 3 {
         case 0: "192.0.2.\(index + 1)"

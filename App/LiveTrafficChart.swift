@@ -18,7 +18,7 @@ struct LiveTrafficChart: View {
             totals
             chart
             if isMinimal {
-                Text("Up to \(ControlPlaneController.minimalFlowLimit) observed connections · Five minutes · Not saved")
+                Text("Up to \(ControlPlaneController.minimalFlowLimit) recent connections · 5 minutes · Not saved")
                     .font(.caption2).foregroundStyle(.secondary)
             } else { rangeControls }
         }
@@ -88,7 +88,7 @@ struct LiveTrafficChart: View {
         }
         .frame(height: 82)
         .accessibilityElement()
-        .accessibilityLabel(isMinimal ? "Traffic from the limited observed connections" : "Observed traffic in the displayed range")
+        .accessibilityLabel(isMinimal ? "Traffic from recent connections" : "Traffic in the selected time range")
         .accessibilityValue(accessibilitySummary)
     }
 
@@ -96,21 +96,21 @@ struct LiveTrafficChart: View {
         HStack(spacing: 5) {
             ControlGroup {
                 Button { navigate(.previous) } label: {
-                    Label("Previous range", systemImage: "chevron.left")
+                    Label("Previous Range", systemImage: "chevron.left")
                 }
                 .disabled(!query.canNavigateBackward)
                 Button { query.showNow() } label: {
-                    Label("Show now", systemImage: "scope")
+                    Label("Show Now", systemImage: "scope")
                 }
                 .disabled(query.isLiveTimeRange && query.selectedTimeRange == nil)
                 Button { zoom(-1) } label: {
-                    Label("Narrower range", systemImage: "minus.magnifyingglass")
+                    Label("Shorter Range", systemImage: "minus.magnifyingglass")
                 }
                 .disabled(rangeIndex <= 0)
             }
             .labelStyle(.iconOnly)
 
-            Picker("Displayed range", selection: timeFilter) {
+            Picker("Time range", selection: timeFilter) {
                 ForEach(ranges) { value in Text(value.rawValue).tag(value) }
             }
             .labelsHidden()
@@ -120,15 +120,15 @@ struct LiveTrafficChart: View {
 
             ControlGroup {
                 Button { zoom(1) } label: {
-                    Label("Broader range", systemImage: "plus.magnifyingglass")
+                    Label("Longer Range", systemImage: "plus.magnifyingglass")
                 }
                 .disabled(rangeIndex >= ranges.count - 1)
                 Button { navigate(.next) } label: {
-                    Label("Next range", systemImage: "chevron.right")
+                    Label("Next Range", systemImage: "chevron.right")
                 }
                 .disabled(!query.canNavigateForward)
                 Button { query.showNow() } label: {
-                    Label("Jump to now", systemImage: "chevron.forward.2")
+                    Label("Jump to Now", systemImage: "chevron.forward.2")
                 }
                 .disabled(query.isLiveTimeRange && query.selectedTimeRange == nil)
             }
@@ -147,7 +147,7 @@ struct LiveTrafficChart: View {
     private var rangeIndex: Int { ranges.firstIndex(of: query.time) ?? 0 }
 
     private var displayedRangeLabel: String {
-        if query.time == .all { return "All retained activity" }
+        if query.time == .all { return "All saved activity" }
         if query.isLiveTimeRange { return "Last " + query.time.rawValue.lowercased() }
         guard let window = query.baseTimeWindow(now: now),
               let start = window.start, let end = window.end else { return query.time.rawValue }
@@ -156,7 +156,7 @@ struct LiveTrafficChart: View {
     }
 
     private var accessibilitySummary: String {
-        let partial = snapshot.partial ? ", partial byte coverage" : ""
+        let partial = snapshot.partial ? ", some totals missing" : ""
         return "Sent \(byteLabel(snapshot.sent)); received \(byteLabel(snapshot.received))\(partial)"
     }
 

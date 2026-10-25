@@ -27,17 +27,17 @@ extension ControlPlaneController {
     }
 
     var statusAccessibilityLabel: String {
-        guard case .connected(.ready) = state else { return "Rift filter needs attention" }
-        if !pendingPrompts.isEmpty { return "Rift has pending connection decisions" }
+        guard case .connected(.ready) = state else { return "The Rift filter needs attention" }
+        if !pendingPrompts.isEmpty { return "Rift has connections waiting for your decision" }
         if recentDenyVisible {
             return "Rift recently denied a connection"
         }
         switch currentMode {
-        case .alert: return "Rift filtering in Alert mode"
-        case .silentAllow: return "Rift filtering in Silent Allow mode"
-        case .silentDeny: return "Rift filtering in Silent Deny mode"
-        case .filterOff: return "Rift observing without filtering"
-        case .degradedFallback: return "Rift filtering is degraded"
+        case .alert: return "Rift is filtering in Alert mode"
+        case .silentAllow: return "Rift is filtering in Silent Allow mode"
+        case .silentDeny: return "Rift is filtering in Silent Deny mode"
+        case .filterOff: return "Rift is observing without filtering"
+        case .degradedFallback: return "Rift is running in fallback mode"
         }
     }
 
@@ -119,7 +119,7 @@ struct StatusMenuView: View {
                     )
             }
             if controller.lostEventCount > 0 {
-                Text("Some activity was dropped while the app was unavailable.")
+                Text("Some activity wasn’t recorded while Rift was unavailable.")
                     .font(.caption)
             }
             Divider()
@@ -204,7 +204,7 @@ struct StatusMenuView: View {
             Button("Switch to Observe Only") { setFilteringEnabled(false) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Rift will continue observing visible connections but will allow them instead of applying allow, deny, or ask verdicts.")
+            Text("Rift will allow all connections and stop applying your rules. You’ll still see activity.")
         }
         .confirmationDialog(
             "Quit Rift?",
@@ -216,7 +216,7 @@ struct StatusMenuView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Loaded rules keep enforcing, but prompts cannot appear and activity history may have gaps until Rift reopens.")
+            Text("Your rules stay active, but Rift can’t ask about new connections, and activity may have gaps until you open Rift again.")
         }
     }
 
@@ -228,11 +228,11 @@ struct StatusMenuView: View {
             switch controller.currentMode {
             case .filterOff: return "Rift is observing"
             case .degradedFallback: return "Rift needs attention"
-            default: return "Rift is enforcing"
+            default: return "Rift is filtering"
             }
         case .connected: return "Rift needs attention"
         case .databaseReady: return "Connecting…"
-        case .integrationUnavailable: return "Filter connection unavailable"
+        case .integrationUnavailable: return "Can’t reach the filter"
         case .failed: return "Rift needs attention"
         case .idle: return "Starting…"
         }
@@ -243,8 +243,8 @@ struct StatusMenuView: View {
         case .alert: return "Alert"
         case .silentAllow: return "Silent Allow"
         case .silentDeny: return "Silent Deny"
-        case .filterOff: return "Observe only"
-        case .degradedFallback: return "Degraded fallback"
+        case .filterOff: return "Observe Only"
+        case .degradedFallback: return "Fallback"
         }
     }
 
@@ -277,7 +277,7 @@ struct StatusMenuView: View {
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
-                errorMessage = "The active profile was not changed."
+                errorMessage = "Couldn’t switch profiles. Try again."
             }
         }
     }
@@ -316,7 +316,7 @@ struct StatusMenuView: View {
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
-                errorMessage = "The filtering mode was not saved."
+                errorMessage = "Couldn’t change the mode. Try again."
             }
         }
     }
@@ -343,10 +343,10 @@ struct StatusMenuView: View {
             do {
                 let granted = try await controller.requestNotificationPermission()
                 notificationsEnabled = granted
-                errorMessage = granted ? nil : "Notification permission was not granted."
+                errorMessage = granted ? nil : "Notifications aren’t allowed. Turn them on in System Settings › Notifications."
             } catch {
                 notificationsEnabled = false
-                errorMessage = "Notification permission could not be requested."
+                errorMessage = "Rift couldn’t ask for notification permission. Try again."
             }
         }
     }

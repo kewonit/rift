@@ -33,7 +33,7 @@ extension ControlPlaneController {
             }
             return true
         } catch {
-            recordStartupIssue("Root policy cleanup could not be verified, so Rift did not request extension deactivation. Retry while the policy-owner account is the current console user.")
+            recordStartupIssue("Rift couldn’t confirm that the filter was cleared, so it didn’t remove the filter. Try again while signed in to the Mac account that manages Rift.")
             return false
         }
     }

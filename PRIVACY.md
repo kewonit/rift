@@ -2,9 +2,8 @@
 
 Rift makes firewall decisions on the Mac. It does not use analytics, an
 advertising SDK, a telemetry service, automatic diagnostics upload, or
-packet-payload capture. It doesn't geolocate connections, and it doesn't send
-destination IP addresses to any service. Core 1.0 does not enable a remote
-blocklist or software updates.
+packet-payload capture. It doesn't send destination IP addresses to any
+service. Core 1.0 does not enable a remote blocklist or software updates.
 
 ## Data kept on the Mac
 
@@ -44,8 +43,13 @@ MapKit communicates with Apple while the map is visible and when you pan or
 zoom. Rift doesn't give Apple destination IP addresses, hostnames, application
 identities, rules, firewall decisions, or connection history.
 
-The map shows only the location you place for this Mac. Rift doesn't look up
-where connections go and doesn't plot destinations.
+To show which undersea cables a connection likely uses, Rift looks up the
+country of each destination address in a table bundled with the app. The lookup
+happens on the Mac; Rift sends the address nowhere. Rift then estimates a path
+from the location you placed to that country across the bundled cable map. The
+country can be wrong for VPNs, relays, and content delivery networks, and the
+path is an estimate, not the route your data actually takes. Countries and
+paths are shown only while the map is open and aren't saved.
 
 ## Exports and sharing
 

@@ -34,6 +34,11 @@ for required in \
   Scripts/verify-built-products.sh \
   Scripts/test-endpoint-parts.m \
   Resources/ThirdPartyNotices.txt \
+  Resources/NetworkData/ip-country.bin \
+  Resources/NetworkData/country-grid.bin \
+  Resources/NetworkData/network-map.json \
+  Scripts/build-network-data.sh \
+  Scripts/build-network-data.py \
   docs/release/build-signing.md \
   docs/security/threat-model.md \
   README.md LICENSE SECURITY.md \

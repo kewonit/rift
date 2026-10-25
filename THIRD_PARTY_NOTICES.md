@@ -1,8 +1,8 @@
 # Third-party notices
 
-Rift 0.1.0 uses these exact source dependencies. macOS and Xcode provide the
-Apple platform frameworks. This project does not redistribute them as
-third-party packages.
+Rift 0.2.0 uses these exact source dependencies and bundled data. macOS and
+Xcode provide the Apple platform frameworks. This project does not redistribute
+them as third-party packages.
 
 ## GRDB.swift 7.10.0
 
@@ -41,3 +41,35 @@ Library Exception:
 > portions of this Software are embedded into the binary product as a result,
 > you may redistribute such product without providing attribution as would
 > otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+
+## Bundled network map data
+
+`Scripts/build-network-data.sh` rebuilds the three files in
+`Resources/NetworkData/` from the pinned sources below. Rift reads them only on
+the Mac and makes no network requests for them.
+
+### OpenStreetMap undersea cables
+
+Cable data © OpenStreetMap contributors, from an Overpass snapshot dated
+2026-10-25. OpenStreetMap data is available under the
+[Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/)
+([copyright and license](https://www.openstreetmap.org/copyright)).
+`network-map.json` is a derivative database that combines this cable geometry
+with approximate main sea routes drawn by the build script, and it is made
+available under the Open Database License 1.0. The Live Map credits
+OpenStreetMap on screen.
+
+### ip-location-db server-country
+
+The IP-to-country table in `ip-country.bin` is derived from
+[ip-location-db](https://github.com/sapics/ip-location-db) `server-country` at
+commit `6953822901329539b856e9cf48aa95f2de579e87`, published under the
+[Public Domain Dedication and License 1.0](https://opendatacommons.org/licenses/pddl/1-0/).
+That dataset is compiled from Regional Internet Registry statistics, the Route
+Views and RIPE RIS routing archives, and operator geofeeds.
+
+### Natural Earth
+
+Country label points and the land grid in `country-grid.bin` come from
+[Natural Earth](https://www.naturalearthdata.com/) 1:50m admin-0 countries 5.1.1,
+which is in the public domain.

@@ -28,19 +28,19 @@ extension ControlPlaneController {
         let activityCount = (try? await monitorPage(limit: 50).count) ?? 0
         var optional: [String] = []
         if options.contains(.recentActivity) {
-            optional.append("Up to \(activityCount) visible activities, freshly pseudonymized")
+            optional.append("Up to \(activityCount) recent connections, masked")
         }
         if options.contains(.ruleSummaries) {
-            optional.append("Up to \(min(configuration?.rules.count ?? 0, 200)) rule summaries, freshly pseudonymized")
+            optional.append("Up to \(min(configuration?.rules.count ?? 0, 200)) rule summaries, masked")
         }
         if options.contains(.appLogExcerpts) {
-            optional.append("Up to 200 current-process Rift log entries from the last 15 minutes")
+            optional.append("Up to 200 Rift log entries from the last 15 minutes")
         }
         return DiagnosticsBundlePreview(
             defaultSections: [
-                "App, extension, OS, and arm64 version state",
-                "Provider readiness and generation consistency",
-                "Database, retention, prompt, and non-hidden drop counters",
+                "Rift, network filter, and macOS versions",
+                "Network filter status and whether your rules are in sync",
+                "Storage, history, alert, and missed-activity counts",
             ],
             optionalSections: optional
         )

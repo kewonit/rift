@@ -52,10 +52,14 @@ struct ActivityWindowVisibility: NSViewRepresentable {
         }
 
         @objc private func updateVisibility() {
-            let visible = window.map {
+            var visible = window.map {
                 $0.isVisible && !$0.isMiniaturized && $0.occlusionState.contains(.visible)
                     && !NSApplication.shared.isHidden
             } ?? false
+#if DEBUG
+            // Preview captures run in the background, so treat any open preview window as visible.
+            if MonitorFixtureData.isRequested { visible = window != nil }
+#endif
             guard visible != lastValue else { return }
             lastValue = visible
             // Updating SwiftUI state during view attachment must happen on the next run loop.

@@ -62,16 +62,16 @@ extension ControlPlaneController {
                 transientHistory.clear()
             } else {
                 transientHistory.retainForReplay(batch)
-                recordStartupIssue("Activity storage is unavailable. Recent activity is being kept temporarily.")
+                recordStartupIssue("Rift can’t save activity right now. Recent activity is kept in memory for now.")
             }
         } catch {
             transientHistory.retainForReplay(batch)
-            recordStartupIssue("Activity storage is unavailable. Recent activity is being kept temporarily.")
+            recordStartupIssue("Rift can’t save activity right now. Recent activity is kept in memory for now.")
         }
         do {
             try await repository?.recordUsage(batch)
         } catch {
-            recordStartupIssue("Rule usage may be incomplete because activity counters could not be saved.")
+            recordStartupIssue("Rule usage counts may be incomplete because Rift couldn’t save them.")
         }
     }
 

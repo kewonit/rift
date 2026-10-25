@@ -8,16 +8,16 @@ struct FilterStatusView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(controller.initialStatusResolved ? controller.title : "Checking network filter…")
+            Text(controller.initialStatusResolved ? controller.title : "Checking the network filter…")
                 .font(.title3.weight(.semibold))
             Text(controller.initialStatusResolved
                 ? controller.guidance
-                : "Rift is asking macOS for the installed filter state.")
+                : "Rift is checking the filter’s status with macOS.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let issue = controlPlane.startupIssue {
-                GroupBox("Configuration recovery required") {
+                GroupBox("Rift found a problem") {
                     Text(issue)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .foregroundStyle(.secondary)
@@ -34,7 +34,7 @@ struct FilterStatusView: View {
                 }
 
                 if controller.shouldOfferRetry {
-                    Button("Retry") {
+                    Button("Try Again") {
                         controller.retrySetup()
                     }
                 }
@@ -52,10 +52,11 @@ struct FilterStatusView: View {
 
             DisclosureGroup("Troubleshooting") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Rift never reports filtering or activity while macOS has disabled the extension.")
-                    Button("Copy Redacted Health") {
+                    Text("While the filter is turned off in macOS, Rift can’t filter connections or show activity.")
+                    Button("Copy Status Report") {
                         controller.copyRedactedDiagnostics()
                     }
+                    .help("Copy a short status report for troubleshooting. It doesn’t include personal details.")
                 }
                 .padding(.top, 6)
             }

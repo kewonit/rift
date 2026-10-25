@@ -15,9 +15,9 @@ Actions job runs on `main`.
 - Keep production files below 500 lines.
 - Preserve existing formatting.
 - Add bounded tests for parsers and state machines.
-- Do not add payload capture, IP geolocation or remote lookups of destination
-  addresses, insecure blocklist URLs, broad signing requirements, or unbounded
-  buffers.
+- Do not add payload capture, remote lookups of destination addresses, insecure
+  blocklist URLs, broad signing requirements, or unbounded buffers. Map data
+  stays bundled; rebuild it with `Scripts/build-network-data.sh`.
 
 ## Work with signed features
 

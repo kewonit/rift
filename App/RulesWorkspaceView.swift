@@ -35,7 +35,7 @@ struct RulesWorkspaceView: View {
                     HStack(spacing: 10) {
                         Label(message, systemImage: "exclamationmark.triangle")
                         Spacer()
-                        Button("Retry") { Task { await model.reload() } }
+                        Button("Try Again") { Task { await model.reload() } }
                     }
                     .padding(8)
                     .background(.orange.opacity(0.18))
@@ -60,7 +60,7 @@ struct RulesWorkspaceView: View {
                     )
                 } else {
                     ContentUnavailableView(
-                        "Rules unavailable",
+                        "Rules aren’t available right now",
                         systemImage: "exclamationmark.triangle"
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -123,7 +123,7 @@ struct RulesWorkspaceView: View {
             } label: {
                 Label("Filter by Action", systemImage: "line.3.horizontal.decrease.circle")
             }
-            .accessibilityLabel("Action Filter")
+            .accessibilityLabel("Filter by Action")
             .accessibilityValue(model.actionFilter.rawValue)
             .help(model.actionFilter.rawValue)
             Menu {
@@ -147,7 +147,7 @@ struct RulesWorkspaceView: View {
             .disabled(
                 isPreview || model.historyCommandTitle == nil || model.historyCommandIsRunning
             )
-            .help(model.historyCommandTitle ?? "No rule change can be undone.")
+            .help(model.historyCommandTitle ?? "Nothing to undo")
             Button { showingEditor = true } label: { Label("Add Rule", systemImage: "plus") }
                 .disabled(isPreview || model.historyCommandIsRunning)
             Button { editingRow = model.selectedRow } label: { Label("Edit", systemImage: "pencil") }
@@ -204,16 +204,30 @@ struct RulesWorkspaceView: View {
             Task { await acceptRequestedSelection() }
         }
         .confirmationDialog(
-            "Delete \(model.eligibleSelectionCount) rule(s)?",
+            model.eligibleSelectionCount == 1
+                ? "Delete 1 rule?" : "Delete \(model.eligibleSelectionCount) rules?",
             isPresented: $showingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete \(model.eligibleSelectionCount) Rule(s)", role: .destructive) {
+            Button(
+                model.eligibleSelectionCount == 1
+                    ? "Delete Rule" : "Delete \(model.eligibleSelectionCount) Rules",
+                role: .destructive
+            ) {
                 Task { await model.deleteSelected() }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("\(model.skippedSelectionCount) protected or managed rule(s) will be skipped. This changes new and pending connections only.")
+            Text(deleteMessage)
+        }
+    }
+
+    private var deleteMessage: String {
+        let note = "This only affects new connections and ones waiting for a decision."
+        switch model.skippedSelectionCount {
+        case 0: return note
+        case 1: return "1 protected or blocklist rule will be skipped. " + note
+        case let count: return "\(count) protected or blocklist rules will be skipped. " + note
         }
     }
 
@@ -261,31 +275,31 @@ private struct RuleInspectorView: View {
                 LabeledContent("Enabled", value: row.rule.isEnabled ? "Yes" : "No")
                 LabeledContent("Review", value: reviewState)
                 LabeledContent("Priority", value: priority)
-                LabeledContent("Enforcement", value: enforcementState)
+                LabeledContent("Status", value: enforcementState)
                 if let groupID = row.rule.localGroupID {
-                    LabeledContent("Local group", value: groupName(groupID))
+                    LabeledContent("Group", value: groupName(groupID))
                 }
                 if let profileID = row.rule.profileID {
                     LabeledContent("Profile", value: profileName(profileID))
                 }
                 if row.rule.flags.contains(.sourceManaged) {
-                    LabeledContent("Management", value: "Blocklist source")
+                    LabeledContent("Managed by", value: "Blocklist")
                 }
                 if row.rule.flags.contains(.protected) {
                     LabeledContent("Protection", value: "Protected")
                 }
             }
-            Section("Connection match") {
+            Section("Matches") {
                 LabeledContent("Destination", value: destinationLabel)
                 LabeledContent("Protocol", value: protocolLabel)
                 LabeledContent("Port", value: portLabel)
                 LabeledContent("Direction", value: row.rule.direction.rawValue.capitalized)
                 LabeledContent("Owner", value: ownerLabel)
             }
-            Section("Identity") {
+            Section("App Identity") {
                 identityDetails(row.rule.process)
             }
-            Section("Source and lifetime") {
+            Section("Source & Expiration") {
                 LabeledContent("Source", value: sourceLabel)
                 if let expiresAt = row.rule.expiresAt {
                     LabeledContent("Expires", value: expiresAt.formatted())
@@ -295,14 +309,14 @@ private struct RuleInspectorView: View {
             }
             Section("Usage") {
                 LabeledContent(
-                    "Retained uses",
+                    "Times used",
                     value: row.usage.coverage == .complete
                         ? String(row.usage.lowerBoundCount)
                         : "≥\(row.usage.lowerBoundCount)"
                 )
-                LabeledContent("Coverage", value: row.usage.coverage.rawValue.capitalized)
+                LabeledContent("Usage history", value: usageCoverage)
                 if let lastUsedAt = row.usage.lastUsedAt {
-                    LabeledContent("Last retained use", value: lastUsedAt.formatted())
+                    LabeledContent("Last used", value: lastUsedAt.formatted())
                 }
             }
             if !row.rule.notes.isEmpty {
@@ -326,9 +340,16 @@ private struct RuleInspectorView: View {
 
     private var priority: String {
         switch row.rule.priority {
-        case .elevatedUser: "User exception"
+        case .elevatedUser: "Blocklist exception"
         case .blocklistDeny: "Blocklist"
         case .normal: "Normal"
+        }
+    }
+
+    private var usageCoverage: String {
+        switch row.usage.coverage {
+        case .complete: "Complete"
+        case .partial, .gap: "Incomplete"
         }
     }
 
@@ -338,10 +359,10 @@ private struct RuleInspectorView: View {
 
     private var enforcementState: String {
         switch row.enforcementState {
-        case .enforced: "Enforced"
-        case .savedPendingEnforcement: "Saved, pending enforcement"
-        case .persistedPendingProvider: "Persisted, provider pending"
-        case .applyFailed: "Apply failed"
+        case .enforced: "Active"
+        case .savedPendingEnforcement: "Saved, waiting for the filter"
+        case .persistedPendingProvider: "Saved, waiting for the filter to start"
+        case .applyFailed: "Couldn’t apply"
         }
     }
 
@@ -350,7 +371,7 @@ private struct RuleInspectorView: View {
         case .ipSet(let values): values.map(\.description).joined(separator: ", ")
         case .exactHostnameSet(let values): values.map(\.ascii).joined(separator: ", ")
         case .domainSet(let values): values.map { "*." + $0.ascii }.joined(separator: ", ")
-        case .endpointClass(let value): value.rawValue
+        case .endpointClass(let value): RuleWorkspacePresentation.endpointClass(value)
         case .anyEndpoint: "Any destination"
         }
     }
@@ -371,8 +392,8 @@ private struct RuleInspectorView: View {
 
     private var ownerLabel: String {
         switch row.rule.owner {
-        case .authorizedUser: "Authorized user"
-        case .specificUser(let uid): "User \(uid)"
+        case .authorizedUser: "Your account"
+        case .specificUser(let uid): "User ID \(uid)"
         case .system: "System"
         }
     }
@@ -383,7 +404,7 @@ private struct RuleInspectorView: View {
         case .imported: "Imported"
         case .feature(let identifier): "Rift feature · \(identifier)"
         case .blocklist(let sourceID):
-            blocklists.first { $0.id == sourceID }?.name ?? "Unavailable blocklist"
+            blocklists.first { $0.id == sourceID }?.name ?? "Removed blocklist"
         }
     }
 
@@ -391,12 +412,12 @@ private struct RuleInspectorView: View {
     private func identityDetails(_ condition: ProcessCondition) -> some View {
         switch condition {
         case .anyProcess:
-            LabeledContent("Process", value: "Any process")
+            LabeledContent("App", value: "Any app")
         case .exact(let identity):
-            identityRows(identity, label: "Process")
+            identityRows(identity, label: "App")
         case .appViaHelper(let app, let helper):
-            identityRows(app, label: "Application")
-            identityRows(helper, label: "Helper")
+            identityRows(app, label: "App")
+            identityRows(helper, label: "Helper process")
         }
     }
 
@@ -405,39 +426,39 @@ private struct RuleInspectorView: View {
         LabeledContent(label, value: MonitorQuery.identityLabel(identity))
         switch identity {
         case .applePlatform(let signed):
-            signedRows(signed, kind: "Apple platform")
+            signedRows(signed, kind: "Apple")
         case .developerID(let signed):
             signedRows(signed, kind: "Developer ID")
         case .appStore(let signed):
             signedRows(signed, kind: "Mac App Store")
         case .otherSigner(let hash, let identifier):
-            LabeledContent("Identity type", value: "Other signer")
-            LabeledContent("Signing identifier", value: identifier)
+            LabeledContent("Signature", value: "Other developer")
+            LabeledContent("Signing ID", value: identifier)
             LabeledContent("Public-key hash", value: hash.description)
         case .adHoc(let hash):
-            LabeledContent("Identity type", value: "Ad hoc")
-            LabeledContent("Code-directory hash", value: hash.description)
+            LabeledContent("Signature", value: "Ad hoc")
+            LabeledContent("Code hash", value: hash.description)
         case .unsigned(let path, let hash):
-            LabeledContent("Identity type", value: "Unsigned")
-            LabeledContent("Verified path", value: path)
+            LabeledContent("Signature", value: "Unsigned")
+            LabeledContent("Path", value: path)
             LabeledContent("File hash", value: hash.description)
         }
     }
 
     @ViewBuilder
     private func signedRows(_ value: SignedCodeIdentity, kind: String) -> some View {
-        LabeledContent("Identity type", value: kind)
-        LabeledContent("Signing identifier", value: value.signingIdentifier)
+        LabeledContent("Signature", value: kind)
+        LabeledContent("Signing ID", value: value.signingIdentifier)
         if let team = value.teamIdentifier {
-            LabeledContent("Team identifier", value: team)
+            LabeledContent("Team ID", value: team)
         }
     }
 
     private func groupName(_ id: UUID) -> String {
-        groups.first { $0.id == id }?.name ?? "Unavailable"
+        groups.first { $0.id == id }?.name ?? "Removed group"
     }
 
     private func profileName(_ id: UUID) -> String {
-        profiles.first { $0.id == id }?.name ?? "Unavailable"
+        profiles.first { $0.id == id }?.name ?? "Removed profile"
     }
 }

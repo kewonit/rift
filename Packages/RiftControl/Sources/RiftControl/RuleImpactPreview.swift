@@ -173,7 +173,7 @@ public enum RuleImpactPreviewEvaluator {
     }
 
     private static func ruleSuffix(_ id: UUID?) -> String {
-        id == nil ? " • fallback/no rule" : " • matched rule"
+        id == nil ? " • by default" : " • by a rule"
     }
 
     private static func explanation(_ value: PrecedenceExplanation?) -> String? {

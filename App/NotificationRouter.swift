@@ -25,13 +25,13 @@ actor NotificationRouter {
             && (event.action == .deny || event.reason != .concreteDecision) {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
-            content.title = event.action == .deny ? "Rift denied a connection" : "Rift used fallback"
+            content.title = event.action == .deny ? "Rift denied a connection" : "Rift allowed a connection by default"
             if UserDefaults.standard.bool(forKey: "notificationSensitiveDetails"),
                let endpoint = event.flow.destinationEndpoint {
                 let value = endpoint.hostname?.ascii ?? endpoint.address.description
                 content.body = "Destination: \(value)"
             } else {
-                content.body = "Open Rift to review the connection metadata."
+                content.body = "Open Rift to see the details."
             }
             await deliver(
                 UNNotificationRequest(identifier: event.id, content: content, trigger: nil)
@@ -52,7 +52,7 @@ actor NotificationRouter {
                 let value = endpoint.hostname?.ascii ?? endpoint.address.description
                 content.body = "Destination: \(value)"
             } else {
-                content.body = "A notification rule matched. Open Rift for available details."
+                content.body = "A notification rule matched. Open Rift to see the details."
             }
             await deliver(
                 UNNotificationRequest(
@@ -66,7 +66,7 @@ actor NotificationRouter {
     }
 
     func healthMessage() -> String? {
-        deliveryFailureCount == 0 ? nil : "Some notifications could not be delivered."
+        deliveryFailureCount == 0 ? nil : "Some notifications couldn’t be shown."
     }
 
     private var notificationsEnabled: Bool {
@@ -96,7 +96,9 @@ actor NotificationRouter {
         }
         let content = UNMutableNotificationContent()
         content.title = "Rift connection summary"
-        content.body = "\(count) additional events were coalesced."
+        content.body = count == 1
+            ? "1 more notification was combined into this summary."
+            : "\(count) more notifications were combined into this summary."
         await deliver(UNNotificationRequest(
             identifier: "rift-summary-\(UUID().uuidString.lowercased())",
             content: content,

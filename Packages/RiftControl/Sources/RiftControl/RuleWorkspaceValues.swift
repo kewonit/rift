@@ -120,7 +120,7 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
         case .ipSet(let values): destination = values.map(\.description).joined(separator: ", ")
         case .exactHostnameSet(let values): destination = values.map(\.ascii).joined(separator: ", ")
         case .domainSet(let values): destination = values.map { "*." + $0.ascii }.joined(separator: ", ")
-        case .endpointClass(let value): destination = value.rawValue
+        case .endpointClass(let value): destination = RuleWorkspacePresentation.endpointClass(value)
         case .anyEndpoint: destination = "Any destination"
         }
         let port = rule.port.map { $0.lowerBound == $0.upperBound

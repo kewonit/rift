@@ -158,7 +158,7 @@ struct RiftHealthView: View {
                 healthHeader
                 if let issue = session.controlPlane.startupIssue {
                     HealthCard(
-                        title: "Configuration recovery required",
+                        title: "Rift found a problem",
                         detail: issue,
                         tone: .warning,
                         symbol: "externaldrive.badge.exclamationmark"
@@ -183,11 +183,11 @@ struct RiftHealthView: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.isUIFixture
-                    ? "Preview environment"
+                    ? "Preview mode"
                     : (session.hasConfirmedFilterService ? "Rift is protecting this Mac" : "Rift needs attention"))
                     .font(.title2.weight(.semibold))
                 Text(session.isUIFixture
-                    ? "These controls show realistic setup and failure states without changing the Mac."
+                    ? "This preview shows sample setup and error states. Nothing on this Mac changes."
                     : session.statusAccessibilityLabel)
                     .foregroundStyle(.secondary)
             }
@@ -199,21 +199,21 @@ struct RiftHealthView: View {
     private var extensionCard: some View {
         if showsHealthSetupFixture {
             HealthCard(
-                title: "Network filter setup required",
-                detail: "The extension isn’t installed in this preview. Install and approve it from a signed build.",
+                title: "Set up the network filter",
+                detail: "The filter isn’t installed in this preview. Install and approve it from a signed copy of Rift.",
                 tone: .warning,
                 symbol: "network.badge.shield.half.filled"
             )
         } else if let lifecycle = session.lifecycle {
             VStack(alignment: .leading, spacing: 12) {
                 Label(
-                    lifecycle.initialStatusResolved ? lifecycle.title : "Checking network filter…",
+                    lifecycle.initialStatusResolved ? lifecycle.title : "Checking the network filter…",
                     systemImage: "network.badge.shield.half.filled"
                 )
                 .font(.headline)
                 Text(lifecycle.initialStatusResolved
                     ? lifecycle.guidance
-                    : "Rift is asking macOS for the installed filter state.")
+                    : "Rift is checking the filter’s status with macOS.")
                     .foregroundStyle(.secondary)
 
                 HStack {
@@ -222,21 +222,22 @@ struct RiftHealthView: View {
                             .disabled(lifecycle.operationInProgress)
                     }
                     if lifecycle.shouldOfferRetry {
-                        Button("Retry") { lifecycle.retrySetup() }
+                        Button("Try Again") { lifecycle.retrySetup() }
                     }
                     if lifecycle.initialStatusResolved && lifecycle.shouldOfferSettings {
                         Button("Open System Settings") { lifecycle.openSystemSettings() }
                     }
                     Spacer()
-                    Button("Copy Redacted Health") { lifecycle.copyRedactedDiagnostics() }
+                    Button("Copy Status Report") { lifecycle.copyRedactedDiagnostics() }
+                        .help("Copy a short status report for troubleshooting. It doesn’t include personal details.")
                 }
             }
             .padding(16)
             .riftSurface()
         } else {
             HealthCard(
-                title: "Extension preview",
-                detail: "Preview data. The network filter isn’t active in preview mode.",
+                title: "Network filter",
+                detail: "This preview uses sample data. The network filter isn’t running.",
                 tone: .unresolved,
                 symbol: "network.badge.shield.half.filled"
             )
@@ -254,8 +255,10 @@ struct RiftHealthView: View {
     private var dataCard: some View {
         HealthCard(
             title: "Map",
-            detail: "Rift doesn’t look up where connections go. The map shows only the location you set for this Mac. Apple MapKit draws the map without receiving destination addresses, hostnames, app identities, or firewall decisions from Rift.",
-            tone: .protected,
+            detail: NetworkMapStore.shared.loadFailed
+                ? "The cable map couldn’t load. Filtering isn’t affected."
+                : "Rift finds each connection’s country on this Mac and estimates the undersea cables it uses. Apple Maps draws the map and gets no connection details from Rift.",
+            tone: NetworkMapStore.shared.loadFailed ? .warning : .protected,
             symbol: "map"
         )
     }

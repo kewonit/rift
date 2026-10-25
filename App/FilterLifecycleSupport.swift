@@ -29,17 +29,17 @@ enum LifecycleHealthFailure: Error, Sendable {
         case .activationPreflight(let failure):
             failure.message
         case .invalidEmbeddedExtension:
-            "This copy of Rift does not contain the expected matching network filter. Replace it with a complete Rift release."
+            "This copy of Rift is missing its network filter, or the filter is the wrong version. Download Rift again and replace this copy."
         case .ambiguousInstalledExtension:
-            "macOS reported more than one matching Rift network filter. Resolve the duplicate installation before filtering."
+            "macOS found more than one Rift network filter. Remove the extra copy of Rift, then try again."
         case .installedExtensionMismatch:
-            "The installed network filter does not match this copy of Rift. Update or reinstall it before filtering."
+            "The installed filter doesn’t match this version of Rift. Update or reinstall Rift, then try again."
         case .providerConfigurationMismatch:
-            "The saved macOS filter configuration does not target the exact Rift filter. Remove and reinstall the filter configuration before filtering."
+            "The filter settings saved in macOS don’t point to Rift’s filter. Uninstall and reinstall the network filter, then try again."
         case .socketFilteringDisabled:
-            "The saved macOS filter configuration does not enable socket filtering. Remove and reinstall the filter configuration before filtering."
+            "The filter settings saved in macOS don’t turn on connection filtering. Uninstall and reinstall the network filter, then try again."
         case .packetFilteringClaimed:
-            "The saved macOS filter configuration claims unsupported packet filtering. Remove and reinstall the filter configuration before filtering."
+            "The filter settings saved in macOS use packet filtering, which Rift doesn’t support. Uninstall and reinstall the network filter, then try again."
         }
     }
 }
@@ -48,14 +48,14 @@ private extension SystemExtensionActivationPreflightFailure {
     var message: String {
         switch self {
         case .invalidHostBundle, .invalidEmbeddedBundle, .versionMismatch:
-            "This copy of Rift does not contain the expected matching network filter. Replace it with a complete Rift release, then retry."
+            "This copy of Rift is missing its network filter, or the filter is the wrong version. Download Rift again, replace this copy, and try again."
         case .invalidHostSignature, .invalidEmbeddedSignature, .invalidNestedCode,
                 .signingTeamMismatch, .designatedIdentityMismatch:
-            "Rift could not verify the embedded network filter as part of this signed release. Replace this copy of Rift, then retry."
+            "Rift couldn’t verify the signature of its network filter. Download Rift again, replace this copy, and try again."
         case .hostEntitlementsMismatch, .extensionEntitlementsMismatch:
-            "This copy of Rift is missing required network-filter authorization. Replace it with a correctly signed release, then retry."
+            "This copy of Rift isn’t signed with permission to install a network filter. Download a signed copy of Rift and try again."
         case .machServiceMismatch:
-            "The app and embedded network filter have mismatched service configuration. Replace this copy of Rift, then retry."
+            "Rift and its network filter aren’t set up to work together. Download Rift again, replace this copy, and try again."
         }
     }
 }

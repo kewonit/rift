@@ -1,9 +1,12 @@
-# Dependency inventory
+# Dependency and data inventory
 
 | Component | Exact version/revision | License | Shipping scope | Removal seam |
 |---|---|---|---|---|
 | GRDB.swift | 7.10.0 / `36e30a6f1ef10e4194f6af0cff90888526f0c115` | MIT | App-only configuration/history repositories | Replace `RiftControl` repository implementation |
 | Swift Argument Parser | 1.8.2 / `6a52f3251125d74daf04fcbd5e6f08a75d074382` | Apache-2.0 with Runtime Library Exception | Embedded `riftctl` argument parsing only | Replace the CLI command front end. IPC/file-safety code is separate |
+| ip-location-db server-country | commit `6953822901329539b856e9cf48aa95f2de579e87` | PDDL-1.0 | `ip-country.bin`: IP-to-country table for the Live Map | Remove `Resources/NetworkData/ip-country.bin` and `CountryIPTable` |
+| OpenStreetMap undersea cables | Overpass snapshot 2026-10-25T00:00:00Z | ODbL-1.0 | Cable geometry in `network-map.json` | Remove `network-map.json` and the cable overlays |
+| Natural Earth admin-0 countries | 1:50m 5.1.1 | Public domain | Country label points and the land grid in `country-grid.bin` | Remove `country-grid.bin` and `CountryGrid` |
 
 The Rift maintainers own dependency review. They review dependencies before each
 release candidate and at least once a month while development is active. They
@@ -12,12 +15,15 @@ Database, and the Swift Package Index record. The last local review was
 2026-08-12. Before they change a version or revision, they review the license,
 transitive dependencies, product linkage, and signed runtime.
 
-Rift has no paid UI, chart, or update service dependency, and it doesn't use
-IP geolocation. Apple MapKit is a system framework and service; it supplies
-basemap imagery and labels over the network.
+Rift has no paid UI, chart, update, or geolocation service dependency. The
+country lookup uses the bundled table above, on the Mac. Apple MapKit is a
+system framework and service; it supplies basemap imagery and labels over the
+network.
 Swift Charts, AppKit and SwiftUI, NetworkExtension, Security, CryptoKit,
 ServiceManagement, UserNotifications, and SystemConfiguration are system
-frameworks. Rift ships no third-party data files or blocklists. GRDB's
+frameworks. Rift ships the pinned data listed above and no third-party
+blocklist. `Scripts/build-network-data.sh` rebuilds that data and checks every
+source against a pinned SHA-256. GRDB's
 optional SQLCipher and plugin dependencies are not enabled. The workspace lock
 pins both remote packages, and the standalone `RiftControl` package lock also
 pins GRDB. Neither dependency uses a floating branch.

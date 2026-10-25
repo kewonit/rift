@@ -147,7 +147,7 @@ public enum RuleWorkspaceHierarchy {
         let value: String
         switch identity {
         case .applePlatform(let signed), .developerID(let signed), .appStore(let signed):
-            value = signed.teamIdentifier.map { "Team \($0)" } ?? "No team identifier"
+            value = signed.teamIdentifier.map { "Team \($0)" } ?? "No Team ID"
         case .otherSigner(let hash, _), .adHoc(let hash):
             value = "Code \(hash.description.prefix(16))…"
         case .unsigned(let path, let hash):

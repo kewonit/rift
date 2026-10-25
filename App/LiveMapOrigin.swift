@@ -53,95 +53,6 @@ final class MapOriginController {
     }
 }
 
-struct OriginMapView: View {
-    @Binding var origin: CoarseMapOrigin?
-    @Binding var isPlacingOrigin: Bool
-    let activityVisible: Bool
-    let onReady: () -> Void
-    @State private var cameraPosition: MapCameraPosition = .rect(.world)
-
-    var body: some View {
-        Group {
-            if activityVisible {
-                interactiveMap
-            } else {
-                Color(nsColor: .windowBackgroundColor).accessibilityHidden(true)
-            }
-        }
-        .onAppear {
-            if let origin { cameraPosition = .region(Self.region(around: origin)) }
-            onReady()
-        }
-    }
-
-    private var interactiveMap: some View {
-        MapReader { proxy in
-            Map(position: $cameraPosition, interactionModes: [.pan, .zoom]) {
-                if let origin {
-                    Annotation("This Mac", coordinate: origin.mapCoordinate, anchor: .center) {
-                        OriginMapMarker()
-                    }
-                }
-            }
-            .mapStyle(.standard(
-                elevation: .flat,
-                emphasis: .automatic,
-                pointsOfInterest: .excludingAll,
-                showsTraffic: false
-            ))
-            .mapControlVisibility(.hidden)
-            .simultaneousGesture(placementGesture(proxy: proxy))
-        }
-        .overlay(alignment: .topTrailing) {
-            if isPlacingOrigin {
-                Label("Click the map to place this Mac", systemImage: "location.circle.fill")
-                    .font(.caption.weight(.medium))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(10)
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Map")
-        .accessibilityValue(origin == nil ? "No location set" : "Showing your chosen location")
-        .onExitCommand { isPlacingOrigin = false }
-    }
-
-    private func placementGesture(proxy: MapProxy) -> some Gesture {
-        SpatialTapGesture().onEnded { value in
-            guard isPlacingOrigin,
-                  let coordinate = proxy.convert(value.location, from: .local),
-                  let coarse = try? CoarseMapCoordinate(
-                    latitude: coordinate.latitude,
-                    longitude: coordinate.longitude
-                  ) else { return }
-            origin = CoarseMapOrigin(coordinate: coarse)
-            isPlacingOrigin = false
-        }
-    }
-
-    private static func region(around origin: CoarseMapOrigin) -> MKCoordinateRegion {
-        MKCoordinateRegion(
-            center: origin.mapCoordinate,
-            span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 70)
-        )
-    }
-}
-
-private struct OriginMapMarker: View {
-    var body: some View {
-        Image(systemName: "laptopcomputer")
-            .font(.system(size: 20, weight: .semibold))
-            .foregroundStyle(.primary)
-            .frame(width: 48, height: 48)
-            .background(.regularMaterial, in: Circle())
-            .overlay(Circle().stroke(.separator.opacity(0.6)))
-            .shadow(color: .black.opacity(0.24), radius: 5, y: 2)
-            .accessibilityLabel("This Mac, location you chose")
-    }
-}
-
 struct LiveMapOriginControl: View {
     let isPlacing: Bool
     let hasOrigin: Bool
@@ -168,13 +79,17 @@ struct LiveMapOriginControl: View {
 
 struct LiveMapInformation: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text("Map").font(.headline)
-            Text("Rift doesn’t look up where connections go. The map shows only the location you place for this Mac, and Rift saves it on this Mac only.")
-            Text("Apple MapKit draws the map and requests map imagery from Apple as you pan and zoom. Rift sends Apple no destination addresses, hostnames, app identities, or firewall decisions.")
+        VStack(alignment: .leading, spacing: 10) {
+            Text("About the map").font(.headline)
+            Text("Lines show undersea internet cables. Solid lines are mapped cables; dashed lines are main sea routes drawn from where cables come ashore.")
+            Text("When an app connects to another country, Rift highlights the cables the connection most likely uses. Rift looks up the country on your Mac and estimates the path. It can’t see the real route your data takes.")
+            Text("Your location stays on this Mac. Apple Maps draws the map and gets no connection details from Rift.")
+            Text("Cable data © OpenStreetMap contributors (ODbL). Country data from ip-location-db (public domain) and Natural Earth.")
+                .foregroundStyle(.secondary)
         }
-        .font(.caption)
-        .frame(width: 320, alignment: .leading)
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 340, alignment: .leading)
         .padding(16)
     }
 }

@@ -70,14 +70,14 @@ struct StatusMenuDashboard: View {
 
     private var operationColor: Color {
         if pendingCount > 0 || !filteringConfirmed { return .orange }
-        if mode == "Observe only" { return .blue }
+        if mode == "Observe Only" { return .blue }
         return .green
     }
 
     private var operationSymbol: String {
         if pendingCount > 0 { return "exclamationmark" }
         if !filteringConfirmed { return "exclamationmark.triangle.fill" }
-        if mode == "Observe only" { return "eye.fill" }
+        if mode == "Observe Only" { return "eye.fill" }
         return "checkmark"
     }
 
@@ -103,7 +103,7 @@ struct StatusMenuDashboard: View {
                 .frame(width: 27, height: 27)
 
                 VStack(alignment: .leading, spacing: -1) {
-                    Text("Operation Mode")
+                    Text("Mode")
                         .font(.system(size: 9.5, weight: .medium))
                         .foregroundStyle(.secondary)
                     Text(mode)
@@ -120,8 +120,8 @@ struct StatusMenuDashboard: View {
                     .stroke(surfaceStroke, lineWidth: 0.75)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Operation mode, \(mode)")
-            .accessibilityValue("\(status). Profile \(profile)")
+            .accessibilityLabel("Mode: \(mode)")
+            .accessibilityValue("\(status). Profile: \(profile)")
 
             StatusQuickActionButton(
                 symbol: notificationsEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
@@ -186,7 +186,7 @@ struct StatusMenuDashboard: View {
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 2)
             if applications.isEmpty {
-                Text("No recent applications")
+                Text("No recent activity")
                     .font(.system(size: 12.5))
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
@@ -218,7 +218,7 @@ struct StatusMenuDashboard: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityHint("\(relativeTime(item.occurredAt)) ago")
+                    .accessibilityHint(relativeTime(item.occurredAt))
                 }
             }
         }
@@ -251,10 +251,15 @@ struct StatusMenuDashboard: View {
 
     private func relativeTime(_ date: Date) -> String {
         let seconds = max(0, now.timeIntervalSince(date))
-        if seconds < 60 { return seconds < 10 ? "Now" : "\(Int(seconds)) seconds" }
-        if seconds < 3_600 { return "\(Int(seconds / 60)) minutes" }
-        if seconds < 86_400 { return "\(Int(seconds / 3_600)) hours" }
-        return "\(Int(seconds / 86_400)) days"
+        if seconds < 10 { return "Just now" }
+        if seconds < 60 { return ago(Int(seconds), "second") }
+        if seconds < 3_600 { return ago(Int(seconds / 60), "minute") }
+        if seconds < 86_400 { return ago(Int(seconds / 3_600), "hour") }
+        return ago(Int(seconds / 86_400), "day")
+    }
+
+    private func ago(_ value: Int, _ unit: String) -> String {
+        value == 1 ? "1 \(unit) ago" : "\(value) \(unit)s ago"
     }
 }
 
