@@ -68,10 +68,14 @@ final class ApplicationArtworkStore {
 #endif
 
     func artwork(for identity: ProcessIdentity) async -> ApplicationArtwork? {
-#if DEBUG
-        if usesFixtureArtwork { return fixtureArtwork(for: identity) }
-#endif
         if let cached = cachedArtwork(for: identity) { return cached }
+#if DEBUG
+        if usesFixtureArtwork {
+            let artwork = fixtureArtwork(for: identity)
+            insert(artwork, for: identity)
+            return artwork
+        }
+#endif
         if let task = inFlight[identity] { return await task.value }
         guard inFlight.count < Self.maximumPending else { return nil }
         let candidates = await candidateURLs(for: identity)
@@ -92,6 +96,11 @@ final class ApplicationArtworkStore {
         if cache[identity] == nil { insert(artwork, for: identity) }
         inFlight.removeValue(forKey: identity)
         return artwork
+    }
+
+    /// Artwork already in the cache, so a recreated view can show it at once.
+    func cachedArtworkIfAvailable(for identity: ProcessIdentity) -> ApplicationArtwork? {
+        cachedArtwork(for: identity) ?? nil
     }
 
     func revealApplication(for identity: ProcessIdentity) async -> Bool {
@@ -198,7 +207,7 @@ final class ApplicationArtworkStore {
         let cost = artwork == nil ? 1 : 128 * 128 * 4
         cache[identity] = CacheEntry(
             artwork: artwork,
-            expiresAt: Date().addingTimeInterval(artwork == nil ? 30 : 300),
+            expiresAt: Date().addingTimeInterval(artwork == nil ? 30 : 3_600),
             cost: cost,
             lastAccess: accessCounter
         )
@@ -220,15 +229,34 @@ final class ApplicationArtworkStore {
             NSWorkspace.didMountNotification,
             NSWorkspace.didUnmountNotification,
         ] {
+            let volumesChanged = name == NSWorkspace.didMountNotification
+                || name == NSWorkspace.didUnmountNotification
             center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.clearCache() }
+                MainActor.assumeIsolated {
+                    // A launch or quit changes which apps are running, not what an
+                    // already verified app looks like. Volumes changing can.
+                    if volumesChanged { self?.clearCache() } else { self?.invalidateRunningIndex() }
+                }
             }
+        }
+    }
+
+    private func invalidateRunningIndex() {
+        runningIndex = nil
+        runningIndexTask?.cancel()
+        runningIndexTask = nil
+        workspaceGeneration &+= 1
+        // Negative results may now resolve because a matching app is running.
+        for (identity, entry) in cache where entry.artwork == nil {
+            cacheCost -= entry.cost
+            cache.removeValue(forKey: identity)
         }
     }
 
     private func clearCache() {
         cache.removeAll(keepingCapacity: true)
         cacheCost = 0
+        verifier.forgetValidations()
         runningIndex = nil
         runningIndexTask?.cancel()
         runningIndexTask = nil
@@ -316,6 +344,17 @@ private struct ApplicationCandidateProof: Sendable, Equatable {
 }
 
 private final class ApplicationArtworkVerifier: @unchecked Sendable {
+    /// Signature checks are expensive for large apps. A validated bundle is
+    /// remembered against its file proof (bundle and executable device, inode,
+    /// size and modification time), which changes whenever the app is replaced
+    /// or re-signed, so the identity is only re-derived when the files change.
+    private let memoLock = NSLock()
+    private var memo: [String: (ApplicationCandidateProof, ProcessIdentity)] = [:]
+
+    func forgetValidations() {
+        memoLock.withLock { memo.removeAll() }
+    }
+
     private let queue: OperationQueue = {
         let value = OperationQueue()
         value.name = "io.rift.firewall.application-artwork"
@@ -330,7 +369,7 @@ private final class ApplicationArtworkVerifier: @unchecked Sendable {
     ) async -> ApplicationCandidateProof? {
         await withCheckedContinuation { continuation in
             queue.addOperation {
-                let matches = candidates.compactMap { Self.proof(for: $0, identity: identity) }
+                let matches = candidates.compactMap { self.proof(for: $0, identity: identity) }
                 continuation.resume(returning: matches.count == 1 ? matches[0] : nil)
             }
         }
@@ -341,7 +380,7 @@ private final class ApplicationArtworkVerifier: @unchecked Sendable {
             queue.addOperation {
                 var result: [ProcessIdentity: [URL]] = [:]
                 for candidate in candidates {
-                    guard let (proof, identity) = Self.validatedCandidate(candidate) else { continue }
+                    guard let (proof, identity) = self.validatedCandidate(candidate) else { continue }
                     result[identity, default: []].append(proof.url)
                 }
                 continuation.resume(returning: result)
@@ -355,12 +394,14 @@ private final class ApplicationArtworkVerifier: @unchecked Sendable {
     ) async -> Bool {
         await withCheckedContinuation { continuation in
             queue.addOperation {
-                continuation.resume(returning: Self.proof(for: proof.url, identity: identity) == proof)
+                // The file proof guards against the bundle changing between
+                // selection and drawing; the identity was verified for this proof.
+                continuation.resume(returning: Self.fileProof(proof.url) == proof)
             }
         }
     }
 
-    private static func proof(
+    private func proof(
         for candidate: URL,
         identity: ProcessIdentity
     ) -> ApplicationCandidateProof? {
@@ -370,11 +411,27 @@ private final class ApplicationArtworkVerifier: @unchecked Sendable {
         return proof
     }
 
-    private static func validatedCandidate(
+    private func validatedCandidate(
         _ candidate: URL
     ) -> (ApplicationCandidateProof, ProcessIdentity)? {
         guard candidate.isFileURL, candidate.pathExtension.lowercased() == "app" else { return nil }
         let url = candidate.standardizedFileURL
+        if let current = Self.fileProof(url),
+           let remembered = memoLock.withLock({ memo[url.path] }), remembered.0 == current {
+            return remembered
+        }
+        guard let validated = Self.validate(url) else {
+            memoLock.withLock { memo[url.path] = nil }
+            return nil
+        }
+        memoLock.withLock {
+            if memo.count >= 512 { memo.removeAll() }
+            memo[url.path] = validated
+        }
+        return validated
+    }
+
+    private static func validate(_ url: URL) -> (ApplicationCandidateProof, ProcessIdentity)? {
         guard url.resolvingSymlinksInPath().path == url.path,
               let values = try? url.resourceValues(forKeys: [
                 .isDirectoryKey, .isSymbolicLinkKey, .volumeIsLocalKey,

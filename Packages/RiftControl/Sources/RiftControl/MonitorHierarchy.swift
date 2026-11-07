@@ -31,15 +31,24 @@ public struct MonitorRuleCoverage: Sendable, Hashable {
     public let state: MonitorRuleCoverageState
     public let ruleIDs: Set<UUID>
     public let winningRuleID: UUID?
+    /// What today's rules do to this connection, which can differ from what
+    /// happened when it was recorded.
+    public let currentAction: FilterAction?
+    /// The deciding rule in words, so nobody has to go looking for it.
+    public let winningRuleSummary: String?
 
     public init(
         state: MonitorRuleCoverageState,
         ruleIDs: Set<UUID> = [],
-        winningRuleID: UUID? = nil
+        winningRuleID: UUID? = nil,
+        currentAction: FilterAction? = nil,
+        winningRuleSummary: String? = nil
     ) {
         self.state = state
         self.ruleIDs = ruleIDs
         self.winningRuleID = winningRuleID
+        self.currentAction = currentAction
+        self.winningRuleSummary = winningRuleSummary
     }
 }
 
@@ -56,13 +65,9 @@ public struct MonitorAggregate: Sendable, Hashable {
 
     init(rows: [MonitorEventRow]) {
         flowCount = rows.count
-        allowed = rows.filter {
-            $0.event.action == .allow && $0.event.reason == .concreteDecision
-        }.count
-        denied = rows.filter {
-            $0.event.action == .deny && $0.event.reason == .concreteDecision
-        }.count
-        unresolved = rows.filter { $0.event.reason != .concreteDecision }.count
+        allowed = rows.filter { $0.event.tally == .allowed }.count
+        denied = rows.filter { $0.event.tally == .blocked }.count
+        unresolved = rows.filter { $0.event.tally == .noRule }.count
         bytesInbound = Self.total(rows.map(\.bytesInbound))
         bytesOutbound = Self.total(rows.map(\.bytesOutbound))
         coverage = rows.contains { $0.coverage == .gap } ? .gap
@@ -212,8 +217,11 @@ public enum MonitorCoverageEvaluator {
         if values.allSatisfy({ $0.state == first.state && $0.ruleIDs == first.ruleIDs }) {
             let winner = values.allSatisfy({ $0.winningRuleID == first.winningRuleID })
                 ? first.winningRuleID : nil
+            let action = values.allSatisfy({ $0.currentAction == first.currentAction })
+                ? first.currentAction : nil
             return MonitorRuleCoverage(
-                state: first.state, ruleIDs: allIDs, winningRuleID: winner
+                state: first.state, ruleIDs: allIDs, winningRuleID: winner, currentAction: action,
+                winningRuleSummary: winner == nil ? nil : first.winningRuleSummary
             )
         }
         let uncovered: Set<MonitorRuleCoverageState> = [
@@ -263,7 +271,9 @@ public enum MonitorCoverageEvaluator {
             return MonitorRuleCoverage(
                 state: state,
                 ruleIDs: ruleIDs,
-                winningRuleID: winnerID
+                winningRuleID: winnerID,
+                currentAction: decision.filter.action,
+                winningRuleSummary: summary(of: winner, state: enforcementState)
             )
         }
         if let historicalID = historicalRuleID, !historicalRuleExists {
@@ -295,6 +305,14 @@ public enum MonitorCoverageEvaluator {
             return MonitorRuleCoverage(state: .unresolved)
         }
         return MonitorRuleCoverage(state: .noRule)
+    }
+
+    private static func summary(of rule: Rule, state: PolicyOutboxState) -> String {
+        let row = RuleRowViewValue(
+            rule: rule, state: state, generation: 0,
+            usage: RuleUsageValue(lowerBoundCount: 0, lastUsedAt: nil, coverage: .gap)
+        )
+        return "\(row.actionLabel) · \(row.conditionSummary)"
     }
 
     private static func isExact(_ rule: Rule, for flow: FlowDescriptor) -> Bool {

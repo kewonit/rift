@@ -1,6 +1,5 @@
 import RiftControl
 import RiftCore
-import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
@@ -12,11 +11,13 @@ struct SettingsView: View {
     @AppStorage("statusRecentLimit") private var recentLimit = 5
     @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = "Once"
     @AppStorage("alertDefaultScope") private var alertDefaultScope = "Current profile"
-    @State private var section: SettingsSection = .general
+    @AppStorage("settingsSection") private var section: SettingsSection = .general
     @State private var launchAtLogin = false
     @State private var loginItemLoaded = false
     @State private var baseMode: OperationMode = .silentAllow
     @State private var effectiveMode: OperationMode = .silentAllow
+    @State private var activeProfileName: String?
+    @State private var pendingBaseMode: OperationMode?
     @State private var confirmedBaseMode: OperationMode = .silentAllow
     @State private var isChangingBaseMode = false
     @State private var historyEnabled = false
@@ -27,6 +28,8 @@ struct SettingsView: View {
     @State private var showingRestoreConfirmation = false
     @State private var pendingHistoryExport: HistoryExportFormat?
     @State private var showingDisableHistoryChoice = false
+    @State private var savedHistory: HistoryValues?
+    @State private var historySaveTask: Task<Void, Never>?
     @State private var showingClearHistoryConfirmation = false
     @State private var restoreNeedsRetry = false
     @State private var groups: [LocalRuleGroup] = []
@@ -81,22 +84,23 @@ struct SettingsView: View {
             if !["Current profile", "All profiles"].contains(alertDefaultScope) {
                 alertDefaultScope = "Current profile"
             }
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            launchAtLogin = LoginItem.isEnabled
             loginItemLoaded = true
             await load()
             loaded = true
         }
         .safeAreaInset(edge: .bottom) {
             if let message {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(Color(nsColor: .systemOrange))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(.bar)
             }
         }
+        .modifier(ModeChangeConfirmation(pendingMode: $pendingBaseMode, confirm: saveBaseMode))
         .confirmationDialog(
             "Restore this configuration?",
             isPresented: $showingRestoreConfirmation,
@@ -109,50 +113,15 @@ struct SettingsView: View {
                 ? "Rift will keep a private copy of the damaged configuration before restoring."
                 : "Rift backs up your current configuration first.")
         }
-        .confirmationDialog(
-            "Export connection history?",
-            isPresented: Binding(
-                get: { pendingHistoryExport != nil },
-                set: { if !$0 { pendingHistoryExport = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Export", action: exportHistory)
-            Button("Cancel", role: .cancel) { pendingHistoryExport = nil }
-        } message: {
-            Text("The file can include app names, destinations, ports, and connection times. Share it with care.")
-        }
-        .confirmationDialog(
-            "Turn off connection history?",
-            isPresented: $showingDisableHistoryChoice,
-            titleVisibility: .visible
-        ) {
-            Button("Turn Off and Keep History") { applyHistorySettings(clearHistory: false) }
-            Button("Turn Off and Clear History", role: .destructive) {
-                applyHistorySettings(clearHistory: true)
-            }
-            Button("Turn Off and Clear History and Rule Usage", role: .destructive) {
-                applyHistorySettings(clearHistory: true, clearUsage: true)
-            }
-            Button("Cancel", role: .cancel) { historyEnabled = true }
-        } message: {
-            Text("Rift will stop saving new connections.")
-        }
-        .confirmationDialog(
-            "Clear connection history?",
-            isPresented: $showingClearHistoryConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Clear History Only", role: .destructive) {
-                clearHistory(clearUsage: false)
-            }
-            Button("Clear History and Rule Usage", role: .destructive) {
-                clearHistory(clearUsage: true)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This can’t be undone. Your rules and settings aren’t affected.")
-        }
+        .modifier(SettingsHistoryDialogs(
+            pendingExport: $pendingHistoryExport,
+            showingDisableChoice: $showingDisableHistoryChoice,
+            showingClearConfirmation: $showingClearHistoryConfirmation,
+            export: exportHistory,
+            turnOff: { applyHistorySettings(clearHistory: $0, clearUsage: $1) },
+            keepOn: { historyEnabled = true },
+            clear: { clearHistory(clearUsage: $0) }
+        ))
         .alert("Rename Profile", isPresented: Binding(
             get: { editingProfile != nil },
             set: { if !$0 { editingProfile = nil } }
@@ -179,7 +148,9 @@ struct SettingsView: View {
                 baseMode: $baseMode,
                 launchAtLogin: $launchAtLogin,
                 effectiveMode: effectiveMode,
-                isChangingBaseMode: isChangingBaseMode || !loaded,
+                activeProfileName: activeProfileName,
+                isChangingBaseMode: isChangingBaseMode || !loaded || !configurationReady,
+                configurationReady: configurationReady,
                 isLoginItemReady: loginItemLoaded,
                 baseModeChanged: changeBaseMode,
                 loginItemChanged: configureLoginItem
@@ -198,10 +169,7 @@ struct SettingsView: View {
                 historyEnabled: $historyEnabled,
                 retentionDays: $retentionDays,
                 maximumFlows: $maximumFlows,
-                apply: {
-                    if historyEnabled { applyHistorySettings(clearHistory: false) }
-                    else { showingDisableHistoryChoice = true }
-                },
+                changed: historySettingsChanged,
                 clear: { showingClearHistoryConfirmation = true },
                 export: { pendingHistoryExport = $0 }
             )
@@ -239,6 +207,7 @@ struct SettingsView: View {
         baseMode = configuration.baseOperationMode
         confirmedBaseMode = configuration.baseOperationMode
         effectiveMode = configuration.operationMode
+        activeProfileName = configuration.profiles.first { $0.id == configuration.activeProfileID }?.name
         groups = configuration.localGroups
         profiles = configuration.profiles
         blocklists = configuration.blocklists
@@ -252,10 +221,14 @@ struct SettingsView: View {
             baseMode = presentation.baseMode
             confirmedBaseMode = presentation.baseMode
             effectiveMode = presentation.effectiveMode
+            activeProfileName = presentation.profile?.name
             if let settings = try await controlPlane.historySettings() {
                 historyEnabled = settings.enabled
                 retentionDays = settings.retentionDays
                 maximumFlows = settings.maximumFlows
+                savedHistory = HistoryValues(
+                    enabled: settings.enabled, days: settings.retentionDays, flows: settings.maximumFlows
+                )
             }
             await loadDefinitions()
         } catch {
@@ -275,11 +248,24 @@ struct SettingsView: View {
         }
     }
 
+    private var configurationReady: Bool { isPreview || controlPlane.desiredPolicyTuple != nil }
+
     private func changeBaseMode(_ value: OperationMode) {
         guard loaded, !isChangingBaseMode else {
             baseMode = confirmedBaseMode
             return
         }
+        guard !value.needsConfirmation || value == confirmedBaseMode else {
+            baseMode = confirmedBaseMode
+            pendingBaseMode = value
+            return
+        }
+        saveBaseMode(value)
+    }
+
+    private func saveBaseMode(_ value: OperationMode) {
+        if value == .filterOff { PausedModeMemory.remember(confirmedBaseMode) }
+        baseMode = value
         let previous = confirmedBaseMode
         isChangingBaseMode = true
         Task { @MainActor in
@@ -297,6 +283,7 @@ struct SettingsView: View {
                 baseMode = presentation.baseMode
                 confirmedBaseMode = presentation.baseMode
                 effectiveMode = presentation.effectiveMode
+                activeProfileName = presentation.profile?.name
             } catch {
                 baseMode = wasSaved ? value : previous
                 confirmedBaseMode = wasSaved ? value : previous
@@ -310,7 +297,25 @@ struct SettingsView: View {
         }
     }
 
+    /// Settings apply as they're changed. Steppers wait a moment so holding one
+    /// down saves once, and turning history off still asks what to do with it.
+    private func historySettingsChanged() {
+        let current = HistoryValues(enabled: historyEnabled, days: retentionDays, flows: maximumFlows)
+        guard loaded, !isPreview, current != savedHistory else { return }
+        historySaveTask?.cancel()
+        if !historyEnabled, savedHistory?.enabled == true {
+            showingDisableHistoryChoice = true
+            return
+        }
+        historySaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            applyHistorySettings(clearHistory: false)
+        }
+    }
+
     private func applyHistorySettings(clearHistory: Bool, clearUsage: Bool = false) {
+        savedHistory = HistoryValues(enabled: historyEnabled, days: retentionDays, flows: maximumFlows)
         perform("Couldn’t change history settings. Try again.") {
             try await controlPlane.configureHistory(
                 enabled: historyEnabled,
@@ -465,11 +470,16 @@ struct SettingsView: View {
             return
         }
         do {
-            if enabled { try SMAppService.mainApp.register() }
-            else { try SMAppService.mainApp.unregister() }
+            try LoginItem.set(enabled)
         } catch {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            launchAtLogin = LoginItem.isEnabled
             message = "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings."
         }
     }
+}
+
+private struct HistoryValues: Equatable {
+    let enabled: Bool
+    let days: Int
+    let flows: Int
 }

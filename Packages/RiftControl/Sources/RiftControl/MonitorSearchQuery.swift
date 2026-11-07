@@ -22,9 +22,11 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         isRejected = false
     }
 
-    public func matches(_ row: MonitorEventRow) -> Bool {
+    public func matches(_ row: MonitorEventRow, context: MonitorSearchContext = .none) -> Bool {
         guard !isRejected else { return false }
-        let document = Document(row: row)
+        // An empty search matches everything; skip building the document.
+        guard !terms.isEmpty else { return true }
+        let document = Document(row: row, context: context)
         return terms.allSatisfy { term in
             switch term {
             case .unqualified(let value):
@@ -40,7 +42,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             case .port(let value):
                 document.port == value
             case .decision(let value):
-                document.decision == value
+                document.decisions.contains(value)
             case .direction(let value):
                 document.direction == value
             }
@@ -78,11 +80,11 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         let host: String?
         let ip: IPAddress?
         let port: UInt16?
-        let decision: Decision
+        let decisions: Set<Decision>
         let direction: TrafficDirection
         let unqualified: [String]
 
-        init(row: MonitorEventRow) {
+        init(row: MonitorEventRow, context: MonitorSearchContext) {
             let flow = row.event.flow
             let applicationIdentity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
             application = normalizedMonitorSearchText(MonitorQuery.identityLabel(applicationIdentity))
@@ -98,9 +100,11 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             let endpoint = flow.destinationEndpoint
             ip = endpoint?.address
             port = endpoint?.port
-            decision = row.event.reason == .concreteDecision
-                ? (row.event.action == .allow ? .allowed : .denied)
-                : .unresolved
+            var matchedDecisions: Set<Decision> = [
+                row.event.outcome == .blocked ? .denied : .allowed,
+            ]
+            if row.event.reason != .concreteDecision { matchedDecisions.insert(.unresolved) }
+            decisions = matchedDecisions
             direction = flow.direction
 
             let protocolValue: String = switch flow.transportProtocol {
@@ -108,12 +112,15 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             case .udp: "udp"
             case .unsupported(let number): "protocol:\(number)"
             }
-            let decisionValue: String = switch decision {
-            case .allowed: "allow allowed"
-            case .denied: "deny denied"
-            case .unresolved: "fallback unresolved"
-            }
+            var decisionValue = row.event.outcome == .blocked
+                ? "deny denied block blocked" : "allow allowed"
+            if decisions.contains(.unresolved) { decisionValue += " fallback unresolved by default no rule" }
+            if row.event.cause == .alertTimedOut { decisionValue += " timed out" }
+            let identity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
+            let country = endpoint.flatMap { context.countryCode?($0.address) }
             unqualified = [
+                identity.flatMap { context.displayNames[$0] } ?? "",
+                country.flatMap { context.countryName?($0) } ?? "",
                 MonitorQuery.applicationLabel(row),
                 flow.sourceProcessIdentity.map { MonitorQuery.identityLabel($0) } ?? "",
                 MonitorQuery.endpointLabel(row),
@@ -159,8 +166,8 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         case "decision":
             switch normalizedMonitorSearchText(rawValue) {
             case "allow", "allowed": return .decision(.allowed)
-            case "deny", "denied": return .decision(.denied)
-            case "fallback", "unresolved": return .decision(.unresolved)
+            case "deny", "denied", "block", "blocked": return .decision(.denied)
+            case "fallback", "unresolved", "default": return .decision(.unresolved)
             default: return .unqualified(normalizedMonitorSearchText(value))
             }
         case "direction":

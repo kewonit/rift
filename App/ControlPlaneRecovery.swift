@@ -122,6 +122,32 @@ extension ControlPlaneController {
         return outcome
     }
 
+    private var backupDirectory: URL? {
+        supportDirectoryURL?.appendingPathComponent("Backups", isDirectory: true)
+    }
+
+    /// The day of the newest backup Rift can read, if any.
+    func latestBackupDay() async -> String? {
+        guard let directory = backupDirectory else { return nil }
+        return await Task.detached(priority: .userInitiated) {
+            LatestConfigurationBackup.newest(in: directory)?.day
+        }.value
+    }
+
+    /// Restores the newest readable backup through the same checks as importing
+    /// a configuration file, so nothing about it is trusted just for being local.
+    func restoreLatestBackup() async throws -> ConfigurationRestoreOutcome {
+        guard let directory = backupDirectory else { throw ArchiveControllerError.recoveryUnavailable }
+        let found = await Task.detached(priority: .userInitiated) {
+            LatestConfigurationBackup.newest(in: directory)
+        }.value
+        guard let found else { throw ArchiveControllerError.recoveryUnavailable }
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "unknown"
+        let archive = try ConfigurationArchiveCodec.export(draft: found.draft, appVersion: version, now: Date())
+        return try await restoreConfigurationArchive(archive)
+    }
+
     func recoverConfigurationArchive(
         _ payload: ConfigurationArchivePayload
     ) async throws -> ConfigurationRestoreOutcome {

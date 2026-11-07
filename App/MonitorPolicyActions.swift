@@ -9,13 +9,17 @@ extension ControlPlaneController {
 #if DEBUG
         if isUIFixture {
             return Dictionary(uniqueKeysWithValues: rows.map { row in
-                let state: MonitorRuleCoverageState = fixtureRuleActions[row.id] == nil
-                    ? .noRule : .exact
-                return (row.id, MonitorRuleCoverage(state: state))
+                let action = fixtureRuleActions[row.id]
+                return (row.id, MonitorRuleCoverage(
+                    state: action == nil ? .noRule : .exact, currentAction: action
+                ))
             })
         }
 #endif
-        guard let snapshot = try await repository?.ruleWorkspaceSnapshot() else { return [:] }
+        guard let repository,
+              let snapshot = try await monitorCoverageCache.snapshot(load: {
+                  try await repository.ruleWorkspaceSnapshot()
+              }) else { return [:] }
         let enforcementState = PolicyEnforcementPresentation.state(
             persistedState: snapshot.enforcementState,
             desiredTuple: snapshot.desiredTuple,
@@ -28,19 +32,30 @@ extension ControlPlaneController {
         )
     }
 
-    func applyExactMonitorRule(
+    /// What a rule action from the Map did.
+    struct MonitorRuleChange {
+        let ruleIDs: Set<UUID>
+        /// `nil` when the rules already did this, so nothing was saved.
+        let result: ConfigurationMutationResult?
+    }
+
+    func applyMonitorRule(
         for row: MonitorEventRow,
         action: FilterAction,
+        breadth: MonitorRuleBreadth,
+        duration: MonitorRuleDuration,
         elevatedOverrideConfirmed: Bool = false
-    ) async throws {
+    ) async throws -> MonitorRuleChange {
 #if DEBUG
         if isUIFixture {
             fixtureRuleActions[row.id] = action
-            return
+            fixtureLastRuleRowID = row.id
+            ruleChanges.noteChange()
+            return MonitorRuleChange(ruleIDs: [], result: .enforced(backupFailed: false))
         }
 #endif
         guard action != .ask,
-              let seed = MonitorExactRuleSeed.make(from: row),
+              let target = try MonitorRuleScope.target(breadth, for: row),
               let snapshot = try await repository?.ruleWorkspaceSnapshot() else {
             throw RuleCommandError.missingConfiguration
         }
@@ -58,67 +73,42 @@ extension ControlPlaneController {
             .contains(coverage.state) else {
             throw RuleCommandError.generationConflict
         }
-        if coverage.state == .exact,
-           let winnerID = coverage.winningRuleID,
-           configuration.rules.first(where: { $0.id == winnerID })?.action == .filter(action) {
-            return
-        }
         let overrideBlocklist = coverage.ruleIDs.contains { id in
             configuration.rules.first { $0.id == id }?.priority == .blocklistDeny
         }
         if action == .allow, overrideBlocklist, !elevatedOverrideConfirmed {
             throw RuleCommandError.elevatedOverrideRequiresConfirmation
         }
+        let priority: RulePriority = action == .allow && overrideBlocklist ? .elevatedUser : .normal
+        let now = Date()
+        let expiresAt = duration.expiry(from: now)
         let ruleDraft = ManualRuleDraft(
             action: .filter(action),
-            priority: action == .allow && overrideBlocklist ? .elevatedUser : .normal,
-            process: seed.process,
-            destination: seed.destination,
-            transport: seed.transport,
-            port: seed.port,
-            direction: seed.direction,
-            owner: seed.owner,
+            priority: priority,
+            process: target.process,
+            destination: target.destination,
+            transport: target.transport,
+            port: target.port,
+            direction: target.direction,
+            owner: target.owner,
             profileID: configuration.activeProfileID,
             localGroupID: nil,
-            expiresAt: nil,
+            expiresAt: expiresAt,
             isEnabled: true,
             reviewState: .reviewed,
             note: "Created from a recent connection"
         )
         try await validateManualDraft(ruleDraft, editingRuleID: nil)
-        try await mutateRules(
-            expectedGeneration: snapshot.generation,
-            kind: "monitorExactRule"
-        ) { rules in
-            if coverage.state == .exact,
-               let winnerID = coverage.winningRuleID,
-               let current = rules.first(where: { $0.id == winnerID }),
-               !current.flags.contains(.protected),
-               !current.flags.contains(.sourceManaged) {
-                return try rules.map { rule in
-                    guard rule.id == winnerID else { return rule }
-                    return try RuleMutation.edited(
-                        rule,
-                        action: ruleDraft.action,
-                        priority: ruleDraft.priority,
-                        process: rule.process,
-                        destination: rule.destination,
-                        transport: rule.transportProtocol,
-                        port: rule.port,
-                        direction: rule.direction,
-                        owner: rule.owner,
-                        profileID: rule.profileID,
-                        localGroupID: rule.localGroupID,
-                        expiresAt: rule.expiresAt,
-                        isEnabled: true,
-                        reviewState: .reviewed,
-                        note: rule.notes,
-                        now: Date()
-                    )
-                }
-            }
-            let now = Date()
-            let rule = try Rule(
+        let plan = try MonitorRulePlan.plan(
+            action: action,
+            priority: priority,
+            target: target,
+            flow: row.event.flow,
+            configuration: configuration,
+            expiresAt: expiresAt,
+            now: now
+        ) {
+            try Rule(
                 id: UUID(),
                 lineageID: configuration.lineageID,
                 revision: 1,
@@ -132,13 +122,26 @@ extension ControlPlaneController {
                 owner: ruleDraft.owner,
                 profileID: ruleDraft.profileID,
                 localGroupID: nil,
+                expiresAt: ruleDraft.expiresAt,
                 isEnabled: true,
                 reviewState: .reviewed,
                 notes: ruleDraft.note,
                 createdAt: now,
                 modifiedAt: now
             )
-            return rules + [rule]
+        }
+        switch plan {
+        case .alreadyDecided(let ruleID):
+            return MonitorRuleChange(ruleIDs: ruleID.map { [$0] } ?? [], result: nil)
+        case .overridden(let ruleID):
+            throw RuleCommandError.overriddenByRule(ruleID)
+        case .changed(let rules, let affected):
+            ruleChanges.nextChangeName = action == .deny ? "Block" : "Allow"
+            let result = try await mutateRules(
+                expectedGeneration: snapshot.generation,
+                kind: "monitorExactRule"
+            ) { _ in rules }
+            return MonitorRuleChange(ruleIDs: affected, result: result)
         }
     }
 }

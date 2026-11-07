@@ -11,8 +11,8 @@ public enum MonitorLens: String, CaseIterable, Sendable, Identifiable {
 public enum MonitorDecisionFilter: String, CaseIterable, Sendable, Identifiable {
     case all = "All decisions"
     case allowed = "Allowed"
-    case denied = "Denied"
-    case unresolved = "Decided by default"
+    case denied = "Blocked"
+    case unresolved = "No rule applied"
     public var id: String { rawValue }
 }
 
@@ -32,8 +32,8 @@ public enum MonitorLocalityFilter: String, CaseIterable, Sendable, Identifiable 
 
 public enum MonitorOwnerFilter: String, CaseIterable, Sendable, Identifiable {
     case all = "All owners"
-    case user = "User processes"
-    case system = "System processes"
+    case user = "Your apps"
+    case system = "System services"
     case unknown = "Unknown owner"
     public var id: String { rawValue }
 }
@@ -42,14 +42,28 @@ public enum MonitorTimeFilter: String, CaseIterable, Sendable, Identifiable {
     case twoMinutes = "2 minutes"
     case tenMinutes = "10 minutes"
     case all = "All history"
-    case hour = "Hour"
+    case hour = "This Hour"
     case fiveHours = "5 hours"
-    case day = "Day"
+    case day = "Today"
     case threeDays = "3 days"
-    case week = "Week"
-    case month = "Month"
+    case week = "This Week"
+    case month = "This Month"
     case thirtyDays = "30 days"
     public var id: String { rawValue }
+
+    /// How a live range reads in a sentence. The calendar ranges run from the
+    /// start of the period, so they never say "last".
+    public var liveLabel: String {
+        switch self {
+        case .all: "All saved activity"
+        case .hour: "This hour"
+        case .day: "Today"
+        case .week: "This week"
+        case .month: "This month"
+        case .twoMinutes, .tenMinutes, .fiveHours, .threeDays, .thirtyDays:
+            "Last \(rawValue)"
+        }
+    }
 }
 
 public enum MonitorSort: String, CaseIterable, Sendable, Identifiable {
@@ -163,6 +177,8 @@ public enum MonitorQuery {
         owner: MonitorOwnerFilter,
         timeWindow: MonitorTimeWindow,
         sort: MonitorSort,
+        country: String? = nil,
+        context: MonitorSearchContext = .none,
         cancellationCheck: () throws -> Void
     ) rethrows -> [MonitorDisplayRow] {
         try cancellationCheck()
@@ -179,7 +195,8 @@ public enum MonitorQuery {
                   matches(row, direction: direction),
                   matches(row, locality: locality),
                   matches(row, owner: owner) else { continue }
-            guard searchQuery.matches(row) else { continue }
+            guard matches(row, country: country, context: context),
+                  searchQuery.matches(row, context: context) else { continue }
             let rawLabels: (String, String)
             switch lens {
             case .application:
@@ -271,13 +288,23 @@ public enum MonitorQuery {
 
     private static func matches(
         _ row: MonitorEventRow,
+        country: String?,
+        context: MonitorSearchContext
+    ) -> Bool {
+        guard let country else { return true }
+        guard let address = row.event.flow.destinationEndpoint?.address else { return false }
+        return context.countryCode?(address) == country
+    }
+
+    private static func matches(
+        _ row: MonitorEventRow,
         decision: MonitorDecisionFilter
     ) -> Bool {
         switch decision {
         case .all: true
-        case .allowed: row.event.action == .allow && !isUnresolved(row)
-        case .denied: row.event.action == .deny && !isUnresolved(row)
-        case .unresolved: isUnresolved(row)
+        case .allowed: row.event.outcome == .allowed
+        case .denied: row.event.outcome == .blocked
+        case .unresolved: row.event.reason != .concreteDecision
         }
     }
 
@@ -313,10 +340,6 @@ public enum MonitorQuery {
         case (.all, _), (.user, .user), (.system, .system), (.unknown, .unknown): true
         default: false
         }
-    }
-
-    private static func isUnresolved(_ row: MonitorEventRow) -> Bool {
-        row.event.reason != .concreteDecision
     }
 
     private static func bytes(_ value: UInt64?) -> UInt64 { value ?? 0 }

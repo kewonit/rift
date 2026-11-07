@@ -304,9 +304,11 @@ public actor HistoryRepository {
                     width: width
                 ) else { continue }
                 var value = values[key] ?? (0, 0, 0)
-                if event.reason != .concreteDecision { value.unresolved += 1 }
-                else if event.action == .deny { value.deny += 1 }
-                else { value.allow += 1 }
+                switch event.tally {
+                case .allowed: value.allow += 1
+                case .blocked: value.deny += 1
+                case .noRule: value.unresolved += 1
+                }
                 values[key] = value
             }
             let buckets = values.map { key, value in

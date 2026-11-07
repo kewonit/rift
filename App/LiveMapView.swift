@@ -2,140 +2,224 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
+/// The Map page: the map above a docked timeline and table of connections,
+/// with details in the inspector. It replaces the old Map and Activity pages.
 struct LiveMapView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var session: AppSession
-    @AppStorage("liveMapTrafficChartVisible") private var showingTrafficChart = true
-    @AppStorage("liveMapSummaryVisible") private var showingSummary = true
+    @AppStorage("liveMapTrafficChartVisible") private var showingTimeline = true
     @AppStorage("liveMapStyle") private var mapStyle = NetworkMapStyle.standard
-    @State private var query = MonitorQueryState(time: .tenMinutes)
-    @State private var queryNow: Date
-    @State private var rows: [MonitorEventRow] = []
-    @State private var displayed: [MonitorDisplayRow] = []
-    @State private var summary = MonitorSummarySnapshot.empty
-    @State private var presentationHierarchy: [MonitorHierarchyNode] = []
-    @State private var rowLookup: [String: MonitorEventRow] = [:]
-    @State private var hierarchySelectionID: String?
-    @State private var selectedEventID: String?
-    @State private var applyingEventID: String?
-    @State private var pendingManagedListOverride: MonitorHierarchyNode?
+    @AppStorage("liveMapTimelineMode") private var timelineMode = RiftTimelineMode.traffic
+    @State private var feed: MonitorFeed
     @State private var originController: MapOriginController
-    @State private var sourceSnapshot: MonitorRowsSnapshot?
-    @State private var sourceRevision: UInt64?
-    @State private var sourceTime: MonitorTimeFilter?
-    @State private var sourceAnchor: Date?
-    @State private var traffic = LiveTrafficSnapshot.empty
-    @State private var refreshCoordinator = VisualRefreshCoordinator()
-    @State private var windowIsVisible = false
-    @State private var ready = false
-    @State private var loading = false
-    @State private var loadError: String?
+    @State private var mapHidden = false
     @State private var showingMapInformation = false
     @State private var mapFitRequest = 0
-    @State private var queryTask: Task<Void, Never>?
-    @State private var activeQueryRequestID = MonitorQueryRequestID()
+    @FocusState private var searchFocused: Bool
+
 
     init(session: AppSession) {
         self.session = session
+        _feed = State(initialValue: MonitorFeed(session: session))
         _originController = State(initialValue: MapOriginController(persists: !session.isUIFixture))
-#if DEBUG
-        _queryNow = State(initialValue: session.isUIFixture
-            ? MonitorFixtureData.referenceNow : Date())
-#else
-        _queryNow = State(initialValue: Date())
-#endif
-    }
-
-    private var hierarchy: [MonitorHierarchyNode] {
-        presentationHierarchy
-    }
-
-    private var selectedNode: MonitorHierarchyNode? {
-        hierarchySelectionID.flatMap { MonitorHierarchyBuilder.node(withID: $0, in: hierarchy) }
-    }
-
-    private var selectedRow: MonitorEventRow? {
-        guard let id = selectedNode?.eventID ?? selectedNode?.ruleSeedEventID else { return nil }
-        return rows.first { $0.id == id }
     }
 
     var body: some View {
-        observedWorkspace
-    }
-
-    private var observedWorkspace: some View {
-        presentedWorkspace
-            .task { await start() }
-            .modifier(ActivityRefreshSignal(controller: session.controlPlane, changed: { scheduleReload() }))
-            .onChange(of: session.controlPlane.persistentHistoryEnabled) { _, _ in
-                sourceTime = nil; sourceSnapshot = nil; sourceRevision = nil
-                if session.controlPlane.isMinimalActivity { query.selectTimeFilter(.tenMinutes); releaseActivity() }
-                scheduleReload(immediate: true)
+        RiftVerticalSplit(topHidden: mapHidden, minTop: 220, minBottom: 240) {
+            map
+        } bottom: {
+            connections
+        }
+        .inspector(isPresented: inspectorShown) {
+            inspector.inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+        }
+        .navigationTitle("Map")
+        .focusedSceneValue(\.mapCommands, mapCommands)
+        .sheet(item: $feed.pendingRuleRequest) { request in
+            RuleScopeChooser(request: request) { breadth, duration in
+                feed.pendingRuleRequest = nil
+                feed.applyRule(request, breadth: breadth, duration: duration)
+            } cancel: {
+                feed.pendingRuleRequest = nil
             }
-            .onChange(of: query) { _, _ in scheduleQueryUpdate() }
-            .background(ActivityWindowVisibility(changed: visibilityChanged))
-            .onChange(of: hierarchySelectionID, handleHierarchySelection)
-            .onDisappear(perform: stop)
-    }
-
-    private var presentedWorkspace: some View {
-        workspace
-            .toolbar { toolbar }
-            .modifier(MonitorManagedListOverrideConfirmation(
-                pending: $pendingManagedListOverride,
-                confirm: { apply(.allow, $0, elevatedOverrideConfirmed: true) }
-            ))
-    }
-
-    private var workspace: some View {
-        HSplitView {
-            LiveMapConnectionsPane(
-                query: $query, selectionID: $hierarchySelectionID,
-                displayed: displayed, hierarchy: hierarchy,
-                rows: rowLookup,
-                loading: loading, isMinimal: session.controlPlane.isMinimalActivity,
-                artworkStore: session.applicationArtwork,
-                availableLenses: MonitorLens.allCases, now: queryNow, traffic: traffic,
-                applyingEventID: applyingEventID,
-                showingTrafficChart: $showingTrafficChart,
-                apply: { action, node in apply(action, node) },
-                investigate: investigate, showRules: showRules
-            )
-            .frame(minWidth: 280, idealWidth: 320, maxWidth: 380, maxHeight: .infinity)
-
-            mapWorkspace
-                .frame(minWidth: 460, maxWidth: .infinity, maxHeight: .infinity)
         }
-        .inspector(isPresented: $showingSummary) {
-            MonitorSummaryView(
-                summary: summary,
-                selectedNode: selectedNode,
-                selectedRow: selectedRow,
-                applyingEventID: applyingEventID,
-                artworkStore: session.applicationArtwork,
-                apply: { action, node in apply(action, node) },
-                showRules: {
-                    selectedNode.map { showRules($0.ruleCoverage.ruleIDs) }
-                },
-                isMinimal: session.controlPlane.isMinimalActivity
-            )
-            .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
+        .onChange(of: session.controlPlane.ruleChanges.revision) { _, _ in
+            feed.requestPresentationRefresh()
         }
+#if DEBUG
+        .task {
+            if let country = FixturePreviewOptions.sampleCountry { feed.query.country = country }
+            if ProcessInfo.processInfo.arguments.contains("--ui-fixture-past") {
+                feed.query.navigateTime(.previous, now: feed.now)
+            }
+            if FixturePreviewOptions.selectsConnection {
+                try? await Task.sleep(for: .seconds(1))
+                feed.selectionID = feed.hierarchy.dropFirst().first?.id
+            }
+            guard let step = FixturePreviewOptions.sampleRuleAction else { return }
+            try? await Task.sleep(for: .seconds(2))
+            guard let node = feed.hierarchy.first(where: {
+                $0.ruleSeedEventID != nil && $0.aggregate.denied == 0
+            }) else { return }
+            feed.selectionID = node.id
+            feed.requestRule(.deny, for: node)
+            guard step != "chooser" else { return }
+            try? await Task.sleep(for: .milliseconds(300))
+            if let request = feed.pendingRuleRequest {
+                feed.pendingRuleRequest = nil
+                feed.applyRule(request, breadth: request.options[0], duration: .always)
+            }
+            guard step == "undo" else { return }
+            try? await Task.sleep(for: .seconds(2))
+            _ = try? await session.controlPlane.undoLastRuleChange()
+            session.controlPlane.actionResults.post("Undone.", offersUndo: true)
+        }
+#endif
+        .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showingTimeline)
+        .toolbar { toolbar }
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .task { start() }
+        .modifier(ActivityRefreshSignal(controller: session.controlPlane, changed: { feed.scheduleReload() }))
+        .onChange(of: session.controlPlane.persistentHistoryEnabled) { _, _ in feed.historyPreferenceChanged() }
+        .background(ActivityWindowVisibility(changed: visibilityChanged))
+        .onChange(of: session.requestedMonitorEventID, initial: true) { _, id in
+            guard id != nil else { return }
+            feed.acceptRequestedSelection()
+        }
+        .onChange(of: session.showsConnectionTable, initial: true) { _, show in
+            guard show else { return }
+            mapHidden = true
+            session.showsConnectionTable = false
+        }
+        .onChange(of: timelineMode, initial: true) { _, mode in feed.wantsDecisionBuckets = mode == .decisions }
+        .onExitCommand(perform: escape)
+        .onDisappear {
+            feed.stop()
+            originController.cancelPlacement()
+        }
+        .modifier(MonitorManagedListOverrideConfirmation(
+            pending: $feed.pendingManagedListOverride,
+            confirm: feed.confirmManagedListOverride
+        ))
     }
 
-    private var mapWorkspace: some View {
+    // MARK: Panes
+
+    private var map: some View {
         LiveMapCanvas(
-            displayed: displayed,
+            displayed: feed.mapRows,
+            selectedCountry: feed.query.country,
+            isViewingPast: feed.query.isViewingPast,
+            selectCountry: { feed.query.country = $0 },
             originController: originController,
-            selectedEventIDs: Set(selectedNode?.eventIDs ?? []),
-            windowIsVisible: windowIsVisible,
+            selectedEventIDs: Set(feed.selectedNode?.eventIDs ?? []),
+            windowIsVisible: feed.windowIsVisible,
             isPreview: session.isUIFixture,
-            loadError: loadError,
+            promptsForLocation: session.protectionStatus.canShowActivity,
+            loadError: feed.loadError,
             style: mapStyle,
             fitRequest: mapFitRequest,
             onReady: signalFixtureReadiness
         )
+        .overlay(alignment: .top) { attentionBanner }
     }
+
+    private var connections: some View {
+        VStack(spacing: 0) {
+            if showingTimeline {
+                RiftTimeline(
+                    mode: $timelineMode,
+                    query: $feed.query,
+                    traffic: feed.traffic,
+                    decisions: feed.decisions,
+                    now: feed.now,
+                    isMinimal: feed.isMinimal,
+                    refreshFailed: feed.loadError != nil
+                )
+                Divider()
+            }
+            ConnectionsPanel(
+                feed: feed,
+                artworkStore: session.applicationArtwork,
+                mapHidden: mapHidden,
+                toggleMap: { mapHidden.toggle() },
+                searchFocus: $searchFocused
+            )
+        }
+    }
+
+    /// The inspector is for one connection, so it comes and goes with the selection.
+    private var inspectorShown: Binding<Bool> {
+        Binding(
+            get: { feed.selectedNode != nil },
+            set: { if !$0 { feed.selectionID = nil } }
+        )
+    }
+
+    @ViewBuilder
+    private var inspector: some View {
+        if let node = feed.selectedNode {
+            ConnectionInspectorView(
+                node: node,
+                row: feed.selectedRow,
+                applyingEventID: feed.applyingEventID,
+                artworkStore: session.applicationArtwork,
+                apply: { feed.requestRule($0, for: node) },
+                showRules: { feed.showRules(for: node) },
+                canDecide: feed.canDecide(node)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var attentionBanner: some View {
+        let status = session.protectionStatus
+        if status.showsBanner {
+            RiftBanner(
+                message: status.title,
+                detail: status.detail,
+                tone: status.tone == .attention ? .warning : .info
+            ) {
+                if let action = status.action {
+                    Button(action.title) { perform(action) }
+                        .controlSize(.small)
+                }
+            }
+            .frame(maxWidth: 480)
+            .riftPanel(cornerRadius: RiftDesign.Radius.card)
+            .padding(.top, RiftDesign.Spacing.m)
+            .transition(RiftDesign.Motion.slide(fromY: -RiftDesign.Motion.travel, reduceMotion: reduceMotion))
+        }
+    }
+
+    private var mapCommands: MapCommandActions {
+        let selected = feed.selectedNode
+        return MapCommandActions(
+            mapHidden: mapHidden,
+            inspectorShown: feed.selectedNode != nil,
+            timelineShown: showingTimeline,
+            toggleMap: { mapHidden.toggle() },
+            hideInspector: { feed.selectionID = nil },
+            toggleTimeline: { showingTimeline.toggle() },
+            find: { searchFocused = true },
+            decide: selected.flatMap { node in
+                feed.canDecide(node) ? { feed.requestRule($0, for: node) } : nil
+            },
+            showRule: selected.flatMap { node in
+                node.ruleCoverage.ruleIDs.isEmpty ? nil : { feed.showRules(for: node) }
+            }
+        )
+    }
+
+    private func perform(_ action: ProtectionStatus.Action) {
+        switch action {
+        case .openSystemSettings: session.lifecycle?.openSystemSettings()
+        case .resumeRules: session.resumeRules()
+        case .setUp, .showStatus, .reviewWaiting: session.destination = .health
+        }
+    }
+
+    // MARK: Toolbar
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
@@ -147,214 +231,53 @@ struct LiveMapView: View {
                 .pickerStyle(.inline)
                 Divider()
                 Button("Show All Routes") {
-                    hierarchySelectionID = nil
+                    feed.query.country = nil
+                    feed.selectionID = nil
                     mapFitRequest &+= 1
                 }
                 Button("About the Map…") { showingMapInformation = true }
             } label: {
-                Label("Map Options", systemImage: mapStyle == .satellite ? "globe.americas.fill" : "map")
+                Label("Map Options", systemImage: "square.2.layers.3d")
             }
             .help("Map style and options")
             .popover(isPresented: $showingMapInformation) { LiveMapInformation() }
-            originMenu
-            Button {
-                withAnimation(reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.contextual)) {
-                    showingTrafficChart.toggle()
-                }
-            } label: {
-                Label(showingTrafficChart ? "Hide Traffic" : "Show Traffic", systemImage: "chart.bar.xaxis")
+            LiveMapOriginControl(
+                hasOrigin: originController.origin != nil,
+                beginPlacement: originController.beginManualPlacement,
+                clearOrigin: originController.clearOrigin
+            )
+            Button { showingTimeline.toggle() } label: {
+                Label(showingTimeline ? "Hide Timeline" : "Show Timeline", systemImage: "chart.bar")
             }
-            .help(showingTrafficChart ? "Hide the traffic chart" : "Show the traffic chart")
-            Button { showingSummary.toggle() } label: {
-                Label(showingSummary ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
-            }
-            .help(showingSummary ? "Hide the inspector" : "Show the inspector")
+            .help(showingTimeline ? "Hide the timeline" : "Show the timeline")
         }
     }
 
-    private var originMenu: some View {
-        LiveMapOriginControl(
-            hasOrigin: originController.origin != nil,
-            beginPlacement: originController.beginManualPlacement,
-            clearOrigin: originController.clearOrigin
-        )
-    }
+    // MARK: Lifecycle
 
-    private func start() async {
-        guard !Task.isCancelled else { return }
+    private func start() {
 #if DEBUG
         if session.isUIFixture, MonitorFixtureData.scenario != .missingOrigin,
            let coordinate = try? CoarseMapCoordinate(latitude: 37.75, longitude: -122.5) {
             originController.origin = CoarseMapOrigin(coordinate: coordinate)
         }
 #endif
-        ready = true
-        scheduleReload(immediate: true)
-    }
-
-    private func handleHierarchySelection(_ oldValue: String?, _ value: String?) {
-        guard value != nil else { return }
-        selectedEventID = selectedNode?.eventID ?? selectedNode?.ruleSeedEventID
-        showingSummary = true
+        feed.start()
     }
 
     private func visibilityChanged(_ visible: Bool) {
-        guard visible != windowIsVisible else { return }
-        windowIsVisible = visible
-        if visible { session.controlPlane.monitorDidAppear() }
-        else { session.monitorDidDisappear(); originController.cancelPlacement() }
-        if !visible, session.controlPlane.isMinimalActivity { releaseActivity() }
-        refreshCoordinator.setVisible(visible)
-        if visible { scheduleReload(immediate: true) }
+        feed.visibilityChanged(visible)
+        if !visible { originController.cancelPlacement() }
     }
 
-    private func stop() {
-        refreshCoordinator.stop()
-        queryTask?.cancel()
-        originController.cancelPlacement()
-        if windowIsVisible { session.monitorDidDisappear() }
-        if session.controlPlane.isMinimalActivity { releaseActivity() }
-        windowIsVisible = false
-        ready = false
-    }
-
-    private func scheduleReload(immediate: Bool = false) {
-        guard ready else { return }
-        if immediate { session.controlPlane.scheduleActivityDrain(immediate: true) }
-        refreshCoordinator.request(immediate: immediate) { await refresh(loadSource: true) }
-    }
-
-    private func releaseActivity() {
-        queryTask?.cancel()
-        activeQueryRequestID = MonitorQueryRequestID()
-        rows = []; displayed = []; rowLookup = [:]
-        presentationHierarchy = []; summary = .empty; traffic = .empty
-        sourceSnapshot = nil; sourceRevision = nil
-        hierarchySelectionID = nil; selectedEventID = nil
-    }
-
-    private func scheduleQueryUpdate() {
-        queryTask?.cancel()
-        activeQueryRequestID = MonitorQueryRequestID()
-        queryTask = Task {
-            do { try await Task.sleep(for: .milliseconds(160)) }
-            catch { return }
-            guard !Task.isCancelled else { return }
-            refreshCoordinator.request(immediate: true) { await refresh(loadSource: false) }
+    private func escape() {
+        if originController.isPlacingManually {
+            originController.cancelPlacement()
+        } else if feed.selectionID != nil {
+            feed.selectionID = nil
+        } else if mapHidden {
+            mapHidden = false
         }
-    }
-
-    private func refresh(loadSource: Bool) async {
-        guard ready, windowIsVisible else { return }
-        let interval = ActivityPerformance.signposter.beginInterval("Live Map Refresh")
-        defer { ActivityPerformance.signposter.endInterval("Live Map Refresh", interval) }
-        let requestID = activeQueryRequestID
-        let state = query
-        let revision = session.controlPlane.activityRevision
-        let sameRange = sourceTime == state.time && sourceAnchor == state.timeAnchor
-        loading = sourceSnapshot == nil
-        defer { loading = false }
-        do {
-#if DEBUG
-            let refreshedNow = session.isUIFixture ? queryNow : Date()
-#else
-            let refreshedNow = Date()
-#endif
-            let window = state.baseTimeWindow(now: refreshedNow).flatMap {
-                MonitorTimeWindow(start: $0.start, end: state.isLiveTimeRange ? nil : $0.end)
-            }
-            let snapshot: MonitorRowsSnapshot
-            if !loadSource, sourceRevision == revision, sameRange, let saved = sourceSnapshot {
-                snapshot = saved
-            } else {
-                snapshot = try await session.controlPlane.monitorRowsSnapshot(
-                    window: window, previous: sameRange ? sourceSnapshot : nil
-                )
-            }
-            let result = try await MonitorQueryEvaluator.evaluate(
-                rows: snapshot.rows, state: state,
-                now: refreshedNow, queryComplete: snapshot.isComplete, coverage: snapshot.coverage
-            )
-            let refreshedCoverage = try await session.controlPlane.monitorRuleCoverage(
-                for: Array(result.displayed.prefix(1_000)).map(\.source)
-            )
-            let presentation = try await ActivityPresentation.build(
-                evaluation: result, rows: snapshot.rows, query: state, now: refreshedNow,
-                coverages: refreshedCoverage, visibleLimit: 1_000
-            )
-            guard windowIsVisible, MonitorQueryPublication.permits(
-                requestID, active: activeQueryRequestID, taskIsCancelled: Task.isCancelled
-            ) else { return }
-            sourceSnapshot = snapshot
-            sourceRevision = revision
-            sourceTime = state.time
-            sourceAnchor = state.timeAnchor
-            if rows != snapshot.rows { rows = snapshot.rows }
-            queryNow = refreshedNow
-            if displayed != result.displayed { displayed = result.displayed }
-            if summary != result.summary { summary = result.summary }
-            if presentationHierarchy != presentation.hierarchy { presentationHierarchy = presentation.hierarchy }
-            if rowLookup != presentation.rowLookup { rowLookup = presentation.rowLookup }
-            if traffic != presentation.traffic { traffic = presentation.traffic }
-            restoreSelection()
-            loadError = nil
-            signalFixtureReadiness()
-        } catch is CancellationError {
-        } catch {
-            guard windowIsVisible, !Task.isCancelled, requestID == activeQueryRequestID else { return }
-            loadError = "Rift couldn’t refresh live activity. Existing map data is unchanged."
-        }
-    }
-
-    private func restoreSelection() {
-        if let selectedEventID,
-           let node = MonitorHierarchyBuilder.node(forEventID: selectedEventID, in: hierarchy) {
-            hierarchySelectionID = node.id
-        } else if hierarchySelectionID.flatMap({
-            MonitorHierarchyBuilder.node(withID: $0, in: hierarchy)
-        }) == nil {
-            hierarchySelectionID = nil
-            selectedEventID = nil
-        }
-    }
-
-    private func apply(
-        _ action: FilterAction,
-        _ node: MonitorHierarchyNode,
-        elevatedOverrideConfirmed: Bool = false
-    ) {
-        guard let eventID = node.ruleSeedEventID,
-              let row = rows.first(where: { $0.id == eventID }) else { return }
-        applyingEventID = eventID
-        Task {
-            do {
-                try await session.controlPlane.applyExactMonitorRule(
-                    for: row, action: action,
-                    elevatedOverrideConfirmed: elevatedOverrideConfirmed
-                )
-                loadError = nil
-                refreshCoordinator.request(immediate: true) { await refresh(loadSource: false) }
-            } catch ControlPlaneController.RuleCommandError.elevatedOverrideRequiresConfirmation {
-                pendingManagedListOverride = node
-                loadError = nil
-            } catch {
-                loadError = "The exact rule wasn’t applied. Retry after Rift reconnects."
-            }
-            applyingEventID = nil
-        }
-    }
-
-    private func investigate(_ node: MonitorHierarchyNode) {
-        guard let eventID = node.eventID ?? node.ruleSeedEventID
-                ?? node.eventIDs.first else { return }
-        session.requestedMonitorEventID = eventID
-        session.destination = .activity
-    }
-
-    private func showRules(_ ids: Set<UUID>) {
-        guard !ids.isEmpty else { return }
-        session.requestedRuleIDs = ids
-        session.destination = .rules
     }
 
     private func signalFixtureReadiness() {

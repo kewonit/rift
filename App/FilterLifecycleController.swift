@@ -29,10 +29,19 @@ final class FilterLifecycleController: NSObject {
     private(set) var initialStatusResolved = false
     private(set) var activationPreflightFailure:
         SystemExtensionActivationPreflightFailure?
+    /// `false` for a copy of Rift that macOS will never let filter, such as a
+    /// build from source. There's no point asking macOS about the filter then.
+    private(set) var buildCanFilter = FilterBuildCapability.canFilter()
+    /// macOS approved the filter, but its configuration was never saved.
+    private(set) var filterNeedsConfiguration = false
 
     override init() {
         super.init()
-        refreshInstalledState()
+        if buildCanFilter {
+            refreshInstalledState()
+        } else {
+            initialStatusResolved = true
+        }
     }
 
     var state: LifecycleState { machine.state }
@@ -48,7 +57,7 @@ final class FilterLifecycleController: NSObject {
 
     var shouldOfferSettings: Bool {
         switch state {
-        case .awaitingApproval, .denied, .disabled, .failed:
+        case .awaitingApproval, .denied, .disabled:
             true
         default:
             false
@@ -56,20 +65,26 @@ final class FilterLifecycleController: NSObject {
     }
 
     var shouldOfferRetry: Bool {
-        initialStatusResolved && retryAction != nil && activeRequest == nil &&
-            !operationInProgress
+        buildCanFilter && initialStatusResolved && retryAction != nil && activeRequest == nil &&
+            !operationInProgress && state != .awaitingApproval
+    }
+
+    /// Says what the retry button will actually do in this state.
+    var retryTitle: String {
+        guard case .disabled = state else { return "Try Again" }
+        return filterNeedsConfiguration ? "Finish Setup" : "Turn On Filter"
     }
 
     var title: String {
         switch state {
-        case .notInstalled: "Ready to protect this Mac"
+        case .notInstalled: "Ready to set up"
         case .activating: "Installing the network filter…"
         case .awaitingApproval: "Waiting for your approval"
         case .active: "Network filter installed"
         case .savingFilterConfiguration: "Turning on the network filter…"
-        case .enabled: "Rift is active"
+        case .enabled: "The network filter is on"
         case .denied: "The filter wasn’t approved"
-        case .disabled: "The filter is turned off in macOS"
+        case .disabled: filterNeedsConfiguration ? "Setup isn’t finished" : "The filter is turned off in macOS"
         case .stale: "Refreshing filter settings…"
         case .replacing: "Updating the network filter…"
         case .failed: "Rift needs attention"
@@ -82,13 +97,17 @@ final class FilterLifecycleController: NSObject {
         case .notInstalled:
             "Make sure Rift is in your Applications folder. Then click Install and Enable, and approve the filter when macOS asks. All traffic is allowed until setup is done."
         case .awaitingApproval:
-            "In System Settings, open Login Items & Extensions, choose Network Extensions, and turn on Rift. Then come back here."
+            "In System Settings, open Login Items & Extensions, choose Network Extensions, and turn on Rift. macOS may ask for an administrator’s password. Then come back here."
         case .denied(let message), .failed(let message):
             message
         case .disabled:
-            "The filter is installed but was turned off outside Rift. Turn it back on to filter connections and see activity."
+            filterNeedsConfiguration
+                ? "macOS approved the filter, but Rift hasn’t finished turning it on, so connections aren’t being filtered."
+                : "The filter was turned off outside Rift, so connections aren’t being filtered."
+        case .savingFilterConfiguration:
+            "macOS may ask whether Rift can filter network content. Choose Allow."
         case .enabled:
-            "The network filter is on. Rift shows your rules as active once the filter confirms it’s using them."
+            "macOS has the Rift filter turned on."
         default:
             "Rift is updating the filter settings in macOS."
         }
@@ -135,7 +154,7 @@ final class FilterLifecycleController: NSObject {
         transition(.beginUninstall)
         Task {
             do {
-                try await removeFilterConfiguration(retryStaleOnce: true)
+                try await FilterConfigurationStore.remove()
                 submitDeactivation()
             } catch {
                 retryAction = .status
@@ -145,7 +164,7 @@ final class FilterLifecycleController: NSObject {
     }
 
     func refreshStatus() {
-        guard activeRequest == nil, !operationInProgress else { return }
+        guard buildCanFilter, activeRequest == nil, !operationInProgress else { return }
         refreshInstalledState()
     }
 
@@ -215,49 +234,17 @@ final class FilterLifecycleController: NSObject {
     private func enableFilter() async {
         transition(.beginConfiguration)
         do {
-            try await configureFilter(retryStaleOnce: true)
+            try await FilterConfigurationStore.save(
+                extensionIdentifier: Self.extensionIdentifier
+            ) { [weak self] in
+                self?.transition(.configurationStale)
+                self?.transition(.beginConfiguration)
+            }
             refreshInstalledState()
         } catch {
             retryAction = .activation
             transition(.fail("macOS couldn’t turn on the filter, so connections aren’t being filtered. Try again. Error code: \(sanitized(error))."))
         }
-    }
-
-    private func configureFilter(retryStaleOnce: Bool) async throws {
-        let manager = NEFilterManager.shared()
-        try await manager.loadFromPreferences()
-        let configuration = NEFilterProviderConfiguration()
-        configuration.filterSockets = true
-        configuration.filterPackets = false
-        configuration.organization = "Rift"
-        configuration.filterDataProviderBundleIdentifier = Self.extensionIdentifier
-        configuration.filterPacketProviderBundleIdentifier = nil
-        manager.providerConfiguration = configuration
-        manager.localizedDescription = "Rift Network Filter"
-        manager.isEnabled = true
-        do {
-            try await manager.saveToPreferences()
-        } catch let error as NSError where retryStaleOnce && isStale(error) {
-            transition(.configurationStale)
-            transition(.beginConfiguration)
-            try await configureFilter(retryStaleOnce: false)
-        }
-    }
-
-    private func removeFilterConfiguration(retryStaleOnce: Bool) async throws {
-        let manager = NEFilterManager.shared()
-        try await manager.loadFromPreferences()
-        guard manager.providerConfiguration != nil else { return }
-        do {
-            try await manager.removeFromPreferences()
-        } catch let error as NSError where retryStaleOnce && isStale(error) {
-            try await removeFilterConfiguration(retryStaleOnce: false)
-        }
-    }
-
-    private func isStale(_ error: NSError) -> Bool {
-        error.domain == NEFilterErrorDomain &&
-            error.code == NEFilterManagerError.configurationStale.rawValue
     }
 
     private func sanitized(_ error: Error) -> String {
@@ -295,6 +282,7 @@ final class FilterLifecycleController: NSObject {
             )
             return failed(.installedExtensionMismatch)
         }
+        filterNeedsConfiguration = false
         guard observation.enabled else { return .disabled }
 
         let manager = NEFilterManager.shared()
@@ -305,7 +293,10 @@ final class FilterLifecycleController: NSObject {
                 message: "Rift couldn’t check the filter’s status with macOS. Try again. Error code: \(sanitized(error))."
             )
         }
-        guard manager.isEnabled else { return .disabled }
+        guard manager.isEnabled else {
+            filterNeedsConfiguration = manager.providerConfiguration == nil
+            return .disabled
+        }
         guard let configuration = manager.providerConfiguration else {
             return failed(.providerConfigurationMismatch)
         }
@@ -448,6 +439,13 @@ extension FilterLifecycleController: OSSystemExtensionRequestDelegate {
             let kind = self.activeRequestKind
             self.activeRequest = nil
             self.activeRequestKind = nil
+            if value.domain == OSSystemExtensionErrorDomain,
+               value.code == OSSystemExtensionError.missingEntitlement.rawValue {
+                self.buildCanFilter = false
+                self.initialStatusResolved = true
+                self.retryAction = nil
+                return
+            }
             if kind == .properties {
                 self.initialStatusResolved = true
                 self.retryAction = .status

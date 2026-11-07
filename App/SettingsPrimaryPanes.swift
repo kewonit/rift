@@ -6,20 +6,12 @@ import SwiftUI
 enum SettingsSection: String, CaseIterable, Identifiable {
     case general = "General"
     case alerts = "Alerts"
-    case history = "Monitor & Privacy"
-    case policies = "Policies"
+    case history = "History & Privacy"
+    case policies = "Profiles & Blocklists"
     case advanced = "Advanced"
 
     var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .general: "General"
-        case .alerts: "Alerts"
-        case .history: "History & Privacy"
-        case .policies: "Profiles & Blocklists"
-        case .advanced: "Advanced"
-        }
-    }
+    var title: String { rawValue }
     var symbol: String {
         switch self {
         case .general: "gear"
@@ -35,7 +27,9 @@ struct GeneralSettingsPane: View {
     @Binding var baseMode: OperationMode
     @Binding var launchAtLogin: Bool
     let effectiveMode: OperationMode
+    let activeProfileName: String?
     let isChangingBaseMode: Bool
+    let configurationReady: Bool
     let isLoginItemReady: Bool
     let baseModeChanged: (OperationMode) -> Void
     let loginItemChanged: (Bool) -> Void
@@ -50,17 +44,18 @@ struct GeneralSettingsPane: View {
                         baseModeChanged(value)
                     }
                 )) {
-                    Text("Alert").tag(OperationMode.alert)
-                    Text("Silent Allow").tag(OperationMode.silentAllow)
-                    Text("Silent Deny").tag(OperationMode.silentDeny)
-                    Text("Observe Only").tag(OperationMode.filterOff)
+                    ForEach(OperationMode.choices, id: \.self) { Text($0.displayName).tag($0) }
                 }
                 .disabled(isChangingBaseMode)
-                LabeledContent("Current mode", value: label(effectiveMode))
+                if effectiveMode != baseMode {
+                    LabeledContent("Current mode", value: currentModeLabel)
+                }
             } header: {
                 Text("Filtering")
             } footer: {
-                Text("Observe Only shows activity but allows all connections. A profile can use a different mode.")
+                Text(configurationReady
+                    ? "\(baseMode.summary) A profile can use its own mode."
+                    : "Finish setup first. You can choose a mode once the network filter is on.")
             }
             Section("Startup") {
                 Toggle("Open Rift at login", isOn: Binding(
@@ -76,14 +71,8 @@ struct GeneralSettingsPane: View {
         .formStyle(.grouped)
     }
 
-    private func label(_ mode: OperationMode) -> String {
-        switch mode {
-        case .alert: "Alert"
-        case .silentAllow: "Silent Allow"
-        case .silentDeny: "Silent Deny"
-        case .filterOff: "Observe Only"
-        case .degradedFallback: "Fallback"
-        }
+    private var currentModeLabel: String {
+        activeProfileName.map { "\($0) uses \(effectiveMode.displayName)" } ?? effectiveMode.displayName
     }
 }
 
@@ -133,7 +122,7 @@ struct HistorySettingsPane: View {
     @Binding var historyEnabled: Bool
     @Binding var retentionDays: Int
     @Binding var maximumFlows: Int
-    let apply: () -> Void
+    let changed: () -> Void
     let clear: () -> Void
     let export: (HistoryExportFormat) -> Void
 
@@ -150,8 +139,7 @@ struct HistorySettingsPane: View {
                     step: 1_000
                 )
                 .disabled(!historyEnabled)
-                Button("Apply", action: apply)
-                Text("When history is off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes, and only while Activity or Live Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply.")
+                Text("When history is off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes, and only while the Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
@@ -163,9 +151,12 @@ struct HistorySettingsPane: View {
             } header: {
                 Text("Data")
             } footer: {
-                Text("Connections that match a “Hide from history” rule never appear in Activity, history, usage counts, or totals.")
+                Text("Connections that match a “Hide from history” rule never appear on the Map, in history, usage counts, or totals.")
             }
         }
         .formStyle(.grouped)
+        .onChange(of: historyEnabled) { _, _ in changed() }
+        .onChange(of: retentionDays) { _, _ in changed() }
+        .onChange(of: maximumFlows) { _, _ in changed() }
     }
 }

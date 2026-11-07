@@ -1,0 +1,51 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "display-p3:0.055,0.235,0.345,1.0",
+      "display-p3:0.012,0.055,0.110,1.0"
+    ],
+    "orientation": {
+      "start": {
+        "x": 0.5,
+        "y": 0
+      },
+      "stop": {
+        "x": 0.5,
+        "y": 1
+      }
+    }
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "glass": true,
+          "hidden": false,
+          "image-name": "front.svg",
+          "name": "front"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": true,
+          "hidden": false,
+          "image-name": "back.svg",
+          "name": "back"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

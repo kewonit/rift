@@ -123,9 +123,11 @@ public enum MonitorSummaryBuilder {
             else { destination = .missing }
             if destinations[destination] != nil { destinations[destination]?.count += 1 }
             else { destinations[destination] = SummaryGroup(first: row, count: 1) }
-            if row.event.reason != .concreteDecision { unresolved += 1 }
-            else if row.event.action == .allow { allowed += 1 }
-            else if row.event.action == .deny { denied += 1 }
+            switch row.event.tally {
+            case .allowed: allowed += 1
+            case .blocked: denied += 1
+            case .noRule: unresolved += 1
+            }
             if row.event.flow.direction == .incoming { incoming += 1 }
             rowCoverage = .combined(rowCoverage, row.coverage)
             sent.add(row.bytesOutbound, closed: row.closedAt != nil)

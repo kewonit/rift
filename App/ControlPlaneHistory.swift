@@ -183,9 +183,11 @@ extension ControlPlaneController {
                     for: row.event.occurredAt, anchor: anchor, width: width
                 ) else { continue }
                 var value = values[key] ?? (0, 0, 0)
-                if row.event.reason != .concreteDecision { value.unresolved += 1 }
-                else if row.event.action == .deny { value.denied += 1 }
-                else { value.allowed += 1 }
+                switch row.event.tally {
+                case .allowed: value.allowed += 1
+                case .blocked: value.denied += 1
+                case .noRule: value.unresolved += 1
+                }
                 values[key] = value
             }
             return DecisionBucketSnapshot(
@@ -211,12 +213,12 @@ extension ControlPlaneController {
             ) else { continue }
             let current = values[bucketStart]
                 ?? DecisionBucket(start: bucketStart, allowed: 0, denied: 0, unresolved: 0)
-            let unresolved = event.reason != .concreteDecision
+            let tally = event.tally
             values[bucketStart] = DecisionBucket(
                 start: bucketStart,
-                allowed: current.allowed + (unresolved || event.action == .deny ? 0 : 1),
-                denied: current.denied + (!unresolved && event.action == .deny ? 1 : 0),
-                unresolved: current.unresolved + (unresolved ? 1 : 0)
+                allowed: current.allowed + (tally == .allowed ? 1 : 0),
+                denied: current.denied + (tally == .blocked ? 1 : 0),
+                unresolved: current.unresolved + (tally == .noRule ? 1 : 0)
             )
         }
         let pendingIntersects = transientHistory.pendingReplayInterval.map {

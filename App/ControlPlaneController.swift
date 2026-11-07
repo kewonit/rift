@@ -28,11 +28,13 @@ final class ControlPlaneController {
     private(set) var desiredPolicyTuple: PolicyTuple?
     private(set) var activePolicyTuple: PolicyTuple?
     private(set) var repository: PolicyRepository?
-    private(set) var pendingPrompts: [PromptRequest] = []
+    var pendingPrompts: [PromptRequest] = []
     private(set) var lostEventCount: UInt64 = 0
     private(set) var activityRevision: UInt64 = 0
     private(set) var visualActivityRevision: UInt64 = 0
     var currentMode: OperationMode = .silentAllow
+    let ruleChanges = RuleChangeHistory()
+    let actionResults = ActionResultCenter()
     @ObservationIgnored var recentDenyUntil: Date?
     var recentDenyVisible = false
     var persistentHistoryEnabled = false
@@ -114,6 +116,7 @@ final class ControlPlaneController {
 #if DEBUG
     var fixtureTask: Task<Void, Never>?
     var fixtureRuleActions: [String: FilterAction] = [:]
+    var fixtureLastRuleRowID: String?
 #endif
 
     func start() async {
@@ -138,12 +141,12 @@ final class ControlPlaneController {
             let configurationURL = support.appendingPathComponent("config.sqlite")
             supportDirectoryURL = support
             configurationDatabaseURL = configurationURL
-            let configurationResult = Result {
+            let configurationResult = await Self.openDatabase {
                 try ConfigurationDatabase.open(at: configurationURL)
             }
             guard case .success(let database) = configurationResult else {
                 configurationRecoveryRequired = true
-                startupIssue = "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules. To recover, import a configuration you exported earlier in Settings › Advanced."
+                startupIssue = "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules."
                 state = .failed
                 await prepareConfigurationRecoveryConnection()
                 return
@@ -168,7 +171,7 @@ final class ControlPlaneController {
             } else {
                 persistentHistoryEnabled = savedHistoryPreference ?? true
                 transientHistory = TransientHistoryBuffer()
-                let historyOpenResult = Result {
+                let historyOpenResult = await Self.openDatabase {
                     try HistoryDatabase.openRecovering(
                         at: historyURL
                     )
@@ -194,6 +197,7 @@ final class ControlPlaneController {
             requestReconnect()
         } catch {
             state = .failed
+            recordStartupIssue("Rift couldn’t open its data, so it can’t show or change your rules. Quit Rift and open it again.")
         }
     }
 
@@ -366,38 +370,6 @@ final class ControlPlaneController {
         else { visualActivityUpdates.stop() }
     }
 
-    func mergeIncomingPrompts(_ incoming: [PromptRequest], now: Date) {
-        guard !incoming.isEmpty || !pendingPrompts.isEmpty else { return }
-        for prompt in incoming where prompt.deadline > now {
-            pendingPrompts.removeAll {
-                $0.nonce == prompt.nonce ||
-                    ($0.providerEpoch == prompt.providerEpoch && $0.flowID == prompt.flowID)
-            }
-            pendingPrompts.append(prompt)
-        }
-        pendingPrompts.removeAll { $0.deadline <= now }
-    }
-
-    func retainActivePrompts(_ nonces: Set<UUID>) {
-        if pendingPrompts.contains(where: { !nonces.contains($0.nonce) }) {
-            pendingPrompts.removeAll { !nonces.contains($0.nonce) }
-        }
-    }
-
-    func reconcilePendingPrompts(with batch: RuntimeEventBatch) {
-        guard !pendingPrompts.isEmpty else { return }
-        guard let epoch = batch.providerEpoch else {
-            pendingPrompts.removeAll()
-            return
-        }
-        let resolvedFlowIDs = Set(batch.events.lazy
-            .filter { $0.providerEpoch == epoch && $0.kind == .decision }
-            .map { $0.flow.flowID })
-        pendingPrompts.removeAll {
-            $0.providerEpoch != epoch || resolvedFlowIDs.contains($0.flowID)
-        }
-    }
-
     func installRecoveredConfiguration(
         _ result: ConfigurationDatabaseOpenResult, support: URL
     ) async throws {
@@ -434,25 +406,6 @@ final class ControlPlaneController {
     }
     func recordActivePolicy(_ tuple: PolicyTuple) { activePolicyTuple = tuple }
 
-    func answerOnce(_ prompt: PromptRequest, action: FilterAction) async throws {
-#if DEBUG
-        if isUIFixture {
-            if MonitorFixtureData.scenario == .alertDeliveryFailure {
-                throw ControlPlaneSafetyError.stalePrompt
-            }
-            pendingPrompts.removeAll { $0.nonce == prompt.nonce }
-            return
-        }
-#endif
-        try await client.answerPrompt(PromptAnswer(
-            nonce: prompt.nonce,
-            providerEpoch: prompt.providerEpoch,
-            lineageID: prompt.lineageID,
-            generation: prompt.generation,
-            action: action
-        ))
-        pendingPrompts.removeAll { $0.nonce == prompt.nonce }
-    }
     func ruleRows(filter: RuleListFilter, search: String) async throws -> [RuleRowViewValue] {
 #if DEBUG
         if isUIFixture { return MonitorFixtureData.ruleRows(filter: filter, search: search) }
@@ -471,7 +424,6 @@ final class ControlPlaneController {
         )
     }
 
-    func removePendingPrompt(_ nonce: UUID) { pendingPrompts.removeAll { $0.nonce == nonce } }
     func markFailed() { state = .failed }
     func recordStartupIssue(_ message: String) { startupIssue = message }
     func recordHistoryRecovery(_ recovery: HistoryDatabaseRecovery?) { historyRecovery = recovery }

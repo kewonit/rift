@@ -37,7 +37,8 @@ public enum MonitorQueryEvaluator {
         state: MonitorQueryState,
         now: Date,
         queryComplete: Bool,
-        coverage: HistoryCoverageSnapshot
+        coverage: HistoryCoverageSnapshot,
+        context: MonitorSearchContext = .none
     ) async throws -> MonitorQueryEvaluation {
         try Task.checkCancellation()
         return try await MonitorQueryWorker.run {
@@ -47,6 +48,7 @@ public enum MonitorQueryEvaluator {
                 now: now,
                 queryComplete: queryComplete,
                 coverage: coverage,
+                context: context,
                 cancellationCheck: { try Task.checkCancellation() }
             )
         }
@@ -58,12 +60,14 @@ public enum MonitorQueryEvaluator {
         now: Date,
         queryComplete: Bool,
         coverage: HistoryCoverageSnapshot,
+        context: MonitorSearchContext = .none,
         cancellationCheck: () throws -> Void
     ) rethrows -> MonitorQueryEvaluation {
         try cancellationCheck()
         let filtered = try state.apply(
             to: rows,
             now: now,
+            context: context,
             cancellationCheck: cancellationCheck
         )
         try cancellationCheck()

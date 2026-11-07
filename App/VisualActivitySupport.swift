@@ -1,3 +1,4 @@
+import RiftCore
 import AppKit
 import OSLog
 import RiftControl
@@ -57,8 +58,12 @@ struct ActivityWindowVisibility: NSViewRepresentable {
                     && !NSApplication.shared.isHidden
             } ?? false
 #if DEBUG
-            // Preview captures run in the background, so treat any open preview window as visible.
-            if MonitorFixtureData.isRequested { visible = window != nil }
+            // Preview captures run in the background, so treat any open preview window as
+            // visible, except when the preview is asked to measure being hidden.
+            if MonitorFixtureData.isRequested,
+               !ProcessInfo.processInfo.arguments.contains("--ui-fixture-hide") {
+                visible = window != nil
+            }
 #endif
             guard visible != lastValue else { return }
             lastValue = visible
@@ -72,10 +77,13 @@ struct ActivityWindowVisibility: NSViewRepresentable {
 
 struct ActivityPresentation: Sendable {
     let evaluation: MonitorQueryEvaluation
+    let visibleRows: [MonitorDisplayRow]
     let hierarchy: [MonitorHierarchyNode]
     let rowLookup: [String: MonitorEventRow]
     let traffic: LiveTrafficSnapshot
     let decisions: DecisionBucketSnapshot
+    /// False when the caller skipped decision buckets; `decisions` is then empty.
+    let includesDecisions: Bool
 
     static func build(
         evaluation: MonitorQueryEvaluation,
@@ -86,7 +94,10 @@ struct ActivityPresentation: Sendable {
         isComplete: Bool = true,
         coverages: [String: MonitorRuleCoverage],
         visibleLimit: Int,
-        pinnedID: String? = nil
+        pinnedID: String? = nil,
+        sort: MonitorHierarchySort? = nil,
+        includeDecisions: Bool = true,
+        context: MonitorSearchContext = .none
     ) async throws -> ActivityPresentation {
         try await MonitorQueryWorker.run(priority: .utility) {
             try Task.checkCancellation()
@@ -95,7 +106,10 @@ struct ActivityPresentation: Sendable {
                let pinned = evaluation.displayed.first(where: { $0.id == pinnedID }) {
                 visible.append(pinned)
             }
-            let hierarchy = MonitorHierarchyBuilder.build(visible, lens: query.lens, coverages: coverages)
+            var hierarchy = MonitorHierarchyBuilder.build(
+                visible, lens: query.lens, coverages: coverages, displayNames: context.displayNames
+            )
+            if let sort { hierarchy.sort(by: sort.comparator) }
             try Task.checkCancellation()
             let displayedRows = evaluation.displayed.map(\.source)
             let bounds = query.effectiveTimeWindow(now: now)?.resolvedBounds(
@@ -105,12 +119,20 @@ struct ActivityPresentation: Sendable {
             let traffic = LiveTrafficSnapshot.make(rows: displayedRows, bounds: bounds)
             try Task.checkCancellation()
             return ActivityPresentation(
-                evaluation: evaluation, hierarchy: hierarchy,
-                rowLookup: Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) }),
+                evaluation: evaluation, visibleRows: visible, hierarchy: hierarchy,
+                // Views only look up rows they show, so index those rather than
+                // every row loaded (up to 50,000 with history on).
+                rowLookup: Dictionary(visible.map { ($0.source.id, $0.source) }, uniquingKeysWith: { first, _ in first }),
                 traffic: traffic,
-                decisions: MonitorDecisionBuckets.build(
-                    rows: rows, query: query, now: now, coverage: coverage, isComplete: isComplete
-                )
+                decisions: includeDecisions
+                    ? MonitorDecisionBuckets.build(
+                        rows: MonitorDecisionBuckets.rows(
+                            displayed: displayedRows, all: rows, query: query, now: now, context: context
+                        ),
+                        query: query, now: now, coverage: coverage, isComplete: isComplete
+                    )
+                    : DecisionBucketSnapshot(buckets: [], coverage: .gap),
+                includesDecisions: includeDecisions
             )
         }
     }

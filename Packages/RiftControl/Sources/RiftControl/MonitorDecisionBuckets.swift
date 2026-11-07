@@ -1,6 +1,22 @@
 import Foundation
 
 public enum MonitorDecisionBuckets {
+    /// The rows the chart should count. They follow the same search and filters
+    /// as everything else, but not a dragged selection, which would shrink the
+    /// chart to the part someone just picked.
+    public static func rows(
+        displayed: [MonitorEventRow],
+        all rows: [MonitorEventRow],
+        query: MonitorQueryState,
+        now: Date,
+        context: MonitorSearchContext = .none
+    ) -> [MonitorEventRow] {
+        guard query.selectedTimeRange != nil else { return displayed }
+        var whole = query
+        whole.selectedTimeRange = nil
+        return whole.apply(to: rows, now: now, context: context).map(\.source)
+    }
+
     public static func build(
         rows: [MonitorEventRow],
         query: MonitorQueryState,
@@ -17,9 +33,11 @@ public enum MonitorDecisionBuckets {
                 for: row.event.occurredAt, anchor: window.start, width: query.time.decisionBucketWidth
             ) else { continue }
             var value = values[key] ?? (0, 0, 0)
-            if row.event.reason != .concreteDecision { value.unresolved += 1 }
-            else if row.event.action == .deny { value.deny += 1 }
-            else { value.allow += 1 }
+            switch row.event.tally {
+            case .allowed: value.allow += 1
+            case .blocked: value.deny += 1
+            case .noRule: value.unresolved += 1
+            }
             values[key] = value
         }
         return DecisionBucketSnapshot(

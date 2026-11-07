@@ -50,8 +50,10 @@ struct ConnectionAlertView: View {
     }
 
     let prompt: PromptRequest
+    var moreWaiting = 0
     @Bindable var controller: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
+    @Environment(\.controlActiveState) private var controlActiveState
     @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = Lifetime.once.rawValue
     @AppStorage("alertDefaultScope") private var alertDefaultScope = RuleScope.currentProfile.rawValue
     @State private var lifetime: Lifetime = .once
@@ -70,8 +72,8 @@ struct ConnectionAlertView: View {
     @State private var initialDeadlineInterval: TimeInterval = 30
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: RiftDesign.Spacing.l) {
+            HStack(alignment: .top, spacing: RiftDesign.Spacing.m) {
                 ApplicationIdentityIcon(
                     identity: presentationIdentity,
                     fallbackSystemName: "app.dashed",
@@ -81,46 +83,30 @@ struct ConnectionAlertView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Connection request")
                         .font(.title2.weight(.semibold))
-                    Text("\(applicationName) wants to connect to \(DisplaySanitizer.plainText(destination)).")
-                        .font(.body)
+                    Text(ConnectionAlertPresentation.headline(
+                        application: applicationName,
+                        destination: DisplaySanitizer.plainText(destination),
+                        direction: prompt.direction
+                    ))
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Label(identityTitle, systemImage: identitySymbol)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
                 }
                 Spacer()
-                Image(systemName: identitySymbol)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .help(identityTitle)
+                if let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
+                    Text(waiting)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
             }
 
             DisclosureGroup("Details", isExpanded: $showingDetails) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 7) {
-                        row("Destination", destination)
-                        row("Identified by", destinationSource)
-                        row("Direction", prompt.direction == .outgoing ? "Outgoing" : "Incoming")
-                        row("Protocol", protocolLabel)
-                        row("Owner", ownerLabel)
-                    }
-                    if let appIdentity = prompt.appIdentity {
-                        LabeledContent(
-                            "Application",
-                            value: DisplaySanitizer.plainText(identityEvidence(for: appIdentity))
-                        )
-                    }
-                    if let processIdentity = prompt.processIdentity,
-                       processIdentity != prompt.appIdentity {
-                        LabeledContent(
-                            "Helper process",
-                            value: DisplaySanitizer.plainText(identityEvidence(for: processIdentity))
-                        )
-                    }
-                    Text("Rules version \(prompt.generation) • Alert ID \(prompt.nonce.uuidString.lowercased())")
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                }
-                .padding(.top, 7)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                ConnectionAlertDetails(prompt: prompt)
             }
 
             if prompt.endpoint?.hostname == nil {
@@ -136,7 +122,14 @@ struct ConnectionAlertView: View {
                 ForEach(Lifetime.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
-            .disabled(!canCreateDurableRule)
+            .disabled(!lastingChoiceAvailable)
+
+            if let hint = ConnectionAlertPresentation.lastingChoiceHint(
+                hasIdentity: prompt.appIdentity != nil || prompt.processIdentity != nil,
+                hasEndpoint: prompt.endpoint != nil
+            ) {
+                Text(hint).font(.caption).foregroundStyle(.secondary)
+            }
 
             if requiresSystemScopeConfirmation {
                 Toggle("Create a rule for this system process", isOn: $systemScopeConfirmed)
@@ -168,6 +161,11 @@ struct ConnectionAlertView: View {
             if lifetime != .once {
                 Picker("Destination", selection: $destinationScope) {
                     ForEach(DestinationScope.allCases) { Text($0.rawValue).tag($0) }
+                }
+                if destinationScope == .exact {
+                    Text("Applies to this destination on this port, for the same protocol and direction.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 if destinationScope == .any {
                     Label(
@@ -205,47 +203,50 @@ struct ConnectionAlertView: View {
                     if let pendingDecision {
                         HStack(spacing: 7) {
                             ProgressView().controlSize(.small)
-                            Text(pendingDecision == .deny ? "Denying…" : "Allowing…")
+                            Text(pendingDecision == .deny ? "Blocking…" : "Allowing…")
                                 .font(.callout)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    HStack(spacing: 10) {
-                        Button("Deny") { decide(.deny) }
-                            .buttonStyle(.bordered)
-                            .tint(.red)
-                            .keyboardShortcut("d", modifiers: .command)
-                            .frame(maxWidth: .infinity)
-                            .controlSize(.large)
-                            .disabled(decisionDisabled(at: context.date))
-                        Button("Allow") { decide(.allow) }
-                            .buttonStyle(.bordered)
-                            .tint(.accentColor)
-                            .keyboardShortcut("a", modifiers: .command)
-                            .frame(maxWidth: .infinity)
-                            .controlSize(.large)
-                            .disabled(decisionDisabled(at: context.date))
+                    // The width goes on the label so each bezel fills its half.
+                    HStack(spacing: RiftDesign.Spacing.m) {
+                        Button { decide(.deny) } label: {
+                            Label("Block", systemImage: "xmark").frame(maxWidth: .infinity)
+                        }
+                        .tint(Color(nsColor: .systemRed))
+                        .keyboardShortcut("b", modifiers: .command)
+                        .disabled(decisionDisabled(at: context.date))
+                        Button { decide(.allow) } label: {
+                            Label("Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
+                        }
+                        .tint(Color(nsColor: .systemGreen))
+                        .keyboardShortcut("a", modifiers: .command)
+                        .disabled(decisionDisabled(at: context.date))
                     }
-                    VStack(spacing: 4) {
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    VStack(spacing: RiftDesign.Spacing.xs + 2) {
                         ProgressView(
                             value: max(0, prompt.deadline.timeIntervalSince(context.date)),
                             total: max(1, initialDeadlineInterval)
                         )
-                        .tint(context.date >= prompt.deadline ? .orange : .secondary)
+                        .progressViewStyle(.linear)
+                        .controlSize(.mini)
+                        .tint(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                         HStack {
-                            Text("⌘D Deny  •  ⌘A Allow")
+                            if controlActiveState == .key { Text("⌘B Block · ⌘A Allow") }
                             Spacer()
                             Text(deadlineLabel(at: context.date))
                                 .monospacedDigit()
                         }
                         .font(.caption)
-                        .foregroundStyle(context.date >= prompt.deadline ? .orange : .secondary)
+                        .foregroundStyle(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                     }
                 }
             }
         }
-        .padding(22)
-        .frame(width: 540)
+        .padding(RiftDesign.Spacing.xl)
+        .frame(width: 520)
         .task {
             if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
             initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
@@ -261,17 +262,18 @@ struct ConnectionAlertView: View {
             guard !Task.isCancelled else { return }
             resolvedApplicationName = name
         }
-        .onKeyPress(.escape) {
-            PromptPanelController.shared.dismiss()
-            return .handled
-        }
-    }
-
-    @ViewBuilder
-    private func row(_ title: String, _ value: String) -> some View {
-        GridRow {
-            Text(title).foregroundStyle(.secondary)
-            Text(DisplaySanitizer.plainText(value)).textSelection(.enabled)
+        .task(id: prompt.nonce) {
+            AccessibilityNotification.Announcement(ConnectionAlertPresentation.headline(
+                application: applicationName,
+                destination: DisplaySanitizer.plainText(destination),
+                direction: prompt.direction
+            )).post()
+            // The filter resolves the connection at the deadline. If that news
+            // never arrives, clear the alert so it can't sit here with no way out.
+            let wait = prompt.deadline.timeIntervalSinceNow + 2
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+            guard !Task.isCancelled else { return }
+            controller.removePendingPrompt(prompt.nonce)
         }
     }
 
@@ -324,6 +326,26 @@ struct ConnectionAlertView: View {
                     durableRuleSaved = true
                     decisionMessage = result.message
                     decisionNeedsAttention = result.requiresAttention
+                    // The rule may not reach the filter before the deadline.
+                    // Answering this connection too means your choice still
+                    // applies to it.
+                    if result.requiresAttention {
+                        try? await controller.answerOnce(prompt, action: action)
+                    }
+                    let sentence = RulePlainLanguage.change(
+                        action: action,
+                        application: applicationName,
+                        destination: destinationScope == .any
+                            ? "any destination" : DisplaySanitizer.plainText(destination),
+                        port: nil,
+                        incoming: prompt.direction == .incoming
+                    )
+                    controller.actionResults.post(
+                        result.requiresAttention ? "\(sentence) \(result.message)" : sentence,
+                        tone: result.requiresAttention ? .pending : .success,
+                        ruleIDs: controller.ruleChanges.plan?.affectedRuleIDs ?? [],
+                        offersUndo: true
+                    )
                 } catch {
                     decisionMessage = "The rule wasn’t saved. This alert is still open, so you can try again."
                     decisionNeedsAttention = true
@@ -342,9 +364,12 @@ struct ConnectionAlertView: View {
 
     private func deadlineLabel(at date: Date) -> String {
         let remaining = max(0, Int(prompt.deadline.timeIntervalSince(date).rounded(.up)))
-        return remaining == 0
-            ? "Timed out — connection allowed"
-            : "Allowing in \(remaining)s"
+        guard remaining > 0 else { return "Timed out — connection allowed" }
+        let minutes = remaining / 60
+        let seconds = remaining % 60
+        return minutes > 0
+            ? "Allowing in \(minutes):\(String(format: "%02d", seconds))"
+            : "Allowing in \(seconds)s"
     }
 
     private var canCreateRule: Bool {
@@ -353,6 +378,14 @@ struct ConnectionAlertView: View {
 
     private var canCreateDurableRule: Bool {
         canCreateRule && activeProfileResolution.isResolved
+    }
+
+    private var lastingChoiceAvailable: Bool {
+        ConnectionAlertPresentation.allowsLastingChoice(
+            canCreateRule: canCreateDurableRule,
+            needsSystemConfirmation: requiresSystemScopeConfirmation,
+            systemConfirmed: systemScopeConfirmed
+        )
     }
 
     private var requiresSystemScopeConfirmation: Bool {
@@ -393,66 +426,8 @@ struct ConnectionAlertView: View {
         prompt.appIdentity ?? prompt.processIdentity
     }
 
-    private var destination: String {
-        guard let endpoint = prompt.endpoint else { return "Unavailable" }
-        let host = endpoint.hostname?.ascii ?? endpoint.address.description
-        return endpoint.port.map { "\(host):\($0)" } ?? host
-    }
-
-    private var destinationSource: String {
-        prompt.endpoint?.hostname == nil ? "IP address" : "Hostname"
-    }
-
-    private var protocolLabel: String {
-        switch prompt.transportProtocol {
-        case .tcp: "TCP"
-        case .udp: "UDP"
-        case .unsupported(let number): "Unsupported (\(number))"
-        }
-    }
-
-    private var ownerLabel: String {
-        switch prompt.owner {
-        case .user: "Current user"
-        case .system: "System process (affects all users)"
-        case .unknown: "Unknown owner"
-        }
-    }
-
-    private var identityTitle: String {
-        switch prompt.appIdentity ?? prompt.processIdentity {
-        case .applePlatform: "Apple software"
-        case .developerID: "App from an identified developer"
-        case .appStore: "Mac App Store app"
-        case .otherSigner: "Signed app"
-        case .adHoc: "Ad hoc signed app"
-        case .unsigned: "Unsigned app"
-        case nil: "Unknown app"
-        }
-    }
-
-    private var identitySymbol: String {
-        switch prompt.appIdentity ?? prompt.processIdentity {
-        case .applePlatform, .developerID, .appStore: "checkmark.seal"
-        case .otherSigner: "signature"
-        case .adHoc, .unsigned, nil: "exclamationmark.triangle"
-        }
-    }
-
-    private var identityEvidence: String {
-        guard let identity = prompt.appIdentity ?? prompt.processIdentity else {
-            return "Rift couldn’t identify this app, so you can’t create a lasting rule for it."
-        }
-        return identityEvidence(for: identity)
-    }
-
-    private func identityEvidence(for identity: ProcessIdentity) -> String {
-        switch identity {
-        case .applePlatform(let value), .developerID(let value), .appStore(let value):
-            return "\(value.teamIdentifier ?? "No Team ID") • \(value.signingIdentifier)"
-        case .otherSigner(_, let identifier): return identifier
-        case .adHoc: return "Identified only by this exact build of the app."
-        case .unsigned(let path, _): return path
-        }
-    }
+    private var facts: ConnectionAlertFacts { ConnectionAlertFacts(prompt: prompt) }
+    private var destination: String { facts.destination }
+    private var identityTitle: String { facts.identityTitle }
+    private var identitySymbol: String { facts.identitySymbol }
 }

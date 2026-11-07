@@ -3,6 +3,124 @@
 The changelog records notable user-visible changes. Rift has no signed public
 release.
 
+## Unreleased
+
+- Rift has a new window. One sidebar holds Map, Status and your rules, filters,
+  profiles, groups and blocklists. The Activity page is part of the Map page.
+- The Map page shows the map above a slim timeline and a table of connections.
+  ⌘T hides the map to give the table the whole window.
+- The map is drawn like a chart: faint cables, thin routes and small markers.
+  It opens on This Mac and the places your connections go, and selecting a
+  connection fits its route.
+- The inspector appears when you select a connection, and search sits above
+  each table.
+- Rules show on one line, and the rule inspector matches the connection one.
+- Status shows your mode and rule counts at a glance.
+- One timeline shows traffic or decisions for the chosen time range.
+- The menu-bar panel was rebuilt with a mode menu, recent apps with their
+  decisions, and standard menu rows.
+- Rift has a new app icon: two rings split along a fault.
+- Lists show verified app names instead of signing identifiers where Rift can
+  match the installed app.
+- The map does less work while it's open: route animation, map updates and
+  app-icon lookups were reworked, and launch no longer waits for the databases
+  to open.
+- Rift releases the map 30 seconds after its window is hidden, to free its
+  memory while it runs in the background.
+- Fixed app names in connection alerts showing replacement characters.
+- Status, the menu-bar panel and the Map now give the same plain description
+  of what Rift is doing. Rift no longer says the Mac is protected when
+  connections are simply being allowed, and it says when all connections are
+  allowed or your rules can't be confirmed.
+- Problems shown in the menu-bar panel and on the Map now give the reason and a
+  direct way to fix them.
+- Fixed the menu-bar icon disappearing in Alert mode.
+- Every blocked connection now reads as Blocked, including ones blocked by your
+  mode, and counts, filters and search all agree. Each connection shows its
+  result and the reason in plain words.
+- The menu-bar panel no longer says there were no connections when Rift simply
+  wasn't keeping history.
+- A copy of Rift that can't filter, such as a build from source, now says so as
+  soon as it opens.
+- Filter problems now offer the button that fixes them, such as Turn On Filter
+  or Finish Setup, and trying again works after macOS declines the filter.
+- Rift now explains when it can't start, instead of quitting silently.
+- Connection alerts can no longer be closed, because closing one quietly allowed
+  the connection. An alert also stays put when another request arrives, shows
+  how many more are waiting, and stays visible when you switch apps.
+- A choice you can see in an alert is now the choice that applies. One hour and
+  Always wait for system process confirmation, and a Block still applies to the
+  connection if its rule hasn't reached the filter yet.
+- Alerts say who signed the app, and use Block with ⌘B.
+- After any rule change on the Map or in an alert, Rift says what changed in
+  plain words, with Undo and View Rule. Undo now works across the app and keeps
+  working when you switch pages.
+- Fixed Allow leaving a connection blocked when you'd blocked it earlier. Rift
+  also checks a rule will really take effect before saving it, and tells you if
+  another rule still decides the connection.
+- The Map's buttons now say Always Allow and Always Block, and a connection shows
+  what will happen from now on as well as what happened then.
+- Errors from Map actions stay until you dismiss them, and notices on the Rules
+  page no longer hide your rules.
+- Modes have plain names that say what happens: Ask Me, Allow and Watch, Block
+  Unless Allowed, and Pause Rules. Each one explains itself where you choose it.
+- Risky mode changes now warn the same way everywhere, and Resume Rules returns
+  you to the mode you paused from.
+- Status shows your mode and how many rules and blocklists you have.
+- Quitting Rift now tells you what will happen to connections in your mode.
+- Setup now ends with one plain question about how Rift should behave, with a
+  recommended answer, and offers Open at Login and connection history. Choosing
+  Ask Me also turns on Open at Login, because Rift has to be open to ask.
+- Before setup is finished, Rift says so instead of failing. The Map holds its
+  location prompt until the filter is on, empty lists explain why they're empty,
+  and mode and rule controls say to finish setup first.
+- The timeline has a Keep History button when history is off.
+- You can now block or allow any app or site from the Map, including apps with
+  several destinations. You choose what the rule covers and for how long before
+  it's made, and blocking a site now covers every port by default.
+- The connection list holds still while you point at it, so a click can't land
+  on the wrong row.
+- The inspector names the rule that decided a connection and opens it directly.
+- Clicking a country on the map now narrows the list, table and timeline to it,
+  with a chip to clear it. The map keeps showing the other countries.
+- Selection stays on what you picked when the list refreshes, and a connection
+  opened from elsewhere reveals itself in the list.
+- Search finds the app and country names shown on screen, and sorting by name
+  uses them too.
+- The inspector shows numbers for the selected app, with its destinations, and
+  apps open straight to their destinations.
+- Switching pages keeps your search, filters and selection.
+- Empty lists say whether nothing happened or your filters hid it, with a way to
+  clear them. Rows that are partly blocked now say so.
+- The map legend explains blocked markers and says when it leaves connections
+  out. The inspector and timeline open faster, and the table opens instantly.
+- Looking at the past is now obvious: Rift shows the dates, a Viewing past
+  activity label with Back to Live, and stops the map's flow dots.
+- Time ranges say what they mean, such as This Hour and Today. The timeline has
+  time labels, and the Decisions chart now follows your search and filters.
+- On the Rules page, turn a rule on or off with a checkbox, double-click to edit
+  it, and use the buttons in the inspector, with no need to right-click.
+- Each rule now shows whether it's really in use, such as Active, Off, Other
+  profile, Group off, Expired or Waiting for filter.
+- The rule editor leads with what most people need, and keeps the rest under
+  Advanced. It shows app names, lets you choose any app, and shows problems
+  beside Save.
+- Profiles, Groups and Blocklists are always visible on the Rules page, with a
+  line explaining each. The page updates when rules change elsewhere.
+- History settings now apply as you change them, and deleting rules or removing
+  a blocklist from Settings asks first, as it does on the Rules page.
+- Notifications say only what's known, the toggle says what it really does, and
+  clicking a notification opens the connection on the Map.
+- If Rift can't read your rules, Status now offers the newest working backup in
+  one click, as well as importing a file or starting fresh.
+- Rift now uses one set of plain words everywhere, such as Block, App and On, and
+  its text no longer mentions pages that have gone.
+- Everything on the Map has a menu item and shortcut, including the table,
+  inspector, timeline, search and Allow and Block. Undo for rule changes works
+  from anywhere with ⌥⌘Z.
+- With VoiceOver, connection rows offer Allow, Block and Show Rule, and new
+  alerts and the results of rule changes are announced.
+
 ## 0.3.0 (pre-release)
 
 - Redesigned the app to follow macOS conventions: a labeled view switcher

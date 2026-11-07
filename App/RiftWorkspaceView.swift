@@ -3,7 +3,6 @@ import SwiftUI
 
 enum AppDestination: String, CaseIterable, Identifiable, Hashable {
     case liveMap
-    case activity
     case rules
     case health
 
@@ -12,7 +11,6 @@ enum AppDestination: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .liveMap: "Map"
-        case .activity: "Activity"
         case .rules: "Rules"
         case .health: "Status"
         }
@@ -21,7 +19,6 @@ enum AppDestination: String, CaseIterable, Identifiable, Hashable {
     var symbol: String {
         switch self {
         case .liveMap: "globe.americas.fill"
-        case .activity: "waveform.path.ecg"
         case .rules: "list.bullet.rectangle"
         case .health: "checkmark.shield"
         }
@@ -31,8 +28,8 @@ enum AppDestination: String, CaseIterable, Identifiable, Hashable {
         guard url.scheme?.lowercased() == "rift" else { return nil }
         let value = url.host?.lowercased() ?? url.pathComponents.dropFirst().first?.lowercased()
         switch value {
-        case "map", "live-map": self = .liveMap
-        case "activity": self = .activity
+        // Activity now lives in the Map page's connection table.
+        case "map", "live-map", "activity": self = .liveMap
         case "rules": self = .rules
         case "health", "status": self = .health
         default: return nil
@@ -47,6 +44,8 @@ struct RiftRootView: View {
 #if DEBUG
         if MonitorFixtureData.usesStatusMenuPreview {
             StatusMenuFixtureHost(session: session)
+        } else if FixturePreviewOptions.showsAlert {
+            AlertFixtureHost(session: session)
         } else {
             RiftWorkspaceView(session: session)
         }
@@ -59,35 +58,63 @@ struct RiftRootView: View {
 struct RiftWorkspaceView: View {
     @Bindable var session: AppSession
     @Environment(\.openSettings) private var openSettings
+    /// Lives here because the sidebar shows it on every page.
+    @State private var rules: RulesWorkspaceController
+
+    init(session: AppSession) {
+        self.session = session
+        let model = RulesWorkspaceController(controlPlane: session.controlPlane)
+        model.search = session.savedRulesSearch
+        _rules = State(initialValue: model)
+    }
+
+    private var sidebarSelection: Binding<AppSidebarItem> {
+        Binding {
+            switch session.destination {
+            case .liveMap: .map
+            case .health: .status
+            case .rules: .rules(rules.sidebarSelection)
+            }
+        } set: { item in
+            switch item {
+            case .map: session.destination = .liveMap
+            case .status: session.destination = .health
+            case .rules(let selection):
+                rules.sidebarSelection = selection
+                session.destination = .rules
+            }
+        }
+    }
 
     var body: some View {
-        destinationView
-            .navigationTitle("Rift")
-            .frame(minWidth: 1_000, minHeight: 600)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("View", selection: $session.destination) {
-                        ForEach(AppDestination.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    .help("Switch views")
-                }
+        NavigationSplitView {
+            RiftSidebarView(model: rules, selection: sidebarSelection, isPreview: session.isUIFixture)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
+        } detail: {
+            destinationView
+                .overlay(alignment: .bottom) { ActionResultBanner(session: session) }
+        }
+        // Wide enough for both tables' columns with the sidebar and inspector open.
+        .frame(minWidth: 1_160, minHeight: 600)
+        .onOpenURL { url in
+            let target = (url.host ?? url.pathComponents.dropFirst().first)?.lowercased()
+            if url.scheme?.lowercased() == "rift", target == "settings" {
+                openSettings()
+            } else if let destination = AppDestination(deepLink: url) {
+                session.destination = destination
+                if target == "activity" { session.showsConnectionTable = true }
             }
-            .onOpenURL { url in
-                let target = (url.host ?? url.pathComponents.dropFirst().first)?.lowercased()
-                if url.scheme?.lowercased() == "rift", target == "settings" {
-                    openSettings()
-                } else if let destination = AppDestination(deepLink: url) {
-                    session.destination = destination
-                }
-            }
-            .onChange(of: session.showingFilterStatus) { _, showing in
-                guard showing else { return }
-                session.destination = .health
-                session.showingFilterStatus = false
-            }
+        }
+#if DEBUG
+        .task {
+            if session.isUIFixture, FixturePreviewOptions.opensSettings { openSettings() }
+        }
+#endif
+        .onChange(of: session.showingFilterStatus, initial: true) { _, showing in
+            guard showing else { return }
+            session.destination = .health
+            session.showingFilterStatus = false
+        }
     }
 
     @ViewBuilder
@@ -95,162 +122,22 @@ struct RiftWorkspaceView: View {
         switch session.destination {
         case .liveMap:
             LiveMapView(session: session)
-        case .activity:
-            MonitorView(session: session)
         case .rules:
             RulesWorkspaceView(
-                controlPlane: session.controlPlane,
                 requestedSelection: Binding(
                     get: { session.requestedRuleIDs },
                     set: { session.requestedRuleIDs = $0 }
                 ),
                 artworkStore: session.applicationArtwork,
-                isPreview: session.isUIFixture
+                isPreview: session.isUIFixture,
+                setupIncomplete: !session.protectionStatus.canShowActivity,
+                openStatus: { session.destination = .health },
+                searchChanged: { session.savedRulesSearch = $0 },
+                model: rules
             )
         case .health:
             RiftHealthView(session: session)
         }
-    }
-}
-
-struct RiftHealthView: View {
-    @Bindable var session: AppSession
-
-    var body: some View {
-        Form {
-            Section {
-                header
-            }
-            if let issue = session.controlPlane.startupIssue {
-                Section {
-                    StatusRow(
-                        title: "Rift found a problem",
-                        detail: issue,
-                        tone: .warning,
-                        symbol: "externaldrive.badge.exclamationmark"
-                    )
-                }
-            }
-            Section("Network Filter") {
-                filterSection
-            }
-            Section("Map") {
-                StatusRow(
-                    title: NetworkMapStore.shared.loadFailed ? "Cable map unavailable" : "Cable map ready",
-                    detail: NetworkMapStore.shared.loadFailed
-                        ? "The cable map couldn’t load. Filtering isn’t affected."
-                        : "Rift finds each connection’s country on this Mac and estimates the undersea cables it uses. Apple Maps gets no connection details from Rift.",
-                    tone: NetworkMapStore.shared.loadFailed ? .warning : .protected,
-                    symbol: "map"
-                )
-            }
-        }
-        .formStyle(.grouped)
-        .frame(maxWidth: 720)
-        .frame(maxWidth: .infinity)
-    }
-
-    private var header: some View {
-        HStack(spacing: 14) {
-            Image(systemName: session.hasConfirmedFilterService
-                ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
-                .font(.system(size: 34))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(session.hasConfirmedFilterService ? Color.green : .orange)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(session.isUIFixture
-                    ? "Preview Mode"
-                    : (session.hasConfirmedFilterService ? "Rift is protecting this Mac" : "Rift needs attention"))
-                    .font(.title3.weight(.semibold))
-                Text(session.isUIFixture
-                    ? "This preview shows sample data. Nothing on this Mac changes."
-                    : session.statusAccessibilityLabel)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
-    }
-
-    @ViewBuilder
-    private var filterSection: some View {
-        if showsHealthSetupFixture {
-            StatusRow(
-                title: "Set up the network filter",
-                detail: "The filter isn’t installed in this preview. Install and approve it from a signed copy of Rift.",
-                tone: .warning,
-                symbol: "network.badge.shield.half.filled"
-            )
-        } else if let lifecycle = session.lifecycle {
-            StatusRow(
-                title: lifecycle.initialStatusResolved ? lifecycle.title : "Checking the network filter…",
-                detail: lifecycle.initialStatusResolved
-                    ? lifecycle.guidance
-                    : "Rift is checking the filter’s status with macOS.",
-                tone: session.hasConfirmedFilterService ? .protected : .warning,
-                symbol: "network.badge.shield.half.filled"
-            )
-            HStack {
-                Button("Copy Status Report") { lifecycle.copyRedactedDiagnostics() }
-                    .help("Copy a short status report for troubleshooting. It doesn’t include personal details.")
-                Spacer()
-                if lifecycle.initialStatusResolved && lifecycle.shouldOfferSettings {
-                    Button("Open System Settings") { lifecycle.openSystemSettings() }
-                }
-                if lifecycle.shouldOfferRetry {
-                    Button("Try Again") { lifecycle.retrySetup() }
-                }
-                if lifecycle.initialStatusResolved, case .notInstalled = lifecycle.state {
-                    Button("Install and Enable") { lifecycle.installAndEnable() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(lifecycle.operationInProgress)
-                }
-            }
-        } else {
-            StatusRow(
-                title: "Not running in preview",
-                detail: "This preview uses sample data. The network filter isn’t running.",
-                tone: .unresolved,
-                symbol: "network.badge.shield.half.filled"
-            )
-        }
-    }
-
-    private var showsHealthSetupFixture: Bool {
-#if DEBUG
-        session.isUIFixture && MonitorFixtureData.scenario == .healthSetup
-#else
-        false
-#endif
-    }
-}
-
-private struct StatusRow: View {
-    let title: String
-    let detail: String
-    let tone: RiftStatusTone
-    let symbol: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: symbol)
-                .font(.title3)
-                .foregroundStyle(tone.color)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                Text(detail)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            RiftStatusBadge(tone: tone)
-        }
-        .padding(.vertical, 3)
-        .accessibilityElement(children: .combine)
     }
 }
 

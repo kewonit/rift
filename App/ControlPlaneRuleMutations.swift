@@ -13,48 +13,6 @@ private enum ConfigurationMutationSavePlan {
     }
 }
 
-enum ConfigurationMutationResult: Sendable, Equatable {
-    case enforced(backupFailed: Bool)
-    case savedPending(backupFailed: Bool)
-    case persistedPendingProvider(backupFailed: Bool)
-    case applyFailed(backupFailed: Bool)
-
-    init(state: PolicyOutboxState, backupFailed: Bool) {
-        switch state {
-        case .enforced: self = .enforced(backupFailed: backupFailed)
-        case .savedPendingEnforcement: self = .savedPending(backupFailed: backupFailed)
-        case .persistedPendingProvider:
-            self = .persistedPendingProvider(backupFailed: backupFailed)
-        case .applyFailed: self = .applyFailed(backupFailed: backupFailed)
-        }
-    }
-
-    var message: String {
-        let base: String
-        let backupFailed: Bool
-        switch self {
-        case .enforced(let failed):
-            base = "Saved and applied."
-            backupFailed = failed
-        case .savedPending(let failed):
-            base = "Saved. Waiting for the filter to apply it."
-            backupFailed = failed
-        case .persistedPendingProvider(let failed):
-            base = "Saved. The filter will apply it once it’s running."
-            backupFailed = failed
-        case .applyFailed(let failed):
-            base = "Saved, but the filter couldn’t apply it. Try again after Rift reconnects."
-            backupFailed = failed
-        }
-        return backupFailed ? base + " The automatic backup didn’t complete." : base
-    }
-
-    var requiresAttention: Bool {
-        if case .enforced(backupFailed: false) = self { return false }
-        return true
-    }
-}
-
 extension ControlPlaneController {
     @discardableResult
     func setRulesEnabled(
@@ -220,13 +178,28 @@ extension ControlPlaneController {
         }
     }
 
+    /// Reverses the last rule change. Returns nil in a preview, which has no
+    /// saved rules.
     @discardableResult
-    func applyRuleWorkspaceUndo(
-        _ plan: RuleWorkspaceUndoPlan
-    ) async throws -> ConfigurationMutationResult {
-        try await mutateRules(
+    func undoLastRuleChange() async throws -> ConfigurationMutationResult? {
+#if DEBUG
+        if isUIFixture {
+            if let row = fixtureLastRuleRowID { fixtureRuleActions[row] = nil }
+            fixtureLastRuleRowID = nil
+            ruleChanges.noteChange()
+            return nil
+        }
+#endif
+        guard let plan = ruleChanges.plan, !ruleChanges.isRunning else {
+            throw RuleCommandError.generationConflict
+        }
+        ruleChanges.isRunning = true
+        defer { ruleChanges.isRunning = false }
+        ruleChanges.nextChangeName = ruleChanges.name
+        return try await mutateRules(
             expectedGeneration: plan.expectedGeneration,
-            kind: "undoRuleCommand"
+            kind: "undoRuleCommand",
+            recordsRedo: !ruleChanges.isRedo
         ) { rules in
             try plan.restoring(
                 currentRules: rules,
@@ -236,10 +209,19 @@ extension ControlPlaneController {
         }
     }
 
+    var canUndoRuleChange: Bool {
+#if DEBUG
+        if isUIFixture { return fixtureLastRuleRowID != nil }
+#endif
+        guard !ruleChanges.isRunning, let plan = ruleChanges.plan else { return false }
+        return plan.expectedGeneration == desiredPolicyTuple?.generation
+    }
+
     @discardableResult
     func mutateRules(
         expectedGeneration: UInt64,
         kind: String,
+        recordsRedo: Bool = false,
         transform: ([Rule]) throws -> [Rule]
     ) async throws -> ConfigurationMutationResult {
         guard let repository,
@@ -263,6 +245,10 @@ extension ControlPlaneController {
             commandKind: kind,
             redactedSummary: "count=\(rules.count)",
             now: Date()
+        )
+        ruleChanges.record(
+            before: draft.rules, after: rules,
+            generation: desired.tuple.generation, isRedo: recordsRedo
         )
         return await finishConfigurationMutation(
             desired,
@@ -370,6 +356,7 @@ extension ControlPlaneController {
         lineageID: UUID,
         backupTime: Date
     ) async -> ConfigurationMutationResult {
+        await monitorCoverageCache.invalidateSnapshot()
         guard !savePlan.shouldApply else {
             return await finishSavedMutation(
                 desired,

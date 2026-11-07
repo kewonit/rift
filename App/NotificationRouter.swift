@@ -1,4 +1,5 @@
 import RiftControl
+import RiftCore
 import RiftIPC
 import Foundation
 import UserNotifications
@@ -25,14 +26,9 @@ actor NotificationRouter {
             && (event.action == .deny || event.reason != .concreteDecision) {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
-            content.title = event.action == .deny ? "Rift denied a connection" : "Rift allowed a connection by default"
-            if UserDefaults.standard.bool(forKey: "notificationSensitiveDetails"),
-               let endpoint = event.flow.destinationEndpoint {
-                let value = endpoint.hostname?.ascii ?? endpoint.address.description
-                content.body = "Destination: \(value)"
-            } else {
-                content.body = "Open Rift to see the details."
-            }
+            content.title = NotificationCopy.title(action: event.action)
+            content.body = NotificationCopy.body(destination: destination(event.flow))
+            content.userInfo = [NotificationResponder.rowIDKey: MonitorEventRow(event: event, coverage: .complete).id]
             await deliver(
                 UNNotificationRequest(identifier: event.id, content: content, trigger: nil)
             )
@@ -45,15 +41,8 @@ actor NotificationRouter {
         for event in events {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
-            content.title = event.action == .deny
-                ? "Rift denied a connection" : "Rift observed a connection"
-            if UserDefaults.standard.bool(forKey: "notificationSensitiveDetails"),
-               let endpoint = event.flow.destinationEndpoint {
-                let value = endpoint.hostname?.ascii ?? endpoint.address.description
-                content.body = "Destination: \(value)"
-            } else {
-                content.body = "A notification rule matched. Open Rift to see the details."
-            }
+            content.title = NotificationCopy.title(action: event.action)
+            content.body = NotificationCopy.body(destination: destination(event.flow))
             await deliver(
                 UNNotificationRequest(
                     identifier: "rift-notify-\(event.id.uuidString.lowercased())",
@@ -63,6 +52,13 @@ actor NotificationRouter {
             )
         }
         scheduleSummaryIfNeeded()
+    }
+
+    /// Destinations appear only when the person has asked for them.
+    private func destination(_ flow: FlowDescriptor) -> String? {
+        guard UserDefaults.standard.bool(forKey: "notificationSensitiveDetails"),
+              let endpoint = flow.destinationEndpoint else { return nil }
+        return endpoint.hostname?.ascii ?? endpoint.address.description
     }
 
     func healthMessage() -> String? {
@@ -96,9 +92,7 @@ actor NotificationRouter {
         }
         let content = UNMutableNotificationContent()
         content.title = "Rift connection summary"
-        content.body = count == 1
-            ? "1 more notification was combined into this summary."
-            : "\(count) more notifications were combined into this summary."
+        content.body = NotificationCopy.summary(count: count)
         await deliver(UNNotificationRequest(
             identifier: "rift-summary-\(UUID().uuidString.lowercased())",
             content: content,

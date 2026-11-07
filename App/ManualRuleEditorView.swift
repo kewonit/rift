@@ -1,6 +1,8 @@
+import AppKit
 import RiftControl
 import RiftCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ManualRuleEditorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -9,8 +11,12 @@ struct ManualRuleEditorView: View {
     let groups: [LocalRuleGroup]
     let profiles: [PolicyProfile]
     let previewEnvironment: RulePreviewEnvironment?
+    let artworkStore: ApplicationArtworkStore
     let save: (ManualRuleDraft) async -> Bool
-    @State private var action: EditorAction = .allow
+    @State private var action: EditorAction = .deny
+    @State private var showingAdvanced = false
+    @State private var chosenApps: [RuleIdentityChoice] = []
+    @State private var chosenNames: [ProcessCondition: String] = [:]
     @State private var process: ProcessCondition = .anyProcess
     @State private var owner: OwnerCondition = .authorizedUser
     @State private var destinationKind: DestinationKind = .hostOrAddress
@@ -34,50 +40,13 @@ struct ManualRuleEditorView: View {
     @State private var preview: RuleImpactPreview?
     @State private var previewTask: Task<Void, Never>?
 
-    enum DestinationKind: String, CaseIterable, Identifiable {
-        case hostOrAddress = "Specific hosts or addresses"
-        case broadcast = "Broadcast"
-        case multicast = "Multicast"
-        case bonjour = "Bonjour"
-        case localNetwork = "Local network"
-        case any = "Any destination"
-        var id: String { rawValue }
-    }
-
-    enum ProtocolChoice: String, CaseIterable, Identifiable {
-        case tcp = "TCP"
-        case udp = "UDP"
-        case any = "TCP or UDP"
-        var id: String { rawValue }
-        var value: ProtocolCondition {
-            switch self { case .tcp: .tcp; case .udp: .udp; case .any: .anySupportedProtocol }
-        }
-    }
-
-    enum EditorAction: String, CaseIterable, Identifiable {
-        case allow = "Allow"
-        case deny = "Deny"
-        case ask = "Ask"
-        case notify = "Notify"
-        case hide = "Hide from history"
-        var id: String { rawValue }
-        var value: RuleAction {
-            switch self {
-            case .allow: .filter(.allow)
-            case .deny: .filter(.deny)
-            case .ask: .filter(.ask)
-            case .notify: .notification(.notify)
-            case .hide: .privacy(.hide)
-            }
-        }
-    }
-
     init(
         initial: Rule? = nil,
         identities: [RuleIdentityChoice],
         groups: [LocalRuleGroup],
         profiles: [PolicyProfile],
         previewEnvironment: RulePreviewEnvironment?,
+        artworkStore: ApplicationArtworkStore,
         save: @escaping (ManualRuleDraft) async -> Bool
     ) {
         self.initial = initial
@@ -85,6 +54,7 @@ struct ManualRuleEditorView: View {
         self.groups = groups
         self.profiles = profiles
         self.previewEnvironment = previewEnvironment
+        self.artworkStore = artworkStore
         self.save = save
         if let initial {
             switch initial.action {
@@ -122,94 +92,67 @@ struct ManualRuleEditorView: View {
 
     var body: some View {
         Form {
-            Section("Action") {
+            Section {
                 Picker("Action", selection: $action) {
                     ForEach(EditorAction.allCases) { Text($0.rawValue).tag($0) }
                 }
                 if action == .hide {
-                    Text("Matching connections won’t appear in Activity or history. Past records stay.")
+                    Text("Matching connections won’t appear on the Map or in history. Past records stay.")
                         .foregroundStyle(.orange)
                 }
                 if action == .notify {
-                    Text("Rift notifies you when this rule matches, up to a limit. It doesn’t change filtering.")
+                    Text(UserDefaults.standard.bool(forKey: "notificationsEnabled")
+                        ? "Rift notifies you when this rule matches, up to a limit. It doesn’t change filtering."
+                        : "Notifications are off, so this rule won’t notify you until you turn them on in Settings.")
                         .foregroundStyle(.secondary)
                 }
                 if action == .allow {
-                    Toggle("Allow even if a blocklist denies it", isOn: $overrideBlocklists)
+                    Toggle("Allow even if a blocklist blocks it", isOn: $overrideBlocklists)
                 }
-            }
-
-            Section("Match") {
-                Picker("Application", selection: $process) {
-                    ForEach(availableIdentities) { choice in
-                        Text(choice.label).tag(choice.process)
+                HStack {
+                    Picker("App", selection: $process) {
+                        ForEach(availableIdentities) { choice in
+                            Text(displayName(choice)).tag(choice.process)
+                        }
                     }
-                }
-                Picker("Owner", selection: $owner) {
-                    Text("Your account").tag(OwnerCondition.authorizedUser)
-                    Text("System process").tag(OwnerCondition.system)
-                        .disabled(!selectedIdentityPermitsSystemOwner)
-                }
-                if owner == .system {
-                    Text("System rules apply no matter who is logged in.")
-                        .foregroundStyle(.orange)
+                    Button("Choose App…", action: chooseApp)
                 }
                 Picker("Destination", selection: $destinationKind) {
-                    ForEach(DestinationKind.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(visibleDestinationKinds) { Text($0.rawValue).tag($0) }
                 }
                 if destinationKind == .hostOrAddress {
                     TextField(
-                        "Hostnames, IP addresses, or IP ranges",
+                        "Sites or IP addresses",
                         text: $destinationText,
                         axis: .vertical
                     )
-                    .lineLimit(3...7)
+                    .lineLimit(2...5)
                     .disabled(includesChildren)
-                    if includesChildren {
-                        Text("This rule also matches subdomains, so these entries can’t be edited here.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("Separate entries with commas or new lines. Hostnames match exactly and don’t include subdomains.")
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(remainingDestinationCapacity == 1
-                        ? "You can add 1 more entry."
-                        : "You can add \(remainingDestinationCapacity) more entries.")
+                    Text(includesChildren
+                        ? "This rule also matches subdomains, so these entries can’t be edited here."
+                        : "Separate entries with commas or new lines. Sites match exactly and don’t include subdomains.")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Picker("Protocol", selection: $transport) {
-                    ForEach(ProtocolChoice.allCases) { Text($0.rawValue).tag($0) }
-                }
-                Picker("Direction", selection: $direction) {
-                    Text("Outgoing").tag(DirectionCondition.outgoing)
-                    Text("Incoming").tag(DirectionCondition.incoming)
-                    Text("Both").tag(DirectionCondition.bidirectional)
-                }
-                TextField("Port or range", text: $portText, prompt: Text("Any"))
             }
 
-            Section("Scope") {
-                Picker("Profile", selection: $profileID) {
-                    Text("All profiles").tag(UUID?.none)
-                    ForEach(profiles) { profile in
-                        Text(profile.name).tag(Optional(profile.id))
-                    }
-                }
-                Picker("Group", selection: $localGroupID) {
-                    Text("No group").tag(UUID?.none)
-                    ForEach(groups) { group in
-                        Text(group.name).tag(Optional(group.id))
-                    }
-                }
-            }
-
-            Section("Options") {
-                Toggle("Temporary", isOn: $temporary)
-                if temporary { DatePicker("Expires", selection: $expiry, in: Date()...) }
-                Toggle("Enabled", isOn: $isEnabled)
-                Toggle("Reviewed", isOn: $isReviewed)
-                TextField("Note", text: $note, axis: .vertical).lineLimit(2...4)
-            }
+            RuleEditorAdvancedSection(
+                isExpanded: $showingAdvanced,
+                owner: $owner,
+                transport: $transport,
+                direction: $direction,
+                portText: $portText,
+                profileID: $profileID,
+                localGroupID: $localGroupID,
+                temporary: $temporary,
+                expiry: $expiry,
+                isEnabled: $isEnabled,
+                isReviewed: $isReviewed,
+                note: $note,
+                permitsSystemOwner: selectedIdentityPermitsSystemOwner,
+                profiles: profiles,
+                groups: groups
+            )
 
             Section("Preview") {
                 RuleImpactPreviewView(
@@ -218,17 +161,21 @@ struct ManualRuleEditorView: View {
                 )
             }
 
-            if let validation {
-                Text(validation).foregroundStyle(.red)
-            }
         }
         .formStyle(.grouped)
         .frame(width: 600, height: 620)
         .safeAreaInset(edge: .bottom) {
             HStack {
-                Text("Changes apply to new connections and ones waiting for a decision.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if let validation {
+                    Text(validation)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Changes apply to new connections and ones waiting for a decision.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button("Cancel") { dismiss() }
                 Button("Save", action: persist)
@@ -306,7 +253,11 @@ struct ManualRuleEditorView: View {
     private func performSave(_ draft: ManualRuleDraft) {
         saving = true
         Task {
-            if await save(draft) { dismiss() }
+            if await save(draft) {
+                dismiss()
+            } else {
+                validation = "The rule wasn’t saved. Your rules may have changed, so check it and try again."
+            }
             saving = false
         }
     }
@@ -376,14 +327,56 @@ struct ManualRuleEditorView: View {
     }
 
     private var availableIdentities: [RuleIdentityChoice] {
+        let known = identities + chosenApps
         guard let initial,
-              !identities.contains(where: { $0.process == initial.process }) else {
-            return identities
+              !known.contains(where: { $0.process == initial.process }) else {
+            return known
         }
-        return identities + [RuleIdentityChoice(
+        return known + [RuleIdentityChoice(
             process: initial.process,
             permitsSystemOwner: initial.owner == .system
         )]
+    }
+
+    /// Rare destinations stay out of the list until they're needed.
+    private var visibleDestinationKinds: [DestinationKind] {
+        DestinationKind.allCases.filter { kind in
+            showingAdvanced || kind == destinationKind
+                || kind == .hostOrAddress || kind == .localNetwork || kind == .any
+        }
+    }
+
+    private func displayName(_ choice: RuleIdentityChoice) -> String {
+        if let name = chosenNames[choice.process] { return name }
+        if case .exact(let identity) = choice.process,
+           let name = artworkStore.cachedArtworkIfAvailable(for: identity)?.displayName {
+            return name
+        }
+        return choice.label
+    }
+
+    private func chooseApp() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.applicationBundle]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.prompt = "Choose"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Task { @MainActor in
+            let identity = try? await Task.detached(priority: .userInitiated) {
+                try StaticCodeIdentityResolver.identity(at: url)
+            }.value
+            guard let identity else {
+                validation = "Rift couldn’t verify that app, so it can’t make a rule for it."
+                return
+            }
+            let condition = ProcessCondition.exact(identity)
+            if !availableIdentities.contains(where: { $0.process == condition }) {
+                chosenApps.append(RuleIdentityChoice(process: condition, permitsSystemOwner: false))
+            }
+            chosenNames[condition] = url.deletingPathExtension().lastPathComponent
+            process = condition
+            validation = nil
+        }
     }
 
     private var selectedIdentityPermitsSystemOwner: Bool {

@@ -54,10 +54,7 @@ struct RuleDefinitionEditorSheet: View {
                     Section("Mode") {
                         Picker("Mode", selection: $mode) {
                             Text("Use Default Mode").tag(OperationMode?.none)
-                            Text("Alert").tag(Optional(OperationMode.alert))
-                            Text("Silent Allow").tag(Optional(OperationMode.silentAllow))
-                            Text("Silent Deny").tag(Optional(OperationMode.silentDeny))
-                            Text("Observe Only").tag(Optional(OperationMode.filterOff))
+                            ForEach(OperationMode.choices, id: \.self) { Text($0.displayName).tag(Optional($0)) }
                         }
                     }
                 }

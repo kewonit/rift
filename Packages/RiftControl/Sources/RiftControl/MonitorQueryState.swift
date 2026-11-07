@@ -12,6 +12,8 @@ public struct MonitorQueryState: Sendable, Hashable {
     public var timeAnchor: Date?
     public var selectedTimeRange: ClosedRange<Date>?
     public var sort: MonitorSort
+    /// Narrows to one country, from a click on the map.
+    public var country: String?
 
     public init(
         search: String = "",
@@ -38,6 +40,8 @@ public struct MonitorQueryState: Sendable, Hashable {
     }
 
     public var isLiveTimeRange: Bool { timeAnchor == nil }
+    /// True whenever what's on screen isn't happening now.
+    public var isViewingPast: Bool { timeAnchor != nil || selectedTimeRange != nil }
     public var canNavigateBackward: Bool { time.supportsNavigation }
     public var canNavigateForward: Bool { time.supportsNavigation && timeAnchor != nil }
 
@@ -111,12 +115,14 @@ public struct MonitorQueryState: Sendable, Hashable {
     public func apply(
         to rows: [MonitorEventRow],
         now: Date = Date(),
-        calendar: Calendar = .autoupdatingCurrent
+        calendar: Calendar = .autoupdatingCurrent,
+        context: MonitorSearchContext = .none
     ) -> [MonitorDisplayRow] {
         apply(
             to: rows,
             now: now,
             calendar: calendar,
+            context: context,
             cancellationCheck: {}
         )
     }
@@ -138,6 +144,7 @@ public struct MonitorQueryState: Sendable, Hashable {
         to rows: [MonitorEventRow],
         now: Date,
         calendar: Calendar = .autoupdatingCurrent,
+        context: MonitorSearchContext = .none,
         cancellationCheck: () throws -> Void
     ) rethrows -> [MonitorDisplayRow] {
         guard let window = effectiveTimeWindow(now: now, calendar: calendar) else { return [] }
@@ -151,12 +158,15 @@ public struct MonitorQueryState: Sendable, Hashable {
             owner: owner,
             timeWindow: window,
             sort: sort,
+            country: country,
+            context: context,
             cancellationCheck: cancellationCheck
         )
     }
 
     public mutating func clearExcludingFilters() {
         search = ""
+        country = nil
         decision = .all
         direction = .all
         locality = .all

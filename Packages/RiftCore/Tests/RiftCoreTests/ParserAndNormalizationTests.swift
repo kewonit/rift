@@ -123,6 +123,16 @@ private struct DomainGolden: Decodable {
     #expect(value.unicodeScalars.count == 10)
 }
 
+@Test func displaySanitizerIsIdempotent() {
+    let once = DisplaySanitizer.plainText("Safari")
+    #expect(DisplaySanitizer.plainText(once) == once)
+    #expect(!DisplaySanitizer.plainText(once).contains("�"))
+    // Only one outer pair is unwrapped; isolates inside are still replaced.
+    let nested = DisplaySanitizer.plainText("⁨⁨evil⁩⁩")
+    #expect(nested.unicodeScalars.filter { $0 == "⁨" }.count == 1)
+    #expect(nested.contains("�"))
+}
+
 @Test func endpointClassificationUsesVersionedRoutesAndPreservesOverlap() throws {
     let localRoute = try IPInterval(cidr: IPAddress("192.168.50.0"), prefixLength: 24)
     let snapshot = InterfaceRouteSnapshot(

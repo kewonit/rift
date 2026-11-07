@@ -19,8 +19,9 @@ struct RiftApp: App {
         .commands {
             if let session = startup.session {
                 RiftNavigationCommands(session: session)
+                RuleWorkspaceCommands(session: session)
             }
-            RuleWorkspaceCommands()
+            MapCommands()
         }
 
         Settings {
@@ -49,8 +50,8 @@ struct RiftApp: App {
 private struct RiftStatusIcon: View {
     let session: AppSession
     private static let images: [String: NSImage] = {
-        let names = ["eye", "shield.slash", "exclamationmark.shield", "xmark.shield.fill",
-                     "questionmark.shield", "checkmark.shield", "xmark.shield"]
+        let names = ["shield.slash", "exclamationmark.shield", "xmark.shield.fill",
+                     "questionmark.circle", "pause.circle", "xmark.shield"]
         return Dictionary(uniqueKeysWithValues: names.compactMap { name in
             guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil),
                   let bitmap = NSBitmapImageRep(
@@ -81,6 +82,9 @@ private struct RiftStatusIcon: View {
     }
 
     private var statusImage: Image {
+        // The everyday state is Rift's own mark. Anything else changes shape, so
+        // a different mode or a problem stands out in the menu bar.
+        if session.statusSymbolName == "eye" { return Image(nsImage: RiftMark.menuBarImage) }
         if let image = Self.images[session.statusSymbolName] { return Image(nsImage: image) }
         return Image(systemName: session.statusSymbolName)
     }
@@ -105,6 +109,7 @@ private final class AppStartupCoordinator {
 #endif
         case live(ProcessInstanceLock)
         case terminate
+        case startupFailed
     }
 
     static let shared = AppStartupCoordinator()
@@ -129,7 +134,7 @@ private final class AppStartupCoordinator {
 #else
             session = AppSession()
 #endif
-        case .terminate:
+        case .terminate, .startupFailed:
             session = nil
 #if DEBUG
         case .fixture:
@@ -144,8 +149,18 @@ private final class AppStartupCoordinator {
     }
 
     func applicationDidFinishLaunching() {
-        guard case .terminate = admission else { return }
-        activateExistingApplication()
+        switch admission {
+        case .terminate:
+            activateExistingApplication()
+        case .startupFailed:
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.messageText = "Rift couldn’t start"
+            alert.informativeText = "Rift couldn’t prepare its files on this Mac. Your rules aren’t affected. Restart your Mac, then open Rift again."
+            alert.runModal()
+        default:
+            return
+        }
         NSApplication.shared.terminate(nil)
     }
 
@@ -156,7 +171,7 @@ private final class AppStartupCoordinator {
             case .unavailable: return .terminate
             }
         } catch {
-            return .terminate
+            return .startupFailed
         }
     }
 

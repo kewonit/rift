@@ -1,0 +1,242 @@
+import AppKit
+import RiftControl
+import SwiftUI
+
+struct RiftHealthView: View {
+    @Bindable var session: AppSession
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("riftSetupChoiceMade") private var setupChoiceMade = false
+    @State private var ruleCounts: (rules: Int, blocklists: Int)?
+
+    var body: some View {
+        Form {
+            Section {
+                header
+                if status.state != .cannotFilter { facts }
+            }
+            if showsSetupChoice {
+                SetupChoiceSection(session: session) { setupChoiceMade = true }
+            }
+            if status.state == .configurationUnreadable {
+                ConfigurationRecoverySection(session: session)
+            }
+            if let issue = session.controlPlane.startupIssue {
+                Section {
+                    StatusRow(
+                        title: "Rift found a problem",
+                        detail: issue,
+                        tone: .warning,
+                        symbol: "externaldrive.badge.exclamationmark"
+                    )
+                }
+            }
+            Section("Network Filter") {
+                filterSection
+            }
+            if status.state != .preview, status.state != .cannotFilter {
+                Section {
+                    if case .active(let mode) = status.state {
+                        StatusRow(
+                            title: "Mode: \(mode.displayName)",
+                            detail: mode.summary,
+                            tone: .unresolved,
+                            symbol: "slider.horizontal.3",
+                            showsBadge: false
+                        )
+                    }
+                    StatusRow(
+                        title: "Your rules",
+                        detail: status.rulesDetail(
+                            ruleCount: ruleCounts?.rules, blocklistCount: ruleCounts?.blocklists
+                        ),
+                        tone: rulesRowTone,
+                        symbol: "list.bullet.rectangle"
+                    )
+                }
+            }
+            Section("Map") {
+                StatusRow(
+                    title: NetworkMapStore.shared.loadFailed ? "Cable map unavailable" : "Cable map ready",
+                    detail: NetworkMapStore.shared.loadFailed
+                        ? "The cable map couldn’t load. Filtering isn’t affected."
+                        : "Rift finds each connection’s country on this Mac and estimates the undersea cables it uses. Apple Maps gets no connection details from Rift.",
+                    tone: NetworkMapStore.shared.loadFailed ? .warning : .allowed,
+                    symbol: "map",
+                    badge: NetworkMapStore.shared.loadFailed ? nil : "Ready"
+                )
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle("Status")
+        .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showsSetupChoice)
+        .task(id: session.controlPlane.ruleChanges.revision) {
+            ruleCounts = await session.controlPlane.ruleCounts()
+        }
+    }
+
+    private var status: ProtectionStatus { session.protectionStatus }
+
+    private var showsSetupChoice: Bool {
+#if DEBUG
+        if session.isUIFixture { return FixturePreviewOptions.showsSetupQuestion && !setupChoiceMade }
+#endif
+        return SetupChoice.shouldAsk(
+            status: status, ruleCount: ruleCounts?.rules, alreadyAnswered: setupChoiceMade
+        )
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: status.filledSymbolName)
+                .font(.title3)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(status.color)
+                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                .animation(RiftDesign.Motion.enter(), value: status.symbolName)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(status.title)
+                    .font(.headline)
+                Text(status.detail)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            if status.action == .resumeRules {
+                Button("Resume Rules") { session.resumeRules() }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.vertical, 3)
+        .accessibilityElement(children: .contain)
+    }
+
+    /// The numbers worth seeing at a glance. Only what Rift already knows.
+    private var facts: some View {
+        HStack(spacing: RiftDesign.Spacing.l) {
+            if case .active(let mode) = status.state {
+                fact("Mode", mode.displayName)
+                Divider()
+            }
+            fact("Rules", ruleCounts.map { RiftFormat.count($0.rules) } ?? "—")
+            Divider()
+            fact("Blocklists", ruleCounts.map { RiftFormat.count($0.blocklists) } ?? "—")
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func fact(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(value).font(.title3.weight(.semibold)).monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var filterRowTone: RiftStatusTone {
+        if session.hasConfirmedFilterService { return .on }
+        return status.tone == .attention ? .warning : .unresolved
+    }
+
+    private var rulesRowTone: RiftStatusTone {
+        switch status.state {
+        case .active(.filterOff): .unresolved
+        case .active, .waiting: .on
+        default: status.tone == .attention ? .warning : .unresolved
+        }
+    }
+
+    @ViewBuilder
+    private var filterSection: some View {
+        if showsHealthSetupFixture {
+            StatusRow(
+                title: "Set up the network filter",
+                detail: "The filter isn’t installed in this preview. Install and approve it from a signed copy of Rift.",
+                tone: .warning,
+                symbol: "network.badge.shield.half.filled"
+            )
+        } else if status.state == .cannotFilter {
+            StatusRow(
+                title: "Filtering isn’t available in this copy",
+                detail: "You can look around, but Rift can’t see or block real connections here. Filtering needs a copy signed with Apple’s network filter permission.",
+                tone: .unresolved,
+                symbol: "network.badge.shield.half.filled"
+            )
+        } else if let lifecycle = session.lifecycle {
+            StatusRow(
+                title: lifecycle.initialStatusResolved ? lifecycle.title : "Checking the network filter…",
+                detail: lifecycle.initialStatusResolved
+                    ? lifecycle.guidance
+                    : "Rift is checking the filter’s status with macOS.",
+                tone: filterRowTone,
+                symbol: "network.badge.shield.half.filled"
+            )
+            HStack {
+                Button("Copy Status Report") {
+                    lifecycle.copyRedactedDiagnostics()
+                    session.controlPlane.actionResults.post("Status report copied.")
+                }
+                    .help("Copy a short status report for troubleshooting. It doesn’t include personal details.")
+                Spacer()
+                if lifecycle.initialStatusResolved && lifecycle.shouldOfferSettings {
+                    Button("Open System Settings") { lifecycle.openSystemSettings() }
+                }
+                if lifecycle.shouldOfferRetry {
+                    Button(lifecycle.retryTitle) { lifecycle.retrySetup() }
+                        .buttonStyle(.borderedProminent)
+                }
+                if lifecycle.initialStatusResolved, case .notInstalled = lifecycle.state {
+                    Button("Install and Enable") { lifecycle.installAndEnable() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(lifecycle.operationInProgress)
+                }
+            }
+        } else {
+            StatusRow(
+                title: "Not running in preview",
+                detail: "This preview uses sample data. The network filter isn’t running.",
+                tone: .unresolved,
+                symbol: "network.badge.shield.half.filled"
+            )
+        }
+    }
+
+    private var showsHealthSetupFixture: Bool {
+#if DEBUG
+        session.isUIFixture && MonitorFixtureData.scenario == .healthSetup
+#else
+        false
+#endif
+    }
+}
+
+private struct StatusRow: View {
+    let title: String
+    let detail: String
+    let tone: RiftStatusTone
+    let symbol: String
+    var badge: String?
+    var showsBadge = true
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol)
+                .foregroundStyle(tone == .warning ? tone.color : Color.secondary)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                Text(detail)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            if showsBadge { RiftStatusBadge(tone: tone, label: badge) }
+        }
+        .padding(.vertical, 3)
+        .accessibilityElement(children: .combine)
+    }
+}

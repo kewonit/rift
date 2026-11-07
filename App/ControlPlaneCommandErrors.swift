@@ -1,3 +1,5 @@
+import Foundation
+
 extension ControlPlaneController {
     enum RuleCommandError: Error {
         case generationConflict
@@ -7,5 +9,6 @@ extension ControlPlaneController {
         case invalidOwnerScope
         case protectedAssignments
         case elevatedOverrideRequiresConfirmation
+        case overriddenByRule(UUID?)
     }
 }

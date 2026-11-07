@@ -73,8 +73,8 @@ struct LiveMapInformation: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("About the map").font(.headline)
-            Text("Lines show undersea internet cables. Solid lines are mapped cables; dashed lines are main sea routes drawn from where cables come ashore.")
-            Text("When an app connects to another country, Rift highlights the cables the connection most likely uses. Rift looks up the country on your Mac and estimates the path. It can’t see the real route your data takes.")
+            Text("The faint lines are undersea internet cables. Some are main sea routes drawn from where cables come ashore.")
+            Text("When an app connects to another country, Rift draws a line along the cables the connection most likely uses. Rift looks up the country on your Mac and estimates the path. It can’t see the real route your data takes.")
             Text("Your location stays on this Mac. Apple Maps draws the map and gets no connection details from Rift.")
             Text("Cable data © OpenStreetMap contributors (ODbL). Country data from ip-location-db (public domain) and Natural Earth.")
                 .foregroundStyle(.secondary)

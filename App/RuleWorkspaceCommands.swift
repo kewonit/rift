@@ -1,54 +1,32 @@
+import RiftControl
 import SwiftUI
 
-struct RuleWorkspaceHistoryAction {
-    let title: String
-    let isRedo: Bool
-    let isEnabled: Bool
-    let perform: () -> Void
-
-    var canUndo: Bool { isEnabled && !isRedo }
-    var canRedo: Bool { isEnabled && isRedo }
-}
-
-private struct RuleWorkspaceHistoryActionKey: FocusedValueKey {
-    typealias Value = RuleWorkspaceHistoryAction
-}
-
-extension FocusedValues {
-    var ruleWorkspaceHistoryAction: RuleWorkspaceHistoryAction? {
-        get { self[RuleWorkspaceHistoryActionKey.self] }
-        set { self[RuleWorkspaceHistoryActionKey.self] = newValue }
-    }
-}
-
+/// Undo for rule changes, from anywhere in the app. It keeps its own shortcut
+/// because the standard Undo belongs to text fields, such as a rule's note.
 struct RuleWorkspaceCommands: Commands {
-    @FocusedValue(\.ruleWorkspaceHistoryAction)
-    private var historyAction
+    let session: AppSession
 
     var body: some Commands {
         CommandGroup(after: .undoRedo) {
             Divider()
-            Button(undoTitle) {
-                historyAction?.perform()
+            Button(canUndo ? session.controlPlane.ruleChanges.title : "Undo Rule Change") {
+                session.undoRuleChange()
             }
             .keyboardShortcut("z", modifiers: [.command, .option])
-            .disabled(!(historyAction?.canUndo ?? false))
-
-            Button(redoTitle) {
-                historyAction?.perform()
+            .disabled(!canUndo)
+            Button(canRedo ? session.controlPlane.ruleChanges.title : "Redo Rule Change") {
+                session.undoRuleChange()
             }
             .keyboardShortcut("z", modifiers: [.command, .option, .shift])
-            .disabled(!(historyAction?.canRedo ?? false))
+            .disabled(!canRedo)
         }
     }
 
-    private var undoTitle: String {
-        guard let historyAction, historyAction.canUndo else { return "Undo Rule Change" }
-        return historyAction.title
+    private var canUndo: Bool {
+        session.controlPlane.canUndoRuleChange && !session.controlPlane.ruleChanges.isRedo
     }
 
-    private var redoTitle: String {
-        guard let historyAction, historyAction.canRedo else { return "Redo Rule Change" }
-        return historyAction.title
+    private var canRedo: Bool {
+        session.controlPlane.canUndoRuleChange && session.controlPlane.ruleChanges.isRedo
     }
 }

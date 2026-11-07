@@ -40,8 +40,17 @@ enum RulesSidebarSelection: Hashable {
     }
 }
 
-struct RulesWorkspaceSidebarView: View {
+/// One row of the app sidebar.
+enum AppSidebarItem: Hashable {
+    case map
+    case status
+    case rules(RulesSidebarSelection)
+}
+
+/// The app sidebar: the pages, then rules and what they're organized into.
+struct RiftSidebarView: View {
     @Bindable var model: RulesWorkspaceController
+    @Binding var selection: AppSidebarItem
     let isPreview: Bool
     @State private var editor: RuleDefinitionEditor?
     @State private var pendingRemoval: RuleDefinitionRemoval?
@@ -49,31 +58,52 @@ struct RulesWorkspaceSidebarView: View {
     @State private var activeDropTarget: RulesSidebarSelection?
     @State private var showingBlocklistImport = false
 
+    private func emptyHint(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .selectionDisabled()
+    }
+
     var body: some View {
-        List(selection: $model.sidebarSelection) {
+        List(selection: $selection) {
             Section {
+                Label(AppDestination.liveMap.title, systemImage: "map").tag(AppSidebarItem.map)
+                Label(AppDestination.health.title, systemImage: "shield").tag(AppSidebarItem.status)
+            }
+            Section("Rules") {
                 ForEach(RuleListFilter.allCases) { filter in
                     Label(filter.rawValue, systemImage: symbol(filter))
-                        .tag(RulesSidebarSelection.filter(filter))
+                        .tag(AppSidebarItem.rules(.filter(filter)))
                 }
             }
-            if !model.profiles.isEmpty {
+            // These sections wait for the first load. Filling them while the
+            // sidebar does its first layout made AppKit warn about reentrancy.
+            if model.hasLoaded {
                 Section("Profiles") {
                     ForEach(model.profiles) { profile in profileRow(profile) }
+                    if model.profiles.isEmpty {
+                        emptyHint("Switch between sets of rules, such as Home and Work.")
+                    }
                 }
-            }
-            if !model.groups.isEmpty {
                 Section("Groups") {
                     ForEach(model.groups) { group in groupRow(group) }
+                    if model.groups.isEmpty {
+                        emptyHint("Turn several rules on or off together.")
+                    }
                 }
-            }
-            if !model.blocklists.isEmpty {
                 Section("Blocklists") {
                     ForEach(model.blocklists) { source in blocklistRow(source) }
+                    if model.blocklists.isEmpty {
+                        emptyHint("Block many sites at once with a list file from this Mac.")
+                    }
                 }
             }
         }
-        .navigationTitle("Rules")
+        .listStyle(.sidebar)
+        .listItemTint(.monochrome)
+        .task { await model.reload() }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 8) {
                 Menu {
@@ -151,23 +181,28 @@ struct RulesWorkspaceSidebarView: View {
         }
     }
 
+    private func rowCheckbox(isOn: Bool, label: String, set: @escaping (Bool) -> Void) -> some View {
+        Toggle(label, isOn: Binding(get: { isOn }, set: set))
+            .labelsHidden()
+            .toggleStyle(.checkbox)
+            .controlSize(.small)
+            .disabled(isPreview)
+    }
+
     private func profileRow(_ profile: PolicyProfile) -> some View {
         HStack(spacing: 7) {
-            Label(display(profile.name), systemImage: "person.crop.circle")
+            Label(display(profile.name), systemImage: "person")
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button {
-                Task { await model.activateProfile(model.activeProfileID == profile.id ? nil : profile.id) }
-            } label: {
-                Image(systemName: model.activeProfileID == profile.id
-                    ? "checkmark.circle.fill" : "circle")
+            rowCheckbox(
+                isOn: model.activeProfileID == profile.id,
+                label: model.activeProfileID == profile.id
+                    ? "Deactivate \(display(profile.name))" : "Activate \(display(profile.name))"
+            ) { on in
+                Task { await model.activateProfile(on ? profile.id : nil) }
             }
-            .buttonStyle(.plain)
-            .disabled(isPreview)
-            .accessibilityLabel(model.activeProfileID == profile.id
-                ? "Deactivate \(display(profile.name))" : "Activate \(display(profile.name))")
         }
-        .tag(RulesSidebarSelection.profile(profile.id))
+        .tag(AppSidebarItem.rules(.profile(profile.id)))
         .contextMenu {
             Button(model.activeProfileID == profile.id ? "Deactivate" : "Activate") {
                 Task { await model.activateProfile(model.activeProfileID == profile.id ? nil : profile.id) }
@@ -195,17 +230,14 @@ struct RulesWorkspaceSidebarView: View {
             Label(display(group.name), systemImage: "folder")
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button {
-                Task { await model.setGroup(group.id, enabled: !group.isEnabled) }
-            } label: {
-                Image(systemName: group.isEnabled ? "checkmark.circle.fill" : "circle")
+            rowCheckbox(
+                isOn: group.isEnabled,
+                label: group.isEnabled ? "Disable \(display(group.name))" : "Enable \(display(group.name))"
+            ) { on in
+                Task { await model.setGroup(group.id, enabled: on) }
             }
-            .buttonStyle(.plain)
-            .disabled(isPreview)
-            .accessibilityLabel(group.isEnabled
-                ? "Disable \(display(group.name))" : "Enable \(display(group.name))")
         }
-        .tag(RulesSidebarSelection.group(group.id))
+        .tag(AppSidebarItem.rules(.group(group.id)))
         .contextMenu {
             Button(group.isEnabled ? "Disable" : "Enable") {
                 Task { await model.setGroup(group.id, enabled: !group.isEnabled) }
@@ -230,23 +262,20 @@ struct RulesWorkspaceSidebarView: View {
 
     private func blocklistRow(_ source: BlocklistSource) -> some View {
         HStack(spacing: 7) {
-            Label(display(source.name), systemImage: "list.bullet.rectangle")
+            Label(display(source.name), systemImage: "doc.text")
                 .lineLimit(1)
             Spacer(minLength: 4)
             Text(source.entryCount.formatted())
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-            Button {
-                Task { await model.setBlocklist(source.id, enabled: source.status != .active) }
-            } label: {
-                Image(systemName: source.status == .active ? "checkmark.circle.fill" : "circle")
+            rowCheckbox(
+                isOn: source.status == .active,
+                label: source.status == .active ? "Disable \(display(source.name))" : "Enable \(display(source.name))"
+            ) { on in
+                Task { await model.setBlocklist(source.id, enabled: on) }
             }
-            .buttonStyle(.plain)
-            .disabled(isPreview)
-            .accessibilityLabel(source.status == .active
-                ? "Disable \(display(source.name))" : "Enable \(display(source.name))")
         }
-        .tag(RulesSidebarSelection.blocklist(source.id))
+        .tag(AppSidebarItem.rules(.blocklist(source.id)))
         .contextMenu {
             Button(source.status == .active ? "Disable" : "Enable") {
                 Task { await model.setBlocklist(source.id, enabled: source.status != .active) }
@@ -335,12 +364,12 @@ struct RulesWorkspaceSidebarView: View {
     private func symbol(_ filter: RuleListFilter) -> String {
         switch filter {
         case .all: "list.bullet"
-        case .active: "checkmark.circle"
-        case .denied: "nosign"
-        case .recentlyModified: "clock.arrow.circlepath"
-        case .recentlyUsed: "clock.badge.checkmark"
-        case .temporary: "timer"
-        case .unreviewed: "questionmark.circle"
+        case .active: "checkmark"
+        case .denied: "hand.raised"
+        case .recentlyModified: "pencil"
+        case .recentlyUsed: "clock"
+        case .temporary: "hourglass"
+        case .unreviewed: "tray"
         }
     }
 
