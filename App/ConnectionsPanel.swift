@@ -252,22 +252,29 @@ struct ConnectionRow: View {
     private var trailing: some View {
         HStack(spacing: RiftDesign.Spacing.xs + 2) {
             if let change = futureChange {
-                Text(change).foregroundStyle(.primary)
-            } else if node.aggregate.denied > 0 {
-                RiftDecisionBadge(decision: .denied)
-                    .imageScale(.small)
-                    .accessibilityLabel(node.aggregate.denied == 1 ? "1 blocked" : "\(node.aggregate.denied) blocked")
-            }
-            if let bytes = node.aggregate.totalBytes {
-                RiftBytesText(bytes: bytes, partial: node.aggregate.coverage != .complete)
-                    .help("Total traffic")
+                Text(change)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .transition(.opacity)
             } else {
-                Text(node.aggregate.flowCount == 1 ? "1 connection" : "\(node.aggregate.flowCount) connections")
-                    .monospacedDigit()
+                if node.aggregate.denied > 0 {
+                    RiftDecisionBadge(decision: .denied)
+                        .imageScale(.small)
+                        .accessibilityLabel(node.aggregate.denied == 1 ? "1 blocked" : "\(node.aggregate.denied) blocked")
+                }
+                if let bytes = node.aggregate.totalBytes {
+                    RiftBytesText(bytes: bytes, partial: node.aggregate.coverage != .complete)
+                        .help("Total traffic")
+                } else {
+                    Text(node.aggregate.flowCount == 1 ? "1 connection" : "\(node.aggregate.flowCount) connections")
+                        .monospacedDigit()
+                }
             }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+        .animation(.easeOut(duration: RiftDesign.Motion.press), value: futureChange)
     }
 }
 

@@ -47,6 +47,16 @@ release.
   Always wait for system process confirmation, and a Block still applies to the
   connection if its rule hasn't reached the filter yet.
 - Alerts say who signed the app, and use Block with ⌘B.
+- After any rule change on the Map or in an alert, Rift says what changed in
+  plain words, with Undo and View Rule. Undo now works across the app and keeps
+  working when you switch pages.
+- Fixed Allow leaving a connection blocked when you'd blocked it earlier. Rift
+  also checks a rule will really take effect before saving it, and tells you if
+  another rule still decides the connection.
+- The Map's buttons now say Always Allow and Always Block, and a connection shows
+  what will happen from now on as well as what happened then.
+- Errors from Map actions stay until you dismiss them, and notices on the Rules
+  page no longer hide your rules.
 
 ## 0.3.0 (pre-release)
 
