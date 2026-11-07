@@ -36,6 +36,7 @@ struct LiveMapView: View {
                 selectedEventIDs: Set(feed.selectedNode?.eventIDs ?? []),
                 windowIsVisible: feed.windowIsVisible,
                 isPreview: session.isUIFixture,
+                promptsForLocation: session.protectionStatus.canShowActivity,
                 loadError: feed.loadError,
                 style: mapStyle,
                 fitRequest: mapFitRequest,

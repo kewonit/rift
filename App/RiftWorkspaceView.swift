@@ -89,7 +89,7 @@ struct RiftWorkspaceView: View {
                 if session.isUIFixture, FixturePreviewOptions.opensSettings { openSettings() }
             }
 #endif
-            .onChange(of: session.showingFilterStatus) { _, showing in
+            .onChange(of: session.showingFilterStatus, initial: true) { _, showing in
                 guard showing else { return }
                 session.destination = .health
                 session.showingFilterStatus = false
@@ -109,7 +109,9 @@ struct RiftWorkspaceView: View {
                     set: { session.requestedRuleIDs = $0 }
                 ),
                 artworkStore: session.applicationArtwork,
-                isPreview: session.isUIFixture
+                isPreview: session.isUIFixture,
+                setupIncomplete: !session.protectionStatus.canShowActivity,
+                openStatus: { session.destination = .health }
             )
         case .health:
             RiftHealthView(session: session)

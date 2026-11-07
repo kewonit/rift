@@ -6,6 +6,8 @@ struct RulesWorkspaceView: View {
     @Binding var requestedSelection: Set<UUID>
     let artworkStore: ApplicationArtworkStore
     let isPreview: Bool
+    let setupIncomplete: Bool
+    let openStatus: () -> Void
     @State private var model: RulesWorkspaceController
     @State private var showingEditor = false
     @State private var editingRow: RuleRowViewValue?
@@ -16,11 +18,15 @@ struct RulesWorkspaceView: View {
         controlPlane: ControlPlaneController,
         requestedSelection: Binding<Set<UUID>>,
         artworkStore: ApplicationArtworkStore,
-        isPreview: Bool = false
+        isPreview: Bool = false,
+        setupIncomplete: Bool = false,
+        openStatus: @escaping () -> Void = {}
     ) {
         _requestedSelection = requestedSelection
         self.artworkStore = artworkStore
         self.isPreview = isPreview
+        self.setupIncomplete = setupIncomplete
+        self.openStatus = openStatus
         _model = State(initialValue: RulesWorkspaceController(controlPlane: controlPlane))
     }
 
@@ -31,7 +37,7 @@ struct RulesWorkspaceView: View {
                 .frame(maxHeight: .infinity)
 
             VStack(spacing: 0) {
-                if let message = model.errorMessage {
+                if let message = model.errorMessage, !setupIncomplete {
                     HStack(spacing: 10) {
                         Label(message, systemImage: "exclamationmark.triangle")
                         Spacer()
@@ -59,6 +65,15 @@ struct RulesWorkspaceView: View {
                         showingInspector: $showingInspector,
                         showingDeleteConfirmation: $showingDeleteConfirmation
                     )
+                } else if setupIncomplete {
+                    ContentUnavailableView {
+                        Label("Finish Setup First", systemImage: "list.bullet.rectangle")
+                    } description: {
+                        Text("You can add rules once the network filter is on.")
+                    } actions: {
+                        Button("Show Status", action: openStatus)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ContentUnavailableView(
                         "Rules aren’t available right now",

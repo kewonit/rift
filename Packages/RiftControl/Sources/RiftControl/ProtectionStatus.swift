@@ -129,6 +129,18 @@ public struct ProtectionStatus: Sendable, Equatable {
         }
     }
 
+    /// Whether connections can appear at all. An empty list means something
+    /// different when the filter isn't there to see them.
+    public var canShowActivity: Bool {
+        switch state {
+        case .preview, .active, .waiting, .connecting, .rulesAtRisk, .rulesNotCurrent,
+             .allowingEverything, .modeUnknown:
+            true
+        default:
+            false
+        }
+    }
+
     /// One line about the person's rules, separate from the filter's health.
     public var rulesSummary: String {
         switch state {

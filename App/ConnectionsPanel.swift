@@ -89,20 +89,33 @@ struct ConnectionsPanel: View {
         }
     }
 
+    @ViewBuilder
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label(
-                feed.query.search.isEmpty
-                    ? (feed.isMinimal ? "Waiting for Connections" : "No Connections")
-                    : "No Matches",
-                systemImage: feed.query.search.isEmpty ? "network" : "magnifyingglass"
-            )
-        } description: {
-            if feed.isMinimal, feed.query.search.isEmpty {
-                Text("New connections appear while this window is open. They aren’t saved.")
+        let status = feed.session.protectionStatus
+        if status.canShowActivity {
+            ContentUnavailableView {
+                Label(
+                    feed.query.search.isEmpty
+                        ? (feed.isMinimal ? "Waiting for Connections" : "No Connections")
+                        : "No Matches",
+                    systemImage: feed.query.search.isEmpty ? "network" : "magnifyingglass"
+                )
+            } description: {
+                if feed.isMinimal, feed.query.search.isEmpty {
+                    Text("New connections appear while this window is open. They aren’t saved.")
+                }
             }
+            .controlSize(.small)
+        } else {
+            ContentUnavailableView {
+                Label("No Connections to Show", systemImage: "network.slash")
+            } description: {
+                Text("Rift can’t see connections until the network filter is on.")
+            } actions: {
+                Button("Show Status") { feed.session.destination = .health }
+            }
+            .controlSize(.small)
         }
-        .controlSize(.small)
     }
 }
 

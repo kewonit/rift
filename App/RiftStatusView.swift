@@ -4,12 +4,17 @@ import SwiftUI
 
 struct RiftHealthView: View {
     @Bindable var session: AppSession
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("riftSetupChoiceMade") private var setupChoiceMade = false
     @State private var ruleCounts: (rules: Int, blocklists: Int)?
 
     var body: some View {
         Form {
             Section {
                 header
+            }
+            if showsSetupChoice {
+                SetupChoiceSection(session: session) { setupChoiceMade = true }
             }
             if let issue = session.controlPlane.startupIssue {
                 Section {
@@ -67,12 +72,23 @@ struct RiftHealthView: View {
 
     private var status: ProtectionStatus { session.protectionStatus }
 
+    private var showsSetupChoice: Bool {
+#if DEBUG
+        if session.isUIFixture { return FixturePreviewOptions.showsSetupQuestion && !setupChoiceMade }
+#endif
+        return SetupChoice.shouldAsk(
+            status: status, ruleCount: ruleCounts?.rules, alreadyAnswered: setupChoiceMade
+        )
+    }
+
     private var header: some View {
         HStack(spacing: 14) {
             Image(systemName: status.filledSymbolName)
                 .font(.system(size: 34))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(status.color)
+                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                .animation(RiftDesign.Motion.enter(), value: status.symbolName)
                 .frame(width: 48)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {

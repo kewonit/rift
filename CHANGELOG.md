@@ -63,6 +63,13 @@ release.
   you to the mode you paused from.
 - Status shows your mode and how many rules and blocklists you have.
 - Quitting Rift now tells you what will happen to connections in your mode.
+- Setup now ends with one plain question about how Rift should behave, with a
+  recommended answer, and offers Open at Login and connection history. Choosing
+  Ask Me also turns on Open at Login, because Rift has to be open to ask.
+- Before setup is finished, Rift says so instead of failing. The Map holds its
+  location prompt until the filter is on, empty lists explain why they're empty,
+  and mode and rule controls say to finish setup first.
+- The timeline has a Keep History button when history is off.
 
 ## 0.3.0 (pre-release)
 

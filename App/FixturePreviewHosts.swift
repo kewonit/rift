@@ -39,6 +39,13 @@ enum FixturePreviewOptions {
         return arguments.contains("--ui-fixture-alert-panel") ? 1 : nil
     }
 
+    static var showsSetupQuestion: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "--ui-fixture-status"),
+              arguments.indices.contains(flag + 1) else { return false }
+        return arguments[flag + 1] == "setup-question"
+    }
+
     /// Shows one status instead of Preview, for reviewing how each state reads.
     static var statusInputs: ProtectionInputs? {
         let arguments = ProcessInfo.processInfo.arguments
@@ -71,7 +78,7 @@ enum FixturePreviewOptions {
         case "ask": healthy.mode = .alert
         case "block": healthy.mode = .silentDeny
         case "paused": healthy.mode = .filterOff
-        case "watch": break
+        case "watch", "setup-question": break
         default: return nil
         }
         return healthy

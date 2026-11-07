@@ -13,6 +13,8 @@ struct LiveMapCanvas: View {
     let selectedEventIDs: Set<String>
     let windowIsVisible: Bool
     let isPreview: Bool
+    /// The location prompt waits until the filter is on, so setup comes first.
+    let promptsForLocation: Bool
     let loadError: String?
     let style: NetworkMapStyle
     let fitRequest: Int
@@ -103,7 +105,7 @@ struct LiveMapCanvas: View {
             if originController.isPlacingManually {
                 placementBanner
                     .frame(maxHeight: .infinity, alignment: .top)
-            } else if originController.origin == nil {
+            } else if originController.origin == nil, promptsForLocation {
                 setLocationCard
             }
             if let message = statusMessage {

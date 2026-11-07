@@ -70,7 +70,7 @@ struct StatusMenuView: View {
                 now: dashboardNow,
                 keepsHistory: !controller.isMinimalActivity,
                 notificationsEnabled: session.isUIFixture ? fixtureNotificationsEnabled : notificationsEnabled,
-                canChangeMode: !session.isUIFixture,
+                canChangeMode: !session.isUIFixture && controller.desiredPolicyTuple != nil,
                 artworkStore: session.applicationArtwork,
                 selectMode: requestMode,
                 performAction: perform,

@@ -11,6 +11,7 @@ enum RiftTimelineMode: String, CaseIterable, Identifiable {
 /// over the selected time range, with one set of range controls.
 struct RiftTimeline: View {
     @Environment(\.calendar) private var calendar
+    @Environment(\.openSettings) private var openSettings
     @Binding var mode: RiftTimelineMode
     @Binding var query: MonitorQueryState
     let traffic: LiveTrafficSnapshot
@@ -66,7 +67,13 @@ struct RiftTimeline: View {
                 Text("Recent connections · Not saved")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .help("Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes while this view is open. Turn on history in Settings to keep more.")
+                    .help("Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes while this view is open.")
+                Button("Keep History…") {
+                    UserDefaults.standard.set(SettingsSection.history.rawValue, forKey: "settingsSection")
+                    openSettings()
+                }
+                .buttonStyle(.link)
+                .font(.caption)
             } else {
                 rangeControls
             }

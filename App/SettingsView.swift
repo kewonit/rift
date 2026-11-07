@@ -1,6 +1,5 @@
 import RiftControl
 import RiftCore
-import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
@@ -12,7 +11,7 @@ struct SettingsView: View {
     @AppStorage("statusRecentLimit") private var recentLimit = 5
     @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = "Once"
     @AppStorage("alertDefaultScope") private var alertDefaultScope = "Current profile"
-    @State private var section: SettingsSection = .general
+    @AppStorage("settingsSection") private var section: SettingsSection = .general
     @State private var launchAtLogin = false
     @State private var loginItemLoaded = false
     @State private var baseMode: OperationMode = .silentAllow
@@ -83,7 +82,7 @@ struct SettingsView: View {
             if !["Current profile", "All profiles"].contains(alertDefaultScope) {
                 alertDefaultScope = "Current profile"
             }
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            launchAtLogin = LoginItem.isEnabled
             loginItemLoaded = true
             await load()
             loaded = true
@@ -183,7 +182,8 @@ struct SettingsView: View {
                 launchAtLogin: $launchAtLogin,
                 effectiveMode: effectiveMode,
                 activeProfileName: activeProfileName,
-                isChangingBaseMode: isChangingBaseMode || !loaded,
+                isChangingBaseMode: isChangingBaseMode || !loaded || !configurationReady,
+                configurationReady: configurationReady,
                 isLoginItemReady: loginItemLoaded,
                 baseModeChanged: changeBaseMode,
                 loginItemChanged: configureLoginItem
@@ -280,6 +280,8 @@ struct SettingsView: View {
             message = "Couldn’t load profiles, groups, and blocklists."
         }
     }
+
+    private var configurationReady: Bool { isPreview || controlPlane.desiredPolicyTuple != nil }
 
     private func changeBaseMode(_ value: OperationMode) {
         guard loaded, !isChangingBaseMode else {
@@ -483,10 +485,9 @@ struct SettingsView: View {
             return
         }
         do {
-            if enabled { try SMAppService.mainApp.register() }
-            else { try SMAppService.mainApp.unregister() }
+            try LoginItem.set(enabled)
         } catch {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            launchAtLogin = LoginItem.isEnabled
             message = "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings."
         }
     }

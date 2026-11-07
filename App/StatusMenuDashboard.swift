@@ -163,7 +163,7 @@ private struct StatusMenuHeader: View, Equatable {
                 .fixedSize()
                 .controlSize(.small)
                 .disabled(!canChangeMode || modeIsUnreadable)
-                .help("Change how Rift handles connections without a rule")
+                .help(canChangeMode ? "Change how Rift handles connections without a rule" : "Finish setup first")
             }
             Text(status.detail)
                 .font(.caption)

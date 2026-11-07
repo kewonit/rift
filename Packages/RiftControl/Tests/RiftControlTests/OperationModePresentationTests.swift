@@ -47,3 +47,35 @@ import Testing
     ))
     #expect(status.action == .resumeRules)
 }
+
+private func active(_ mode: OperationMode) -> ProtectionStatus {
+    ProtectionStatus.resolve(ProtectionInputs(
+        lifecycle: .enabled, controller: .connected(.ready), filterServiceConfirmed: true,
+        hasActivePolicy: true, desiredKnown: true, rulesMatchDesired: true, mode: mode
+    ))
+}
+
+@Test func setupAsksOnceTheFilterIsOnAndNothingIsChosen() {
+    #expect(SetupChoice.shouldAsk(status: active(.silentAllow), ruleCount: 0, alreadyAnswered: false))
+}
+
+@Test func setupNeverAsksSomeoneWhoAlreadyChose() {
+    #expect(!SetupChoice.shouldAsk(status: active(.silentAllow), ruleCount: 0, alreadyAnswered: true))
+    #expect(!SetupChoice.shouldAsk(status: active(.alert), ruleCount: 0, alreadyAnswered: false))
+    #expect(!SetupChoice.shouldAsk(status: active(.silentAllow), ruleCount: 2, alreadyAnswered: false))
+}
+
+@Test func setupWaitsUntilItKnowsTheRuleCountAndTheFilterIsOn() {
+    #expect(!SetupChoice.shouldAsk(status: active(.silentAllow), ruleCount: nil, alreadyAnswered: false))
+    let notInstalled = ProtectionStatus.resolve(ProtectionInputs(lifecycle: .notInstalled))
+    #expect(!SetupChoice.shouldAsk(status: notInstalled, ruleCount: 0, alreadyAnswered: false))
+}
+
+@Test func activityIsOnlyPromisedWhenTheFilterCanProvideIt() {
+    #expect(active(.silentAllow).canShowActivity)
+    #expect(ProtectionStatus.resolve(ProtectionInputs(isPreview: true)).canShowActivity)
+    #expect(!ProtectionStatus.resolve(ProtectionInputs(lifecycle: .notInstalled)).canShowActivity)
+    #expect(!ProtectionStatus.resolve(ProtectionInputs(lifecycle: .awaitingApproval)).canShowActivity)
+    #expect(!ProtectionStatus.resolve(ProtectionInputs(lifecycle: .disabled)).canShowActivity)
+    #expect(!ProtectionStatus.resolve(ProtectionInputs(buildCanFilter: false)).canShowActivity)
+}

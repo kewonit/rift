@@ -29,6 +29,7 @@ struct GeneralSettingsPane: View {
     let effectiveMode: OperationMode
     let activeProfileName: String?
     let isChangingBaseMode: Bool
+    let configurationReady: Bool
     let isLoginItemReady: Bool
     let baseModeChanged: (OperationMode) -> Void
     let loginItemChanged: (Bool) -> Void
@@ -52,7 +53,9 @@ struct GeneralSettingsPane: View {
             } header: {
                 Text("Filtering")
             } footer: {
-                Text("\(baseMode.summary) A profile can use its own mode.")
+                Text(configurationReady
+                    ? "\(baseMode.summary) A profile can use its own mode."
+                    : "Finish setup first. You can choose a mode once the network filter is on.")
             }
             Section("Startup") {
                 Toggle("Open Rift at login", isOn: Binding(
