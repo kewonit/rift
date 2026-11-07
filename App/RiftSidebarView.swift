@@ -78,22 +78,26 @@ struct RiftSidebarView: View {
                         .tag(AppSidebarItem.rules(.filter(filter)))
                 }
             }
-            Section("Profiles") {
-                ForEach(model.profiles) { profile in profileRow(profile) }
-                if model.profiles.isEmpty {
-                    emptyHint("Switch between sets of rules, such as Home and Work.")
+            // These sections wait for the first load. Filling them while the
+            // sidebar does its first layout made AppKit warn about reentrancy.
+            if model.hasLoaded {
+                Section("Profiles") {
+                    ForEach(model.profiles) { profile in profileRow(profile) }
+                    if model.profiles.isEmpty {
+                        emptyHint("Switch between sets of rules, such as Home and Work.")
+                    }
                 }
-            }
-            Section("Groups") {
-                ForEach(model.groups) { group in groupRow(group) }
-                if model.groups.isEmpty {
-                    emptyHint("Turn several rules on or off together.")
+                Section("Groups") {
+                    ForEach(model.groups) { group in groupRow(group) }
+                    if model.groups.isEmpty {
+                        emptyHint("Turn several rules on or off together.")
+                    }
                 }
-            }
-            Section("Blocklists") {
-                ForEach(model.blocklists) { source in blocklistRow(source) }
-                if model.blocklists.isEmpty {
-                    emptyHint("Block many sites at once with a list file from this Mac.")
+                Section("Blocklists") {
+                    ForEach(model.blocklists) { source in blocklistRow(source) }
+                    if model.blocklists.isEmpty {
+                        emptyHint("Block many sites at once with a list file from this Mac.")
+                    }
                 }
             }
         }
