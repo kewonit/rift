@@ -94,6 +94,13 @@ struct RiftHealthView: View {
                 tone: .warning,
                 symbol: "network.badge.shield.half.filled"
             )
+        } else if status.state == .cannotFilter {
+            StatusRow(
+                title: "Filtering isn’t available in this copy",
+                detail: "You can look around, but Rift can’t see or block real connections here. Filtering needs a copy signed with Apple’s network filter permission.",
+                tone: .unresolved,
+                symbol: "network.badge.shield.half.filled"
+            )
         } else if let lifecycle = session.lifecycle {
             StatusRow(
                 title: lifecycle.initialStatusResolved ? lifecycle.title : "Checking the network filter…",
@@ -111,7 +118,8 @@ struct RiftHealthView: View {
                     Button("Open System Settings") { lifecycle.openSystemSettings() }
                 }
                 if lifecycle.shouldOfferRetry {
-                    Button("Try Again") { lifecycle.retrySetup() }
+                    Button(lifecycle.retryTitle) { lifecycle.retrySetup() }
+                        .buttonStyle(.borderedProminent)
                 }
                 if lifecycle.initialStatusResolved, case .notInstalled = lifecycle.state {
                     Button("Install and Enable") { lifecycle.installAndEnable() }

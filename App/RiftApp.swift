@@ -105,6 +105,7 @@ private final class AppStartupCoordinator {
 #endif
         case live(ProcessInstanceLock)
         case terminate
+        case startupFailed
     }
 
     static let shared = AppStartupCoordinator()
@@ -129,7 +130,7 @@ private final class AppStartupCoordinator {
 #else
             session = AppSession()
 #endif
-        case .terminate:
+        case .terminate, .startupFailed:
             session = nil
 #if DEBUG
         case .fixture:
@@ -144,8 +145,18 @@ private final class AppStartupCoordinator {
     }
 
     func applicationDidFinishLaunching() {
-        guard case .terminate = admission else { return }
-        activateExistingApplication()
+        switch admission {
+        case .terminate:
+            activateExistingApplication()
+        case .startupFailed:
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.messageText = "Rift couldn’t start"
+            alert.informativeText = "Rift couldn’t prepare its files on this Mac. Your rules aren’t affected. Restart your Mac, then open Rift again."
+            alert.runModal()
+        default:
+            return
+        }
         NSApplication.shared.terminate(nil)
     }
 
@@ -156,7 +167,7 @@ private final class AppStartupCoordinator {
             case .unavailable: return .terminate
             }
         } catch {
-            return .terminate
+            return .startupFailed
         }
     }
 

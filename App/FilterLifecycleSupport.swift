@@ -29,7 +29,7 @@ enum LifecycleHealthFailure: Error, Sendable {
         case .activationPreflight(let failure):
             failure.message
         case .invalidEmbeddedExtension:
-            "This copy of Rift is missing its network filter, or the filter is the wrong version. Download Rift again and replace this copy."
+            "This copy of Rift is missing its network filter, or the filter is the wrong version. Replace this copy of Rift with a complete one."
         case .ambiguousInstalledExtension:
             "macOS found more than one Rift network filter. Remove the extra copy of Rift, then try again."
         case .installedExtensionMismatch:
@@ -48,15 +48,28 @@ private extension SystemExtensionActivationPreflightFailure {
     var message: String {
         switch self {
         case .invalidHostBundle, .invalidEmbeddedBundle, .versionMismatch:
-            "This copy of Rift is missing its network filter, or the filter is the wrong version. Download Rift again, replace this copy, and try again."
+            "This copy of Rift is missing its network filter, or the filter is the wrong version. Replace this copy of Rift with a complete one, then try again."
         case .invalidHostSignature, .invalidEmbeddedSignature, .invalidNestedCode,
-                .signingTeamMismatch, .designatedIdentityMismatch:
-            "Rift couldn’t verify the signature of its network filter. Download Rift again, replace this copy, and try again."
-        case .hostEntitlementsMismatch, .extensionEntitlementsMismatch:
-            "This copy of Rift isn’t signed with permission to install a network filter. Download a signed copy of Rift and try again."
+                .signingTeamMismatch, .designatedIdentityMismatch,
+                .hostEntitlementsMismatch, .extensionEntitlementsMismatch:
+            "This copy of Rift isn’t signed the way macOS requires for a network filter, so it can’t filter connections."
         case .machServiceMismatch:
-            "Rift and its network filter aren’t set up to work together. Download Rift again, replace this copy, and try again."
+            "Rift and its network filter aren’t set up to work together. Replace this copy of Rift with a complete one, then try again."
         }
+    }
+}
+
+/// Whether this running copy of Rift was signed with permission to filter.
+enum FilterBuildCapability {
+    /// Reports `false` only when both entitlements are missing, so a value in
+    /// an unexpected shape can't stop a properly signed build from filtering.
+    static func canFilter() -> Bool {
+        guard let task = SecTaskCreateFromSelf(nil) else { return true }
+        let names = [
+            "com.apple.developer.system-extension.install",
+            "com.apple.developer.networking.networkextension",
+        ]
+        return names.contains { SecTaskCopyValueForEntitlement(task, $0 as CFString, nil) != nil }
     }
 }
 

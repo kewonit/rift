@@ -40,3 +40,15 @@ import Testing
     #expect(states.allSatisfy { $0.isDegraded })
     #expect(states.allSatisfy { !$0.telemetryAvailable })
 }
+
+@Test func aDeniedFilterCanBeRequestedAgain() throws {
+    var machine = LifecycleStateMachine(state: .denied(message: "Not approved"))
+    #expect(try machine.apply(.requestActivation) == .activating)
+}
+
+@Test func signingProblemsAreBuildLimitationsButMissingFilesAreNot() {
+    #expect(SystemExtensionActivationPreflightFailure.signingTeamMismatch.isBuildLimitation)
+    #expect(SystemExtensionActivationPreflightFailure.hostEntitlementsMismatch.isBuildLimitation)
+    #expect(!SystemExtensionActivationPreflightFailure.invalidEmbeddedBundle.isBuildLimitation)
+    #expect(!SystemExtensionActivationPreflightFailure.versionMismatch.isBuildLimitation)
+}

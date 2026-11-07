@@ -29,6 +29,7 @@ public struct LifecycleStateMachine: Sendable {
         switch (state, event) {
         case (.notInstalled, .requestActivation),
              (.disabled, .requestActivation),
+             (.denied, .requestActivation),
              (.failed, .requestActivation):
             next = .activating
         case (.activating, .approvalRequired):

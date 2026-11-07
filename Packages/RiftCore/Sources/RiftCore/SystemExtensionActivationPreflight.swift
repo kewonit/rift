@@ -104,6 +104,20 @@ public enum SystemExtensionActivationPreflightFailure: String, Error, Sendable, 
     case machServiceMismatch
 }
 
+extension SystemExtensionActivationPreflightFailure {
+    /// The copy of Rift itself can't filter, so trying again won't help.
+    public var isBuildLimitation: Bool {
+        switch self {
+        case .invalidHostSignature, .invalidEmbeddedSignature, .invalidNestedCode,
+             .signingTeamMismatch, .designatedIdentityMismatch,
+             .hostEntitlementsMismatch, .extensionEntitlementsMismatch:
+            true
+        case .invalidHostBundle, .invalidEmbeddedBundle, .versionMismatch, .machServiceMismatch:
+            false
+        }
+    }
+}
+
 public enum SystemExtensionActivationPreflight {
     private static let supportedCapabilities: Set<String> = [
         "content-filter-provider",

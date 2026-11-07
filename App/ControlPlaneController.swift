@@ -194,6 +194,7 @@ final class ControlPlaneController {
             requestReconnect()
         } catch {
             state = .failed
+            recordStartupIssue("Rift couldn’t open its data, so it can’t show or change your rules. Quit Rift and open it again.")
         }
     }
 

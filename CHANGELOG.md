@@ -35,6 +35,11 @@ release.
   result and the reason in plain words.
 - The menu-bar panel no longer says there were no connections when Rift simply
   wasn't keeping history.
+- A copy of Rift that can't filter, such as a build from source, now says so as
+  soon as it opens.
+- Filter problems now offer the button that fixes them, such as Turn On Filter
+  or Finish Setup, and trying again works after macOS declines the filter.
+- Rift now explains when it can't start, instead of quitting silently.
 
 ## 0.3.0 (pre-release)
 

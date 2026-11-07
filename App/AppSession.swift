@@ -87,6 +87,7 @@ final class AppSession {
         let active = controlPlane.activePolicyTuple
         let unreadable = controlPlane.configurationRecoveryRequired
         return ProtectionInputs(
+            buildCanFilter: lifecycle?.buildCanFilter ?? true,
             lifecycle: lifecycle?.initialStatusResolved == true ? lifecycle?.state : nil,
             lifecycleTitle: lifecycle?.title,
             controller: controller,
