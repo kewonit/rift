@@ -20,7 +20,7 @@ struct RulesWorkspaceTable: View {
             TableColumn("App / Rule") { node in
                 identityCell(node)
             }
-            .width(min: 190, ideal: 260)
+            .width(min: 160, ideal: 190)
             TableColumn("On") { node in
                 if canToggle(node) {
                     Toggle(enabledLabel(node), isOn: Binding(
@@ -41,18 +41,20 @@ struct RulesWorkspaceTable: View {
             }
             .width(34)
             TableColumn("Action") { node in Text(action(node)) }
-                .width(min: 70, ideal: 85)
+                .width(min: 60, ideal: 70)
             TableColumn("Scope") { node in Text(scope(node)) }
-                .width(min: 90, ideal: 125)
+                .width(min: 80, ideal: 96)
             TableColumn("Source") { node in Text(source(node)) }
-                .width(min: 75, ideal: 105)
+                .width(min: 64, ideal: 76)
             TableColumn("Uses") { node in
-                Text(usage(node)).help(usageHelp(node))
+                Text(usage(node)).monospacedDigit().help(usageHelp(node))
             }
             .width(55)
+            .alignment(.trailing)
             TableColumn("Status") { node in Text(state(node)) }
-                .width(min: 90, ideal: 130)
+                .width(min: 60, ideal: 70)
         }
+        .alternatingRowBackgrounds(.disabled)
         .contextMenu(forSelectionType: RuleWorkspaceNodeID.self) { ids in
             contextMenuItems(ids)
         } primaryAction: { ids in
@@ -137,33 +139,28 @@ struct RulesWorkspaceTable: View {
                     ApplicationIdentityIcon(
                         identity: identity,
                         fallbackSystemName: "app.dashed",
-                        size: 18,
+                        size: 16,
                         artworkStore: artworkStore
                     )
                 } else {
-                    Image(systemName: "square.stack.3d.up").frame(width: 18, height: 18)
+                    Image(systemName: "square.stack.3d.up").frame(width: 16, height: 16)
                 }
             }
-            VStack(alignment: .leading, spacing: 1) {
-                if node.row == nil, let identity = node.applicationIdentity {
-                    // Lead with the app's name; who signed it is secondary.
-                    ApplicationNameText(
-                        identity: identity,
-                        fallback: MonitorQuery.identityLabel(identity),
-                        artworkStore: artworkStore
-                    )
-                    .lineLimit(1)
-                    Text([identity.signerKind, node.subtitle].compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                } else {
-                    Text(node.title).lineLimit(1)
-                    if let subtitle = node.subtitle {
-                        Text(subtitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                    }
-                }
+            if node.row == nil, let identity = node.applicationIdentity {
+                ApplicationNameText(
+                    identity: identity,
+                    fallback: MonitorQuery.identityLabel(identity),
+                    artworkStore: artworkStore
+                )
+                .lineLimit(1)
+            } else {
+                Text(node.title).lineLimit(1)
+            }
+            if let subtitle = node.subtitle {
+                Text(subtitle).foregroundStyle(.secondary).lineLimit(1)
             }
         }
-        .help([node.title, node.subtitle].compactMap { $0 }.joined(separator: " — "))
+        .help([node.title, node.applicationIdentity?.signerKind, node.subtitle].compactMap { $0 }.joined(separator: " — "))
         .accessibilityElement(children: .combine)
         .accessibilityValue(node.row == nil ? ruleCountLabel(node.ruleIDs.count) : "")
 

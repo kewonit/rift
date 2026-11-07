@@ -18,97 +18,106 @@ struct RuleInspectorView: View {
     var actions: RuleInspectorActions?
 
     var body: some View {
-        Form {
-            Section("Rule") {
-                HStack(spacing: 9) {
-                    if let identity = applicationIdentity(row.rule.process) {
-                        ApplicationIdentityIcon(
-                            identity: identity,
-                            fallbackSystemName: "app.dashed",
-                            size: 28,
-                            artworkStore: artworkStore
-                        )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                sections
+            }
+            .labeledContentStyle(RiftInspectorRowStyle())
+            .padding(RiftDesign.Spacing.l)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private var sections: some View {
+        RiftInspectorSection("Rule") {
+            HStack(spacing: 9) {
+                if let identity = applicationIdentity(row.rule.process) {
+                    ApplicationIdentityIcon(
+                        identity: identity,
+                        fallbackSystemName: "app.dashed",
+                        size: 28,
+                        artworkStore: artworkStore
+                    )
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.applicationLabel).font(.headline)
+                    Text(row.conditionSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let actions {
+                HStack {
+                    Button("Edit…", action: actions.edit)
+                    Button(row.rule.isEnabled ? "Turn Off" : "Turn On") {
+                        actions.setEnabled(!row.rule.isEnabled)
                     }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(row.applicationLabel).font(.headline)
-                        Text(row.conditionSummary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                if let actions {
-                    HStack {
-                        Button("Edit…", action: actions.edit)
-                        Button(row.rule.isEnabled ? "Turn Off" : "Turn On") {
-                            actions.setEnabled(!row.rule.isEnabled)
-                        }
-                        Spacer()
-                        Button("Delete…", role: .destructive, action: actions.delete)
-                    }
-                }
-                LabeledContent("Action", value: row.actionLabel)
-                LabeledContent("Review", value: reviewState)
-                LabeledContent("Priority", value: priority)
-                LabeledContent("Status", value: row.effectiveState.label)
-                if let groupID = row.rule.localGroupID {
-                    LabeledContent("Group", value: groupName(groupID))
-                }
-                if let profileID = row.rule.profileID {
-                    LabeledContent("Profile", value: profileName(profileID))
-                }
-                if row.rule.flags.contains(.sourceManaged) {
-                    LabeledContent("Managed by", value: "Blocklist")
-                }
-                if row.rule.flags.contains(.protected) {
-                    LabeledContent("Protection", value: "Protected")
+                    Spacer()
+                    Button("Delete…", role: .destructive, action: actions.delete)
                 }
             }
-            Section("Matches") {
-                LabeledContent("Destination", value: destinationLabel)
-                LabeledContent("Protocol", value: protocolLabel)
-                LabeledContent("Port", value: portLabel)
-                LabeledContent("Direction", value: row.rule.direction.rawValue.capitalized)
-                LabeledContent("Owner", value: ownerLabel)
+            LabeledContent("Action", value: row.actionLabel)
+            LabeledContent("Review", value: reviewState)
+            LabeledContent("Priority", value: priority)
+            LabeledContent("Status", value: row.effectiveState.label)
+            if let groupID = row.rule.localGroupID {
+                LabeledContent("Group", value: groupName(groupID))
             }
-            Section("App Identity") {
-                identityDetails(row.rule.process)
+            if let profileID = row.rule.profileID {
+                LabeledContent("Profile", value: profileName(profileID))
             }
-            Section("Source & Expiration") {
-                LabeledContent("Source", value: sourceLabel)
-                if let expiresAt = row.rule.expiresAt {
-                    LabeledContent("Expires", value: expiresAt.formatted())
-                } else {
-                    LabeledContent("Expires", value: "Never")
-                }
+            if row.rule.flags.contains(.sourceManaged) {
+                LabeledContent("Managed by", value: "Blocklist")
             }
-            Section("Usage") {
-                LabeledContent(
-                    "Times used",
-                    value: row.usage.coverage == .complete
-                        ? String(row.usage.lowerBoundCount)
-                        : "≥\(row.usage.lowerBoundCount)"
-                )
-                LabeledContent("Usage history", value: usageCoverage)
-                if let lastUsedAt = row.usage.lastUsedAt {
-                    LabeledContent("Last used", value: lastUsedAt.formatted())
-                }
-            }
-            if !row.rule.notes.isEmpty {
-                Section("Note") { Text(row.rule.notes) }
-            }
-            DisclosureGroup("Details") {
-                LabeledContent("Revision", value: String(row.rule.revision))
-                LabeledContent("Created", value: row.rule.createdAt.formatted())
-                LabeledContent("Modified", value: row.rule.modifiedAt.formatted())
-                if let groupID = row.rule.localGroupID {
-                    LabeledContent("Group ID", value: groupID.uuidString.lowercased())
-                }
-                if let profileID = row.rule.profileID {
-                    LabeledContent("Profile ID", value: profileID.uuidString.lowercased())
-                }
+            if row.rule.flags.contains(.protected) {
+                LabeledContent("Protection", value: "Protected")
             }
         }
-        .formStyle(.grouped)
+        RiftInspectorSection("Matches") {
+            LabeledContent("Destination", value: destinationLabel)
+            LabeledContent("Protocol", value: protocolLabel)
+            LabeledContent("Port", value: portLabel)
+            LabeledContent("Direction", value: row.rule.direction.rawValue.capitalized)
+            LabeledContent("Owner", value: ownerLabel)
+        }
+        RiftInspectorSection("App Identity") {
+            identityDetails(row.rule.process)
+        }
+        RiftInspectorSection("Source & Expiration") {
+            LabeledContent("Source", value: sourceLabel)
+            if let expiresAt = row.rule.expiresAt {
+                LabeledContent("Expires", value: expiresAt.formatted())
+            } else {
+                LabeledContent("Expires", value: "Never")
+            }
+        }
+        RiftInspectorSection("Usage") {
+            LabeledContent(
+                "Times used",
+                value: row.usage.coverage == .complete
+                    ? String(row.usage.lowerBoundCount)
+                    : "≥\(row.usage.lowerBoundCount)"
+            )
+            LabeledContent("Usage history", value: usageCoverage)
+            if let lastUsedAt = row.usage.lastUsedAt {
+                LabeledContent("Last used", value: lastUsedAt.formatted())
+            }
+        }
+        if !row.rule.notes.isEmpty {
+            RiftInspectorSection("Note") { Text(row.rule.notes) }
+        }
+        DisclosureGroup("Details") {
+            LabeledContent("Revision", value: String(row.rule.revision))
+            LabeledContent("Created", value: row.rule.createdAt.formatted())
+            LabeledContent("Modified", value: row.rule.modifiedAt.formatted())
+            if let groupID = row.rule.localGroupID {
+                LabeledContent("Group ID", value: groupID.uuidString.lowercased())
+            }
+            if let profileID = row.rule.profileID {
+                LabeledContent("Profile ID", value: profileID.uuidString.lowercased())
+            }
+        }
     }
 
     private var priority: String {

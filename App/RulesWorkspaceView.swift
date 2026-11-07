@@ -14,9 +14,12 @@ struct RulesWorkspaceView: View {
     @State private var editingRow: RuleRowViewValue?
     @State private var showingInspector = true
     @State private var showingDeleteConfirmation = false
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
+            bar
+            Divider()
             if let message = model.errorMessage, !setupIncomplete {
                 HStack(spacing: 10) {
                     Label(message, systemImage: "exclamationmark.triangle")
@@ -98,12 +101,7 @@ struct RulesWorkspaceView: View {
             .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
         }
         .navigationTitle(model.sidebarTitle)
-        .searchable(text: $model.search, placement: .toolbar, prompt: "Search rules")
-        .searchScopes($model.searchScope) {
-            ForEach(RuleSearchScope.allCases) { scope in
-                Text(scope.rawValue).tag(scope)
-            }
-        }
+        .focusedSceneValue(\.findRules) { searchFocused = true }
         .onDeleteCommand {
             guard !isPreview, !model.historyCommandIsRunning, model.eligibleSelectionCount > 0 else { return }
             showingDeleteConfirmation = true
@@ -119,6 +117,11 @@ struct RulesWorkspaceView: View {
                     Picker("Sort By", selection: $model.sort) {
                         ForEach(RuleWorkspaceSort.allCases) { sort in
                             Text(sort.rawValue).tag(sort)
+                        }
+                    }
+                    Picker("Search In", selection: $model.searchScope) {
+                        ForEach(RuleSearchScope.allCases) { scope in
+                            Text(scope.rawValue).tag(scope)
                         }
                     }
                 } label: {
@@ -192,6 +195,23 @@ struct RulesWorkspaceView: View {
         } message: {
             Text(deleteMessage)
         }
+    }
+
+    private var bar: some View {
+        HStack(spacing: RiftDesign.Spacing.m) {
+            HStack(alignment: .firstTextBaseline, spacing: RiftDesign.Spacing.xs + 2) {
+                Text("Rules").font(.headline)
+                if !model.rows.isEmpty {
+                    Text(RiftFormat.count(model.rows.count))
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+            RiftSearchField(prompt: "Search rules", text: $model.search, focus: $searchFocused)
+        }
+        .padding(.horizontal, RiftDesign.Spacing.m)
+        .padding(.vertical, RiftDesign.Spacing.s)
     }
 
     private var deleteMessage: String {

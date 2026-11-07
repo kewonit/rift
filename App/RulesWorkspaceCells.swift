@@ -24,8 +24,7 @@ extension RulesWorkspaceTable {
 
     func enabledColor(_ node: RuleWorkspaceNode) -> Color {
         switch enabledSymbol(node) {
-        case "checkmark.circle.fill": Color(nsColor: .systemGreen)
-        case "circle": .secondary
+        case "checkmark.circle.fill", "circle": .secondary
         default: Color(nsColor: .systemOrange)
         }
     }
