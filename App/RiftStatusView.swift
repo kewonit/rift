@@ -223,8 +223,7 @@ private struct StatusRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol)
-                .font(.title3)
-                .foregroundStyle(tone.color)
+                .foregroundStyle(tone == .warning ? tone.color : Color.secondary)
                 .frame(width: 24)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {

@@ -71,21 +71,19 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
 
     var symbol: String {
         switch self {
-        case .allowed: "checkmark.circle.fill"
-        case .denied: "xmark.circle.fill"
-        case .byDefault: "minus.circle.fill"
-        case .timedOut: "exclamationmark.circle.fill"
-        case .mixed: "circle.lefthalf.filled"
+        case .allowed: "checkmark"
+        case .denied: "xmark"
+        case .byDefault: "minus"
+        case .timedOut: "clock"
+        case .mixed: "xmark"
         }
     }
 
     var color: Color {
         switch self {
-        case .allowed: Color(nsColor: .systemGreen)
-        case .denied: Color(nsColor: .systemRed)
-        case .byDefault: .secondary
+        case .allowed, .byDefault: .secondary
+        case .denied, .mixed: Color(nsColor: .systemRed)
         case .timedOut: Color(nsColor: .systemOrange)
-        case .mixed: Color(nsColor: .systemRed)
         }
     }
 }
@@ -163,16 +161,6 @@ enum RiftStatusTone: String, CaseIterable {
         }
     }
 
-    var symbol: String {
-        switch self {
-        case .allowed: "checkmark.circle.fill"
-        case .denied: "xmark.octagon.fill"
-        case .unresolved: "minus.circle.fill"
-        case .warning: "exclamationmark.triangle.fill"
-        case .on: "checkmark.circle.fill"
-        }
-    }
-
     var color: Color {
         switch self {
         case .allowed, .on: Color(nsColor: .systemGreen)
@@ -183,18 +171,22 @@ enum RiftStatusTone: String, CaseIterable {
     }
 }
 
+/// A word with a small dot in its tone.
 struct RiftStatusBadge: View {
     let tone: RiftStatusTone
     var label: String?
 
     var body: some View {
-        Label(label ?? tone.label, systemImage: tone.symbol)
-            .font(.caption.weight(.medium))
-            .foregroundStyle(tone.color)
-            .padding(.horizontal, RiftDesign.Spacing.s)
-            .padding(.vertical, RiftDesign.Spacing.xs)
-            .background(tone.color.opacity(0.12), in: Capsule())
-            .accessibilityElement(children: .combine)
+        HStack(spacing: RiftDesign.Spacing.xs + 1) {
+            Circle()
+                .fill(tone.color)
+                .frame(width: 6, height: 6)
+                .accessibilityHidden(true)
+            Text(label ?? tone.label)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .combine)
     }
 }
 

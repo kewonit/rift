@@ -50,7 +50,7 @@ struct RiftApp: App {
 private struct RiftStatusIcon: View {
     let session: AppSession
     private static let images: [String: NSImage] = {
-        let names = ["eye", "shield.slash", "exclamationmark.shield", "xmark.shield.fill",
+        let names = ["shield.slash", "exclamationmark.shield", "xmark.shield.fill",
                      "questionmark.circle", "pause.circle", "xmark.shield"]
         return Dictionary(uniqueKeysWithValues: names.compactMap { name in
             guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil),
@@ -82,6 +82,9 @@ private struct RiftStatusIcon: View {
     }
 
     private var statusImage: Image {
+        // The everyday state is Rift's own mark. Anything else changes shape, so
+        // a different mode or a problem stands out in the menu bar.
+        if session.statusSymbolName == "eye" { return Image(nsImage: RiftMark.menuBarImage) }
         if let image = Self.images[session.statusSymbolName] { return Image(nsImage: image) }
         return Image(systemName: session.statusSymbolName)
     }

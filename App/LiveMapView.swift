@@ -237,7 +237,7 @@ struct LiveMapView: View {
                 }
                 Button("About the Map…") { showingMapInformation = true }
             } label: {
-                Label("Map Options", systemImage: mapStyle == .satellite ? "globe.americas.fill" : "map")
+                Label("Map Options", systemImage: "square.2.layers.3d")
             }
             .help("Map style and options")
             .popover(isPresented: $showingMapInformation) { LiveMapInformation() }
@@ -247,7 +247,7 @@ struct LiveMapView: View {
                 clearOrigin: originController.clearOrigin
             )
             Button { showingTimeline.toggle() } label: {
-                Label(showingTimeline ? "Hide Timeline" : "Show Timeline", systemImage: "chart.bar.xaxis")
+                Label(showingTimeline ? "Hide Timeline" : "Show Timeline", systemImage: "chart.bar")
             }
             .help(showingTimeline ? "Hide the timeline" : "Show the timeline")
         }

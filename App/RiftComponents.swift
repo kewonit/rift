@@ -138,7 +138,8 @@ struct RiftVerticalSplit<Top: View, Bottom: View>: View {
     @ViewBuilder var top: Top
     @ViewBuilder var bottom: Bottom
     @AppStorage("riftSplitTopFraction") private var topFraction = 0.5
-    @State private var dragStart: Double?
+    /// The divider's position during a drag, saved once when it ends.
+    @State private var dragFraction: Double?
 
     private static var handleHeight: CGFloat { 9 }
 
@@ -156,7 +157,7 @@ struct RiftVerticalSplit<Top: View, Bottom: View>: View {
 
     private func topHeight(in height: CGFloat) -> CGFloat {
         let upper = max(minTop, height - minBottom)
-        return min(max(height * topFraction, minTop), upper)
+        return min(max(height * (dragFraction ?? topFraction), minTop), upper)
     }
 
     private func handle(height: CGFloat) -> some View {
@@ -169,15 +170,12 @@ struct RiftVerticalSplit<Top: View, Bottom: View>: View {
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .global)
                     .onChanged { value in
-                        let start = dragStart ?? topFraction
-                        dragStart = start
                         guard height > 0 else { return }
-                        topFraction = start + value.translation.height / height
+                        dragFraction = topFraction + value.translation.height / height
                     }
                     .onEnded { _ in
-                        dragStart = nil
-                        guard height > 0 else { return }
-                        topFraction = topHeight(in: height) / height
+                        if height > 0 { topFraction = topHeight(in: height) / height }
+                        dragFraction = nil
                     }
             )
             .accessibilityElement()
@@ -193,7 +191,7 @@ struct RiftVerticalSplit<Top: View, Bottom: View>: View {
     }
 }
 
-/// A decision shown as a symbol in its color, with the meaning in the label.
+/// A decision shown as a plain mark, with the meaning in its shape and label.
 struct RiftDecisionBadge: View {
     let decision: RiftDecision
     var showsLabel = false
@@ -203,11 +201,11 @@ struct RiftDecisionBadge: View {
             if showsLabel {
                 Label(decision.label, systemImage: decision.symbol)
             } else {
-                Image(systemName: decision.symbol)
+                Image(systemName: decision.symbol).frame(width: 14)
             }
         }
-        .symbolRenderingMode(.palette)
-        .foregroundStyle(.white, decision.color)
+        .fontWeight(.semibold)
+        .foregroundStyle(decision.color)
         .accessibilityLabel(decision.label)
         .help(decision.label)
     }

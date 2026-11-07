@@ -126,7 +126,7 @@ struct RulesWorkspaceView: View {
                     }
                 } label: {
                     Label("Filter and Sort", systemImage: model.actionFilter == .all
-                        ? "line.3.horizontal.decrease.circle"
+                        ? "line.3.horizontal.decrease"
                         : "line.3.horizontal.decrease.circle.fill")
                 }
                 .help("Filter and sort rules")

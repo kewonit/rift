@@ -71,6 +71,8 @@ struct NetworkMapView: NSViewRepresentable {
         private struct Entry {
             let key: RouteKey
             let legs: [RouteLegPolyline]
+            /// The whole route for flow dots, so updates don't smooth it again.
+            let flowPoints: [GeoPoint]
             let annotation: DestinationAnnotation?
         }
 
@@ -187,18 +189,21 @@ struct NetworkMapView: NSViewRepresentable {
                 guard let destination = byCountry[code], let point = destination.route.destination else { continue }
                 let annotation = DestinationAnnotation(destination: destination, point: point)
                 var legs: [RouteLegPolyline] = []
+                var flowPoints: [GeoPoint] = []
                 // Blocked connections never leave the Mac, so they get a marker but no path.
                 if !destination.activity.allBlocked, case .undersea(let routeLegs, _) = destination.route {
                     for leg in routeLegs {
                         let isCable = if case .cable = leg.kind { true } else { false }
                         for part in NetworkMapGeometry.splitAtAntimeridian(leg.points) {
-                            legs.append(RouteLegPolyline.make(RouteSmoothing.smoothed(part), countryCode: code, isCable: isCable))
+                            let smoothed = RouteSmoothing.smoothed(part)
+                            legs.append(RouteLegPolyline.make(smoothed, countryCode: code, isCable: isCable))
+                            flowPoints += smoothed
                         }
                     }
                 }
                 entries[code] = Entry(
                     key: RouteKey(route: destination.route, allBlocked: destination.activity.allBlocked),
-                    legs: legs, annotation: annotation
+                    legs: legs, flowPoints: flowPoints, annotation: annotation
                 )
                 addedLegs += legs
                 addedAnnotations.append(annotation)
@@ -223,11 +228,9 @@ struct NetworkMapView: NSViewRepresentable {
                 ? Array(candidates.sorted { $0.activity.connections > $1.activity.connections }.prefix(4))
                 : candidates.filter { shownHighlight.contains($0.countryCode) }
             return focused.compactMap { destination in
-                guard case .undersea(let legs, _) = destination.route else { return nil }
-                let points = legs.flatMap { leg in
-                    NetworkMapGeometry.splitAtAntimeridian(leg.points).flatMap(RouteSmoothing.smoothed)
+                entries[destination.countryCode].map {
+                    FlowOverlayView.Flow(id: destination.countryCode, points: $0.flowPoints)
                 }
-                return FlowOverlayView.Flow(id: destination.countryCode, points: points)
             }
         }
 

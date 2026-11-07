@@ -30,7 +30,6 @@ final class MonitorFeed {
     /// What the map draws. It ignores the country filter, so other countries
     /// stay clickable while one is chosen.
     private(set) var mapRows: [MonitorDisplayRow] = []
-    /// Groups open in the list, kept here so a selection can reveal itself.
     private(set) var rowLookup: [String: MonitorEventRow] = [:]
     private(set) var traffic = LiveTrafficSnapshot.empty
     private(set) var decisions = DecisionBucketSnapshot(buckets: [], coverage: .gap)

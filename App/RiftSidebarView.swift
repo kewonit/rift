@@ -70,7 +70,7 @@ struct RiftSidebarView: View {
         List(selection: $selection) {
             Section {
                 Label(AppDestination.liveMap.title, systemImage: "map").tag(AppSidebarItem.map)
-                Label(AppDestination.health.title, systemImage: "checkmark.shield").tag(AppSidebarItem.status)
+                Label(AppDestination.health.title, systemImage: "shield").tag(AppSidebarItem.status)
             }
             Section("Rules") {
                 ForEach(RuleListFilter.allCases) { filter in
@@ -98,6 +98,7 @@ struct RiftSidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .listItemTint(.monochrome)
         .task { await model.reload() }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 8) {
@@ -176,21 +177,26 @@ struct RiftSidebarView: View {
         }
     }
 
+    private func rowCheckbox(isOn: Bool, label: String, set: @escaping (Bool) -> Void) -> some View {
+        Toggle(label, isOn: Binding(get: { isOn }, set: set))
+            .labelsHidden()
+            .toggleStyle(.checkbox)
+            .controlSize(.small)
+            .disabled(isPreview)
+    }
+
     private func profileRow(_ profile: PolicyProfile) -> some View {
         HStack(spacing: 7) {
-            Label(display(profile.name), systemImage: "person.crop.circle")
+            Label(display(profile.name), systemImage: "person")
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button {
-                Task { await model.activateProfile(model.activeProfileID == profile.id ? nil : profile.id) }
-            } label: {
-                Image(systemName: model.activeProfileID == profile.id
-                    ? "checkmark.circle.fill" : "circle")
+            rowCheckbox(
+                isOn: model.activeProfileID == profile.id,
+                label: model.activeProfileID == profile.id
+                    ? "Deactivate \(display(profile.name))" : "Activate \(display(profile.name))"
+            ) { on in
+                Task { await model.activateProfile(on ? profile.id : nil) }
             }
-            .buttonStyle(.plain)
-            .disabled(isPreview)
-            .accessibilityLabel(model.activeProfileID == profile.id
-                ? "Deactivate \(display(profile.name))" : "Activate \(display(profile.name))")
         }
         .tag(AppSidebarItem.rules(.profile(profile.id)))
         .contextMenu {
@@ -220,15 +226,12 @@ struct RiftSidebarView: View {
             Label(display(group.name), systemImage: "folder")
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button {
-                Task { await model.setGroup(group.id, enabled: !group.isEnabled) }
-            } label: {
-                Image(systemName: group.isEnabled ? "checkmark.circle.fill" : "circle")
+            rowCheckbox(
+                isOn: group.isEnabled,
+                label: group.isEnabled ? "Disable \(display(group.name))" : "Enable \(display(group.name))"
+            ) { on in
+                Task { await model.setGroup(group.id, enabled: on) }
             }
-            .buttonStyle(.plain)
-            .disabled(isPreview)
-            .accessibilityLabel(group.isEnabled
-                ? "Disable \(display(group.name))" : "Enable \(display(group.name))")
         }
         .tag(AppSidebarItem.rules(.group(group.id)))
         .contextMenu {
@@ -255,21 +258,18 @@ struct RiftSidebarView: View {
 
     private func blocklistRow(_ source: BlocklistSource) -> some View {
         HStack(spacing: 7) {
-            Label(display(source.name), systemImage: "list.bullet.rectangle")
+            Label(display(source.name), systemImage: "doc.text")
                 .lineLimit(1)
             Spacer(minLength: 4)
             Text(source.entryCount.formatted())
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-            Button {
-                Task { await model.setBlocklist(source.id, enabled: source.status != .active) }
-            } label: {
-                Image(systemName: source.status == .active ? "checkmark.circle.fill" : "circle")
+            rowCheckbox(
+                isOn: source.status == .active,
+                label: source.status == .active ? "Disable \(display(source.name))" : "Enable \(display(source.name))"
+            ) { on in
+                Task { await model.setBlocklist(source.id, enabled: on) }
             }
-            .buttonStyle(.plain)
-            .disabled(isPreview)
-            .accessibilityLabel(source.status == .active
-                ? "Disable \(display(source.name))" : "Enable \(display(source.name))")
         }
         .tag(AppSidebarItem.rules(.blocklist(source.id)))
         .contextMenu {
@@ -360,12 +360,12 @@ struct RiftSidebarView: View {
     private func symbol(_ filter: RuleListFilter) -> String {
         switch filter {
         case .all: "list.bullet"
-        case .active: "checkmark.circle"
-        case .denied: "nosign"
-        case .recentlyModified: "clock.arrow.circlepath"
-        case .recentlyUsed: "clock.badge.checkmark"
-        case .temporary: "timer"
-        case .unreviewed: "questionmark.circle"
+        case .active: "checkmark"
+        case .denied: "hand.raised"
+        case .recentlyModified: "pencil"
+        case .recentlyUsed: "clock"
+        case .temporary: "hourglass"
+        case .unreviewed: "tray"
         }
     }
 

@@ -17,14 +17,14 @@ extension RulesWorkspaceTable {
 
     func enabledSymbol(_ node: RuleWorkspaceNode) -> String {
         let values = rows(node).map(\.rule.isEnabled)
-        if values.allSatisfy({ $0 }) { return "checkmark.circle.fill" }
-        if values.allSatisfy({ !$0 }) { return "circle" }
-        return "minus.circle.fill"
+        if values.allSatisfy({ $0 }) { return "checkmark" }
+        if values.allSatisfy({ !$0 }) { return "xmark" }
+        return "minus"
     }
 
     func enabledColor(_ node: RuleWorkspaceNode) -> Color {
         switch enabledSymbol(node) {
-        case "checkmark.circle.fill", "circle": .secondary
+        case "checkmark", "xmark": .secondary
         default: Color(nsColor: .systemOrange)
         }
     }

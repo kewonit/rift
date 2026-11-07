@@ -29,8 +29,9 @@ struct ConnectionsTable: View {
             }
             .width(min: 140, ideal: 170)
             TableColumn("Country") { node in
-                Text(countryName(for: node) ?? "—")
-                    .foregroundStyle(countryName(for: node) == nil ? .tertiary : .primary)
+                let country = countryName(for: node)
+                Text(country ?? "—")
+                    .foregroundStyle(country == nil ? .tertiary : .primary)
                     .lineLimit(1)
             }
             .width(min: 60, ideal: 76)

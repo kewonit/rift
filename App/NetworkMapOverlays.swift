@@ -132,7 +132,7 @@ enum NetworkMapPalette {
 /// straight pieces. Call it after splitting at the antimeridian: averaging across
 /// that line would send the path around the world.
 enum RouteSmoothing {
-    private static let passes = 3
+    private static let passes = 2
 
     static func smoothed(_ points: [GeoPoint]) -> [GeoPoint] {
         guard points.count > 2 else { return points }
@@ -161,7 +161,7 @@ final class FlowOverlayView: NSView {
         let points: [GeoPoint]
     }
 
-    private static let dotsPerRoute = 2
+    private static let dotsPerRoute = 1
     private static let pointsPerSecond: Double = 90
     private var flows: [Flow] = []
     private var tracks: [CALayer] = []
