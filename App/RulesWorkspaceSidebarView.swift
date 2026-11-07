@@ -49,6 +49,14 @@ struct RulesWorkspaceSidebarView: View {
     @State private var activeDropTarget: RulesSidebarSelection?
     @State private var showingBlocklistImport = false
 
+    private func emptyHint(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .selectionDisabled()
+    }
+
     var body: some View {
         List(selection: $model.sidebarSelection) {
             Section {
@@ -57,19 +65,22 @@ struct RulesWorkspaceSidebarView: View {
                         .tag(RulesSidebarSelection.filter(filter))
                 }
             }
-            if !model.profiles.isEmpty {
-                Section("Profiles") {
-                    ForEach(model.profiles) { profile in profileRow(profile) }
+            Section("Profiles") {
+                ForEach(model.profiles) { profile in profileRow(profile) }
+                if model.profiles.isEmpty {
+                    emptyHint("Switch between sets of rules, such as Home and Work.")
                 }
             }
-            if !model.groups.isEmpty {
-                Section("Groups") {
-                    ForEach(model.groups) { group in groupRow(group) }
+            Section("Groups") {
+                ForEach(model.groups) { group in groupRow(group) }
+                if model.groups.isEmpty {
+                    emptyHint("Turn several rules on or off together.")
                 }
             }
-            if !model.blocklists.isEmpty {
-                Section("Blocklists") {
-                    ForEach(model.blocklists) { source in blocklistRow(source) }
+            Section("Blocklists") {
+                ForEach(model.blocklists) { source in blocklistRow(source) }
+                if model.blocklists.isEmpty {
+                    emptyHint("Block many sites at once with a list file from this Mac.")
                 }
             }
         }

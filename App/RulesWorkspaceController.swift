@@ -34,6 +34,7 @@ final class RulesWorkspaceController {
     private(set) var errorMessage: String?
     /// Something worth saying that doesn't stop rules from being shown.
     private(set) var notice: String?
+    private(set) var hasLoaded = false
     let controlPlane: ControlPlaneController
     var allRules: [Rule] = []
     private var reloadTask: Task<Void, Never>?
@@ -164,6 +165,7 @@ final class RulesWorkspaceController {
             previewEnvironment = preview
             generation = workspace.generation
             errorMessage = nil
+            hasLoaded = true
             return true
         } catch {
             errorMessage = "Couldn’t load rules. Try again once Rift reconnects to the filter."
@@ -376,6 +378,12 @@ final class RulesWorkspaceController {
     }
 
     func dismissNotice() { notice = nil }
+
+    func clearFilters() {
+        search = ""
+        actionFilter = .all
+        sidebarSelection = .filter(.all)
+    }
 
     private func reportNotSaved(_ message: String) {
         notice = [message, notice].compactMap { $0 }.joined(separator: " ")

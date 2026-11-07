@@ -40,6 +40,10 @@ enum FixturePreviewOptions {
         return arguments[flag + 1]
     }
 
+    static var opensRuleEditor: Bool {
+        ProcessInfo.processInfo.arguments.contains("--ui-fixture-rule-editor")
+    }
+
     /// How many alerts to show in the real panel, with a real 30 second deadline.
     static var panelPromptCount: Int? {
         let arguments = ProcessInfo.processInfo.arguments

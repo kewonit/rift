@@ -40,7 +40,7 @@ private func connection(
 
 @Test func aSingleConnectionOffersEveryBreadth() throws {
     let options = MonitorRuleScope.options(for: [try connection()])
-    #expect(options == [.thisHost, .hostAndSubdomains, .allDestinations, .exactConnection])
+    #expect(options == [.thisHost, .allDestinations, .exactConnection])
 }
 
 @Test func anAppWithSeveralDestinationsCanStillBeBlocked() throws {
@@ -50,7 +50,7 @@ private func connection(
 
 @Test func oneSiteOnSeveralPortsCanBeBlockedAsASite() throws {
     let rows = [try connection(port: 443), try connection(port: 8443)]
-    #expect(MonitorRuleScope.options(for: rows) == [.thisHost, .hostAndSubdomains, .allDestinations])
+    #expect(MonitorRuleScope.options(for: rows) == [.thisHost, .allDestinations])
 }
 
 @Test func differentAppsCantShareOneRule() throws {
@@ -63,10 +63,17 @@ private func connection(
     #expect(MonitorRuleScope.options(for: [row]) == [.exactConnection])
 }
 
-@Test func aConnectionWithNoNameHasNoSubdomainChoice() throws {
+@Test func aConnectionWithNoNameCanStillBeBlockedByAddress() throws {
     let options = MonitorRuleScope.options(for: [try connection(host: nil)])
-    #expect(!options.contains(.hostAndSubdomains))
     #expect(options.contains(.thisHost))
+}
+
+@Test func nothingOffersARuleThatCoversSubdomains() throws {
+    let row = try connection()
+    for breadth in MonitorRuleScope.options(for: [row]) {
+        let target = try #require(try MonitorRuleScope.target(breadth, for: row))
+        if case .domainSet = target.destination { Issue.record("\(breadth) covers subdomains") }
+    }
 }
 
 @Test func aHostRuleCoversEveryPort() throws {

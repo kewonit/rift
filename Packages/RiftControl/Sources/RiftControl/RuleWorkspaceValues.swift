@@ -84,6 +84,9 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
     public let actionLabel: String
     public let applicationLabel: String
     public let conditionSummary: String
+    /// Whether this rule is doing anything right now, unlike `enforcementState`,
+    /// which is about the whole policy.
+    public let effectiveState: RuleEffectiveState
     public let enforcementState: PolicyOutboxState
     public let generation: UInt64
     public let usage: RuleUsageValue
@@ -92,8 +95,10 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
         rule: Rule,
         state: PolicyOutboxState,
         generation: UInt64,
-        usage: RuleUsageValue
+        usage: RuleUsageValue,
+        context: RuleWorkspaceQueryContext? = nil
     ) {
+        effectiveState = RuleEffectiveState.resolve(rule: rule, enforcement: state, context: context)
         id = rule.id
         self.rule = rule
         actionLabel = Self.action(rule.action)

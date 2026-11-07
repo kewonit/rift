@@ -2,12 +2,20 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
+struct RuleInspectorActions {
+    let edit: () -> Void
+    let setEnabled: (Bool) -> Void
+    let delete: () -> Void
+}
+
 struct RuleInspectorView: View {
     let row: RuleRowViewValue
     let groups: [LocalRuleGroup]
     let profiles: [PolicyProfile]
     let blocklists: [BlocklistSource]
     let artworkStore: ApplicationArtworkStore
+    /// Nil for rules that can't be changed here.
+    var actions: RuleInspectorActions?
 
     var body: some View {
         Form {
@@ -28,11 +36,20 @@ struct RuleInspectorView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                if let actions {
+                    HStack {
+                        Button("Edit…", action: actions.edit)
+                        Button(row.rule.isEnabled ? "Turn Off" : "Turn On") {
+                            actions.setEnabled(!row.rule.isEnabled)
+                        }
+                        Spacer()
+                        Button("Delete…", role: .destructive, action: actions.delete)
+                    }
+                }
                 LabeledContent("Action", value: row.actionLabel)
-                LabeledContent("Enabled", value: row.rule.isEnabled ? "Yes" : "No")
                 LabeledContent("Review", value: reviewState)
                 LabeledContent("Priority", value: priority)
-                LabeledContent("Status", value: enforcementState)
+                LabeledContent("Status", value: row.effectiveState.label)
                 if let groupID = row.rule.localGroupID {
                     LabeledContent("Group", value: groupName(groupID))
                 }
@@ -114,14 +131,6 @@ struct RuleInspectorView: View {
         row.rule.reviewState == .reviewed ? "Reviewed" : "Needs review"
     }
 
-    private var enforcementState: String {
-        switch row.enforcementState {
-        case .enforced: "Active"
-        case .savedPendingEnforcement: "Saved, waiting for the filter"
-        case .persistedPendingProvider: "Saved, waiting for the filter to start"
-        case .applyFailed: "Couldn’t apply"
-        }
-    }
 
     private var destinationLabel: String {
         switch row.rule.destination {

@@ -22,9 +22,22 @@ struct RulesWorkspaceTable: View {
             }
             .width(min: 190, ideal: 260)
             TableColumn("On") { node in
-                Image(systemName: enabledSymbol(node))
-                    .foregroundStyle(enabledColor(node))
-                    .accessibilityLabel(enabledLabel(node))
+                if canToggle(node) {
+                    Toggle(enabledLabel(node), isOn: Binding(
+                        get: { rows(node).allSatisfy(\.rule.isEnabled) },
+                        set: { value in
+                            applySelection([node.id])
+                            Task { await model.setSelectedEnabled(value) }
+                        }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.checkbox)
+                } else {
+                    Image(systemName: enabledSymbol(node))
+                        .foregroundStyle(enabledColor(node))
+                        .accessibilityLabel(enabledLabel(node))
+                        .help("Protected and blocklist rules can’t be turned off here.")
+                }
             }
             .width(34)
             TableColumn("Action") { node in Text(action(node)) }
@@ -43,8 +56,12 @@ struct RulesWorkspaceTable: View {
         .contextMenu(forSelectionType: RuleWorkspaceNodeID.self) { ids in
             contextMenuItems(ids)
         } primaryAction: { ids in
-            applySelection(ids)
-            showingInspector = true
+            let selected = applySelection(ids)
+            if selected.count == 1, selectionIsEditable(ids), !isPreview {
+                editingRow = row(selected.first)
+            } else {
+                showingInspector = true
+            }
         }
         .accessibilityActions {
             if selectedApplicationIdentity(nodeSelection) != nil {
@@ -76,8 +93,24 @@ struct RulesWorkspaceTable: View {
         }
         .disabled(model.historyCommandIsRunning)
         .overlay {
-            if model.rows.isEmpty {
-                ContentUnavailableView("No matching rules", systemImage: "list.bullet.rectangle")
+            if !model.hasLoaded {
+                ProgressView()
+            } else if model.rows.isEmpty, model.allRules.isEmpty {
+                ContentUnavailableView {
+                    Label("No Rules Yet", systemImage: "list.bullet.rectangle")
+                } description: {
+                    Text("Add a rule here, or block something from the Map.")
+                } actions: {
+                    Button("Add Rule") { showingEditor = true }.disabled(isPreview)
+                }
+            } else if model.rows.isEmpty {
+                ContentUnavailableView {
+                    Label("No Matching Rules", systemImage: "magnifyingglass")
+                } description: {
+                    Text("Nothing matches your search and filters.")
+                } actions: {
+                    Button("Clear Filters") { model.clearFilters() }
+                }
             }
         }
         .onAppear { synchronizeSelection() }

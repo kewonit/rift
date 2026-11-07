@@ -91,6 +91,15 @@ struct RulesWorkspaceView: View {
             .frame(minWidth: 400, idealWidth: 560, maxWidth: .infinity)
             .frame(maxHeight: .infinity)
             .onChange(of: model.search) { _, value in searchChanged(value) }
+#if DEBUG
+            .task { if FixturePreviewOptions.opensRuleEditor { showingEditor = true } }
+#endif
+            .onChange(of: model.controlPlane.desiredPolicyTuple) { _, _ in
+                Task { await model.reload() }
+            }
+            .onChange(of: model.controlPlane.activePolicyTuple) { _, _ in
+                Task { await model.reload() }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .inspector(isPresented: $showingInspector) {
@@ -101,7 +110,15 @@ struct RulesWorkspaceView: View {
                         groups: model.groups,
                         profiles: model.profiles,
                         blocklists: model.blocklists,
-                        artworkStore: artworkStore
+                        artworkStore: artworkStore,
+                        actions: isPreview || row.rule.flags.contains(.protected)
+                            || row.rule.flags.contains(.sourceManaged)
+                            ? nil
+                            : RuleInspectorActions(
+                                edit: { editingRow = row },
+                                setEnabled: { value in Task { await model.setSelectedEnabled(value) } },
+                                delete: { showingDeleteConfirmation = true }
+                            )
                     )
                 } else {
                     ContentUnavailableView("No Rule Selected", systemImage: "list.bullet.rectangle")
@@ -164,7 +181,8 @@ struct RulesWorkspaceView: View {
                 identities: model.identityChoices,
                 groups: model.groups,
                 profiles: model.profiles,
-                previewEnvironment: model.previewEnvironment
+                previewEnvironment: model.previewEnvironment,
+                artworkStore: artworkStore
             ) { draft in await model.create(draft) }
         }
         .sheet(item: $editingRow) { row in
@@ -173,7 +191,8 @@ struct RulesWorkspaceView: View {
                 identities: model.identityChoices,
                 groups: model.groups,
                 profiles: model.profiles,
-                previewEnvironment: model.previewEnvironment
+                previewEnvironment: model.previewEnvironment,
+                artworkStore: artworkStore
             ) { draft in
                 await model.edit(row.id, draft: draft)
             }

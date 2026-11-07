@@ -2,9 +2,11 @@ import Foundation
 import RiftCore
 
 /// How much a rule made from a connection covers.
+///
+/// There's no subdomain choice on purpose. Without public suffix validation, a
+/// host like `co.uk` would cover far more than anyone meant.
 public enum MonitorRuleBreadth: String, Sendable, Hashable, CaseIterable, Identifiable {
     case thisHost
-    case hostAndSubdomains
     case allDestinations
     case exactConnection
 
@@ -40,7 +42,6 @@ public enum MonitorRuleScope {
         var options: [MonitorRuleBreadth] = []
         if seeds.allSatisfy({ $0.destination == first.destination }) {
             options.append(.thisHost)
-            if case .exactHostnameSet = first.destination { options.append(.hostAndSubdomains) }
         }
         options.append(.allDestinations)
         if single { options.append(.exactConnection) }
@@ -58,9 +59,6 @@ public enum MonitorRuleScope {
             return MonitorRuleTarget(seed: seed)
         case .thisHost:
             destination = seed.destination
-        case .hostAndSubdomains:
-            guard let host = row.event.flow.observedHostname else { return nil }
-            destination = try .normalizedDomainSet([host])
         case .allDestinations:
             destination = .anyEndpoint
         }
@@ -77,7 +75,6 @@ public enum MonitorRuleScope {
     ) -> String {
         switch breadth {
         case .thisHost: "\(host), any port"
-        case .hostAndSubdomains: "\(host) and its subdomains"
         case .allDestinations: "All destinations"
         case .exactConnection: port.map { "Only \(host) on port \($0)" } ?? "Only \(host)"
         }
@@ -87,7 +84,6 @@ public enum MonitorRuleScope {
     public static func phrase(_ breadth: MonitorRuleBreadth, host: String) -> String {
         switch breadth {
         case .thisHost: "\(host) on any port"
-        case .hostAndSubdomains: "\(host) and its subdomains on any port"
         case .allDestinations: "all destinations"
         case .exactConnection: host
         }
@@ -95,8 +91,7 @@ public enum MonitorRuleScope {
 
     /// Hostname rules need a name from macOS, so say so where it matters.
     public static func limitation(_ breadth: MonitorRuleBreadth, row: MonitorEventRow) -> String? {
-        guard breadth == .thisHost || breadth == .hostAndSubdomains,
-              row.event.flow.observedHostname != nil else { return nil }
+        guard breadth == .thisHost, row.event.flow.observedHostname != nil else { return nil }
         return "This applies to connections that use this name, not direct connections to its IP address."
     }
 }

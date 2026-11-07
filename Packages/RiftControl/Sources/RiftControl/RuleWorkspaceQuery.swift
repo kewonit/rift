@@ -129,7 +129,8 @@ public enum RuleWorkspaceQuery {
                     generation: generation,
                     usage: usage[rule.id] ?? RuleUsageValue(
                         lowerBoundCount: 0, lastUsedAt: nil, coverage: .gap
-                    )
+                    ),
+                    context: context
                 )
             }
             .filter { row in includes(row, filter: filter, context: context) }

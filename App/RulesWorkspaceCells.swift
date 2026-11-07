@@ -8,6 +8,13 @@ extension RulesWorkspaceTable {
         return node.children?.compactMap(\.row) ?? []
     }
 
+    func canToggle(_ node: RuleWorkspaceNode) -> Bool {
+        let values = rows(node)
+        return !isPreview && !values.isEmpty && values.allSatisfy {
+            !$0.rule.flags.contains(.protected) && !$0.rule.flags.contains(.sourceManaged)
+        }
+    }
+
     func enabledSymbol(_ node: RuleWorkspaceNode) -> String {
         let values = rows(node).map(\.rule.isEnabled)
         if values.allSatisfy({ $0 }) { return "checkmark.circle.fill" }
@@ -82,16 +89,7 @@ extension RulesWorkspaceTable {
     }
 
     func state(_ node: RuleWorkspaceNode) -> String {
-        uniform(rows(node).map { state($0.enforcementState) })
-    }
-
-    func state(_ state: PolicyOutboxState) -> String {
-        switch state {
-        case .savedPendingEnforcement: "Pending"
-        case .persistedPendingProvider: "Pending"
-        case .enforced: "Active"
-        case .applyFailed: "Not applied"
-        }
+        uniform(rows(node).map(\.effectiveState.label))
     }
 
     func ruleCountLabel(_ count: Int) -> String {

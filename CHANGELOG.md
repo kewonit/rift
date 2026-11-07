@@ -93,6 +93,15 @@ release.
   activity label with Back to Live, and stops the map's flow dots.
 - Time ranges say what they mean, such as This Hour and Today. The timeline has
   time labels, and the Decisions chart now follows your search and filters.
+- On the Rules page, turn a rule on or off with a checkbox, double-click to edit
+  it, and use the buttons in the inspector, with no need to right-click.
+- Each rule now shows whether it's really in use, such as Active, Off, Other
+  profile, Group off, Expired or Waiting for filter.
+- The rule editor leads with what most people need, and keeps the rest under
+  Advanced. It shows app names, lets you choose any app, and shows problems
+  beside Save.
+- Profiles, Groups and Blocklists are always visible on the Rules page, with a
+  line explaining each. The page updates when rules change elsewhere.
 
 ## 0.3.0 (pre-release)
 

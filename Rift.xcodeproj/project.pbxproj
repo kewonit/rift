@@ -103,6 +103,7 @@
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
 		1000000000000000000000C9 /* RiftComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C9 /* RiftComponents.swift */; };
 		1000000000000000000000CA /* MonitorFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CA /* MonitorFeed.swift */; };
+		1000000000000000000000E8 /* RuleEditorAdvancedSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E8 /* RuleEditorAdvancedSection.swift */; };
 		1000000000000000000000E7 /* RuleScopeChooser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E7 /* RuleScopeChooser.swift */; };
 		1000000000000000000000E6 /* SetupChoiceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E6 /* SetupChoiceSection.swift */; };
 		1000000000000000000000E5 /* LoginItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E5 /* LoginItemController.swift */; };
@@ -275,6 +276,7 @@
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
 		2000000000000000000000C9 /* RiftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftComponents.swift; sourceTree = "<group>"; };
 		2000000000000000000000CA /* MonitorFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeed.swift; sourceTree = "<group>"; };
+		2000000000000000000000E8 /* RuleEditorAdvancedSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleEditorAdvancedSection.swift; sourceTree = "<group>"; };
 		2000000000000000000000E7 /* RuleScopeChooser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleScopeChooser.swift; sourceTree = "<group>"; };
 		2000000000000000000000E6 /* SetupChoiceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupChoiceSection.swift; sourceTree = "<group>"; };
 		2000000000000000000000E5 /* LoginItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemController.swift; sourceTree = "<group>"; };
@@ -418,6 +420,7 @@
 				2000000000000000000000C8 /* MonitorFixtureStream.swift */,
 				2000000000000000000000C9 /* RiftComponents.swift */,
 				2000000000000000000000CA /* MonitorFeed.swift */,
+				2000000000000000000000E8 /* RuleEditorAdvancedSection.swift */,
 				2000000000000000000000E7 /* RuleScopeChooser.swift */,
 				2000000000000000000000E6 /* SetupChoiceSection.swift */,
 				2000000000000000000000E5 /* LoginItemController.swift */,
@@ -723,6 +726,7 @@
 				1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */,
 				1000000000000000000000C9 /* RiftComponents.swift in Sources */,
 				1000000000000000000000CA /* MonitorFeed.swift in Sources */,
+				1000000000000000000000E8 /* RuleEditorAdvancedSection.swift in Sources */,
 				1000000000000000000000E7 /* RuleScopeChooser.swift in Sources */,
 				1000000000000000000000E6 /* SetupChoiceSection.swift in Sources */,
 				1000000000000000000000E5 /* LoginItemController.swift in Sources */,
