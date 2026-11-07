@@ -3,11 +3,15 @@ import AppKit
 import Foundation
 import SwiftUI
 
+/// Shows the oldest waiting connection. The panel has no close button, because
+/// closing it would look like dismissing the alert while the connection is
+/// quietly allowed at the deadline.
 @MainActor
-final class PromptPanelController: NSObject, NSWindowDelegate {
+final class PromptPanelController {
     static let shared = PromptPanelController()
 
     private var panel: NSPanel?
+    private var host: NSHostingController<ConnectionAlertView>?
     private var presentedNonce: UUID?
 
     func update(
@@ -16,16 +20,23 @@ final class PromptPanelController: NSObject, NSWindowDelegate {
         artworkStore: ApplicationArtworkStore
     ) {
         guard let next = prompts.first else {
-            panel?.close()
-            panel = nil
-            presentedNonce = nil
+            closePanel()
             return
         }
-        guard presentedNonce != next.nonce else { return }
-        panel?.close()
+        let view = ConnectionAlertView(
+            prompt: next,
+            moreWaiting: prompts.count - 1,
+            controller: controller,
+            artworkStore: artworkStore
+        )
+        if presentedNonce == next.nonce, let host {
+            host.rootView = view
+            return
+        }
+        closePanel()
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 540, height: 500),
-            styleMask: [.titled, .closable, .utilityWindow, .nonactivatingPanel],
+            styleMask: [.titled, .utilityWindow, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -33,26 +44,24 @@ final class PromptPanelController: NSObject, NSWindowDelegate {
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
-        panel.delegate = self
-        panel.contentViewController = NSHostingController(
-            rootView: ConnectionAlertView(
-                prompt: next,
-                controller: controller,
-                artworkStore: artworkStore
-            )
-        )
+        panel.hidesOnDeactivate = false
+        let host = NSHostingController(rootView: view)
+        panel.contentViewController = host
         panel.center()
         panel.orderFrontRegardless()
         self.panel = panel
+        self.host = host
         presentedNonce = next.nonce
     }
 
-    func dismiss() {
-        panel?.close()
+    func bringForward() {
+        panel?.orderFrontRegardless()
     }
 
-    func windowWillClose(_ notification: Notification) {
+    private func closePanel() {
+        panel?.close()
         panel = nil
+        host = nil
         presentedNonce = nil
     }
 }

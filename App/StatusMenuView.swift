@@ -284,6 +284,7 @@ struct StatusMenuView: View {
             controller: controller,
             artworkStore: session.applicationArtwork
         )
+        PromptPanelController.shared.bringForward()
     }
 
     private func toggleNotifications() {

@@ -40,6 +40,13 @@ release.
 - Filter problems now offer the button that fixes them, such as Turn On Filter
   or Finish Setup, and trying again works after macOS declines the filter.
 - Rift now explains when it can't start, instead of quitting silently.
+- Connection alerts can no longer be closed, because closing one quietly allowed
+  the connection. An alert also stays put when another request arrives, shows
+  how many more are waiting, and stays visible when you switch apps.
+- A choice you can see in an alert is now the choice that applies. One hour and
+  Always wait for system process confirmation, and a Block still applies to the
+  connection if its rule hasn't reached the filter yet.
+- Alerts say who signed the app, and use Block with ⌘B.
 
 ## 0.3.0 (pre-release)
 

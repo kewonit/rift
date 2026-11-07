@@ -23,7 +23,7 @@ struct RiftHealthView: View {
             Section("Network Filter") {
                 filterSection
             }
-            if status.state != .preview {
+            if status.state != .preview, status.state != .cannotFilter {
                 Section {
                     StatusRow(
                         title: "Your rules",

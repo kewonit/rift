@@ -50,8 +50,10 @@ struct ConnectionAlertView: View {
     }
 
     let prompt: PromptRequest
+    var moreWaiting = 0
     @Bindable var controller: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
+    @Environment(\.controlActiveState) private var controlActiveState
     @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = Lifetime.once.rawValue
     @AppStorage("alertDefaultScope") private var alertDefaultScope = RuleScope.currentProfile.rawValue
     @State private var lifetime: Lifetime = .once
@@ -81,16 +83,26 @@ struct ConnectionAlertView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Connection request")
                         .font(.title2.weight(.semibold))
-                    Text("\(applicationName) wants to connect to \(DisplaySanitizer.plainText(destination)).")
-                        .font(.body)
+                    Text(ConnectionAlertPresentation.headline(
+                        application: applicationName,
+                        destination: DisplaySanitizer.plainText(destination),
+                        direction: prompt.direction
+                    ))
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Label(identityTitle, systemImage: identitySymbol)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
                 }
                 Spacer()
-                Image(systemName: identitySymbol)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .help(identityTitle)
+                if let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
+                    Text(waiting)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
             }
 
             DisclosureGroup("Details", isExpanded: $showingDetails) {
@@ -110,7 +122,14 @@ struct ConnectionAlertView: View {
                 ForEach(Lifetime.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
-            .disabled(!canCreateDurableRule)
+            .disabled(!lastingChoiceAvailable)
+
+            if let hint = ConnectionAlertPresentation.lastingChoiceHint(
+                hasIdentity: prompt.appIdentity != nil || prompt.processIdentity != nil,
+                hasEndpoint: prompt.endpoint != nil
+            ) {
+                Text(hint).font(.caption).foregroundStyle(.secondary)
+            }
 
             if requiresSystemScopeConfirmation {
                 Toggle("Create a rule for this system process", isOn: $systemScopeConfirmed)
@@ -179,7 +198,7 @@ struct ConnectionAlertView: View {
                     if let pendingDecision {
                         HStack(spacing: 7) {
                             ProgressView().controlSize(.small)
-                            Text(pendingDecision == .deny ? "Denying…" : "Allowing…")
+                            Text(pendingDecision == .deny ? "Blocking…" : "Allowing…")
                                 .font(.callout)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -187,10 +206,10 @@ struct ConnectionAlertView: View {
                     // The width goes on the label so each bezel fills its half.
                     HStack(spacing: RiftDesign.Spacing.m) {
                         Button { decide(.deny) } label: {
-                            Label("Deny", systemImage: "xmark").frame(maxWidth: .infinity)
+                            Label("Block", systemImage: "xmark").frame(maxWidth: .infinity)
                         }
                         .tint(Color(nsColor: .systemRed))
-                        .keyboardShortcut("d", modifiers: .command)
+                        .keyboardShortcut("b", modifiers: .command)
                         .disabled(decisionDisabled(at: context.date))
                         Button { decide(.allow) } label: {
                             Label("Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
@@ -210,7 +229,7 @@ struct ConnectionAlertView: View {
                         .controlSize(.mini)
                         .tint(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                         HStack {
-                            Text("⌘D Deny · ⌘A Allow")
+                            if controlActiveState == .key { Text("⌘B Block · ⌘A Allow") }
                             Spacer()
                             Text(deadlineLabel(at: context.date))
                                 .monospacedDigit()
@@ -238,14 +257,15 @@ struct ConnectionAlertView: View {
             guard !Task.isCancelled else { return }
             resolvedApplicationName = name
         }
-        .onKeyPress(.escape) {
-            PromptPanelController.shared.dismiss()
-            return .handled
+        .task(id: prompt.nonce) {
+            // The filter resolves the connection at the deadline. If that news
+            // never arrives, clear the alert so it can't sit here with no way out.
+            let wait = prompt.deadline.timeIntervalSinceNow + 2
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+            guard !Task.isCancelled else { return }
+            controller.removePendingPrompt(prompt.nonce)
         }
     }
-
-    @ViewBuilder
-
 
     private func decide(_ action: FilterAction) {
         let durableScopeConfirmed = !requiresSystemScopeConfirmation || systemScopeConfirmed
@@ -296,6 +316,12 @@ struct ConnectionAlertView: View {
                     durableRuleSaved = true
                     decisionMessage = result.message
                     decisionNeedsAttention = result.requiresAttention
+                    // The rule may not reach the filter before the deadline.
+                    // Answering this connection too means your choice still
+                    // applies to it.
+                    if result.requiresAttention {
+                        try? await controller.answerOnce(prompt, action: action)
+                    }
                 } catch {
                     decisionMessage = "The rule wasn’t saved. This alert is still open, so you can try again."
                     decisionNeedsAttention = true
@@ -328,6 +354,14 @@ struct ConnectionAlertView: View {
 
     private var canCreateDurableRule: Bool {
         canCreateRule && activeProfileResolution.isResolved
+    }
+
+    private var lastingChoiceAvailable: Bool {
+        ConnectionAlertPresentation.allowsLastingChoice(
+            canCreateRule: canCreateDurableRule,
+            needsSystemConfirmation: requiresSystemScopeConfirmation,
+            systemConfirmed: systemScopeConfirmed
+        )
     }
 
     private var requiresSystemScopeConfirmation: Bool {
@@ -372,5 +406,4 @@ struct ConnectionAlertView: View {
     private var destination: String { facts.destination }
     private var identityTitle: String { facts.identityTitle }
     private var identitySymbol: String { facts.identitySymbol }
-    private var identityEvidence: String { facts.identityEvidence }
 }

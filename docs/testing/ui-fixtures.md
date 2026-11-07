@@ -41,6 +41,8 @@ Other preview options:
   focus, so screenshots of the map render.
 - `--ui-fixture-hide` hides the app a few seconds after launch, to measure
   background cost.
+- `--ui-fixture-alert-panel` shows the real alert panel with a 30 second
+  deadline, and `--ui-fixture-alert-queue` shows it with two more waiting.
 - `--ui-fixture-status <state>` shows one status on Status, the menu-bar panel
   and the Map instead of Preview. The states are `cannot-filter`, `unreadable`,
   `setup`, `installing`, `approval`, `off`, `problem`, `connecting`,

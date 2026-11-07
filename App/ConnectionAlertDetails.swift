@@ -53,13 +53,6 @@ struct ConnectionAlertFacts {
         }
     }
 
-    var identityEvidence: String {
-        guard let identity = prompt.appIdentity ?? prompt.processIdentity else {
-            return "Rift couldn’t identify this app, so you can’t create a lasting rule for it."
-        }
-        return identityEvidence(for: identity)
-    }
-
     func identityEvidence(for identity: ProcessIdentity) -> String {
         switch identity {
         case .applePlatform(let value), .developerID(let value), .appStore(let value):
@@ -98,9 +91,6 @@ struct ConnectionAlertDetails: View {
                     value: DisplaySanitizer.plainText(facts.identityEvidence(for: processIdentity))
                 )
             }
-            Text("Rules version \(prompt.generation) • Alert ID \(prompt.nonce.uuidString.lowercased())")
-                .font(.caption.monospaced())
-                .textSelection(.enabled)
         }
         .padding(.top, 7)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -6,14 +6,8 @@ import Foundation
 extension ControlPlaneController {
     func mergeIncomingPrompts(_ incoming: [PromptRequest], now: Date) {
         guard !incoming.isEmpty || !pendingPrompts.isEmpty else { return }
-        for prompt in incoming where prompt.deadline > now {
-            pendingPrompts.removeAll {
-                $0.nonce == prompt.nonce ||
-                    ($0.providerEpoch == prompt.providerEpoch && $0.flowID == prompt.flowID)
-            }
-            pendingPrompts.append(prompt)
-        }
-        pendingPrompts.removeAll { $0.deadline <= now }
+        let merged = PromptListMerge.merged(existing: pendingPrompts, incoming: incoming, now: now)
+        if merged != pendingPrompts { pendingPrompts = merged }
     }
 
     func retainActivePrompts(_ nonces: Set<UUID>) {

@@ -143,6 +143,14 @@ final class AppSession {
             lifecycle = FilterLifecycleController()
         }
         start()
+        if launchMode == .uiFixture, let count = FixturePreviewOptions.panelPromptCount {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                controlPlane.pendingPrompts = AlertFixtureHost.samplePrompts(
+                    count: count, deadline: Date().addingTimeInterval(30)
+                )
+            }
+        }
         if launchMode == .uiFixture, MonitorFixtureData.scenario == .burst {
             MonitorFixtureStream.startDriver(controlPlane)
         }
@@ -200,6 +208,14 @@ final class AppSession {
         observeFilterConfiguration()
     }
 
+    private var showsPromptPanel: Bool {
+#if DEBUG
+        !isUIFixture || FixturePreviewOptions.panelPromptCount != nil
+#else
+        true
+#endif
+    }
+
     private func observePrompts() {
         guard !observingPrompts else { return }
         observingPrompts = true
@@ -209,7 +225,7 @@ final class AppSession {
             Task { @MainActor in
                 guard let self else { return }
                 self.observingPrompts = false
-                if !self.isUIFixture {
+                if self.showsPromptPanel {
                     PromptPanelController.shared.update(
                         prompts: self.controlPlane.pendingPrompts,
                         controller: self.controlPlane,

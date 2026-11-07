@@ -23,6 +23,13 @@ enum FixturePreviewOptions {
     static var opensSettings: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-settings") }
     static var showsAlert: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-alert") }
 
+    /// How many alerts to show in the real panel, with a real 30 second deadline.
+    static var panelPromptCount: Int? {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--ui-fixture-alert-queue") { return 3 }
+        return arguments.contains("--ui-fixture-alert-panel") ? 1 : nil
+    }
+
     /// Shows one status instead of Preview, for reviewing how each state reads.
     static var statusInputs: ProtectionInputs? {
         let arguments = ProcessInfo.processInfo.arguments
@@ -70,7 +77,7 @@ struct AlertFixtureHost: View {
     var body: some View {
         ZStack {
             Color(nsColor: .windowBackgroundColor)
-            if let prompt = Self.samplePrompt {
+            if let prompt = Self.samplePrompts(count: 1, deadline: Date().addingTimeInterval(3_600)).first {
                 ConnectionAlertView(
                     prompt: prompt,
                     controller: session.controlPlane,
@@ -83,20 +90,22 @@ struct AlertFixtureHost: View {
         .frame(minWidth: 640, minHeight: 560)
     }
 
-    private static var samplePrompt: PromptRequest? {
-        guard let row = MonitorFixtureData.rows.first(where: { $0.event.flow.remoteEndpoint != nil }) else {
-            return nil
-        }
-        let flow = row.event.flow
-        return PromptRequest(
-            nonce: UUID(), providerEpoch: row.event.providerEpoch,
-            lineageID: UUID(), generation: 1, flowID: flow.flowID,
-            observedAt: Date(), deadline: Date().addingTimeInterval(3_600),
-            owner: flow.owner, appIdentity: flow.sourceAppIdentity,
-            processIdentity: flow.sourceProcessIdentity, direction: .outgoing,
-            transportProtocol: flow.transportProtocol, endpoint: flow.remoteEndpoint,
-            winningRuleID: nil, affectingRuleIDs: []
-        )
+    static func samplePrompts(count: Int, deadline: Date) -> [PromptRequest] {
+        MonitorFixtureData.rows
+            .filter { $0.event.flow.remoteEndpoint != nil }
+            .prefix(count)
+            .map { row in
+                let flow = row.event.flow
+                return PromptRequest(
+                    nonce: UUID(), providerEpoch: row.event.providerEpoch,
+                    lineageID: UUID(), generation: 1, flowID: flow.flowID,
+                    observedAt: Date(), deadline: deadline,
+                    owner: flow.owner, appIdentity: flow.sourceAppIdentity,
+                    processIdentity: flow.sourceProcessIdentity, direction: .outgoing,
+                    transportProtocol: flow.transportProtocol, endpoint: flow.remoteEndpoint,
+                    winningRuleID: nil, affectingRuleIDs: []
+                )
+            }
     }
 }
 #endif
