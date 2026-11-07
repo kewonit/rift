@@ -103,6 +103,15 @@
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
 		1000000000000000000000C9 /* RiftComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C9 /* RiftComponents.swift */; };
 		1000000000000000000000CA /* MonitorFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CA /* MonitorFeed.swift */; };
+		1000000000000000000000E1 /* RulesWorkspaceCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E1 /* RulesWorkspaceCells.swift */; };
+		1000000000000000000000E0 /* RulesWorkspaceContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E0 /* RulesWorkspaceContextMenu.swift */; };
+		1000000000000000000000DF /* ConnectionAlertDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DF /* ConnectionAlertDetails.swift */; };
+		1000000000000000000000DE /* ControlPlanePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DE /* ControlPlanePrompts.swift */; };
+		1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DD /* FilterConfigurationStore.swift */; };
+		1000000000000000000000DC /* RuleInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DC /* RuleInspectorView.swift */; };
+		1000000000000000000000DB /* RiftStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DB /* RiftStatusView.swift */; };
+		1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */; };
+		1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000D9 /* ConfigurationMutationResult.swift */; };
 		1000000000000000000000CB /* MonitorFeedActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CB /* MonitorFeedActions.swift */; };
 		1000000000000000000000CC /* MonitorHierarchySort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CC /* MonitorHierarchySort.swift */; };
 		1000000000000000000000CD /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CD /* AppIcon.icon */; };
@@ -260,6 +269,15 @@
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
 		2000000000000000000000C9 /* RiftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftComponents.swift; sourceTree = "<group>"; };
 		2000000000000000000000CA /* MonitorFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeed.swift; sourceTree = "<group>"; };
+		2000000000000000000000E1 /* RulesWorkspaceCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesWorkspaceCells.swift; sourceTree = "<group>"; };
+		2000000000000000000000E0 /* RulesWorkspaceContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesWorkspaceContextMenu.swift; sourceTree = "<group>"; };
+		2000000000000000000000DF /* ConnectionAlertDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertDetails.swift; sourceTree = "<group>"; };
+		2000000000000000000000DE /* ControlPlanePrompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlanePrompts.swift; sourceTree = "<group>"; };
+		2000000000000000000000DD /* FilterConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterConfigurationStore.swift; sourceTree = "<group>"; };
+		2000000000000000000000DC /* RuleInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleInspectorView.swift; sourceTree = "<group>"; };
+		2000000000000000000000DB /* RiftStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftStatusView.swift; sourceTree = "<group>"; };
+		2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneDefinitionCommands.swift; sourceTree = "<group>"; };
+		2000000000000000000000D9 /* ConfigurationMutationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationMutationResult.swift; sourceTree = "<group>"; };
 		2000000000000000000000CB /* MonitorFeedActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeedActions.swift; sourceTree = "<group>"; };
 		2000000000000000000000CC /* MonitorHierarchySort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorHierarchySort.swift; sourceTree = "<group>"; };
 		2000000000000000000000CD /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
@@ -388,6 +406,15 @@
 				2000000000000000000000C8 /* MonitorFixtureStream.swift */,
 				2000000000000000000000C9 /* RiftComponents.swift */,
 				2000000000000000000000CA /* MonitorFeed.swift */,
+				2000000000000000000000E1 /* RulesWorkspaceCells.swift */,
+				2000000000000000000000E0 /* RulesWorkspaceContextMenu.swift */,
+				2000000000000000000000DF /* ConnectionAlertDetails.swift */,
+				2000000000000000000000DE /* ControlPlanePrompts.swift */,
+				2000000000000000000000DD /* FilterConfigurationStore.swift */,
+				2000000000000000000000DC /* RuleInspectorView.swift */,
+				2000000000000000000000DB /* RiftStatusView.swift */,
+				2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */,
+				2000000000000000000000D9 /* ConfigurationMutationResult.swift */,
 				2000000000000000000000CB /* MonitorFeedActions.swift */,
 				2000000000000000000000CC /* MonitorHierarchySort.swift */,
 				2000000000000000000000CD /* AppIcon.icon */,
@@ -678,6 +705,15 @@
 				1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */,
 				1000000000000000000000C9 /* RiftComponents.swift in Sources */,
 				1000000000000000000000CA /* MonitorFeed.swift in Sources */,
+				1000000000000000000000E1 /* RulesWorkspaceCells.swift in Sources */,
+				1000000000000000000000E0 /* RulesWorkspaceContextMenu.swift in Sources */,
+				1000000000000000000000DF /* ConnectionAlertDetails.swift in Sources */,
+				1000000000000000000000DE /* ControlPlanePrompts.swift in Sources */,
+				1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */,
+				1000000000000000000000DC /* RuleInspectorView.swift in Sources */,
+				1000000000000000000000DB /* RiftStatusView.swift in Sources */,
+				1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */,
+				1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */,
 				1000000000000000000000CB /* MonitorFeedActions.swift in Sources */,
 				1000000000000000000000CC /* MonitorHierarchySort.swift in Sources */,
 				1000000000000000000000CE /* NetworkMapMarkers.swift in Sources */,

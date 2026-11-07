@@ -11,9 +11,9 @@ struct RulesWorkspaceTable: View {
     @Binding var showingEditor: Bool
     @Binding var showingInspector: Bool
     @Binding var showingDeleteConfirmation: Bool
-    @State private var nodeSelection: Set<RuleWorkspaceNodeID> = []
-    @State private var contextMessage: String?
-    @State private var focusedApplication: ProcessIdentity?
+    @State var nodeSelection: Set<RuleWorkspaceNodeID> = []
+    @State var contextMessage: String?
+    @State var focusedApplication: ProcessIdentity?
 
     var body: some View {
         Table(displayedHierarchy, children: \.children, selection: tableSelection) {
@@ -41,84 +41,7 @@ struct RulesWorkspaceTable: View {
                 .width(min: 90, ideal: 130)
         }
         .contextMenu(forSelectionType: RuleWorkspaceNodeID.self) { ids in
-            Button("New Rule…") { showingEditor = true }
-                .disabled(isPreview)
-            Divider()
-            Button("Edit") {
-                let selected = applySelection(ids)
-                editingRow = selected.count == 1 ? row(selected.first) : nil
-            }
-            .disabled(isPreview || !selectionIsEditable(ids))
-            Button("Duplicate") {
-                applySelection(ids)
-                Task { await model.duplicateSelected() }
-            }
-            .disabled(isPreview || !selectionIsEditable(ids))
-            Button("Enable") {
-                applySelection(ids)
-                Task { await model.setSelectedEnabled(true) }
-            }
-            .disabled(isPreview || eligibleCount(ids) == 0)
-            Button("Disable") {
-                applySelection(ids)
-                Task { await model.setSelectedEnabled(false) }
-            }
-            .disabled(isPreview || eligibleCount(ids) == 0)
-            Button("Mark Reviewed") {
-                applySelection(ids)
-                Task { await model.markSelectedReviewed(true) }
-            }
-            .disabled(isPreview || eligibleCount(ids) == 0)
-            Button("Mark Unreviewed") {
-                applySelection(ids)
-                Task { await model.markSelectedReviewed(false) }
-            }
-            .disabled(isPreview || eligibleCount(ids) == 0)
-            Menu("Assign to Group") {
-                Button("No Group") {
-                    applySelection(ids)
-                    Task { await model.assignSelectedToGroup(nil) }
-                }
-                ForEach(model.groups) { group in
-                    Button(group.name) {
-                        applySelection(ids)
-                        Task { await model.assignSelectedToGroup(group.id) }
-                    }
-                }
-            }
-            .disabled(isPreview || eligibleCount(ids) == 0)
-            Menu("Assign to Profile") {
-                Button("All Profiles") {
-                    applySelection(ids)
-                    Task { await model.assignSelectedToProfile(nil) }
-                }
-                ForEach(model.profiles) { profile in
-                    Button(profile.name) {
-                        applySelection(ids)
-                        Task { await model.assignSelectedToProfile(profile.id) }
-                    }
-                }
-            }
-            .disabled(isPreview || eligibleCount(ids) == 0)
-            Divider()
-            Button("Show Rules for This App") { focusAffectingRules(ids) }
-                .disabled(selectedApplicationIdentity(ids) == nil)
-            Button("Show App in Finder") { revealApplication(ids) }
-                .disabled(isPreview || selectedApplicationIdentity(ids) == nil)
-            Button("Copy Details") { copyDetails(ids) }
-                .disabled(isPreview || selectedRows(ids).count != 1)
-            Divider()
-            Button("Delete…", role: .destructive) {
-                applySelection(ids)
-                showingDeleteConfirmation = true
-            }
-            .disabled(isPreview || eligibleCount(ids) == 0)
-            let skipped = selectedRuleIDs(ids).count - eligibleCount(ids)
-            if skipped > 0 {
-                Text(skipped == 1
-                    ? "1 protected or blocklist rule will be skipped."
-                    : "\(skipped) protected or blocklist rules will be skipped.")
-            }
+            contextMenuItems(ids)
         } primaryAction: { ids in
             applySelection(ids)
             showingInspector = true
@@ -174,7 +97,7 @@ struct RulesWorkspaceTable: View {
     }
 
     @ViewBuilder
-    private func identityCell(_ node: RuleWorkspaceNode) -> some View {
+    func identityCell(_ node: RuleWorkspaceNode) -> some View {
         let cell = HStack(spacing: 7) {
             if node.row == nil {
                 if let identity = node.applicationIdentity {
@@ -226,7 +149,7 @@ struct RulesWorkspaceTable: View {
         }
     }
 
-    private var tableSelection: Binding<Set<RuleWorkspaceNodeID>> {
+    var tableSelection: Binding<Set<RuleWorkspaceNodeID>> {
         Binding(
             get: { nodeSelection },
             set: { value in
@@ -238,7 +161,7 @@ struct RulesWorkspaceTable: View {
         )
     }
 
-    private func synchronizeSelection() {
+    func synchronizeSelection() {
         if let focusedApplication,
            !model.hierarchy.contains(where: { $0.applicationIdentity == focusedApplication }) {
             self.focusedApplication = nil
@@ -270,22 +193,22 @@ struct RulesWorkspaceTable: View {
     }
 
     @discardableResult
-    private func applySelection(_ ids: Set<RuleWorkspaceNodeID>) -> Set<UUID> {
+    func applySelection(_ ids: Set<RuleWorkspaceNodeID>) -> Set<UUID> {
         let selected = selectedRuleIDs(ids)
         model.selectRulesImmediately(selected)
         return selected
     }
 
-    private func selectedRuleIDs(_ ids: Set<RuleWorkspaceNodeID>) -> Set<UUID> {
+    func selectedRuleIDs(_ ids: Set<RuleWorkspaceNodeID>) -> Set<UUID> {
         RuleWorkspaceHierarchy.ruleIDs(for: ids, in: displayedHierarchy)
     }
 
-    private func selectedRows(_ ids: Set<RuleWorkspaceNodeID>) -> [RuleRowViewValue] {
+    func selectedRows(_ ids: Set<RuleWorkspaceNodeID>) -> [RuleRowViewValue] {
         let selected = selectedRuleIDs(ids)
         return model.rows.filter { selected.contains($0.id) }
     }
 
-    private func draggableRuleIDs(for node: RuleWorkspaceNode) -> Set<UUID>? {
+    func draggableRuleIDs(for node: RuleWorkspaceNode) -> Set<UUID>? {
         let ids = nodeSelection.contains(node.id)
             ? selectedRuleIDs(nodeSelection)
             : node.ruleIDs
@@ -297,31 +220,31 @@ struct RulesWorkspaceTable: View {
         return containsEligibleRule ? ids : nil
     }
 
-    private func row(_ id: UUID?) -> RuleRowViewValue? {
+    func row(_ id: UUID?) -> RuleRowViewValue? {
         id.flatMap { id in model.rows.first { $0.id == id } }
     }
 
-    private func selectionIsEditable(_ ids: Set<RuleWorkspaceNodeID>) -> Bool {
+    func selectionIsEditable(_ ids: Set<RuleWorkspaceNodeID>) -> Bool {
         let rows = selectedRows(ids)
         return rows.count == 1
             && !rows[0].rule.flags.contains(.protected)
             && !rows[0].rule.flags.contains(.sourceManaged)
     }
 
-    private func eligibleCount(_ ids: Set<RuleWorkspaceNodeID>) -> Int {
+    func eligibleCount(_ ids: Set<RuleWorkspaceNodeID>) -> Int {
         selectedRows(ids).filter {
             !$0.rule.flags.contains(.protected) && !$0.rule.flags.contains(.sourceManaged)
         }.count
     }
 
-    private func selectedApplicationIdentity(
+    func selectedApplicationIdentity(
         _ ids: Set<RuleWorkspaceNodeID>
     ) -> ProcessIdentity? {
         let identities = Set(selectedRows(ids).compactMap { applicationIdentity($0.rule.process) })
         return identities.count == 1 ? identities.first : nil
     }
 
-    private var displayedHierarchy: [RuleWorkspaceNode] {
+    var displayedHierarchy: [RuleWorkspaceNode] {
         guard let focusedApplication else { return model.hierarchy }
         return RuleWorkspaceHierarchy.nodes(
             affecting: focusedApplication,
@@ -329,7 +252,7 @@ struct RulesWorkspaceTable: View {
         )
     }
 
-    private func focusAffectingRules(_ ids: Set<RuleWorkspaceNodeID>) {
+    func focusAffectingRules(_ ids: Set<RuleWorkspaceNodeID>) {
         guard let identity = selectedApplicationIdentity(ids) else { return }
         applySelection(ids)
         focusedApplication = identity
@@ -341,7 +264,7 @@ struct RulesWorkspaceTable: View {
         model.scheduleReload()
     }
 
-    private func revealApplication(_ ids: Set<RuleWorkspaceNodeID>) {
+    func revealApplication(_ ids: Set<RuleWorkspaceNodeID>) {
         guard let identity = selectedApplicationIdentity(ids) else { return }
         Task {
             guard await artworkStore.revealApplication(for: identity) else {
@@ -351,7 +274,7 @@ struct RulesWorkspaceTable: View {
         }
     }
 
-    private func copyDetails(_ ids: Set<RuleWorkspaceNodeID>) {
+    func copyDetails(_ ids: Set<RuleWorkspaceNodeID>) {
         guard let row = selectedRows(ids).only else { return }
         let context = RuleWorkspaceQueryContext(
             activeProfileID: model.activeProfileID,
@@ -377,116 +300,4 @@ struct RulesWorkspaceTable: View {
             return
         }
     }
-
-    private func rows(_ node: RuleWorkspaceNode) -> [RuleRowViewValue] {
-        if let row = node.row { return [row] }
-        return node.children?.compactMap(\.row) ?? []
-    }
-
-    private func enabledSymbol(_ node: RuleWorkspaceNode) -> String {
-        let values = rows(node).map(\.rule.isEnabled)
-        if values.allSatisfy({ $0 }) { return "checkmark.circle.fill" }
-        if values.allSatisfy({ !$0 }) { return "circle" }
-        return "minus.circle.fill"
-    }
-
-    private func enabledColor(_ node: RuleWorkspaceNode) -> Color {
-        switch enabledSymbol(node) {
-        case "checkmark.circle.fill": Color(nsColor: .systemGreen)
-        case "circle": .secondary
-        default: Color(nsColor: .systemOrange)
-        }
-    }
-
-    private func enabledLabel(_ node: RuleWorkspaceNode) -> String {
-        switch enabledSymbol(node) {
-        case "checkmark.circle.fill": "Enabled"
-        case "circle": "Disabled"
-        default: "Some enabled"
-        }
-    }
-
-    private func action(_ node: RuleWorkspaceNode) -> String {
-        node.row?.actionLabel ?? ruleCountLabel(node.ruleIDs.count)
-    }
-
-    private func scope(_ node: RuleWorkspaceNode) -> String {
-        uniform(rows(node).map(scope))
-    }
-
-    private func scope(_ row: RuleRowViewValue) -> String {
-        let profile = row.rule.profileID.flatMap { id in
-            model.profiles.first { $0.id == id }?.name
-        } ?? "All profiles"
-        let group = row.rule.localGroupID.flatMap { id in
-            model.groups.first { $0.id == id }?.name
-        }
-        return DisplaySanitizer.plainText(group.map { "\(profile) • \($0)" } ?? profile)
-    }
-
-    private func source(_ node: RuleWorkspaceNode) -> String {
-        uniform(rows(node).map(source))
-    }
-
-    private func source(_ row: RuleRowViewValue) -> String {
-        if row.rule.flags.contains(.protected) { return "Protected" }
-        switch row.rule.priority {
-        case .elevatedUser: return "Exception"
-        case .blocklistDeny: return "Blocklist"
-        case .normal: return "Manual"
-        }
-    }
-
-    private func usage(_ node: RuleWorkspaceNode) -> String {
-        let values = rows(node)
-        var total = 0
-        for row in values {
-            let next = total.addingReportingOverflow(row.usage.lowerBoundCount)
-            guard !next.overflow else { return "—" }
-            total = next.partialValue
-        }
-        return values.allSatisfy { $0.usage.coverage == .complete } ? String(total) : "≥\(total)"
-    }
-
-    private func usageHelp(_ node: RuleWorkspaceNode) -> String {
-        let values = rows(node)
-        if values.allSatisfy({ $0.usage.coverage == .complete }) {
-            return "How many times this rule was used in saved history."
-        }
-        return "At least this many. Some history is missing."
-    }
-
-    private func state(_ node: RuleWorkspaceNode) -> String {
-        uniform(rows(node).map { state($0.enforcementState) })
-    }
-
-    private func state(_ state: PolicyOutboxState) -> String {
-        switch state {
-        case .savedPendingEnforcement: "Pending"
-        case .persistedPendingProvider: "Pending"
-        case .enforced: "Active"
-        case .applyFailed: "Not applied"
-        }
-    }
-
-    private func ruleCountLabel(_ count: Int) -> String {
-        count == 1 ? "1 rule" : "\(count) rules"
-    }
-
-    private func uniform(_ values: [String]) -> String {
-        guard let first = values.first else { return "—" }
-        return values.dropFirst().allSatisfy { $0 == first } ? first : "Mixed"
-    }
-}
-
-func applicationIdentity(_ condition: ProcessCondition) -> ProcessIdentity? {
-    switch condition {
-    case .exact(let identity): identity
-    case .appViaHelper(let app, _): app
-    case .anyProcess: nil
-    }
-}
-
-private extension Collection {
-    var only: Element? { count == 1 ? first : nil }
 }

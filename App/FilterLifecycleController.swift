@@ -135,7 +135,7 @@ final class FilterLifecycleController: NSObject {
         transition(.beginUninstall)
         Task {
             do {
-                try await removeFilterConfiguration(retryStaleOnce: true)
+                try await FilterConfigurationStore.remove()
                 submitDeactivation()
             } catch {
                 retryAction = .status
@@ -215,49 +215,17 @@ final class FilterLifecycleController: NSObject {
     private func enableFilter() async {
         transition(.beginConfiguration)
         do {
-            try await configureFilter(retryStaleOnce: true)
+            try await FilterConfigurationStore.save(
+                extensionIdentifier: Self.extensionIdentifier
+            ) { [weak self] in
+                self?.transition(.configurationStale)
+                self?.transition(.beginConfiguration)
+            }
             refreshInstalledState()
         } catch {
             retryAction = .activation
             transition(.fail("macOS couldn’t turn on the filter, so connections aren’t being filtered. Try again. Error code: \(sanitized(error))."))
         }
-    }
-
-    private func configureFilter(retryStaleOnce: Bool) async throws {
-        let manager = NEFilterManager.shared()
-        try await manager.loadFromPreferences()
-        let configuration = NEFilterProviderConfiguration()
-        configuration.filterSockets = true
-        configuration.filterPackets = false
-        configuration.organization = "Rift"
-        configuration.filterDataProviderBundleIdentifier = Self.extensionIdentifier
-        configuration.filterPacketProviderBundleIdentifier = nil
-        manager.providerConfiguration = configuration
-        manager.localizedDescription = "Rift Network Filter"
-        manager.isEnabled = true
-        do {
-            try await manager.saveToPreferences()
-        } catch let error as NSError where retryStaleOnce && isStale(error) {
-            transition(.configurationStale)
-            transition(.beginConfiguration)
-            try await configureFilter(retryStaleOnce: false)
-        }
-    }
-
-    private func removeFilterConfiguration(retryStaleOnce: Bool) async throws {
-        let manager = NEFilterManager.shared()
-        try await manager.loadFromPreferences()
-        guard manager.providerConfiguration != nil else { return }
-        do {
-            try await manager.removeFromPreferences()
-        } catch let error as NSError where retryStaleOnce && isStale(error) {
-            try await removeFilterConfiguration(retryStaleOnce: false)
-        }
-    }
-
-    private func isStale(_ error: NSError) -> Bool {
-        error.domain == NEFilterErrorDomain &&
-            error.code == NEFilterManagerError.configurationStale.rawValue
     }
 
     private func sanitized(_ error: Error) -> String {
