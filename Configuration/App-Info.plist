@@ -2,6 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.rift.firewall</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rift</string>
+			</array>
+		</dict>
+	</array>
 	<key>RiftAppGroupIdentifier</key>
 	<string>$(RIFT_APP_GROUP)</string>
 	<key>RiftMachServiceName</key>
