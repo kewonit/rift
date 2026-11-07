@@ -58,3 +58,43 @@ struct RuleEditorAdvancedSection: View {
         }
     }
 }
+
+extension ManualRuleEditorView {
+    enum DestinationKind: String, CaseIterable, Identifiable {
+        case hostOrAddress = "Specific sites or addresses"
+        case broadcast = "Broadcast"
+        case multicast = "Multicast"
+        case bonjour = "Bonjour"
+        case localNetwork = "Local network"
+        case any = "Any destination"
+        var id: String { rawValue }
+    }
+
+    enum ProtocolChoice: String, CaseIterable, Identifiable {
+        case tcp = "TCP"
+        case udp = "UDP"
+        case any = "TCP or UDP"
+        var id: String { rawValue }
+        var value: ProtocolCondition {
+            switch self { case .tcp: .tcp; case .udp: .udp; case .any: .anySupportedProtocol }
+        }
+    }
+
+    enum EditorAction: String, CaseIterable, Identifiable {
+        case allow = "Allow"
+        case deny = "Block"
+        case ask = "Ask"
+        case notify = "Notify"
+        case hide = "Hide from history"
+        var id: String { rawValue }
+        var value: RuleAction {
+            switch self {
+            case .allow: .filter(.allow)
+            case .deny: .filter(.deny)
+            case .ask: .filter(.ask)
+            case .notify: .notification(.notify)
+            case .hide: .privacy(.hide)
+            }
+        }
+    }
+}

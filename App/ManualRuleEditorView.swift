@@ -40,44 +40,6 @@ struct ManualRuleEditorView: View {
     @State private var preview: RuleImpactPreview?
     @State private var previewTask: Task<Void, Never>?
 
-    enum DestinationKind: String, CaseIterable, Identifiable {
-        case hostOrAddress = "Specific sites or addresses"
-        case broadcast = "Broadcast"
-        case multicast = "Multicast"
-        case bonjour = "Bonjour"
-        case localNetwork = "Local network"
-        case any = "Any destination"
-        var id: String { rawValue }
-    }
-
-    enum ProtocolChoice: String, CaseIterable, Identifiable {
-        case tcp = "TCP"
-        case udp = "UDP"
-        case any = "TCP or UDP"
-        var id: String { rawValue }
-        var value: ProtocolCondition {
-            switch self { case .tcp: .tcp; case .udp: .udp; case .any: .anySupportedProtocol }
-        }
-    }
-
-    enum EditorAction: String, CaseIterable, Identifiable {
-        case allow = "Allow"
-        case deny = "Block"
-        case ask = "Ask"
-        case notify = "Notify"
-        case hide = "Hide from history"
-        var id: String { rawValue }
-        var value: RuleAction {
-            switch self {
-            case .allow: .filter(.allow)
-            case .deny: .filter(.deny)
-            case .ask: .filter(.ask)
-            case .notify: .notification(.notify)
-            case .hide: .privacy(.hide)
-            }
-        }
-    }
-
     init(
         initial: Rule? = nil,
         identities: [RuleIdentityChoice],
@@ -139,7 +101,9 @@ struct ManualRuleEditorView: View {
                         .foregroundStyle(.orange)
                 }
                 if action == .notify {
-                    Text("Rift notifies you when this rule matches, up to a limit. It doesn’t change filtering.")
+                    Text(UserDefaults.standard.bool(forKey: "notificationsEnabled")
+                        ? "Rift notifies you when this rule matches, up to a limit. It doesn’t change filtering."
+                        : "Notifications are off, so this rule won’t notify you until you turn them on in Settings.")
                         .foregroundStyle(.secondary)
                 }
                 if action == .allow {

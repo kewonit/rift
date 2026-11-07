@@ -122,7 +122,7 @@ struct HistorySettingsPane: View {
     @Binding var historyEnabled: Bool
     @Binding var retentionDays: Int
     @Binding var maximumFlows: Int
-    let apply: () -> Void
+    let changed: () -> Void
     let clear: () -> Void
     let export: (HistoryExportFormat) -> Void
 
@@ -139,8 +139,7 @@ struct HistorySettingsPane: View {
                     step: 1_000
                 )
                 .disabled(!historyEnabled)
-                Button("Apply", action: apply)
-                Text("When history is off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes, and only while Activity or Live Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply.")
+                Text("When history is off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes, and only while the Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
@@ -152,9 +151,12 @@ struct HistorySettingsPane: View {
             } header: {
                 Text("Data")
             } footer: {
-                Text("Connections that match a “Hide from history” rule never appear in Activity, history, usage counts, or totals.")
+                Text("Connections that match a “Hide from history” rule never appear on the Map, in history, usage counts, or totals.")
             }
         }
         .formStyle(.grouped)
+        .onChange(of: historyEnabled) { _, _ in changed() }
+        .onChange(of: retentionDays) { _, _ in changed() }
+        .onChange(of: maximumFlows) { _, _ in changed() }
     }
 }

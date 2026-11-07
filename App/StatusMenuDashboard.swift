@@ -27,10 +27,13 @@ struct StatusMenuDashboard: View {
                 performAction: performAction
             )
             .equatable()
+            StatusMenuTraffic(traffic: snapshot.traffic).equatable()
+            recent
             HStack {
-                Text("Notify about new connections")
+                Text("Notify about blocks and undecided connections")
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: RiftDesign.Spacing.s)
-                Toggle("Notify about new connections", isOn: Binding(
+                Toggle("Notify about blocks and undecided connections", isOn: Binding(
                     get: { notificationsEnabled }, set: { _ in toggleNotifications() }
                 ))
                 .labelsHidden()
@@ -38,8 +41,6 @@ struct StatusMenuDashboard: View {
                 .controlSize(.mini)
             }
             .padding(.horizontal, RiftDesign.Spacing.xs + 2)
-            StatusMenuTraffic(traffic: snapshot.traffic).equatable()
-            recent
         }
     }
 

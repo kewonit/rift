@@ -28,6 +28,8 @@ struct SettingsView: View {
     @State private var showingRestoreConfirmation = false
     @State private var pendingHistoryExport: HistoryExportFormat?
     @State private var showingDisableHistoryChoice = false
+    @State private var savedHistory: HistoryValues?
+    @State private var historySaveTask: Task<Void, Never>?
     @State private var showingClearHistoryConfirmation = false
     @State private var restoreNeedsRetry = false
     @State private var groups: [LocalRuleGroup] = []
@@ -89,9 +91,9 @@ struct SettingsView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if let message {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(Color(nsColor: .systemOrange))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
@@ -111,50 +113,15 @@ struct SettingsView: View {
                 ? "Rift will keep a private copy of the damaged configuration before restoring."
                 : "Rift backs up your current configuration first.")
         }
-        .confirmationDialog(
-            "Export connection history?",
-            isPresented: Binding(
-                get: { pendingHistoryExport != nil },
-                set: { if !$0 { pendingHistoryExport = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Export", action: exportHistory)
-            Button("Cancel", role: .cancel) { pendingHistoryExport = nil }
-        } message: {
-            Text("The file can include app names, destinations, ports, and connection times. Share it with care.")
-        }
-        .confirmationDialog(
-            "Turn off connection history?",
-            isPresented: $showingDisableHistoryChoice,
-            titleVisibility: .visible
-        ) {
-            Button("Turn Off and Keep History") { applyHistorySettings(clearHistory: false) }
-            Button("Turn Off and Clear History", role: .destructive) {
-                applyHistorySettings(clearHistory: true)
-            }
-            Button("Turn Off and Clear History and Rule Usage", role: .destructive) {
-                applyHistorySettings(clearHistory: true, clearUsage: true)
-            }
-            Button("Cancel", role: .cancel) { historyEnabled = true }
-        } message: {
-            Text("Rift will stop saving new connections.")
-        }
-        .confirmationDialog(
-            "Clear connection history?",
-            isPresented: $showingClearHistoryConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Clear History Only", role: .destructive) {
-                clearHistory(clearUsage: false)
-            }
-            Button("Clear History and Rule Usage", role: .destructive) {
-                clearHistory(clearUsage: true)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This can’t be undone. Your rules and settings aren’t affected.")
-        }
+        .modifier(SettingsHistoryDialogs(
+            pendingExport: $pendingHistoryExport,
+            showingDisableChoice: $showingDisableHistoryChoice,
+            showingClearConfirmation: $showingClearHistoryConfirmation,
+            export: exportHistory,
+            turnOff: { applyHistorySettings(clearHistory: $0, clearUsage: $1) },
+            keepOn: { historyEnabled = true },
+            clear: { clearHistory(clearUsage: $0) }
+        ))
         .alert("Rename Profile", isPresented: Binding(
             get: { editingProfile != nil },
             set: { if !$0 { editingProfile = nil } }
@@ -202,10 +169,7 @@ struct SettingsView: View {
                 historyEnabled: $historyEnabled,
                 retentionDays: $retentionDays,
                 maximumFlows: $maximumFlows,
-                apply: {
-                    if historyEnabled { applyHistorySettings(clearHistory: false) }
-                    else { showingDisableHistoryChoice = true }
-                },
+                changed: historySettingsChanged,
                 clear: { showingClearHistoryConfirmation = true },
                 export: { pendingHistoryExport = $0 }
             )
@@ -262,6 +226,9 @@ struct SettingsView: View {
                 historyEnabled = settings.enabled
                 retentionDays = settings.retentionDays
                 maximumFlows = settings.maximumFlows
+                savedHistory = HistoryValues(
+                    enabled: settings.enabled, days: settings.retentionDays, flows: settings.maximumFlows
+                )
             }
             await loadDefinitions()
         } catch {
@@ -330,7 +297,25 @@ struct SettingsView: View {
         }
     }
 
+    /// Settings apply as they're changed. Steppers wait a moment so holding one
+    /// down saves once, and turning history off still asks what to do with it.
+    private func historySettingsChanged() {
+        let current = HistoryValues(enabled: historyEnabled, days: retentionDays, flows: maximumFlows)
+        guard loaded, !isPreview, current != savedHistory else { return }
+        historySaveTask?.cancel()
+        if !historyEnabled, savedHistory?.enabled == true {
+            showingDisableHistoryChoice = true
+            return
+        }
+        historySaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            applyHistorySettings(clearHistory: false)
+        }
+    }
+
     private func applyHistorySettings(clearHistory: Bool, clearUsage: Bool = false) {
+        savedHistory = HistoryValues(enabled: historyEnabled, days: retentionDays, flows: maximumFlows)
         perform("Couldn’t change history settings. Try again.") {
             try await controlPlane.configureHistory(
                 enabled: historyEnabled,
@@ -491,4 +476,10 @@ struct SettingsView: View {
             message = "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings."
         }
     }
+}
+
+private struct HistoryValues: Equatable {
+    let enabled: Bool
+    let days: Int
+    let flows: Int
 }

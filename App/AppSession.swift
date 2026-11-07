@@ -4,6 +4,7 @@ import RiftCore
 import Foundation
 import NetworkExtension
 import Observation
+import UserNotifications
 
 struct SavedMapState {
     let query: MonitorQueryState
@@ -51,6 +52,7 @@ final class AppSession {
 
     @ObservationIgnored private var startupTask: Task<Void, Never>?
     @ObservationIgnored private var observingPrompts = false
+    @ObservationIgnored private var notificationResponder: NotificationResponder?
     @ObservationIgnored private var observingLifecycle = false
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var filterConfigurationObserver: NSObjectProtocol?
@@ -225,6 +227,11 @@ final class AppSession {
 
     private func start() {
         guard startupTask == nil else { return }
+        if !isUIFixture {
+            let responder = NotificationResponder(session: self)
+            notificationResponder = responder
+            UNUserNotificationCenter.current().delegate = responder
+        }
         startupTask = Task { [controlPlane] in
             await controlPlane.start()
         }

@@ -79,3 +79,12 @@ private func active(_ mode: OperationMode) -> ProtectionStatus {
     #expect(!ProtectionStatus.resolve(ProtectionInputs(lifecycle: .disabled)).canShowActivity)
     #expect(!ProtectionStatus.resolve(ProtectionInputs(buildCanFilter: false)).canShowActivity)
 }
+
+@Test func notificationsNeverClaimARuleMatched() {
+    for action: FilterAction in [.allow, .deny] {
+        let text = NotificationCopy.title(action: action) + NotificationCopy.body(destination: nil)
+        #expect(!text.contains("rule matched"))
+    }
+    #expect(NotificationCopy.title(action: .deny) == "Rift blocked a connection")
+    #expect(NotificationCopy.body(destination: "example.test") == "Destination: example.test")
+}

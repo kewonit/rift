@@ -102,6 +102,10 @@ release.
   beside Save.
 - Profiles, Groups and Blocklists are always visible on the Rules page, with a
   line explaining each. The page updates when rules change elsewhere.
+- History settings now apply as you change them, and deleting rules or removing
+  a blocklist from Settings asks first, as it does on the Rules page.
+- Notifications say only what's known, the toggle says what it really does, and
+  clicking a notification opens the connection on the Map.
 
 ## 0.3.0 (pre-release)
 

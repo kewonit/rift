@@ -17,6 +17,7 @@ struct PolicySettingsPane: View {
     let editGroup: (LocalRuleGroup) -> Void
     let reload: @MainActor () async -> Void
     @State private var pendingMode: OperationMode?
+    @State private var pendingRemoval: PendingRemoval?
     @State private var pendingModeProfile: PolicyProfile?
     @State private var blocklistEntry = ""
     @State private var entryImpact: BlocklistEntryImpact?
@@ -33,6 +34,20 @@ struct PolicySettingsPane: View {
         .modifier(ModeChangeConfirmation(pendingMode: $pendingMode) { mode in
             if let pendingModeProfile { updateProfileMode(pendingModeProfile, mode: mode) }
         })
+        .confirmationDialog(
+            pendingRemoval.map { "Remove “\($0.name)”?" } ?? "",
+            isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingRemoval
+        ) { removal in
+            Button(removal.action, role: .destructive) {
+                pendingRemoval = nil
+                removal.confirm()
+            }
+            Button("Cancel", role: .cancel) { pendingRemoval = nil }
+        } message: { removal in
+            Text(removal.message)
+        }
         .confirmationDialog(
             "Disable this entry in all blocklists?",
             isPresented: $showingDisableConfirmation,
@@ -71,8 +86,12 @@ struct PolicySettingsPane: View {
                         Button("Remove and Keep Rules") {
                             removeProfile(profile, deletingRules: false)
                         }
-                        Button("Remove and Delete Rules", role: .destructive) {
-                            removeProfile(profile, deletingRules: true)
+                        Button("Remove and Delete Rules…", role: .destructive) {
+                            pendingRemoval = PendingRemoval(
+                                name: profile.name,
+                                message: "This deletes the rules in this profile. Open connections aren’t affected.",
+                                action: "Remove and Delete Rules"
+                            ) { removeProfile(profile, deletingRules: true) }
                         }
                     }
                 }
@@ -96,8 +115,12 @@ struct PolicySettingsPane: View {
                     Button("Edit…") { editGroup(group) }
                     Menu("Remove") {
                         Button("Remove and Keep Rules") { removeGroup(group, deletingRules: false) }
-                        Button("Remove and Delete Rules", role: .destructive) {
-                            removeGroup(group, deletingRules: true)
+                        Button("Remove and Delete Rules…", role: .destructive) {
+                            pendingRemoval = PendingRemoval(
+                                name: group.name,
+                                message: "This deletes the rules in this group. Open connections aren’t affected.",
+                                action: "Remove and Delete Rules"
+                            ) { removeGroup(group, deletingRules: true) }
                         }
                     }
                 }
@@ -121,7 +144,13 @@ struct PolicySettingsPane: View {
                     Spacer()
                     Text(source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries")
                         .foregroundStyle(.secondary)
-                    Button("Remove", role: .destructive) { removeBlocklist(source) }
+                    Button("Remove…", role: .destructive) {
+                        pendingRemoval = PendingRemoval(
+                            name: source.name,
+                            message: "This removes the blocklist and its rules. Open connections aren’t affected.",
+                            action: "Remove Blocklist"
+                        ) { removeBlocklist(source) }
+                    }
                 }
             }
             TextField("Name for imported blocklist", text: $blocklistName)
@@ -286,4 +315,13 @@ struct PolicySettingsPane: View {
             }
         }
     }
+}
+
+/// A removal waiting for confirmation, worded like the same action on the
+/// Rules page.
+private struct PendingRemoval {
+    let name: String
+    let message: String
+    let action: String
+    let confirm: () -> Void
 }
