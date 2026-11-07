@@ -250,10 +250,12 @@ final class AppSession {
                 for window in NSApplication.shared.windows
                 where window.isVisible && window.frame.width > 200 && !moved.contains(ObjectIdentifier(window)) {
                     moved.insert(ObjectIdentifier(window))
-                    window.setFrameOrigin(NSPoint(
-                        x: area.midX - window.frame.width / 2,
-                        y: area.midY - window.frame.height / 2
-                    ))
+                    let size = window.styleMask.contains(.resizable)
+                        ? NSSize(width: 1_360, height: 780) : window.frame.size
+                    window.setFrame(NSRect(
+                        x: area.midX - size.width / 2, y: area.midY - size.height / 2,
+                        width: size.width, height: size.height
+                    ), display: true)
                 }
             }
         }
