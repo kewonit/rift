@@ -106,6 +106,8 @@ release.
   a blocklist from Settings asks first, as it does on the Rules page.
 - Notifications say only what's known, the toggle says what it really does, and
   clicking a notification opens the connection on the Map.
+- If Rift can't read your rules, Status now offers the newest working backup in
+  one click, as well as importing a file or starting fresh.
 
 ## 0.3.0 (pre-release)
 

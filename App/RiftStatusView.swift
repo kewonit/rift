@@ -16,6 +16,9 @@ struct RiftHealthView: View {
             if showsSetupChoice {
                 SetupChoiceSection(session: session) { setupChoiceMade = true }
             }
+            if status.state == .configurationUnreadable {
+                ConfigurationRecoverySection(session: session)
+            }
             if let issue = session.controlPlane.startupIssue {
                 Section {
                     StatusRow(

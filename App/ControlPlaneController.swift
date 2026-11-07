@@ -146,7 +146,7 @@ final class ControlPlaneController {
             }
             guard case .success(let database) = configurationResult else {
                 configurationRecoveryRequired = true
-                startupIssue = "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules. To recover, import a configuration you exported earlier in Settings › Advanced."
+                startupIssue = "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules."
                 state = .failed
                 await prepareConfigurationRecoveryConnection()
                 return

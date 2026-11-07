@@ -103,6 +103,7 @@
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
 		1000000000000000000000C9 /* RiftComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C9 /* RiftComponents.swift */; };
 		1000000000000000000000CA /* MonitorFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CA /* MonitorFeed.swift */; };
+		1000000000000000000000EB /* ConfigurationRecoverySection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000EB /* ConfigurationRecoverySection.swift */; };
 		1000000000000000000000EA /* NotificationResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000EA /* NotificationResponder.swift */; };
 		1000000000000000000000E9 /* SettingsHistoryDialogs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E9 /* SettingsHistoryDialogs.swift */; };
 		1000000000000000000000E8 /* RuleEditorAdvancedSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E8 /* RuleEditorAdvancedSection.swift */; };
@@ -278,6 +279,7 @@
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
 		2000000000000000000000C9 /* RiftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftComponents.swift; sourceTree = "<group>"; };
 		2000000000000000000000CA /* MonitorFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeed.swift; sourceTree = "<group>"; };
+		2000000000000000000000EB /* ConfigurationRecoverySection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationRecoverySection.swift; sourceTree = "<group>"; };
 		2000000000000000000000EA /* NotificationResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationResponder.swift; sourceTree = "<group>"; };
 		2000000000000000000000E9 /* SettingsHistoryDialogs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHistoryDialogs.swift; sourceTree = "<group>"; };
 		2000000000000000000000E8 /* RuleEditorAdvancedSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleEditorAdvancedSection.swift; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 				2000000000000000000000C8 /* MonitorFixtureStream.swift */,
 				2000000000000000000000C9 /* RiftComponents.swift */,
 				2000000000000000000000CA /* MonitorFeed.swift */,
+				2000000000000000000000EB /* ConfigurationRecoverySection.swift */,
 				2000000000000000000000EA /* NotificationResponder.swift */,
 				2000000000000000000000E9 /* SettingsHistoryDialogs.swift */,
 				2000000000000000000000E8 /* RuleEditorAdvancedSection.swift */,
@@ -732,6 +735,7 @@
 				1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */,
 				1000000000000000000000C9 /* RiftComponents.swift in Sources */,
 				1000000000000000000000CA /* MonitorFeed.swift in Sources */,
+				1000000000000000000000EB /* ConfigurationRecoverySection.swift in Sources */,
 				1000000000000000000000EA /* NotificationResponder.swift in Sources */,
 				1000000000000000000000E9 /* SettingsHistoryDialogs.swift in Sources */,
 				1000000000000000000000E8 /* RuleEditorAdvancedSection.swift in Sources */,
