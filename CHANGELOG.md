@@ -70,6 +70,12 @@ release.
   location prompt until the filter is on, empty lists explain why they're empty,
   and mode and rule controls say to finish setup first.
 - The timeline has a Keep History button when history is off.
+- You can now block or allow any app or site from the Map, including apps with
+  several destinations. You choose what the rule covers and for how long before
+  it's made, and blocking a site now covers every port by default.
+- The connection list holds still while you point at it, so a click can't land
+  on the wrong row.
+- The inspector names the rule that decided a connection and opens it directly.
 
 ## 0.3.0 (pre-release)
 

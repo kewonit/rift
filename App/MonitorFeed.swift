@@ -43,6 +43,14 @@ final class MonitorFeed {
     var selectedNode: MonitorHierarchyNode?
     var applyingEventID: String?
     var pendingManagedListOverride: MonitorHierarchyNode?
+    var pendingRuleRequest: MonitorRuleRequest?
+    var pendingOverrideChoice: (request: MonitorRuleRequest, breadth: MonitorRuleBreadth, duration: MonitorRuleDuration)?
+    /// While the pointer is over the list, rows keep their places so a click
+    /// can't land on the wrong one.
+    var pointerIsOverList = false {
+        didSet { if oldValue, !pointerIsOverList { requestPresentationRefresh() } }
+    }
+    private(set) var orderIsPaused = false
 
     var selectedRow: MonitorEventRow? {
         guard let id = selectedNode?.eventID ?? selectedNode?.ruleSeedEventID else { return nil }
@@ -242,7 +250,12 @@ final class MonitorFeed {
         if hasMore != more { hasMore = more }
         if displayed != presentation.visibleRows { displayed = presentation.visibleRows }
         if summary != evaluation.summary { summary = evaluation.summary }
-        if hierarchy != presentation.hierarchy { hierarchy = presentation.hierarchy }
+        let nextHierarchy = pointerIsOverList
+            ? MonitorHierarchyOrder.keepingPositions(of: hierarchy, in: presentation.hierarchy)
+            : presentation.hierarchy
+        let paused = nextHierarchy.map(\.id) != presentation.hierarchy.map(\.id)
+        if orderIsPaused != paused { orderIsPaused = paused }
+        if hierarchy != nextHierarchy { hierarchy = nextHierarchy }
         if rowLookup != presentation.rowLookup { rowLookup = presentation.rowLookup }
         if traffic != presentation.traffic { traffic = presentation.traffic }
         if presentation.includesDecisions, decisions != presentation.decisions {

@@ -11,6 +11,7 @@ struct MonitorSummaryView: View {
     let artworkStore: ApplicationArtworkStore
     let apply: (FilterAction, MonitorHierarchyNode) -> Void
     let showRules: () -> Void
+    var canDecide = false
     var isMinimal = false
 
     var body: some View {
@@ -124,26 +125,29 @@ struct MonitorSummaryView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             selectionHeader(node)
-            if let row, MonitorExactRuleSeed.make(from: row) != nil {
+            if canDecide {
                 HStack(spacing: 8) {
                     Button { apply(.allow, node) } label: {
-                        Label("Always Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
+                        Label("Allow…", systemImage: "checkmark").frame(maxWidth: .infinity)
                     }
-                    .accessibilityLabel("Always allow this connection")
                     Button { apply(.deny, node) } label: {
-                        Label("Always Block", systemImage: "xmark").frame(maxWidth: .infinity)
+                        Label("Block…", systemImage: "xmark").frame(maxWidth: .infinity)
                     }
-                    .accessibilityLabel("Always block this connection")
                 }
                 .controlSize(.large)
                 .disabled(
-                    applyingEventID == node.ruleSeedEventID
+                    applyingEventID.map(node.eventIDs.contains) ?? false
                         || monitorCoveragePending(node.ruleCoverage.state)
                 )
+                .help(monitorCoveragePending(node.ruleCoverage.state)
+                    ? "Waiting for the filter to apply your last rule change" : "")
             }
             VStack(alignment: .leading, spacing: 7) {
                 RiftPropertyRow(title: "Connections") { Text("\(node.aggregate.flowCount)").monospacedDigit() }
-                RiftPropertyRow(title: "Rule") { Text(monitorCoverageLabel(node.ruleCoverage.state)).multilineTextAlignment(.trailing) }
+                RiftPropertyRow(title: "Rule") {
+                    Text(node.ruleCoverage.winningRuleSummary ?? monitorCoverageLabel(node.ruleCoverage.state))
+                        .multilineTextAlignment(.trailing)
+                }
                 if let row {
                     RiftPropertyRow(title: "Result") { Text(row.event.outcome == .blocked ? "Blocked" : "Allowed") }
                     RiftPropertyRow(title: "Because") { Text(row.event.causeSentence).multilineTextAlignment(.trailing) }
@@ -160,9 +164,10 @@ struct MonitorSummaryView: View {
                     }
                 }
             }
-            Button("Show Matching Rules", action: showRules)
+            Button(node.ruleCoverage.winningRuleID == nil ? "Show Matching Rules" : "Show This Rule", action: showRules)
                 .buttonStyle(.link)
                 .disabled(node.ruleCoverage.ruleIDs.isEmpty)
+                .help(node.ruleCoverage.ruleIDs.isEmpty ? "No rules match this connection" : "")
         }
     }
 

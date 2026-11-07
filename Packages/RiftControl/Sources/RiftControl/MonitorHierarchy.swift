@@ -34,17 +34,21 @@ public struct MonitorRuleCoverage: Sendable, Hashable {
     /// What today's rules do to this connection, which can differ from what
     /// happened when it was recorded.
     public let currentAction: FilterAction?
+    /// The deciding rule in words, so nobody has to go looking for it.
+    public let winningRuleSummary: String?
 
     public init(
         state: MonitorRuleCoverageState,
         ruleIDs: Set<UUID> = [],
         winningRuleID: UUID? = nil,
-        currentAction: FilterAction? = nil
+        currentAction: FilterAction? = nil,
+        winningRuleSummary: String? = nil
     ) {
         self.state = state
         self.ruleIDs = ruleIDs
         self.winningRuleID = winningRuleID
         self.currentAction = currentAction
+        self.winningRuleSummary = winningRuleSummary
     }
 }
 
@@ -216,7 +220,8 @@ public enum MonitorCoverageEvaluator {
             let action = values.allSatisfy({ $0.currentAction == first.currentAction })
                 ? first.currentAction : nil
             return MonitorRuleCoverage(
-                state: first.state, ruleIDs: allIDs, winningRuleID: winner, currentAction: action
+                state: first.state, ruleIDs: allIDs, winningRuleID: winner, currentAction: action,
+                winningRuleSummary: winner == nil ? nil : first.winningRuleSummary
             )
         }
         let uncovered: Set<MonitorRuleCoverageState> = [
@@ -267,7 +272,8 @@ public enum MonitorCoverageEvaluator {
                 state: state,
                 ruleIDs: ruleIDs,
                 winningRuleID: winnerID,
-                currentAction: decision.filter.action
+                currentAction: decision.filter.action,
+                winningRuleSummary: summary(of: winner, state: enforcementState)
             )
         }
         if let historicalID = historicalRuleID, !historicalRuleExists {
@@ -299,6 +305,14 @@ public enum MonitorCoverageEvaluator {
             return MonitorRuleCoverage(state: .unresolved)
         }
         return MonitorRuleCoverage(state: .noRule)
+    }
+
+    private static func summary(of rule: Rule, state: PolicyOutboxState) -> String {
+        let row = RuleRowViewValue(
+            rule: rule, state: state, generation: 0,
+            usage: RuleUsageValue(lowerBoundCount: 0, lastUsedAt: nil, coverage: .gap)
+        )
+        return "\(row.actionLabel) · \(row.conditionSummary)"
     }
 
     private static func isExact(_ rule: Rule, for flow: FlowDescriptor) -> Bool {

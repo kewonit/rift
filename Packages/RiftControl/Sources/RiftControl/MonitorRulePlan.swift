@@ -61,6 +61,7 @@ public enum MonitorRulePlan {
         target: MonitorRuleTarget,
         flow: FlowDescriptor,
         configuration: PolicyConfigurationDraft,
+        expiresAt: Date? = nil,
         now: Date,
         makeRule: () throws -> Rule
     ) throws -> MonitorRulePlanResult {
@@ -71,6 +72,7 @@ public enum MonitorRulePlan {
         let wanted = RuleAction.filter(action)
         let needsChange = matching.filter {
             $0.action != wanted || (priority != .normal && $0.priority != priority)
+                || $0.expiresAt != expiresAt
         }
         let proposed: [Rule]
         let affected: Set<UUID>
@@ -94,7 +96,7 @@ public enum MonitorRulePlan {
                     owner: rule.owner,
                     profileID: rule.profileID,
                     localGroupID: rule.localGroupID,
-                    expiresAt: rule.expiresAt,
+                    expiresAt: expiresAt,
                     isEnabled: true,
                     reviewState: .reviewed,
                     note: rule.notes,

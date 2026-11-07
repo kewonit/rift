@@ -64,11 +64,11 @@ struct ConnectionsTable: View {
             if let id = ids.first, ids.count == 1,
                let node = MonitorHierarchyBuilder.node(withID: id, in: feed.hierarchy) {
                 ConnectionContextMenu(
-                    canDecide: row(for: node) != nil && node.exactRuleSeed != nil,
+                    canDecide: { feed.canDecide(node) },
                     disabled: feed.applyingEventID != nil || monitorCoveragePending(node.ruleCoverage.state),
                     hasRules: !node.ruleCoverage.ruleIDs.isEmpty,
-                    apply: { feed.apply($0, to: node) },
-                    showRules: { feed.showRules(node.ruleCoverage.ruleIDs) }
+                    apply: { feed.requestRule($0, for: node) },
+                    showRules: { feed.showRules(for: node) }
                 )
             }
         }

@@ -162,6 +162,11 @@ struct ConnectionAlertView: View {
                 Picker("Destination", selection: $destinationScope) {
                     ForEach(DestinationScope.allCases) { Text($0.rawValue).tag($0) }
                 }
+                if destinationScope == .exact {
+                    Text("Applies to this destination on this port, for the same protocol and direction.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if destinationScope == .any {
                     Label(
                         "This rule will apply to all destinations for this app with the same protocol, direction, and owner.",

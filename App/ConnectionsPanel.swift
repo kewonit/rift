@@ -74,16 +74,30 @@ struct ConnectionsPanel: View {
                 ConnectionRow(
                     node: node,
                     row: node.ruleSeedEventID.flatMap { feed.rowLookup[$0] },
-                    isApplying: feed.applyingEventID != nil && feed.applyingEventID == node.ruleSeedEventID,
+                    canDecide: { feed.canDecide(node) },
+                    isApplying: feed.applyingEventID.map(node.eventIDs.contains) ?? false,
                     artworkStore: artworkStore,
-                    apply: { feed.apply($0, to: node) },
-                    showRules: { feed.showRules(node.ruleCoverage.ruleIDs) }
+                    apply: { feed.requestRule($0, for: node) },
+                    showRules: { feed.showRules(for: node) }
                 )
                 .tag(node.id)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .onHover { feed.pointerIsOverList = $0 }
+        .overlay(alignment: .bottom) {
+            if feed.orderIsPaused {
+                Text("Order paused while you point at the list")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, RiftDesign.Spacing.s)
+                    .padding(.vertical, RiftDesign.Spacing.xxs)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, RiftDesign.Spacing.xs)
+                    .allowsHitTesting(false)
+            }
+        }
         .overlay {
             if feed.hierarchy.isEmpty, !feed.loading { emptyState }
         }
@@ -210,13 +224,15 @@ extension MonitorAggregate {
 struct ConnectionRow: View {
     let node: MonitorHierarchyNode
     let row: MonitorEventRow?
+    /// Checked only when needed, because it looks at every connection in the
+    /// group and rows refresh about once a second.
+    let canDecide: () -> Bool
     let isApplying: Bool
     let artworkStore: ApplicationArtworkStore
     let apply: (FilterAction) -> Void
     let showRules: () -> Void
     @State private var hovering = false
 
-    private var canDecide: Bool { row != nil && node.exactRuleSeed != nil }
     private var pending: Bool { monitorCoveragePending(node.ruleCoverage.state) }
 
     var body: some View {
@@ -234,7 +250,7 @@ struct ConnectionRow: View {
                 }
             }
             Spacer(minLength: RiftDesign.Spacing.xs)
-            if canDecide, hovering {
+            if hovering, canDecide() {
                 ConnectionDecisionButtons(disabled: isApplying || pending, apply: apply)
             } else {
                 trailing
@@ -320,14 +336,16 @@ struct ConnectionDecisionButtons: View {
     let disabled: Bool
     let apply: (FilterAction) -> Void
 
+    private var disabledReason: String { "Waiting for the filter to apply your last rule change" }
+
     var body: some View {
         HStack(spacing: 2) {
             Button { apply(.allow) } label: { Image(systemName: "checkmark.circle") }
-                .help("Always allow this connection")
-                .accessibilityLabel("Always allow this connection")
+                .help(disabled ? disabledReason : "Choose what to allow")
+                .accessibilityLabel("Allow")
             Button { apply(.deny) } label: { Image(systemName: "xmark.circle") }
-                .help("Always block this connection")
-                .accessibilityLabel("Always block this connection")
+                .help(disabled ? disabledReason : "Choose what to block")
+                .accessibilityLabel("Block")
         }
         .buttonStyle(.borderless)
         .imageScale(.large)
@@ -337,16 +355,16 @@ struct ConnectionDecisionButtons: View {
 }
 
 struct ConnectionContextMenu: View {
-    let canDecide: Bool
+    let canDecide: () -> Bool
     let disabled: Bool
     let hasRules: Bool
     let apply: (FilterAction) -> Void
     let showRules: () -> Void
 
     var body: some View {
-        if canDecide {
-            Button("Always Allow") { apply(.allow) }.disabled(disabled)
-            Button("Always Block") { apply(.deny) }.disabled(disabled)
+        if canDecide() {
+            Button("Allow…") { apply(.allow) }.disabled(disabled)
+            Button("Block…") { apply(.deny) }.disabled(disabled)
             Divider()
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)

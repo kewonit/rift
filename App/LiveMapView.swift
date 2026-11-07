@@ -53,6 +53,14 @@ struct LiveMapView: View {
             panelLayer
         }
         .overlay(alignment: .top) { attentionBanner }
+        .sheet(item: $feed.pendingRuleRequest) { request in
+            RuleScopeChooser(request: request) { breadth, duration in
+                feed.pendingRuleRequest = nil
+                feed.applyRule(request, breadth: breadth, duration: duration)
+            } cancel: {
+                feed.pendingRuleRequest = nil
+            }
+        }
         .onChange(of: session.controlPlane.ruleChanges.revision) { _, _ in
             feed.requestPresentationRefresh()
         }
@@ -64,7 +72,13 @@ struct LiveMapView: View {
                 $0.ruleSeedEventID != nil && $0.aggregate.denied == 0
             }) else { return }
             feed.selectionID = node.id
-            feed.apply(.deny, to: node)
+            feed.requestRule(.deny, for: node)
+            guard step != "chooser" else { return }
+            try? await Task.sleep(for: .milliseconds(300))
+            if let request = feed.pendingRuleRequest {
+                feed.pendingRuleRequest = nil
+                feed.applyRule(request, breadth: request.options[0], duration: .always)
+            }
             guard step == "undo" else { return }
             try? await Task.sleep(for: .seconds(2))
             _ = try? await session.controlPlane.undoLastRuleChange()
@@ -162,8 +176,9 @@ struct LiveMapView: View {
             selectedRow: feed.selectedRow,
             applyingEventID: feed.applyingEventID,
             artworkStore: session.applicationArtwork,
-            apply: { feed.apply($0, to: $1) },
-            showRules: { feed.selectedNode.map { feed.showRules($0.ruleCoverage.ruleIDs) } },
+            apply: { feed.requestRule($0, for: $1) },
+            showRules: { feed.selectedNode.map { feed.showRules(for: $0) } },
+            canDecide: feed.selectedNode.map(feed.canDecide) ?? false,
             isMinimal: feed.isMinimal
         )
         .riftPanel()

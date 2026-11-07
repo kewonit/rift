@@ -39,9 +39,11 @@ extension ControlPlaneController {
         let result: ConfigurationMutationResult?
     }
 
-    func applyExactMonitorRule(
+    func applyMonitorRule(
         for row: MonitorEventRow,
         action: FilterAction,
+        breadth: MonitorRuleBreadth,
+        duration: MonitorRuleDuration,
         elevatedOverrideConfirmed: Bool = false
     ) async throws -> MonitorRuleChange {
 #if DEBUG
@@ -53,7 +55,7 @@ extension ControlPlaneController {
         }
 #endif
         guard action != .ask,
-              let seed = MonitorExactRuleSeed.make(from: row),
+              let target = try MonitorRuleScope.target(breadth, for: row),
               let snapshot = try await repository?.ruleWorkspaceSnapshot() else {
             throw RuleCommandError.missingConfiguration
         }
@@ -78,30 +80,32 @@ extension ControlPlaneController {
             throw RuleCommandError.elevatedOverrideRequiresConfirmation
         }
         let priority: RulePriority = action == .allow && overrideBlocklist ? .elevatedUser : .normal
+        let now = Date()
+        let expiresAt = duration.expiry(from: now)
         let ruleDraft = ManualRuleDraft(
             action: .filter(action),
             priority: priority,
-            process: seed.process,
-            destination: seed.destination,
-            transport: seed.transport,
-            port: seed.port,
-            direction: seed.direction,
-            owner: seed.owner,
+            process: target.process,
+            destination: target.destination,
+            transport: target.transport,
+            port: target.port,
+            direction: target.direction,
+            owner: target.owner,
             profileID: configuration.activeProfileID,
             localGroupID: nil,
-            expiresAt: nil,
+            expiresAt: expiresAt,
             isEnabled: true,
             reviewState: .reviewed,
             note: "Created from a recent connection"
         )
         try await validateManualDraft(ruleDraft, editingRuleID: nil)
-        let now = Date()
         let plan = try MonitorRulePlan.plan(
             action: action,
             priority: priority,
-            target: MonitorRuleTarget(seed: seed),
+            target: target,
             flow: row.event.flow,
             configuration: configuration,
+            expiresAt: expiresAt,
             now: now
         ) {
             try Rule(
@@ -118,6 +122,7 @@ extension ControlPlaneController {
                 owner: ruleDraft.owner,
                 profileID: ruleDraft.profileID,
                 localGroupID: nil,
+                expiresAt: ruleDraft.expiresAt,
                 isEnabled: true,
                 reviewState: .reviewed,
                 notes: ruleDraft.note,

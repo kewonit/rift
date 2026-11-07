@@ -180,3 +180,13 @@ private func target(_ row: MonitorEventRow) throws -> MonitorRuleTarget {
         action: .deny, application: "Music", destination: "", port: 443, incoming: true
     ) == "Incoming connections to Music on port 443 are now blocked.")
 }
+
+@Test func aPreviewDoesntClaimTheChangeHappened() {
+    #expect(RulePlainLanguage.change(
+        action: .deny, application: "Safari", destination: "example.test", port: nil, isPreview: true
+    ) == "Safari will be blocked from example.test.")
+    #expect(RulePlainLanguage.change(
+        action: .allow, application: "Safari", destination: "example.test", port: nil,
+        forOneHour: true, isPreview: true
+    ) == "Safari will be able to connect to example.test for one hour.")
+}

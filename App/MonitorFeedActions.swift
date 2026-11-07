@@ -49,20 +49,50 @@ extension MonitorFeed {
 
     // MARK: Rules
 
-    func apply(_ action: FilterAction, to node: MonitorHierarchyNode, elevatedOverrideConfirmed: Bool = false) {
-        guard let eventID = node.ruleSeedEventID, let row = rowLookup[eventID] else { return }
-        applyingEventID = eventID
+    /// The connections a row stands for. A group's rule is built from its
+    /// most recent connection.
+    func rows(in node: MonitorHierarchyNode) -> [MonitorEventRow] {
+        node.eventIDs.compactMap { rowLookup[$0] }
+            .sorted { $0.event.occurredAt > $1.event.occurredAt }
+    }
+
+    func canDecide(_ node: MonitorHierarchyNode) -> Bool {
+        !MonitorRuleScope.options(for: node.eventIDs.compactMap { rowLookup[$0] }).isEmpty
+    }
+
+    /// Opens the scope chooser, so the person sees what a rule covers first.
+    func requestRule(_ action: FilterAction, for node: MonitorHierarchyNode) {
+        let members = rows(in: node)
+        let options = MonitorRuleScope.options(for: members)
+        guard let row = members.first, !options.isEmpty else { return }
+        Task {
+            pendingRuleRequest = MonitorRuleRequest(
+                action: action, node: node, row: row, options: options,
+                application: await applicationName(for: row)
+            )
+        }
+    }
+
+    func applyRule(
+        _ request: MonitorRuleRequest,
+        breadth: MonitorRuleBreadth,
+        duration: MonitorRuleDuration,
+        elevatedOverrideConfirmed: Bool = false
+    ) {
+        applyingEventID = request.row.id
         let results = session.controlPlane.actionResults
         Task {
             defer { applyingEventID = nil }
             do {
-                let change = try await session.controlPlane.applyExactMonitorRule(
-                    for: row, action: action, elevatedOverrideConfirmed: elevatedOverrideConfirmed
+                let change = try await session.controlPlane.applyMonitorRule(
+                    for: request.row, action: request.action, breadth: breadth, duration: duration,
+                    elevatedOverrideConfirmed: elevatedOverrideConfirmed
                 )
-                await report(change, action: action, row: row)
+                report(change, request: request, breadth: breadth, duration: duration)
                 requestPresentationRefresh()
             } catch ControlPlaneController.RuleCommandError.elevatedOverrideRequiresConfirmation {
-                pendingManagedListOverride = node
+                pendingOverrideChoice = (request, breadth, duration)
+                pendingManagedListOverride = request.node
             } catch ControlPlaneController.RuleCommandError.overriddenByRule(let ruleID) {
                 results.post(
                     "Nothing changed, because another rule still decides this connection.",
@@ -77,29 +107,25 @@ extension MonitorFeed {
 
     private func report(
         _ change: ControlPlaneController.MonitorRuleChange,
-        action: FilterAction,
-        row: MonitorEventRow
-    ) async {
+        request: MonitorRuleRequest,
+        breadth: MonitorRuleBreadth,
+        duration: MonitorRuleDuration
+    ) {
         let results = session.controlPlane.actionResults
         guard let result = change.result else {
             results.post(
-                action == .deny ? "This connection is already blocked." : "This connection is already allowed.",
+                request.action == .deny ? "This is already blocked." : "This is already allowed.",
                 ruleIDs: change.ruleIDs
             )
             return
         }
-        let flow = row.event.flow
-        var application = MonitorQuery.applicationLabel(row)
-        if let identity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity,
-           let name = await session.applicationArtwork.artwork(for: identity)?.displayName {
-            application = name
-        }
         let sentence = RulePlainLanguage.change(
-            action: action,
-            application: DisplaySanitizer.plainText(application),
-            destination: DisplaySanitizer.plainText(MonitorQuery.hostnameLabel(row)),
-            port: flow.destinationEndpoint?.port,
-            incoming: flow.direction == .incoming
+            action: request.action,
+            application: request.application,
+            destination: MonitorRuleScope.phrase(breadth, host: request.host),
+            port: breadth == .exactConnection ? request.port : nil,
+            incoming: request.row.event.flow.direction == .incoming,
+            forOneHour: duration == .oneHour
         )
         results.post(
             result.requiresAttention ? "\(sentence) \(result.message)" : sentence,
@@ -109,8 +135,28 @@ extension MonitorFeed {
         )
     }
 
+    private func applicationName(for row: MonitorEventRow) async -> String {
+        let flow = row.event.flow
+        if let identity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity,
+           let name = await session.applicationArtwork.artwork(for: identity)?.displayName {
+            return DisplaySanitizer.plainText(name)
+        }
+        return DisplaySanitizer.plainText(MonitorQuery.applicationLabel(row))
+    }
+
     func confirmManagedListOverride(_ node: MonitorHierarchyNode) {
-        apply(.allow, to: node, elevatedOverrideConfirmed: true)
+        guard let choice = pendingOverrideChoice else { return }
+        pendingOverrideChoice = nil
+        applyRule(
+            choice.request, breadth: choice.breadth, duration: choice.duration,
+            elevatedOverrideConfirmed: true
+        )
+    }
+
+    /// Opens the rule that decides this connection, or every matching rule when
+    /// no single one does.
+    func showRules(for node: MonitorHierarchyNode) {
+        showRules(node.ruleCoverage.winningRuleID.map { [$0] } ?? node.ruleCoverage.ruleIDs)
     }
 
     func showRules(_ ids: Set<UUID>) {
