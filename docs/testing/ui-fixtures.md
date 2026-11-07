@@ -41,7 +41,8 @@ Other preview options:
 - `--ui-fixture-float` keeps preview windows above other apps without taking
   focus, so screenshots of the map render.
 - `--ui-fixture-monitor` opens preview windows on the external display instead
-  of the main one. With `--ui-fixture-float`, they float there.
+  of the main one. With `--ui-fixture-float`, they float there, and without an
+  external display they don't float at all.
 - `--ui-fixture-min-size` shrinks floating preview windows to the minimum size.
 - `--ui-fixture-hide` hides the app a few seconds after launch, to measure
   background cost.

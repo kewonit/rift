@@ -216,6 +216,9 @@ final class AppSession {
     /// Keeps preview windows above other apps without taking keyboard focus, so
     /// screenshots of the map can render.
     private static func floatFixtureWindows() {
+        // Asked for the external display and it isn't there: don't put floating
+        // windows over the main screen instead.
+        if FixturePreviewOptions.opensOnMonitor, FixturePreviewOptions.monitor == nil { return }
         Task { @MainActor in
             for _ in 0..<40 {
                 try? await Task.sleep(for: .milliseconds(500))
