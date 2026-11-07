@@ -68,6 +68,7 @@ struct RiftHealthView: View {
         .formStyle(.grouped)
         .frame(maxWidth: 720)
         .frame(maxWidth: .infinity)
+        .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showsSetupChoice)
         .task(id: session.controlPlane.ruleChanges.revision) {
             ruleCounts = await session.controlPlane.ruleCounts()
         }
