@@ -16,6 +16,9 @@ release.
   each table.
 - Rules show on one line, and the rule inspector matches the connection one.
 - Status shows your mode and rule counts at a glance.
+- A newer Rift updates its network filter by itself when it opens, instead of
+  asking you to find a button.
+- `rift://` links now open Rift. The app never told macOS it handles them.
 - One timeline shows traffic or decisions for the chosen time range.
 - The menu-bar panel was rebuilt with a mode menu, recent apps with their
   decisions, and standard menu rows.
