@@ -19,8 +19,9 @@ struct RiftApp: App {
         .commands {
             if let session = startup.session {
                 RiftNavigationCommands(session: session)
+                RuleWorkspaceCommands(session: session)
             }
-            RuleWorkspaceCommands()
+            MapCommands()
         }
 
         Settings {

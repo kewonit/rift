@@ -98,7 +98,7 @@ struct StatusMenuDashboard: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
-                .accessibilityHint("Shows the most recent denied connection")
+                .accessibilityHint("Shows the most recent blocked connection")
             }
         }
     }

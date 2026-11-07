@@ -263,6 +263,11 @@ struct ConnectionAlertView: View {
             resolvedApplicationName = name
         }
         .task(id: prompt.nonce) {
+            AccessibilityNotification.Announcement(ConnectionAlertPresentation.headline(
+                application: applicationName,
+                destination: DisplaySanitizer.plainText(destination),
+                direction: prompt.direction
+            )).post()
             // The filter resolves the connection at the deadline. If that news
             // never arrives, clear the alert so it can't sit here with no way out.
             let wait = prompt.deadline.timeIntervalSinceNow + 2

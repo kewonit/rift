@@ -137,17 +137,6 @@ struct RulesWorkspaceView: View {
             guard !isPreview, !model.historyCommandIsRunning, model.eligibleSelectionCount > 0 else { return }
             showingDeleteConfirmation = true
         }
-        .focusedSceneValue(
-            \.ruleWorkspaceHistoryAction,
-            RuleWorkspaceHistoryAction(
-                title: model.historyCommandTitle ?? "Undo Rule Change",
-                isRedo: model.historyCommandIsRedo,
-                isEnabled: !isPreview
-                    && model.historyCommandTitle != nil
-                    && !model.historyCommandIsRunning,
-                perform: { Task { await model.performHistoryCommand() } }
-            )
-        )
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Menu {

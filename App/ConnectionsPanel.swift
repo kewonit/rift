@@ -52,17 +52,8 @@ struct ConnectionsPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .help(expanded ? "Return to the map (⌘T)" : "Show all connections in a table (⌘T)")
-                .keyboardShortcut("t", modifiers: .command)
             }
             RiftSearchField(prompt: "Search apps and destinations", text: $feed.query.search, focus: searchFocus)
-                .background {
-                    // ⌘F focuses search without a visible button.
-                    Button("Find") { searchFocus.wrappedValue = true }
-                        .keyboardShortcut("f", modifiers: .command)
-                        .opacity(0)
-                        .frame(width: 0, height: 0)
-                        .accessibilityHidden(true)
-                }
             ConnectionFilterBar(feed: feed)
             if feed.query.isViewingPast {
                 HStack(spacing: RiftDesign.Spacing.s) {
@@ -330,6 +321,9 @@ struct ConnectionRow: View {
         .frame(minHeight: 28)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
+        .accessibilityAction(named: "Allow…") { apply(.allow) }
+        .accessibilityAction(named: "Block…") { apply(.deny) }
+        .accessibilityAction(named: "Show Rule", showRules)
         .help(monitorCoverageLabel(node.ruleCoverage.state))
         .accessibilityElement(children: .contain)
         .contextMenu {

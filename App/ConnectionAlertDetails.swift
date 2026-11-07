@@ -80,7 +80,7 @@ struct ConnectionAlertDetails: View {
             }
             if let appIdentity = prompt.appIdentity {
                 LabeledContent(
-                    "Application",
+                    "App",
                     value: DisplaySanitizer.plainText(facts.identityEvidence(for: appIdentity))
                 )
             }

@@ -166,7 +166,7 @@ struct StatusMenuView: View {
                 showMainWindow()
             })
             if !session.isUIFixture {
-                StatusMenuActionRow(title: "Filter Status", action: {
+                StatusMenuActionRow(title: "Status", action: {
                     session.destination = .health
                     showMainWindow()
                 })

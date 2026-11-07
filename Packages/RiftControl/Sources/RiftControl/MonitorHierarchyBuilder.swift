@@ -183,7 +183,7 @@ public enum MonitorHierarchyBuilder {
             kind: .helper,
             key: String(reflecting: process),
             title: MonitorQuery.identityLabel(process),
-            subtitle: "Helper process"
+            subtitle: "Helper"
         )]
     }
 

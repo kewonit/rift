@@ -3,7 +3,7 @@ import Foundation
 
 public enum RuleSearchScope: String, CaseIterable, Sendable, Identifiable {
     case all = "All Fields"
-    case application = "Application"
+    case application = "App"
     case match = "Match"
     case scope = "Scope"
     case notes = "Notes"
@@ -14,7 +14,7 @@ public enum RuleSearchScope: String, CaseIterable, Sendable, Identifiable {
 public enum RuleActionFilter: String, CaseIterable, Sendable, Identifiable {
     case all = "All Actions"
     case allow = "Allow"
-    case deny = "Deny"
+    case deny = "Block"
     case ask = "Ask"
     case notify = "Notify"
     case hide = "Hide"
@@ -34,7 +34,7 @@ public enum RuleActionFilter: String, CaseIterable, Sendable, Identifiable {
 
 public enum RuleWorkspaceSort: String, CaseIterable, Sendable, Identifiable {
     case automatic = "Automatic"
-    case application = "Application"
+    case application = "App"
     case condition = "Condition"
     case action = "Action"
     case modified = "Modified"

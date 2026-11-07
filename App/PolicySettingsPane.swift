@@ -290,7 +290,7 @@ struct PolicySettingsPane: View {
     }
 
     private func entryImpactSummary(_ impact: BlocklistEntryImpact) -> String {
-        let state = impact.isDisabled ? "Disabled" : "Enabled"
+        let state = impact.isDisabled ? "Off" : "On"
         let activeCount = impact.activeSourceNames.count
         let totalCount = impact.sourceNames.count
         let shownNames = impact.sourceNames.prefix(3).joined(separator: ", ")

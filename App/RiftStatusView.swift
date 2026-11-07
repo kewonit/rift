@@ -150,7 +150,10 @@ struct RiftHealthView: View {
                 symbol: "network.badge.shield.half.filled"
             )
             HStack {
-                Button("Copy Status Report") { lifecycle.copyRedactedDiagnostics() }
+                Button("Copy Status Report") {
+                    lifecycle.copyRedactedDiagnostics()
+                    session.controlPlane.actionResults.post("Status report copied.")
+                }
                     .help("Copy a short status report for troubleshooting. It doesn’t include personal details.")
                 Spacer()
                 if lifecycle.initialStatusResolved && lifecycle.shouldOfferSettings {

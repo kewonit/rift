@@ -108,6 +108,13 @@ release.
   clicking a notification opens the connection on the Map.
 - If Rift can't read your rules, Status now offers the newest working backup in
   one click, as well as importing a file or starting fresh.
+- Rift now uses one set of plain words everywhere, such as Block, App and On, and
+  its text no longer mentions pages that have gone.
+- Everything on the Map has a menu item and shortcut, including the table,
+  inspector, timeline, search and Allow and Block. Undo for rule changes works
+  from anywhere with ⌥⌘Z.
+- With VoiceOver, connection rows offer Allow, Block and Show Rule, and new
+  alerts and the results of rule changes are announced.
 
 ## 0.3.0 (pre-release)
 

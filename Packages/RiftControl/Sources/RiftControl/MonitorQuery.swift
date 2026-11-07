@@ -32,8 +32,8 @@ public enum MonitorLocalityFilter: String, CaseIterable, Sendable, Identifiable 
 
 public enum MonitorOwnerFilter: String, CaseIterable, Sendable, Identifiable {
     case all = "All owners"
-    case user = "User processes"
-    case system = "System processes"
+    case user = "Your apps"
+    case system = "System services"
     case unknown = "Unknown owner"
     public var id: String { rawValue }
 }

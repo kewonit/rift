@@ -115,6 +115,25 @@ final class AppSession {
         )
     }
 
+    /// Reverses the last rule change, or redoes it after an undo.
+    func undoRuleChange() {
+        let controller = controlPlane
+        let wasRedo = controller.ruleChanges.isRedo
+        Task { @MainActor in
+            do {
+                let result = try await controller.undoLastRuleChange()
+                let needsAttention = result?.requiresAttention == true
+                controller.actionResults.post(
+                    needsAttention ? result?.message ?? "" : (wasRedo ? "Redone." : "Undone."),
+                    tone: needsAttention ? .pending : .success,
+                    offersUndo: true
+                )
+            } catch {
+                controller.actionResults.post("Couldn’t undo because your rules changed.", tone: .failure)
+            }
+        }
+    }
+
     func resumeRules() {
         guard !isUIFixture else { return }
         let results = controlPlane.actionResults

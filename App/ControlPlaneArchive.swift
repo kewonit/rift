@@ -32,7 +32,7 @@ extension ControlPlaneController {
             }
             return "Recovery import: \(payload.rules.count) rules, "
                 + "\(payload.profiles.count) profiles, \(payload.localGroups.count) groups, "
-                + "and \(payload.blocklists.count) blocklists. The invalid database will be preserved in an owner-only quarantine."
+                + "and \(payload.blocklists.count) blocklists. Rift keeps a private copy of the damaged configuration."
         }
         let currentRules = Dictionary(uniqueKeysWithValues: current.rules.map { ($0.id, $0) })
         let incomingRules = Dictionary(uniqueKeysWithValues: payload.rules.map { ($0.id, $0) })

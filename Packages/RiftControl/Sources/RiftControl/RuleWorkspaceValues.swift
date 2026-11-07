@@ -4,7 +4,7 @@ import Foundation
 public enum RuleListFilter: String, CaseIterable, Sendable, Identifiable {
     case all = "All Rules"
     case active = "Active"
-    case denied = "Denied"
+    case denied = "Blocked"
     case recentlyModified = "Recently Modified"
     case recentlyUsed = "Recently Used"
     case temporary = "Temporary"
@@ -112,7 +112,7 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
     private static func action(_ action: RuleAction) -> String {
         switch action {
         case .filter(.allow): "Allow"
-        case .filter(.deny): "Deny"
+        case .filter(.deny): "Block"
         case .filter(.ask): "Ask"
         case .notification: "Notify"
         case .privacy: "Hide"

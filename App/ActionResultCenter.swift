@@ -56,7 +56,7 @@ struct ActionResultBanner: View {
             if let result = center.current {
                 RiftBanner(message: result.message, tone: tone(result)) {
                     if result.offersUndo, controller.canUndoRuleChange {
-                        Button(controller.ruleChanges.isRedo ? "Redo" : "Undo", action: undo)
+                        Button(controller.ruleChanges.isRedo ? "Redo" : "Undo") { session.undoRuleChange() }
                             .controlSize(.small)
                     }
                     if !result.ruleIDs.isEmpty {
@@ -88,21 +88,5 @@ struct ActionResultBanner: View {
         session.requestedRuleIDs = ids
         session.destination = .rules
         center.dismiss()
-    }
-
-    private func undo() {
-        let wasRedo = controller.ruleChanges.isRedo
-        Task { @MainActor in
-            do {
-                let result = try await controller.undoLastRuleChange()
-                center.post(
-                    result?.requiresAttention == true ? result?.message ?? "" : (wasRedo ? "Redone." : "Undone."),
-                    tone: result?.requiresAttention == true ? .pending : .success,
-                    offersUndo: true
-                )
-            } catch {
-                center.post("Couldn’t undo because your rules changed.", tone: .failure)
-            }
-        }
     }
 }

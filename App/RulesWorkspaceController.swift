@@ -40,11 +40,7 @@ final class RulesWorkspaceController {
     private var reloadTask: Task<Void, Never>?
     private var selectionTask: Task<Void, Never>?
 
-    var historyCommandTitle: String? {
-        controlPlane.canUndoRuleChange ? controlPlane.ruleChanges.title : nil
-    }
     var historyCommandIsRunning: Bool { controlPlane.ruleChanges.isRunning }
-    var historyCommandIsRedo: Bool { controlPlane.ruleChanges.isRedo }
 
     init(controlPlane: ControlPlaneController) {
         self.controlPlane = controlPlane
@@ -287,35 +283,6 @@ final class RulesWorkspaceController {
         await ruleCommand("Create Rule") {
             try await controlPlane.createManualRule(
                 draft, expectedGeneration: generation
-            )
-        }
-    }
-
-    func performHistoryCommand() async {
-        let history = controlPlane.ruleChanges
-        guard !history.isRunning, history.plan != nil else { return }
-        guard controlPlane.canUndoRuleChange else {
-            history.clear()
-            reportNotSaved("Undo isn’t available because your rules changed.")
-            return
-        }
-        let wasRedo = history.isRedo
-        let affected = history.plan?.affectedRuleIDs ?? []
-        do {
-            let result = try await controlPlane.undoLastRuleChange()
-            guard await reload() else {
-                reportNotSaved(
-                    "\(wasRedo ? "Redo" : "Undo") worked, but Rift couldn’t reload your rules."
-                )
-                return
-            }
-            selection = affected.intersection(Set(rows.map(\.id)))
-            if let result { present(result) }
-        } catch {
-            await reload()
-            history.clear()
-            reportNotSaved(
-                "Couldn’t \(wasRedo ? "redo" : "undo") because your rules changed."
             )
         }
     }

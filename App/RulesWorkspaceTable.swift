@@ -17,7 +17,7 @@ struct RulesWorkspaceTable: View {
 
     var body: some View {
         Table(displayedHierarchy, children: \.children, selection: tableSelection) {
-            TableColumn("Application / Condition") { node in
+            TableColumn("App / Rule") { node in
                 identityCell(node)
             }
             .width(min: 190, ideal: 260)

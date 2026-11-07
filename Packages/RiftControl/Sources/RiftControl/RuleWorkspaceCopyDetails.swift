@@ -127,7 +127,7 @@ public enum RuleWorkspaceCopyDetails {
     private static func action(_ value: RuleAction) -> String {
         switch value {
         case .filter(.allow): "Allow"
-        case .filter(.deny): "Deny"
+        case .filter(.deny): "Block"
         case .filter(.ask): "Ask"
         case .notification: "Notify"
         case .privacy: "Hide"

@@ -56,6 +56,7 @@ struct LiveMapView: View {
             panelLayer
         }
         .overlay(alignment: .top) { attentionBanner }
+        .focusedSceneValue(\.mapCommands, mapCommands)
         .sheet(item: $feed.pendingRuleRequest) { request in
             RuleScopeChooser(request: request) { breadth, duration in
                 feed.pendingRuleRequest = nil
@@ -222,6 +223,25 @@ struct LiveMapView: View {
         }
     }
 
+    private var mapCommands: MapCommandActions {
+        let selected = feed.selectedNode
+        return MapCommandActions(
+            tableShown: tableExpanded,
+            inspectorShown: showingInspector,
+            timelineShown: showingTimeline,
+            toggleTable: { tableExpanded.toggle() },
+            toggleInspector: { showingInspector.toggle() },
+            toggleTimeline: { showingTimeline.toggle() },
+            find: { searchFocused = true },
+            decide: selected.flatMap { node in
+                feed.canDecide(node) ? { feed.requestRule($0, for: node) } : nil
+            },
+            showRule: selected.flatMap { node in
+                node.ruleCoverage.ruleIDs.isEmpty ? nil : { feed.showRules(for: node) }
+            }
+        )
+    }
+
     private func perform(_ action: ProtectionStatus.Action) {
         switch action {
         case .openSystemSettings: session.lifecycle?.openSystemSettings()
@@ -277,7 +297,6 @@ struct LiveMapView: View {
                 Label(showingInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
             }
             .help(showingInspector ? "Hide the inspector" : "Show the inspector")
-            .keyboardShortcut("i", modifiers: [.command, .option])
         }
     }
 
