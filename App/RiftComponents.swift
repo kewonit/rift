@@ -138,6 +138,7 @@ struct RiftDecisionBadge: View {
 struct RiftBanner<Actions: View>: View {
     enum Tone { case info, warning, error }
     let message: String
+    var detail: String?
     var tone: Tone = .info
     @ViewBuilder var actions: Actions
 
@@ -160,7 +161,17 @@ struct RiftBanner<Actions: View>: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: RiftDesign.Spacing.s) {
             Image(systemName: symbol).foregroundStyle(color).accessibilityHidden(true)
-            Text(message).font(.callout).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(message)
+                    .font(detail == nil ? .callout : .callout.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             Spacer(minLength: RiftDesign.Spacing.s)
             actions
         }

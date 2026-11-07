@@ -41,6 +41,11 @@ Other preview options:
   focus, so screenshots of the map render.
 - `--ui-fixture-hide` hides the app a few seconds after launch, to measure
   background cost.
+- `--ui-fixture-status <state>` shows one status on Status, the menu-bar panel
+  and the Map instead of Preview. The states are `cannot-filter`, `unreadable`,
+  `setup`, `installing`, `approval`, `off`, `problem`, `connecting`,
+  `unreachable`, `allowing`, `at-risk`, `not-current`, `waiting`, `watch`,
+  `ask`, `block` and `paused`.
 
 macOS reads launch arguments as `-key value` pairs, and treats a leftover word
 as a document to open, which stops the window from appearing. Put options that

@@ -62,12 +62,12 @@ final class FilterLifecycleController: NSObject {
 
     var title: String {
         switch state {
-        case .notInstalled: "Ready to protect this Mac"
+        case .notInstalled: "Ready to set up"
         case .activating: "Installing the network filter…"
         case .awaitingApproval: "Waiting for your approval"
         case .active: "Network filter installed"
         case .savingFilterConfiguration: "Turning on the network filter…"
-        case .enabled: "Rift is active"
+        case .enabled: "The network filter is on"
         case .denied: "The filter wasn’t approved"
         case .disabled: "The filter is turned off in macOS"
         case .stale: "Refreshing filter settings…"
@@ -88,7 +88,7 @@ final class FilterLifecycleController: NSObject {
         case .disabled:
             "The filter is installed but was turned off outside Rift. Turn it back on to filter connections and see activity."
         case .enabled:
-            "The network filter is on. Rift shows your rules as active once the filter confirms it’s using them."
+            "macOS has the Rift filter turned on."
         default:
             "Rift is updating the filter settings in macOS."
         }

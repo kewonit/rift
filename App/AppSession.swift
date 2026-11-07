@@ -1,4 +1,5 @@
 import AppKit
+import RiftControl
 import RiftCore
 import Foundation
 import NetworkExtension
@@ -62,16 +63,52 @@ final class AppSession {
         return true
     }
 
+    /// What Rift is doing right now. Status, the menu-bar panel and the Map
+    /// all read this, so they can't disagree.
+    var protectionStatus: ProtectionStatus {
+#if DEBUG
+        if isUIFixture {
+            return ProtectionStatus.resolve(
+                FixturePreviewOptions.statusInputs ?? ProtectionInputs(isPreview: true)
+            )
+        }
+#endif
+        return ProtectionStatus.resolve(protectionInputs)
+    }
+
+    private var protectionInputs: ProtectionInputs {
+        let controller: ProtectionInputs.Controller = switch controlPlane.state {
+        case .idle, .databaseReady: .starting
+        case .connected(let readiness): .connected(readiness)
+        case .integrationUnavailable: .unreachable
+        case .failed: .failed
+        }
+        let desired = controlPlane.desiredPolicyTuple
+        let active = controlPlane.activePolicyTuple
+        let unreadable = controlPlane.configurationRecoveryRequired
+        return ProtectionInputs(
+            lifecycle: lifecycle?.initialStatusResolved == true ? lifecycle?.state : nil,
+            lifecycleTitle: lifecycle?.title,
+            controller: controller,
+            filterServiceConfirmed: hasConfirmedFilterService,
+            hasActivePolicy: active != nil,
+            desiredKnown: desired != nil,
+            rulesMatchDesired: desired != nil && active == desired,
+            mode: unreadable ? nil : controlPlane.currentMode,
+            configurationUnreadable: unreadable,
+            waitingPrompts: controlPlane.pendingPrompts.count
+        )
+    }
+
     var statusSymbolName: String {
-        if isUIFixture { return "eye" }
-        return hasConfirmedFilterService ? controlPlane.statusSymbolName : "shield.slash"
+        let status = protectionStatus
+        if case .active = status.state, controlPlane.recentDenyVisible { return "xmark.shield.fill" }
+        return status.symbolName
     }
 
     var statusAccessibilityLabel: String {
-        if isUIFixture { return "Preview mode. Rift isn’t filtering." }
-        return hasConfirmedFilterService
-            ? controlPlane.statusAccessibilityLabel
-            : "The Rift filter needs attention"
+        let status = protectionStatus
+        return "\(status.title). \(status.detail)"
     }
 
 #if DEBUG

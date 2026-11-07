@@ -163,14 +163,29 @@ struct LiveMapView: View {
 
     @ViewBuilder
     private var attentionBanner: some View {
-        if !session.isUIFixture, let message = monitorAttentionMessage(for: session.lifecycle) {
-            RiftBanner(message: message, tone: .warning) {
-                Button("Show Status") { session.destination = .health }
-                    .controlSize(.small)
+        let status = session.protectionStatus
+        if status.showsBanner {
+            RiftBanner(
+                message: status.title,
+                detail: status.detail,
+                tone: status.tone == .attention ? .warning : .info
+            ) {
+                if let action = status.action {
+                    Button(action.title) { perform(action) }
+                        .controlSize(.small)
+                }
             }
-            .frame(maxWidth: 440)
+            .frame(maxWidth: 480)
             .riftPanel(cornerRadius: RiftDesign.Radius.card)
             .padding(.top, edge)
+            .transition(RiftDesign.Motion.dropIn(reduceMotion: reduceMotion))
+        }
+    }
+
+    private func perform(_ action: ProtectionStatus.Action) {
+        switch action {
+        case .openSystemSettings: session.lifecycle?.openSystemSettings()
+        case .setUp, .showStatus, .reviewWaiting: session.destination = .health
         }
     }
 

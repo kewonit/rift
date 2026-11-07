@@ -23,6 +23,44 @@ enum FixturePreviewOptions {
     static var opensSettings: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-settings") }
     static var showsAlert: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-alert") }
 
+    /// Shows one status instead of Preview, for reviewing how each state reads.
+    static var statusInputs: ProtectionInputs? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "--ui-fixture-status"),
+              arguments.indices.contains(flag + 1) else { return nil }
+        var healthy = ProtectionInputs(
+            lifecycle: .enabled, controller: .connected(.ready), filterServiceConfirmed: true,
+            hasActivePolicy: true, desiredKnown: true, rulesMatchDesired: true, mode: .silentAllow
+        )
+        switch arguments[flag + 1].lowercased() {
+        case "cannot-filter": return ProtectionInputs(buildCanFilter: false)
+        case "unreadable":
+            return ProtectionInputs(lifecycle: .enabled, hasActivePolicy: true, configurationUnreadable: true)
+        case "setup": return ProtectionInputs(lifecycle: .notInstalled)
+        case "installing":
+            return ProtectionInputs(lifecycle: .activating, lifecycleTitle: "Installing the network filter…")
+        case "approval": return ProtectionInputs(lifecycle: .awaitingApproval)
+        case "off": return ProtectionInputs(lifecycle: .disabled)
+        case "problem":
+            return ProtectionInputs(lifecycle: .failed(message: "macOS couldn’t turn on the filter."))
+        case "connecting": return ProtectionInputs(lifecycle: .enabled)
+        case "unreachable": return ProtectionInputs(lifecycle: .enabled, controller: .unreachable)
+        case "allowing":
+            return ProtectionInputs(lifecycle: .enabled, controller: .connected(.degradedNoPolicy))
+        case "at-risk":
+            healthy.controller = .connected(.degradedPersistence)
+        case "not-current":
+            healthy.rulesMatchDesired = false
+        case "waiting": healthy.waitingPrompts = 2
+        case "ask": healthy.mode = .alert
+        case "block": healthy.mode = .silentDeny
+        case "paused": healthy.mode = .filterOff
+        case "watch": break
+        default: return nil
+        }
+        return healthy
+    }
+
 }
 
 /// Shows the connection alert in an ordinary window with a sample request.

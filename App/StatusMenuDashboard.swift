@@ -2,36 +2,10 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
-/// What Rift is doing right now, for the top of the menu-bar panel.
-struct StatusMenuStatus: Equatable {
-    enum Tone { case good, observing, attention, preview }
-    let title: String
-    let tone: Tone
-    var detail: String?
-
-    var symbol: String {
-        switch tone {
-        case .good: "checkmark.shield.fill"
-        case .observing: "eye.fill"
-        case .attention: "exclamationmark.shield.fill"
-        case .preview: "eye"
-        }
-    }
-
-    var color: Color {
-        switch tone {
-        case .good: Color(nsColor: .systemGreen)
-        case .observing: Color(nsColor: .systemBlue)
-        case .attention: Color(nsColor: .systemOrange)
-        case .preview: .secondary
-        }
-    }
-}
-
 /// The top of the menu-bar panel: status and mode, traffic over the last five
 /// minutes, and the apps that connected most recently.
 struct StatusMenuDashboard: View {
-    let status: StatusMenuStatus
+    let status: ProtectionStatus
     let mode: OperationMode
     let profile: String?
     let snapshot: StatusMenuSnapshot
@@ -40,6 +14,7 @@ struct StatusMenuDashboard: View {
     let canChangeMode: Bool
     let artworkStore: ApplicationArtworkStore
     let selectMode: (OperationMode) -> Void
+    let performAction: (ProtectionStatus.Action) -> Void
     let toggleNotifications: () -> Void
     let openConnection: (String) -> Void
 
@@ -47,7 +22,8 @@ struct StatusMenuDashboard: View {
         VStack(alignment: .leading, spacing: RiftDesign.Spacing.m) {
             StatusMenuHeader(
                 status: status, mode: mode, profile: profile,
-                canChangeMode: canChangeMode, selectMode: selectMode
+                canChangeMode: canChangeMode, selectMode: selectMode,
+                performAction: performAction
             )
             .equatable()
             HStack {
@@ -151,44 +127,62 @@ extension OperationMode {
 /// Status and mode. Equatable so the once-a-second activity refresh doesn't
 /// rebuild the mode menu.
 private struct StatusMenuHeader: View, Equatable {
-    let status: StatusMenuStatus
+    let status: ProtectionStatus
     let mode: OperationMode
     let profile: String?
     let canChangeMode: Bool
     let selectMode: (OperationMode) -> Void
+    let performAction: (ProtectionStatus.Action) -> Void
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.status == rhs.status && lhs.mode == rhs.mode
             && lhs.profile == rhs.profile && lhs.canChangeMode == rhs.canChangeMode
     }
 
+    private var modeIsUnreadable: Bool {
+        if case .configurationUnreadable = status.state { return true }
+        return false
+    }
+
     var body: some View {
-        HStack(spacing: RiftDesign.Spacing.s + 2) {
-            Image(systemName: status.symbol)
-                .font(.title2)
-                .foregroundStyle(status.color)
-                .symbolRenderingMode(.hierarchical)
-                .frame(width: 28)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(status.title).font(.headline).lineLimit(1)
-                Text(status.detail ?? profile.map { "Profile: \($0)" } ?? "No profile")
+        VStack(alignment: .leading, spacing: RiftDesign.Spacing.xs) {
+            HStack(spacing: RiftDesign.Spacing.s + 2) {
+                Image(systemName: status.filledSymbolName)
+                    .font(.title2)
+                    .foregroundStyle(status.color)
+                    .symbolRenderingMode(.hierarchical)
+                    .frame(width: 28)
+                    .accessibilityHidden(true)
+                Text(status.title).font(.headline).lineLimit(2)
+                Spacer(minLength: RiftDesign.Spacing.s)
+                Menu {
+                    Picker("Mode", selection: Binding(get: { mode }, set: selectMode)) {
+                        ForEach(OperationMode.menuChoices, id: \.self) { Text($0.menuTitle).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Text(modeIsUnreadable ? "Unknown" : mode.menuTitle)
+                }
+                .fixedSize()
+                .controlSize(.small)
+                .disabled(!canChangeMode || modeIsUnreadable)
+                .help("Change how Rift handles connections without a rule")
+            }
+            Text(status.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if status.action == nil, let profile {
+                Text("Profile: \(profile)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Spacer(minLength: RiftDesign.Spacing.s)
-            Menu {
-                Picker("Mode", selection: Binding(get: { mode }, set: selectMode)) {
-                    ForEach(OperationMode.menuChoices, id: \.self) { Text($0.menuTitle).tag($0) }
-                }
-                .pickerStyle(.inline)
-            } label: {
-                Text(mode.menuTitle)
+            if let action = status.action {
+                Button(action.title) { performAction(action) }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .padding(.top, RiftDesign.Spacing.xxs)
             }
-            .fixedSize()
-            .controlSize(.small)
-            .disabled(!canChangeMode)
-            .help("Change how Rift handles connections without a rule")
         }
         .accessibilityElement(children: .contain)
     }

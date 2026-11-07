@@ -1,4 +1,5 @@
 import AppKit
+import RiftControl
 import SwiftUI
 
 /// Rift's design tokens. Views use these instead of literal sizes and colors so
@@ -23,6 +24,27 @@ enum RiftDesign {
         static let press = 0.12
         static let contextual = 0.20
         static let panel = 0.28
+        static let exit = 0.15
+        /// How far small surfaces travel as they enter and leave.
+        static let travel: CGFloat = 8
+
+        /// Starts fast and settles gently, for things entering or leaving.
+        static func enter(_ duration: Double = contextual) -> Animation {
+            .timingCurve(0.19, 1, 0.22, 1, duration: duration)
+        }
+
+        /// A small surface sliding in from above and leaving the same way. With
+        /// Reduce Motion it only fades.
+        static func dropIn(reduceMotion: Bool) -> AnyTransition {
+            guard !reduceMotion else {
+                return .opacity.animation(.easeOut(duration: press))
+            }
+            let moved = AnyTransition.opacity.combined(with: .offset(y: -travel))
+            return .asymmetric(
+                insertion: moved.animation(enter()),
+                removal: moved.animation(enter(exit))
+            )
+        }
     }
 
     /// Widths of the floating panels on the map.
@@ -115,7 +137,7 @@ enum RiftStatusTone: String, CaseIterable {
     case denied
     case unresolved
     case warning
-    case protected
+    case on
 
     var label: String {
         switch self {
@@ -123,7 +145,7 @@ enum RiftStatusTone: String, CaseIterable {
         case .denied: "Denied"
         case .unresolved: "Inactive"
         case .warning: "Needs attention"
-        case .protected: "Protected"
+        case .on: "On"
         }
     }
 
@@ -133,13 +155,13 @@ enum RiftStatusTone: String, CaseIterable {
         case .denied: "xmark.octagon.fill"
         case .unresolved: "minus.circle.fill"
         case .warning: "exclamationmark.triangle.fill"
-        case .protected: "checkmark.shield.fill"
+        case .on: "checkmark.circle.fill"
         }
     }
 
     var color: Color {
         switch self {
-        case .allowed, .protected: Color(nsColor: .systemGreen)
+        case .allowed, .on: Color(nsColor: .systemGreen)
         case .denied: Color(nsColor: .systemRed)
         case .unresolved: .secondary
         case .warning: Color(nsColor: .systemOrange)
@@ -159,5 +181,21 @@ struct RiftStatusBadge: View {
             .padding(.vertical, RiftDesign.Spacing.xs)
             .background(tone.color.opacity(0.12), in: Capsule())
             .accessibilityElement(children: .combine)
+    }
+}
+
+extension ProtectionStatus {
+    var color: Color {
+        switch tone {
+        case .good: Color(nsColor: .systemGreen)
+        case .neutral: Color(nsColor: .systemBlue)
+        case .attention: Color(nsColor: .systemOrange)
+        case .preview: .secondary
+        }
+    }
+
+    /// The menu bar uses the outline symbol, and larger surfaces the filled one.
+    var filledSymbolName: String {
+        tone == .preview ? symbolName : "\(symbolName).fill"
     }
 }

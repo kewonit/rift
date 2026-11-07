@@ -24,20 +24,6 @@ func monitorCoverageLabel(_ state: MonitorRuleCoverageState) -> String {
     }
 }
 
-@MainActor func monitorAttentionMessage(for lifecycle: FilterLifecycleController?) -> String? {
-    guard let lifecycle, lifecycle.initialStatusResolved else { return nil }
-    switch lifecycle.state {
-    case .notInstalled:
-        return "Set up the network filter"
-    case .awaitingApproval:
-        return "Approve Rift in System Settings"
-    case .denied, .disabled, .failed:
-        return "The network filter needs attention"
-    default:
-        return nil
-    }
-}
-
 /// Confirms an allow rule that overrides the user's blocklists.
 struct MonitorManagedListOverrideConfirmation: ViewModifier {
     @Binding var pending: MonitorHierarchyNode?

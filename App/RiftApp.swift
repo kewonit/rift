@@ -50,7 +50,7 @@ private struct RiftStatusIcon: View {
     let session: AppSession
     private static let images: [String: NSImage] = {
         let names = ["eye", "shield.slash", "exclamationmark.shield", "xmark.shield.fill",
-                     "questionmark.shield", "checkmark.shield", "xmark.shield"]
+                     "questionmark.circle", "pause.circle", "xmark.shield"]
         return Dictionary(uniqueKeysWithValues: names.compactMap { name in
             guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil),
                   let bitmap = NSBitmapImageRep(

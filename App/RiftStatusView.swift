@@ -1,4 +1,5 @@
 import AppKit
+import RiftControl
 import SwiftUI
 
 struct RiftHealthView: View {
@@ -22,6 +23,16 @@ struct RiftHealthView: View {
             Section("Network Filter") {
                 filterSection
             }
+            if status.state != .preview {
+                Section {
+                    StatusRow(
+                        title: "Your rules",
+                        detail: status.rulesSummary,
+                        tone: rulesRowTone,
+                        symbol: "list.bullet.rectangle"
+                    )
+                }
+            }
             Section("Map") {
                 StatusRow(
                     title: NetworkMapStore.shared.loadFailed ? "Cable map unavailable" : "Cable map ready",
@@ -39,27 +50,39 @@ struct RiftHealthView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var status: ProtectionStatus { session.protectionStatus }
+
     private var header: some View {
         HStack(spacing: 14) {
-            Image(systemName: session.hasConfirmedFilterService
-                ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+            Image(systemName: status.filledSymbolName)
                 .font(.system(size: 34))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(session.hasConfirmedFilterService ? Color.green : .orange)
+                .foregroundStyle(status.color)
+                .frame(width: 48)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
-                Text(session.isUIFixture
-                    ? "Preview Mode"
-                    : (session.hasConfirmedFilterService ? "Rift is protecting this Mac" : "Rift needs attention"))
+                Text(status.title)
                     .font(.title3.weight(.semibold))
-                Text(session.isUIFixture
-                    ? "This preview shows sample data. Nothing on this Mac changes."
-                    : session.statusAccessibilityLabel)
+                Text(status.detail)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
+    }
+
+    private var filterRowTone: RiftStatusTone {
+        if session.hasConfirmedFilterService { return .on }
+        return status.tone == .attention ? .warning : .unresolved
+    }
+
+    private var rulesRowTone: RiftStatusTone {
+        switch status.state {
+        case .active(.filterOff): .unresolved
+        case .active, .waiting: .on
+        default: status.tone == .attention ? .warning : .unresolved
+        }
     }
 
     @ViewBuilder
@@ -77,7 +100,7 @@ struct RiftHealthView: View {
                 detail: lifecycle.initialStatusResolved
                     ? lifecycle.guidance
                     : "Rift is checking the filter’s status with macOS.",
-                tone: session.hasConfirmedFilterService ? .protected : .warning,
+                tone: filterRowTone,
                 symbol: "network.badge.shield.half.filled"
             )
             HStack {

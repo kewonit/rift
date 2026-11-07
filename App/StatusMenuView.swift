@@ -13,34 +13,6 @@ extension ControlPlaneController {
 
     func refreshCurrentMode(_ mode: OperationMode) { currentMode = mode }
 
-    var statusSymbolName: String {
-        guard case .connected(.ready) = state else { return "shield.slash" }
-        if !pendingPrompts.isEmpty { return "exclamationmark.shield" }
-        if recentDenyVisible { return "xmark.shield.fill" }
-        switch currentMode {
-        case .alert: return "questionmark.shield"
-        case .silentAllow: return "checkmark.shield"
-        case .silentDeny: return "xmark.shield"
-        case .filterOff: return "eye"
-        case .degradedFallback: return "exclamationmark.shield"
-        }
-    }
-
-    var statusAccessibilityLabel: String {
-        guard case .connected(.ready) = state else { return "The Rift filter needs attention" }
-        if !pendingPrompts.isEmpty { return "Rift has connections waiting for your decision" }
-        if recentDenyVisible {
-            return "Rift recently denied a connection"
-        }
-        switch currentMode {
-        case .alert: return "Rift is filtering in Alert mode"
-        case .silentAllow: return "Rift is filtering in Silent Allow mode"
-        case .silentDeny: return "Rift is filtering in Silent Deny mode"
-        case .filterOff: return "Rift is observing without filtering"
-        case .degradedFallback: return "Rift is running in fallback mode"
-        }
-    }
-
     func recordRecentDeny(from events: [RuntimeEvent]) {
         guard let deniedAt = events.lazy
             .filter({ $0.kind == .decision && $0.action == .deny })
@@ -92,7 +64,7 @@ struct StatusMenuView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: RiftDesign.Spacing.s) {
             StatusMenuDashboard(
-                status: status,
+                status: session.protectionStatus,
                 mode: mode,
                 profile: activeProfileName,
                 snapshot: snapshot,
@@ -101,6 +73,7 @@ struct StatusMenuView: View {
                 canChangeMode: !session.isUIFixture,
                 artworkStore: session.applicationArtwork,
                 selectMode: requestMode,
+                performAction: perform,
                 toggleNotifications: toggleNotifications,
                 openConnection: openActivity
             )
@@ -219,21 +192,15 @@ struct StatusMenuView: View {
         }
     }
 
-    private var status: StatusMenuStatus {
-        if session.isUIFixture { return StatusMenuStatus(title: "Preview", tone: .preview, detail: "Rift isn’t filtering") }
-        switch controller.state {
-        case .connected(.ready):
-            guard session.hasConfirmedFilterService else { return .init(title: "Rift needs attention", tone: .attention) }
-            if !controller.pendingPrompts.isEmpty { return .init(title: "Connections are waiting", tone: .attention) }
-            switch controller.currentMode {
-            case .filterOff: return .init(title: "Rift is observing", tone: .observing)
-            case .degradedFallback: return .init(title: "Rift needs attention", tone: .attention)
-            default: return .init(title: "Rift is filtering", tone: .good)
-            }
-        case .connected, .failed: return .init(title: "Rift needs attention", tone: .attention)
-        case .databaseReady: return .init(title: "Connecting…", tone: .attention)
-        case .integrationUnavailable: return .init(title: "Can’t reach the filter", tone: .attention)
-        case .idle: return .init(title: "Starting…", tone: .attention)
+    private func perform(_ action: ProtectionStatus.Action) {
+        switch action {
+        case .setUp, .showStatus:
+            session.destination = .health
+            showMainWindow()
+        case .openSystemSettings:
+            session.lifecycle?.openSystemSettings()
+        case .reviewWaiting:
+            openNextAlert()
         }
     }
 

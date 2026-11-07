@@ -23,6 +23,13 @@ release.
 - Rift releases the map 30 seconds after its window is hidden, roughly halving
   its memory while it runs in the background.
 - Fixed app names in connection alerts showing replacement characters.
+- Status, the menu-bar panel and the Map now give the same plain description
+  of what Rift is doing. Rift no longer says the Mac is protected when
+  connections are simply being allowed, and it says when all connections are
+  allowed or your rules can't be confirmed.
+- Problems shown in the menu-bar panel and on the Map now give the reason and a
+  direct way to fix them.
+- Fixed the menu-bar icon disappearing in Alert mode.
 
 ## 0.3.0 (pre-release)
 
