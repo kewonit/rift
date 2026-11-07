@@ -79,6 +79,55 @@ extension View {
     }
 }
 
+/// The search field in the bar above each table.
+struct RiftSearchField: View {
+    let prompt: String
+    @Binding var text: String
+    var focus: FocusState<Bool>.Binding
+
+    var body: some View {
+        HStack(spacing: RiftDesign.Spacing.xs) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(prompt, text: $text)
+                .textFieldStyle(.plain)
+                .focused(focus)
+            if !text.isEmpty {
+                Button { text = "" } label: { Image(systemName: "xmark.circle.fill") }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Clear Search")
+                    .help("Clear search")
+            }
+        }
+        .font(.callout)
+        .padding(.horizontal, RiftDesign.Spacing.s - 2)
+        .frame(height: RiftDesign.barControlHeight)
+        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .background(InitialFocusClearer())
+        .frame(minWidth: 120, maxWidth: 220)
+    }
+}
+
+/// AppKit puts a new window's focus in its first text field. A search field
+/// with a blinking cursor shouldn't be the first thing someone sees.
+private struct InitialFocusClearer: NSViewRepresentable {
+    final class Probe: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            Task { [weak window] in
+                try? await Task.sleep(for: .milliseconds(100))
+                if window?.firstResponder is NSTextView { window?.makeFirstResponder(nil) }
+            }
+        }
+    }
+
+    func makeNSView(context: Context) -> Probe { Probe() }
+    func updateNSView(_ view: Probe, context: Context) {}
+}
+
 /// Two stacked panes with a draggable divider. SwiftUI's `VSplitView` aborts
 /// the app here: its panes report a new minimum size on every layout pass until
 /// AppKit gives up.

@@ -50,6 +50,9 @@ struct NetworkMapView: NSViewRepresentable {
         container.appearanceChanged = { [weak coordinator = context.coordinator] in
             coordinator?.refreshStyle()
         }
+        container.sizeChanged = { [weak coordinator = context.coordinator] in
+            coordinator?.paneResized()
+        }
         return container
     }
 
@@ -82,6 +85,11 @@ struct NetworkMapView: NSViewRepresentable {
         private var shownOrigin: CoarseMapOrigin??
         private var shownFitRequest = 0
         private var fittedOrigin: CoarseMapOrigin?
+        /// What the map is fitted to, until the user moves it.
+        private var fittedCountries: Set<String>?
+        private var fitting = false
+        private var resizing = false
+        private var refitTask: Task<Void, Never>?
         private var updatingSelection = false
 
         private var mapView: MKMapView? { container?.mapView }
@@ -112,11 +120,13 @@ struct NetworkMapView: NSViewRepresentable {
                 syncRoutes(in: mapView, highlightChanged: highlightChanged)
                 if highlightChanged, !view.highlightedCountries.isEmpty {
                     fit(countries: view.highlightedCountries, in: mapView, animated: true)
+                } else if highlightChanged, fittedCountries != nil {
+                    fit(countries: [], in: mapView, animated: true)
                 } else if fittedOrigin != view.origin, view.origin != nil, !view.destinations.isEmpty {
                     // The first fit jumps straight there: animating from the
                     // world view loads tiles for every zoom level in between.
                     fittedOrigin = view.origin
-                    fit(countries: [], in: mapView, animated: false)
+                    fit(countries: view.highlightedCountries, in: mapView, animated: false)
                 }
             }
             if shownFitRequest != view.fitRequest {
@@ -131,6 +141,10 @@ struct NetworkMapView: NSViewRepresentable {
             mapView.removeOverlays(mapView.overlays)
             mapView.addOverlays(networkOverlays, level: .aboveRoads)
             mapView.addOverlays(entries.values.flatMap(\.legs), level: .aboveLabels)
+            refreshEmphasis(in: mapView)
+            if let originAnnotation {
+                (mapView.view(for: originAnnotation) as? OriginMarkerView)?.style = parent?.style ?? .standard
+            }
         }
 
         private func updateOrigin(_ origin: CoarseMapOrigin?, in mapView: MKMapView) {
@@ -178,7 +192,7 @@ struct NetworkMapView: NSViewRepresentable {
                     for leg in routeLegs {
                         let isCable = if case .cable = leg.kind { true } else { false }
                         for part in NetworkMapGeometry.splitAtAntimeridian(leg.points) {
-                            legs.append(RouteLegPolyline.make(part, countryCode: code, isCable: isCable))
+                            legs.append(RouteLegPolyline.make(RouteSmoothing.smoothed(part), countryCode: code, isCable: isCable))
                         }
                     }
                 }
@@ -193,7 +207,7 @@ struct NetworkMapView: NSViewRepresentable {
                 guard let destination = byCountry[code], let annotation = entries[code]?.annotation else { continue }
                 annotation.update(destination)
                 (mapView.view(for: annotation) as? DestinationMarkerView)?
-                    .configure(destination, dimmed: isDimmed(code))
+                    .configure(destination, dimmed: isDimmed(code), style: parent?.style ?? .standard)
             }
             if !addedLegs.isEmpty { mapView.addOverlays(addedLegs, level: .aboveLabels) }
             if !addedAnnotations.isEmpty { mapView.addAnnotations(addedAnnotations) }
@@ -210,25 +224,28 @@ struct NetworkMapView: NSViewRepresentable {
                 : candidates.filter { shownHighlight.contains($0.countryCode) }
             return focused.compactMap { destination in
                 guard case .undersea(let legs, _) = destination.route else { return nil }
-                return FlowOverlayView.Flow(id: destination.countryCode, points: legs.flatMap(\.points))
+                let points = legs.flatMap { leg in
+                    NetworkMapGeometry.splitAtAntimeridian(leg.points).flatMap(RouteSmoothing.smoothed)
+                }
+                return FlowOverlayView.Flow(id: destination.countryCode, points: points)
             }
         }
 
         private func refreshEmphasis(in mapView: MKMapView) {
             let appearance = mapView.effectiveAppearance
+            let style = parent?.style ?? .standard
             for (code, entry) in entries {
                 let dimmed = isDimmed(code)
                 for leg in entry.legs {
-                    guard let renderer = mapView.renderer(for: leg) as? RoutePolylineRenderer else { continue }
-                    renderer.strokeColor = NetworkMapPalette.route(dimmed: dimmed, appearance: appearance)
-                    renderer.outlineColor = NetworkMapPalette.routeOutline(
-                        dimmed: dimmed, style: parent?.style ?? .standard, appearance: appearance
+                    guard let renderer = mapView.renderer(for: leg) as? MKPolylineRenderer else { continue }
+                    renderer.strokeColor = NetworkMapPalette.route(
+                        isCable: leg.isCable, dimmed: dimmed, style: style, appearance: appearance
                     )
                     renderer.setNeedsDisplay()
                 }
                 if let annotation = entry.annotation {
                     (mapView.view(for: annotation) as? DestinationMarkerView)?
-                        .configure(annotation.destination, dimmed: dimmed)
+                        .configure(annotation.destination, dimmed: dimmed, style: style)
                 }
             }
         }
@@ -254,35 +271,62 @@ struct NetworkMapView: NSViewRepresentable {
         /// Frames the origin and the chosen routes, measuring longitude around the
         /// origin so a view never wraps the long way around the world.
         private func fit(countries: Set<String>, in mapView: MKMapView, animated: Bool) {
-            var points: [CLLocationCoordinate2D] = originAnnotation.map { [$0.coordinate] } ?? []
+            let origin = originAnnotation?.coordinate
+            var points: [CLLocationCoordinate2D] = origin.map { [$0] } ?? []
             for destination in shownDestinations
             where countries.isEmpty || countries.contains(destination.countryCode) {
                 if let point = destination.route.destination { points.append(point.mapCoordinate) }
-                if !destination.activity.allBlocked, case .undersea(let legs, _) = destination.route {
+                // A country in focus shows its whole route. The overview only
+                // needs the ends, or waypoints would decide the framing.
+                if !countries.isEmpty, !destination.activity.allBlocked, case .undersea(let legs, _) = destination.route {
                     points.append(contentsOf: legs.flatMap(\.points).map(\.mapCoordinate))
                 }
             }
-            guard let reference = points.first?.longitude, points.count > 1 else { return }
-            let longitudes = points.map { reference + NetworkMapGeometry.wrapLongitude($0.longitude - reference) }
-            let latitudes = points.map(\.latitude)
-            guard let west = longitudes.min(), let east = longitudes.max(),
-                  let south = latitudes.min(), let north = latitudes.max() else { return }
+            guard points.count > 1,
+                  let window = MapFraming.longitudeWindow(points.map(\.longitude), keeping: origin?.longitude)
+            else { return }
+            let latitudes = points.filter { window.contains($0.longitude) }.map(\.latitude)
+            guard let south = latitudes.min(), let north = latitudes.max() else { return }
+            // The map runs under the toolbar, so keep the routes below it.
+            let covered = mapView.safeAreaInsets.top / max(mapView.bounds.height, 1)
+            let wanted = max(12, (north - south) * 1.2) / (1 - covered)
+            // Degrees of latitude the pane shows per degree of longitude. Mercator
+            // stretches away from the equator, so it's less than the aspect ratio.
+            let shape = mapView.bounds.height / max(mapView.bounds.width, 1) * 0.8
+            // A tall route zooms the map out, as far as MapKit can go.
+            let longitudeDelta = min(
+                MapFraming.widest, max(18, window.span * MapFraming.margin, wanted / max(shape, 0.01))
+            )
+            let tallest = longitudeDelta * shape
+            let latitudeDelta = min(tallest, wanted)
+            // When everything can't fit, stay where most of the destinations are.
+            let middle = wanted > tallest
+                ? latitudes.reduce(0, +) / Double(latitudes.count)
+                : (south + north) / 2
             let region = MKCoordinateRegion(
                 center: CLLocationCoordinate2D(
-                    latitude: (south + north) / 2,
-                    longitude: NetworkMapGeometry.wrapLongitude((west + east) / 2)
+                    latitude: middle + latitudeDelta * covered / 2,
+                    longitude: window.centre
                 ),
-                span: MKCoordinateSpan(
-                    latitudeDelta: min(150, max(12, (north - south) * 1.2)),
-                    longitudeDelta: min(340, max(18, (east - west) * 1.15))
-                )
+                span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
             )
-            // The safe area already excludes the toolbar.
-            mapView.setVisibleMapRect(
-                MKMapRect.from(region),
-                edgePadding: NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24),
-                animated: animated && parent?.reduceMotion == false
-            )
+            fittedCountries = countries
+            fitting = true
+            mapView.setRegion(mapView.regionThatFits(region), animated: animated && parent?.reduceMotion == false)
+        }
+
+        /// The pane changed size, so fit again unless the user has moved the map.
+        func paneResized() {
+            guard fittedCountries != nil else { return }
+            resizing = true
+            refitTask?.cancel()
+            refitTask = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled, let self else { return }
+                self.resizing = false
+                guard let mapView = self.mapView, let countries = self.fittedCountries else { return }
+                self.fit(countries: countries, in: mapView, animated: true)
+            }
         }
 
         // MARK: MKMapViewDelegate
@@ -293,22 +337,19 @@ struct NetworkMapView: NSViewRepresentable {
             if let network = overlay as? CableNetworkOverlay {
                 let renderer = MKMultiPolylineRenderer(multiPolyline: network)
                 renderer.strokeColor = NetworkMapPalette.cable(estimated: network.isEstimated, style: style, appearance: appearance)
-                renderer.lineWidth = NetworkMapPalette.cableWidth(estimated: network.isEstimated)
+                renderer.lineWidth = NetworkMapPalette.cableWidth
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
-                if network.isEstimated { renderer.lineDashPattern = [5, 4] }
                 return renderer
             }
             if let leg = overlay as? RouteLegPolyline {
-                let renderer = RoutePolylineRenderer(polyline: leg)
-                renderer.strokeColor = NetworkMapPalette.route(dimmed: isDimmed(leg.countryCode), appearance: appearance)
-                renderer.outlineColor = NetworkMapPalette.routeOutline(
-                    dimmed: isDimmed(leg.countryCode), style: style, appearance: appearance
+                let renderer = MKPolylineRenderer(polyline: leg)
+                renderer.strokeColor = NetworkMapPalette.route(
+                    isCable: leg.isCable, dimmed: isDimmed(leg.countryCode), style: style, appearance: appearance
                 )
                 renderer.lineWidth = NetworkMapPalette.routeWidth(isCable: leg.isCable)
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
-                if !leg.isCable { renderer.lineDashPattern = NetworkMapPalette.landDash }
                 return renderer
             }
             return MKOverlayRenderer(overlay: overlay)
@@ -316,15 +357,21 @@ struct NetworkMapView: NSViewRepresentable {
 
         func mapView(_ mapView: MKMapView, viewFor annotation: any MKAnnotation) -> MKAnnotationView? {
             if annotation is OriginAnnotation {
-                return mapView.dequeueReusableAnnotationView(
+                let view = mapView.dequeueReusableAnnotationView(
                     withIdentifier: OriginMarkerView.reuseIdentifier, for: annotation
                 )
+                (view as? OriginMarkerView)?.style = parent?.style ?? .standard
+                return view
             }
             guard let destination = annotation as? DestinationAnnotation,
                   let view = mapView.dequeueReusableAnnotationView(
                     withIdentifier: DestinationMarkerView.reuseIdentifier, for: annotation
                   ) as? DestinationMarkerView else { return nil }
-            view.configure(destination.destination, dimmed: isDimmed(destination.destination.countryCode))
+            view.configure(
+                destination.destination,
+                dimmed: isDimmed(destination.destination.countryCode),
+                style: parent?.style ?? .standard
+            )
             return view
         }
 
@@ -345,10 +392,12 @@ struct NetworkMapView: NSViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            if !fitting, !resizing { fittedCountries = nil }
             container?.flowView.regionWillChange()
         }
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            fitting = false
             container?.flowView.regionDidChange()
         }
 
@@ -383,5 +432,47 @@ private extension MKMapRect {
         var width = bottomRight.x - topLeft.x
         if width < 0 { width += MKMapSize.world.width }
         return MKMapRect(x: topLeft.x, y: topLeft.y, width: width, height: bottomRight.y - topLeft.y)
+    }
+}
+
+enum MapFraming {
+    /// MapKit shows about half the world across at most, and asking for much
+    /// more lands the map on the far side of the globe.
+    static let widest: Double = 170
+    static let margin = 1.15
+
+    struct Window {
+        let west: Double
+        let span: Double
+
+        var centre: Double { NetworkMapGeometry.wrapLongitude(west + span / 2) }
+
+        func contains(_ longitude: Double) -> Bool {
+            let offset = (longitude - west).truncatingRemainder(dividingBy: 360)
+            return (offset < 0 ? offset + 360 : offset) <= span
+        }
+    }
+
+    /// The stretch of longitude to show. It's the narrowest one holding every
+    /// point, which on a circle means everything but the widest empty gap. When
+    /// that's too wide to show, it's the window holding the most points that
+    /// still includes `anchor`.
+    static func longitudeWindow(_ longitudes: [Double], keeping anchor: Double?) -> Window? {
+        let sorted = longitudes.map(NetworkMapGeometry.wrapLongitude).sorted()
+        guard let first = sorted.first, let last = sorted.last else { return nil }
+        var gap = first + 360 - last
+        var west = first
+        for (start, end) in zip(sorted, sorted.dropFirst()) where end - start > gap {
+            gap = end - start
+            west = end
+        }
+        let span = widest / margin
+        guard 360 - gap > span else { return Window(west: west, span: 360 - gap) }
+        let candidates = sorted
+            .flatMap { [Window(west: $0, span: span), Window(west: $0 - span, span: span)] }
+            .filter { window in anchor.map(window.contains) ?? true }
+        return candidates.max { left, right in
+            sorted.filter(left.contains).count < sorted.filter(right.contains).count
+        }
     }
 }

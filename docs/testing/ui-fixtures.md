@@ -34,11 +34,15 @@ Other preview options:
 
 - `--ui-fixture-page rules` or `--ui-fixture-page status` opens that page.
 - `--ui-fixture-table` opens the Map page with the connection table expanded.
+- `--ui-fixture-select` selects a connection, which opens the inspector.
 - `--ui-fixture-alert` shows a connection alert for a sample request.
 - `--ui-fixture-settings` opens the Settings window.
 - `--ui-fixture-dark` uses the dark appearance.
 - `--ui-fixture-float` keeps preview windows above other apps without taking
   focus, so screenshots of the map render.
+- `--ui-fixture-monitor` opens preview windows on the external display instead
+  of the main one. With `--ui-fixture-float`, they float there.
+- `--ui-fixture-min-size` shrinks floating preview windows to the minimum size.
 - `--ui-fixture-hide` hides the app a few seconds after launch, to measure
   background cost.
 - `--ui-fixture-alert-panel` shows the real alert panel with a 30 second

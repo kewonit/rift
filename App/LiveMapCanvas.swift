@@ -117,8 +117,11 @@ struct LiveMapCanvas: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .allowsHitTesting(false)
             }
-            legend
+            Text("© OpenStreetMap")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .allowsHitTesting(false)
         }
         .padding(RiftDesign.Spacing.m)
     }
@@ -148,22 +151,6 @@ struct LiveMapCanvas: View {
         .padding(.horizontal, RiftDesign.Spacing.l)
         .padding(.vertical, RiftDesign.Spacing.s)
         .riftPanel(cornerRadius: RiftDesign.Radius.card)
-    }
-
-    private var legend: some View {
-        HStack(spacing: RiftDesign.Spacing.m) {
-            LegendSwatch(kind: .route, satellite: style == .satellite)
-            LegendSwatch(kind: .cable, satellite: style == .satellite)
-            LegendSwatch(kind: .approximate, satellite: style == .satellite)
-            Label("Blocked", systemImage: "xmark.circle.fill")
-                .foregroundStyle(Color(nsColor: .systemRed))
-            Text("© OpenStreetMap").foregroundStyle(.secondary)
-        }
-        .font(.caption2)
-        .padding(.horizontal, RiftDesign.Spacing.s + 2)
-        .padding(.vertical, RiftDesign.Spacing.xs + 1)
-        .riftPanel(cornerRadius: RiftDesign.Radius.control)
-        .accessibilityElement(children: .combine)
     }
 
     private var statusMessage: (text: String, symbol: String, isError: Bool)? {
@@ -214,49 +201,6 @@ struct LiveMapCanvas: View {
             localConnections = rows.filter {
                 !($0.source.event.flow.destinationEndpoint?.classes.isEmpty ?? true)
             }.count
-        }
-    }
-}
-
-private struct LegendSwatch: View {
-    enum Kind { case route, cable, approximate }
-    let kind: Kind
-    let satellite: Bool
-
-    private var title: String {
-        switch kind {
-        case .route: "Likely route"
-        case .cable: "Cable"
-        case .approximate: "Approximate cable"
-        }
-    }
-
-    private var color: Color {
-        switch kind {
-        case .route: .accentColor
-        case .cable, .approximate: satellite ? Color.primary.opacity(0.6) : RiftDesign.cable
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: RiftDesign.Spacing.xs) {
-            Canvas { context, size in
-                var path = Path()
-                path.move(to: CGPoint(x: 0, y: size.height / 2))
-                path.addLine(to: CGPoint(x: size.width, y: size.height / 2))
-                context.stroke(
-                    path,
-                    with: .color(color),
-                    style: StrokeStyle(
-                        lineWidth: kind == .route ? 2.5 : 1.5,
-                        lineCap: .round,
-                        dash: kind == .approximate ? [3, 2.5] : []
-                    )
-                )
-            }
-            .frame(width: 16, height: 6)
-            .accessibilityHidden(true)
-            Text(title)
         }
     }
 }

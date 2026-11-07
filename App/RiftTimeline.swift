@@ -121,10 +121,8 @@ struct RiftTimeline: View {
         switch mode {
         case .traffic:
             HStack(spacing: RiftDesign.Spacing.m) {
-                TrafficTotal(symbol: "arrow.up", title: "Sent", bytes: traffic.sent,
-                             partial: traffic.partial, color: RiftDesign.trafficSent)
-                TrafficTotal(symbol: "arrow.down", title: "Received", bytes: traffic.received,
-                             partial: traffic.partial, color: RiftDesign.trafficReceived)
+                TrafficTotal(symbol: "arrow.up", title: "Sent", bytes: traffic.sent, partial: traffic.partial)
+                TrafficTotal(symbol: "arrow.down", title: "Received", bytes: traffic.received, partial: traffic.partial)
             }
         case .decisions:
             HStack(spacing: RiftDesign.Spacing.m) {
@@ -202,12 +200,11 @@ private struct TrafficTotal: View {
     let title: String
     let bytes: UInt64
     let partial: Bool
-    let color: Color
 
     var body: some View {
         HStack(spacing: RiftDesign.Spacing.xs) {
             Image(systemName: symbol)
-                .foregroundStyle(color)
+                .foregroundStyle(.secondary)
                 .fontWeight(.semibold)
                 .accessibilityHidden(true)
             RiftBytesText(bytes: bytes, partial: partial)

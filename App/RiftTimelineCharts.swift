@@ -11,28 +11,27 @@ struct TrafficBars: View {
             let middle = (size.height / 2).rounded()
             let count = max(snapshot.bins.count, 1)
             let slot = size.width / CGFloat(count)
-            let barWidth = max(2, slot * 0.62)
+            let barWidth = min(3, max(1, (slot * 0.6).rounded(.down)))
             let maximum = CGFloat(max(1, snapshot.maximum))
             var baseline = Path()
             baseline.move(to: CGPoint(x: 0, y: middle))
             baseline.addLine(to: CGPoint(x: size.width, y: middle))
             context.stroke(baseline, with: .color(.secondary.opacity(0.25)), lineWidth: 0.5)
             for (index, bin) in snapshot.bins.enumerated() {
-                let x = CGFloat(index) * slot + (slot - barWidth) / 2
+                // Whole points keep every bar's edges crisp.
+                let x = (CGFloat(index) * slot + (slot - barWidth) / 2).rounded()
                 let sent = CGFloat(bin.sent) / maximum * (middle - 1)
                 let received = CGFloat(bin.received) / maximum * (middle - 1)
                 if sent > 0 {
                     context.fill(
-                        Path(roundedRect: CGRect(x: x, y: middle - max(sent, 1.5), width: barWidth, height: max(sent, 1.5)),
-                             cornerRadius: min(2, barWidth / 2)),
-                        with: .color(RiftDesign.trafficSent)
+                        Path(CGRect(x: x, y: middle - max(sent, 1).rounded(), width: barWidth, height: max(sent, 1).rounded())),
+                        with: .color(.primary.opacity(0.3))
                     )
                 }
                 if received > 0 {
                     context.fill(
-                        Path(roundedRect: CGRect(x: x, y: middle, width: barWidth, height: max(received, 1.5)),
-                             cornerRadius: min(2, barWidth / 2)),
-                        with: .color(RiftDesign.trafficReceived)
+                        Path(CGRect(x: x, y: middle, width: barWidth, height: max(received, 1).rounded())),
+                        with: .color(.primary.opacity(0.62))
                     )
                 }
             }
@@ -72,11 +71,11 @@ struct DecisionBars: View {
                 RuleMark(x: .value("Range end", end)).foregroundStyle(.clear)
             }
             ForEach(snapshot.buckets) { bucket in
-                BarMark(x: .value("Time", bucket.start), y: .value("Allowed", bucket.allowed), width: .fixed(5))
+                BarMark(x: .value("Time", bucket.start), y: .value("Allowed", bucket.allowed), width: .fixed(3))
                     .foregroundStyle(by: .value("Result", RiftDecision.allowed.label))
-                BarMark(x: .value("Time", bucket.start), y: .value("Blocked", bucket.denied), width: .fixed(5))
+                BarMark(x: .value("Time", bucket.start), y: .value("Blocked", bucket.denied), width: .fixed(3))
                     .foregroundStyle(by: .value("Result", RiftDecision.denied.label))
-                BarMark(x: .value("Time", bucket.start), y: .value("No rule", bucket.unresolved), width: .fixed(5))
+                BarMark(x: .value("Time", bucket.start), y: .value("No rule", bucket.unresolved), width: .fixed(3))
                     .foregroundStyle(by: .value("Result", RiftDecision.byDefault.label))
             }
             if let hovered {

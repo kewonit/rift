@@ -46,12 +46,8 @@ enum RiftDesign {
         }
     }
 
-    static let trafficSent = Color(nsColor: .systemPurple)
-    static let trafficReceived = Color(nsColor: .systemBlue)
-    /// Bold routes the user's traffic likely takes.
-    static let route = Color.accentColor
-    /// The faint background cable network.
-    static let cable = Color(nsColor: .systemTeal)
+    /// Height of the controls in the bar above each table.
+    static let barControlHeight: CGFloat = 24
 }
 
 /// The meaning of a firewall decision, shown with both a color and a shape so
@@ -94,18 +90,36 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
     }
 }
 
-/// A small section title for inspectors and side panels.
-struct RiftSectionHeader: View {
+/// A titled group of rows in an inspector.
+struct RiftInspectorSection<Content: View>: View {
     let title: String
+    @ViewBuilder let content: Content
 
-    init(_ title: String) { self.title = title }
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
 
     var body: some View {
-        Text(title)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
+            content
+        }
+    }
+}
+
+/// `LabeledContent` as an inspector row, matching `RiftPropertyRow`.
+struct RiftInspectorRowStyle: LabeledContentStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: RiftDesign.Spacing.s) {
+            configuration.label.foregroundStyle(.secondary)
+            Spacer(minLength: RiftDesign.Spacing.s)
+            configuration.content.multilineTextAlignment(.trailing)
+        }
+        .font(.callout)
     }
 }
 

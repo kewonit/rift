@@ -32,8 +32,7 @@ extension GeoPoint {
     }
 }
 
-/// The whole cable network, drawn as one faint overlay. Approximate cables are
-/// dashed, like ferry lines in Apple Maps.
+/// The whole cable network, drawn as one faint overlay.
 final class CableNetworkOverlay: MKMultiPolyline {
     private(set) var isEstimated = false
 
@@ -90,8 +89,17 @@ final class DestinationAnnotation: NSObject, MKAnnotation {
     }
 }
 
-/// The cable network is quiet background; routes in use are bold.
+/// The map is drawn like a chart: hairline cables as texture, and thin
+/// single-color routes in the ink and teal of the app icon.
 enum NetworkMapPalette {
+    private static let ink = NSColor(srgbRed: 0.055, green: 0.235, blue: 0.345, alpha: 1)
+    private static let teal = NSColor(srgbRed: 0.373, green: 0.890, blue: 0.839, alpha: 1)
+
+    /// Satellite imagery is dark whatever the window's appearance.
+    static func isOnDark(style: NetworkMapStyle, appearance: NSAppearance) -> Bool {
+        style == .satellite || appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
     static func resolved(_ color: NSColor, alpha: CGFloat, in appearance: NSAppearance) -> NSColor {
         var result = color
         appearance.performAsCurrentDrawingAppearance {
@@ -101,50 +109,45 @@ enum NetworkMapPalette {
     }
 
     static func cable(estimated: Bool, style: NetworkMapStyle, appearance: NSAppearance) -> NSColor {
-        let base: NSColor = style == .satellite ? .white : .systemTeal
-        let dark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let strength: CGFloat = style == .satellite || dark ? 0.32 : 0.42
-        return resolved(base, alpha: estimated ? strength * 0.6 : strength, in: appearance)
+        let base: NSColor = isOnDark(style: style, appearance: appearance) ? .white : ink
+        return base.withAlphaComponent(estimated ? 0.08 : 0.14)
     }
 
-    static func cableWidth(estimated: Bool) -> CGFloat { estimated ? 0.8 : 1 }
+    static let cableWidth: CGFloat = 0.5
 
-    static func route(dimmed: Bool, appearance: NSAppearance) -> NSColor {
-        resolved(.controlAccentColor, alpha: dimmed ? 0.22 : 0.95, in: appearance)
+    /// The solid color of routes and markers.
+    static func mark(style: NetworkMapStyle, appearance: NSAppearance) -> NSColor {
+        isOnDark(style: style, appearance: appearance) ? teal : ink
     }
 
-    /// Routes are accent blue, which sinks into the blue of the light map, so
-    /// there they get a light edge. Dark and satellite maps don't need one.
-    static func routeOutline(dimmed: Bool, style: NetworkMapStyle, appearance: NSAppearance) -> NSColor? {
-        let dark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        guard !dark, style == .standard else { return nil }
-        return resolved(.white, alpha: dimmed ? 0.25 : 0.9, in: appearance)
+    static func route(isCable: Bool, dimmed: Bool, style: NetworkMapStyle, appearance: NSAppearance) -> NSColor {
+        let strength: CGFloat = isCable ? 0.95 : 0.55
+        return mark(style: style, appearance: appearance).withAlphaComponent(dimmed ? 0.16 : strength)
     }
 
-    static let routeOutlineWidth: CGFloat = 2
-    static func routeWidth(isCable: Bool) -> CGFloat { isCable ? 3 : 2 }
-    static let landDash: [NSNumber] = [4, 4]
+    static func routeWidth(isCable: Bool) -> CGFloat { isCable ? 1.5 : 1 }
 }
 
-/// A route line with an optional edge drawn underneath it.
-final class RoutePolylineRenderer: MKPolylineRenderer {
-    var outlineColor: NSColor?
+/// Rounds a path's corners, so routes read as curves instead of a string of
+/// straight pieces. Call it after splitting at the antimeridian: averaging across
+/// that line would send the path around the world.
+enum RouteSmoothing {
+    private static let passes = 3
 
-    override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
-        if let outlineColor {
-            if path == nil { createPath() }
-            if let path {
-                context.saveGState()
-                context.addPath(path)
-                context.setStrokeColor(outlineColor.cgColor)
-                context.setLineWidth((lineWidth + NetworkMapPalette.routeOutlineWidth) / zoomScale)
-                context.setLineCap(.round)
-                context.setLineJoin(.round)
-                context.strokePath()
-                context.restoreGState()
+    static func smoothed(_ points: [GeoPoint]) -> [GeoPoint] {
+        guard points.count > 2 else { return points }
+        var path = points.map { (lat: $0.latitude, lon: $0.longitude) }
+        for _ in 0..<passes {
+            var next = [path[0]]
+            next.reserveCapacity(path.count * 2)
+            for (start, end) in zip(path, path.dropFirst()) {
+                next.append((start.lat * 0.75 + end.lat * 0.25, start.lon * 0.75 + end.lon * 0.25))
+                next.append((start.lat * 0.25 + end.lat * 0.75, start.lon * 0.25 + end.lon * 0.75))
             }
+            next.append(path[path.count - 1])
+            path = next
         }
-        super.draw(mapRect, zoomScale: zoomScale, in: context)
+        return path.map { GeoPoint(latitude: $0.lat, longitude: $0.lon) }
     }
 }
 
@@ -209,7 +212,6 @@ final class FlowOverlayView: NSView {
         tracks = []
         guard animates, !regionChanging, let mapView, let root = layer else { return }
         let fill = NetworkMapPalette.resolved(.white, alpha: 1, in: effectiveAppearance).cgColor
-        let ring = NetworkMapPalette.resolved(.controlAccentColor, alpha: 1, in: effectiveAppearance).cgColor
         for flow in flows {
             guard let (path, length) = longestRun(of: flow.points, in: mapView), length > 40 else { continue }
             let duration = min(max(Double(length) / Self.pointsPerSecond, 2.5), 9)
@@ -217,11 +219,9 @@ final class FlowOverlayView: NSView {
             track.frame = bounds
             for index in 0..<Self.dotsPerRoute {
                 let dot = CALayer()
-                dot.bounds = CGRect(x: 0, y: 0, width: 7, height: 7)
-                dot.cornerRadius = 3.5
+                dot.bounds = CGRect(x: 0, y: 0, width: 3, height: 3)
+                dot.cornerRadius = 1.5
                 dot.backgroundColor = fill
-                dot.borderColor = ring
-                dot.borderWidth = 1.5
                 let animation = CAKeyframeAnimation(keyPath: "position")
                 animation.path = path
                 animation.calculationMode = .paced
@@ -266,6 +266,7 @@ final class NetworkMapContainerView: NSView {
     let mapView = MKMapView()
     let flowView = FlowOverlayView()
     var appearanceChanged: (() -> Void)?
+    var sizeChanged: (() -> Void)?
     var showsPlacementCursor = false {
         didSet { if showsPlacementCursor != oldValue { window?.invalidateCursorRects(for: self) } }
     }
@@ -284,6 +285,12 @@ final class NetworkMapContainerView: NSView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         appearanceChanged?()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        let changed = newSize != frame.size
+        super.setFrameSize(newSize)
+        if changed { sizeChanged?() }
     }
 
     override func resetCursorRects() {

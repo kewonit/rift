@@ -1,24 +1,27 @@
 import AppKit
 import MapKit
 
-/// A compact marker for a destination country: a dot with the connection
-/// count, red with a cross when every connection was blocked. The country name
-/// appears while the pointer is over the marker or it is selected.
+/// A destination country, drawn like a station on a transit map. Busier
+/// countries get a slightly larger dot, and a country where every connection
+/// was blocked is red with a cross. The name and count appear while the pointer
+/// is over the marker or it is selected.
 final class DestinationMarkerView: MKAnnotationView {
     static let reuseIdentifier = "destination"
-    private static let diameter: CGFloat = 22
+    /// The view stays this big so the small dot is still easy to click.
+    private static let hitSize: CGFloat = 22
 
     private let label = MarkerLabel()
     private var connections = 0
     private var allBlocked = false
     private var someBlocked = false
+    private var style = NetworkMapStyle.standard
     private var hovering = false {
         didSet { if hovering != oldValue { updateLabel() } }
     }
 
     override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
-        frame = CGRect(x: 0, y: 0, width: Self.diameter, height: Self.diameter)
+        frame = CGRect(x: 0, y: 0, width: Self.hitSize, height: Self.hitSize)
         canShowCallout = false
         collisionMode = .circle
         displayPriority = .defaultHigh
@@ -33,13 +36,14 @@ final class DestinationMarkerView: MKAnnotationView {
 
     required init?(coder: NSCoder) { nil }
 
-    func configure(_ destination: MapDestination, dimmed: Bool) {
+    func configure(_ destination: MapDestination, dimmed: Bool, style: NetworkMapStyle) {
         let activity = destination.activity
+        self.style = style
         connections = activity.connections
         allBlocked = activity.allBlocked
         someBlocked = activity.blocked > 0 && !activity.allBlocked
         alphaValue = dimmed ? 0.45 : 1
-        label.text = destination.name
+        label.text = "\(destination.name) · \(destination.summary)"
         setAccessibilityLabel("\(destination.name): \(destination.summary)")
         setAccessibilityRole(.button)
         needsDisplay = true
@@ -69,42 +73,34 @@ final class DestinationMarkerView: MKAnnotationView {
 
     override var isFlipped: Bool { true }
 
-    override func draw(_ dirtyRect: NSRect) {
-        let disc = bounds.insetBy(dx: 1.5, dy: 1.5)
-        let fill: NSColor = allBlocked ? .systemRed : .controlAccentColor
-        let circle = NSBezierPath(ovalIn: disc)
-        fill.setFill()
-        circle.fill()
-        NSColor.white.setStroke()
-        circle.lineWidth = 2
-        circle.stroke()
-        if allBlocked {
-            drawSymbol("xmark", in: disc.insetBy(dx: 5.5, dy: 5.5))
-        } else if connections > 1 {
-            drawCount(connections > 99 ? "99+" : String(connections), in: disc)
-        } else {
-            NSColor.white.setFill()
-            NSBezierPath(ovalIn: CGRect(x: disc.midX - 3, y: disc.midY - 3, width: 6, height: 6)).fill()
-        }
-        if someBlocked {
-            let badge = CGRect(x: bounds.maxX - 8, y: bounds.minY, width: 8, height: 8)
-            NSColor.systemRed.setFill()
-            NSBezierPath(ovalIn: badge).fill()
+    private var dotDiameter: CGFloat {
+        switch connections {
+        case ...1: 8
+        case 2...9: 10
+        default: 12
         }
     }
 
-    private func drawCount(_ text: String, in rect: CGRect) {
-        let size: CGFloat = text.count > 2 ? 8.5 : 10.5
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: .bold),
-            .foregroundColor: NSColor.white,
-        ]
-        let string = text as NSString
-        let measured = string.size(withAttributes: attributes)
-        string.draw(
-            at: CGPoint(x: rect.midX - measured.width / 2, y: rect.midY - measured.height / 2),
-            withAttributes: attributes
-        )
+    override func draw(_ dirtyRect: NSRect) {
+        if allBlocked {
+            let disc = bounds.insetBy(dx: 4, dy: 4)
+            NSColor.systemRed.setFill()
+            NSBezierPath(ovalIn: disc).fill()
+            drawSymbol("xmark", in: disc.insetBy(dx: 4, dy: 4))
+            return
+        }
+        let inset = (bounds.width - dotDiameter) / 2
+        let dot = NSBezierPath(ovalIn: bounds.insetBy(dx: inset, dy: inset))
+        NSColor.white.setFill()
+        dot.fill()
+        NetworkMapPalette.mark(style: style, appearance: effectiveAppearance).setStroke()
+        dot.lineWidth = 1.5
+        dot.stroke()
+        if someBlocked {
+            let badge = CGRect(x: bounds.midX + dotDiameter / 2 - 3, y: bounds.midY - dotDiameter / 2 - 2, width: 5, height: 5)
+            NSColor.systemRed.setFill()
+            NSBezierPath(ovalIn: badge).fill()
+        }
     }
 
     private func drawSymbol(_ name: String, in rect: CGRect) {
@@ -116,15 +112,17 @@ final class DestinationMarkerView: MKAnnotationView {
     }
 }
 
-/// Where the user placed this Mac: a white disc in an accent ring, always
-/// labeled.
+/// Where the user placed this Mac: a solid dot in a white ring, always labeled.
 final class OriginMarkerView: MKAnnotationView {
     static let reuseIdentifier = "origin"
     private let label = MarkerLabel()
+    var style = NetworkMapStyle.standard {
+        didSet { needsDisplay = true }
+    }
 
     override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
-        frame = CGRect(x: 0, y: 0, width: 18, height: 18)
+        frame = CGRect(x: 0, y: 0, width: 16, height: 16)
         canShowCallout = false
         displayPriority = .required
         collisionMode = .circle
@@ -140,12 +138,10 @@ final class OriginMarkerView: MKAnnotationView {
     override var isFlipped: Bool { true }
 
     override func draw(_ dirtyRect: NSRect) {
-        let ring = NSBezierPath(ovalIn: bounds.insetBy(dx: 1, dy: 1))
-        NSColor.controlAccentColor.setFill()
-        ring.fill()
-        let inner = NSBezierPath(ovalIn: bounds.insetBy(dx: 5, dy: 5))
         NSColor.white.setFill()
-        inner.fill()
+        NSBezierPath(ovalIn: bounds.insetBy(dx: 2, dy: 2)).fill()
+        NetworkMapPalette.mark(style: style, appearance: effectiveAppearance).setFill()
+        NSBezierPath(ovalIn: bounds.insetBy(dx: 4, dy: 4)).fill()
     }
 }
 
@@ -156,13 +152,13 @@ private final class MarkerLabel: NSView {
     }
 
     private var attributes: [NSAttributedString.Key: Any] {
-        [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold),
+        [.font: NSFont.systemFont(ofSize: 10, weight: .medium),
          .foregroundColor: NSColor.labelColor]
     }
 
     override var intrinsicContentSize: NSSize {
         let size = (text as NSString).size(withAttributes: attributes)
-        return NSSize(width: ceil(size.width) + 12, height: ceil(size.height) + 4)
+        return NSSize(width: ceil(size.width) + 10, height: ceil(size.height) + 3)
     }
 
     func sizeToFit() { setFrameSize(intrinsicContentSize) }
@@ -176,6 +172,6 @@ private final class MarkerLabel: NSView {
         NSColor.separatorColor.setStroke()
         pill.lineWidth = 0.5
         pill.stroke()
-        (text as NSString).draw(at: CGPoint(x: 6, y: 2), withAttributes: attributes)
+        (text as NSString).draw(at: CGPoint(x: 5, y: 1.5), withAttributes: attributes)
     }
 }

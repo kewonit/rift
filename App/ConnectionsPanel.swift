@@ -8,6 +8,7 @@ struct ConnectionsPanel: View {
     let artworkStore: ApplicationArtworkStore
     let mapHidden: Bool
     let toggleMap: () -> Void
+    var searchFocus: FocusState<Bool>.Binding
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,6 +39,7 @@ struct ConnectionsPanel: View {
                 }
                 ConnectionFilterBar(feed: feed)
                 if feed.loading { ProgressView().controlSize(.small) }
+                RiftSearchField(prompt: "Search apps and destinations", text: $feed.query.search, focus: searchFocus)
                 Button(action: toggleMap) {
                     Label(
                         mapHidden ? "Show Map" : "Hide Map",

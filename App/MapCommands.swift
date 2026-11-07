@@ -9,7 +9,7 @@ struct MapCommandActions {
     let inspectorShown: Bool
     let timelineShown: Bool
     let toggleMap: () -> Void
-    let toggleInspector: () -> Void
+    let hideInspector: () -> Void
     let toggleTimeline: () -> Void
     let find: () -> Void
     /// Nil when the selection can't be decided.
@@ -21,15 +21,25 @@ private struct MapCommandActionsKey: FocusedValueKey {
     typealias Value = MapCommandActions
 }
 
+private struct FindRulesKey: FocusedValueKey {
+    typealias Value = () -> Void
+}
+
 extension FocusedValues {
     var mapCommands: MapCommandActions? {
         get { self[MapCommandActionsKey.self] }
         set { self[MapCommandActionsKey.self] = newValue }
     }
+
+    var findRules: (() -> Void)? {
+        get { self[FindRulesKey.self] }
+        set { self[FindRulesKey.self] = newValue }
+    }
 }
 
 struct MapCommands: Commands {
     @FocusedValue(\.mapCommands) private var actions
+    @FocusedValue(\.findRules) private var findRules
 
     var body: some Commands {
         CommandGroup(before: .toolbar) {
@@ -38,11 +48,9 @@ struct MapCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: .command)
             .disabled(actions == nil)
-            Button(actions?.inspectorShown == true ? "Hide Inspector" : "Show Inspector") {
-                actions?.toggleInspector()
-            }
-            .keyboardShortcut("i", modifiers: [.command, .option])
-            .disabled(actions == nil)
+            Button("Hide Inspector") { actions?.hideInspector() }
+                .keyboardShortcut("i", modifiers: [.command, .option])
+                .disabled(actions?.inspectorShown != true)
             Button(actions?.timelineShown == true ? "Hide Timeline" : "Show Timeline") {
                 actions?.toggleTimeline()
             }
@@ -51,9 +59,11 @@ struct MapCommands: Commands {
             Divider()
         }
         CommandGroup(after: .textEditing) {
-            Button("Find Connections") { actions?.find() }
-                .keyboardShortcut("f", modifiers: .command)
-                .disabled(actions == nil)
+            Button(findRules == nil ? "Find Connections" : "Find Rules") {
+                if let findRules { findRules() } else { actions?.find() }
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .disabled(actions == nil && findRules == nil)
         }
         CommandMenu("Connection") {
             Button("Allow…") { actions?.decide?(.allow) }

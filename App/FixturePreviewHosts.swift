@@ -20,6 +20,19 @@ enum FixturePreviewOptions {
         }
     }
 
+    static var opensOnMonitor: Bool {
+        ProcessInfo.processInfo.arguments.contains("--ui-fixture-monitor")
+    }
+    /// The external display, when asked for and connected.
+    static var monitor: NSScreen? {
+        opensOnMonitor ? NSScreen.screens.dropFirst().first : nil
+    }
+    static var usesMinimumSize: Bool {
+        ProcessInfo.processInfo.arguments.contains("--ui-fixture-min-size")
+    }
+    static var selectsConnection: Bool {
+        ProcessInfo.processInfo.arguments.contains("--ui-fixture-select")
+    }
     static var opensSettings: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-settings") }
     static var showsAlert: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-alert") }
 

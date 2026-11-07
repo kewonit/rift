@@ -8,7 +8,6 @@ struct LiveMapView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var session: AppSession
     @AppStorage("liveMapTrafficChartVisible") private var showingTimeline = true
-    @AppStorage("liveMapSummaryVisible") private var showingInspector = true
     @AppStorage("liveMapStyle") private var mapStyle = NetworkMapStyle.standard
     @AppStorage("liveMapTimelineMode") private var timelineMode = RiftTimelineMode.traffic
     @State private var feed: MonitorFeed
@@ -31,11 +30,9 @@ struct LiveMapView: View {
         } bottom: {
             connections
         }
-        .inspector(isPresented: $showingInspector) {
+        .inspector(isPresented: inspectorShown) {
             inspector.inspectorColumnWidth(min: 260, ideal: 300, max: 380)
         }
-        .searchable(text: $feed.query.search, placement: .toolbar, prompt: "Search apps and destinations")
-        .searchFocused($searchFocused)
         .navigationTitle("Map")
         .focusedSceneValue(\.mapCommands, mapCommands)
         .sheet(item: $feed.pendingRuleRequest) { request in
@@ -54,6 +51,10 @@ struct LiveMapView: View {
             if let country = FixturePreviewOptions.sampleCountry { feed.query.country = country }
             if ProcessInfo.processInfo.arguments.contains("--ui-fixture-past") {
                 feed.query.navigateTime(.previous, now: feed.now)
+            }
+            if FixturePreviewOptions.selectsConnection {
+                try? await Task.sleep(for: .seconds(1))
+                feed.selectionID = feed.hierarchy.dropFirst().first?.id
             }
             guard let step = FixturePreviewOptions.sampleRuleAction else { return }
             try? await Task.sleep(for: .seconds(2))
@@ -90,7 +91,6 @@ struct LiveMapView: View {
             mapHidden = true
             session.showsConnectionTable = false
         }
-        .onChange(of: feed.selectionID) { _, id in if id != nil { showingInspector = true } }
         .onChange(of: timelineMode, initial: true) { _, mode in feed.wantsDecisionBuckets = mode == .decisions }
         .onExitCommand(perform: escape)
         .onDisappear {
@@ -142,23 +142,33 @@ struct LiveMapView: View {
                 feed: feed,
                 artworkStore: session.applicationArtwork,
                 mapHidden: mapHidden,
-                toggleMap: { mapHidden.toggle() }
+                toggleMap: { mapHidden.toggle() },
+                searchFocus: $searchFocused
             )
         }
     }
 
-    private var inspector: some View {
-        MonitorSummaryView(
-            summary: feed.inspectorSummary,
-            selectedNode: feed.selectedNode,
-            selectedRow: feed.selectedRow,
-            applyingEventID: feed.applyingEventID,
-            artworkStore: session.applicationArtwork,
-            apply: { feed.requestRule($0, for: $1) },
-            showRules: { feed.selectedNode.map { feed.showRules(for: $0) } },
-            canDecide: feed.selectedNode.map(feed.canDecide) ?? false,
-            isMinimal: feed.isMinimal
+    /// The inspector is for one connection, so it comes and goes with the selection.
+    private var inspectorShown: Binding<Bool> {
+        Binding(
+            get: { feed.selectedNode != nil },
+            set: { if !$0 { feed.selectionID = nil } }
         )
+    }
+
+    @ViewBuilder
+    private var inspector: some View {
+        if let node = feed.selectedNode {
+            ConnectionInspectorView(
+                node: node,
+                row: feed.selectedRow,
+                applyingEventID: feed.applyingEventID,
+                artworkStore: session.applicationArtwork,
+                apply: { feed.requestRule($0, for: node) },
+                showRules: { feed.showRules(for: node) },
+                canDecide: feed.canDecide(node)
+            )
+        }
     }
 
     @ViewBuilder
@@ -186,10 +196,10 @@ struct LiveMapView: View {
         let selected = feed.selectedNode
         return MapCommandActions(
             mapHidden: mapHidden,
-            inspectorShown: showingInspector,
+            inspectorShown: feed.selectedNode != nil,
             timelineShown: showingTimeline,
             toggleMap: { mapHidden.toggle() },
-            toggleInspector: { showingInspector.toggle() },
+            hideInspector: { feed.selectionID = nil },
             toggleTimeline: { showingTimeline.toggle() },
             find: { searchFocused = true },
             decide: selected.flatMap { node in
@@ -240,10 +250,6 @@ struct LiveMapView: View {
                 Label(showingTimeline ? "Hide Timeline" : "Show Timeline", systemImage: "chart.bar.xaxis")
             }
             .help(showingTimeline ? "Hide the timeline" : "Show the timeline")
-            Button { showingInspector.toggle() } label: {
-                Label(showingInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
-            }
-            .help(showingInspector ? "Hide the inspector" : "Show the inspector")
         }
     }
 

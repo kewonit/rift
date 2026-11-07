@@ -200,12 +200,12 @@ private struct StatusMenuTraffic: View, Equatable {
                 Label {
                     RiftBytesText(bytes: traffic.sent, partial: traffic.partial)
                 } icon: {
-                    Image(systemName: "arrow.up").foregroundStyle(RiftDesign.trafficSent)
+                    Image(systemName: "arrow.up").foregroundStyle(.secondary)
                 }
                 Label {
                     RiftBytesText(bytes: traffic.received, partial: traffic.partial)
                 } icon: {
-                    Image(systemName: "arrow.down").foregroundStyle(RiftDesign.trafficReceived)
+                    Image(systemName: "arrow.down").foregroundStyle(.secondary)
                 }
             }
             .font(.caption)

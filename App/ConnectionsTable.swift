@@ -16,7 +16,7 @@ struct ConnectionsTable: View {
                         ApplicationNameText(identity: node.presentationIdentity, fallback: node.title, artworkStore: artworkStore)
                             .lineLimit(1)
                     } else {
-                        Text(node.title).lineLimit(1).truncationMode(.middle)
+                        Text(node.title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
                     }
                     if let subtitle = node.subtitle {
                         Text(subtitle).foregroundStyle(.secondary).lineLimit(1)
@@ -27,33 +27,32 @@ struct ConnectionsTable: View {
                 .accessibilityAction(named: "Block…") { feed.requestRule(.deny, for: node) }
                 .accessibilityAction(named: "Show Rule") { feed.showRules(for: node) }
             }
-            .width(min: 160, ideal: 230)
+            .width(min: 140, ideal: 170)
             TableColumn("Country") { node in
                 Text(countryName(for: node) ?? "—")
                     .foregroundStyle(countryName(for: node) == nil ? .tertiary : .primary)
                     .lineLimit(1)
             }
-            .width(min: 70, ideal: 90)
+            .width(min: 60, ideal: 76)
             TableColumn("Decision") { node in
                 DecisionCell(node: node)
             }
-            .width(min: 90, ideal: 120)
+            .width(min: 84, ideal: 100)
             TableColumn("Sent") { node in
                 RiftBytesText(bytes: node.aggregate.bytesOutbound, partial: node.aggregate.coverage != .complete)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 56, ideal: 66)
+            .width(min: 52, ideal: 60)
+            .alignment(.trailing)
             TableColumn("Received") { node in
                 RiftBytesText(bytes: node.aggregate.bytesInbound, partial: node.aggregate.coverage != .complete)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 60, ideal: 70)
-            TableColumn("Connections") { node in
-                Text(RiftFormat.count(node.aggregate.flowCount))
-                    .monospacedDigit()
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+            .width(min: 56, ideal: 64)
+            .alignment(.trailing)
+            TableColumn("Count") { node in
+                Text(RiftFormat.count(node.aggregate.flowCount)).monospacedDigit()
             }
-            .width(min: 88, ideal: 88)
+            .width(min: 44, ideal: 50)
+            .alignment(.trailing)
             TableColumn("Last Seen") { node in
                 // The clock ticks once a second, so a new row can be slightly ahead of it.
                 Text(Self.relativeFormatter.localizedString(
@@ -62,7 +61,7 @@ struct ConnectionsTable: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .width(min: 70, ideal: 86)
+            .width(min: 60, ideal: 70)
         }
         .alternatingRowBackgrounds(.disabled)
         .onHover { feed.pointerIsOverList = $0 }

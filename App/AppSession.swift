@@ -171,6 +171,8 @@ final class AppSession {
             }
             if arguments.contains("--ui-fixture-float") {
                 Self.floatFixtureWindows()
+            } else if FixturePreviewOptions.opensOnMonitor {
+                Self.moveFixtureWindowsToMonitor()
             }
             if let page = FixturePreviewOptions.initialPage { destination = page }
             if arguments.contains("--ui-fixture-table") {
@@ -217,7 +219,8 @@ final class AppSession {
         Task { @MainActor in
             for _ in 0..<40 {
                 try? await Task.sleep(for: .milliseconds(500))
-                let sharpest = NSScreen.screens.max { $0.backingScaleFactor < $1.backingScaleFactor }
+                let sharpest = FixturePreviewOptions.monitor
+                    ?? NSScreen.screens.max { $0.backingScaleFactor < $1.backingScaleFactor }
                 for window in NSApplication.shared.windows where window.isVisible && window.frame.width > 300 {
                     if let sharpest, window.screen != sharpest {
                         let area = sharpest.visibleFrame
@@ -226,8 +229,31 @@ final class AppSession {
                             y: area.midY - window.frame.height / 2
                         ))
                     }
+                    if FixturePreviewOptions.usesMinimumSize {
+                        window.setContentSize(NSSize(width: 1_160, height: 600))
+                    }
                     window.level = .floating
                     window.orderFrontRegardless()
+                }
+            }
+        }
+    }
+
+    /// Moves preview windows to the external display once, then leaves them to
+    /// be used normally.
+    private static func moveFixtureWindowsToMonitor() {
+        Task { @MainActor in
+            guard let area = FixturePreviewOptions.monitor?.visibleFrame else { return }
+            var moved = Set<ObjectIdentifier>()
+            for _ in 0..<20 {
+                try? await Task.sleep(for: .milliseconds(250))
+                for window in NSApplication.shared.windows
+                where window.isVisible && window.frame.width > 200 && !moved.contains(ObjectIdentifier(window)) {
+                    moved.insert(ObjectIdentifier(window))
+                    window.setFrameOrigin(NSPoint(
+                        x: area.midX - window.frame.width / 2,
+                        y: area.midY - window.frame.height / 2
+                    ))
                 }
             }
         }

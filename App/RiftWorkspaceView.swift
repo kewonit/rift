@@ -94,7 +94,8 @@ struct RiftWorkspaceView: View {
             destinationView
                 .overlay(alignment: .bottom) { ActionResultBanner(session: session) }
         }
-        .frame(minWidth: 1_000, minHeight: 600)
+        // Wide enough for both tables' columns with the sidebar and inspector open.
+        .frame(minWidth: 1_160, minHeight: 600)
         .onOpenURL { url in
             let target = (url.host ?? url.pathComponents.dropFirst().first)?.lowercased()
             if url.scheme?.lowercased() == "rift", target == "settings" {

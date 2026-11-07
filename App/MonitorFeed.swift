@@ -32,7 +32,6 @@ final class MonitorFeed {
     private(set) var mapRows: [MonitorDisplayRow] = []
     /// Groups open in the list, kept here so a selection can reveal itself.
     private(set) var rowLookup: [String: MonitorEventRow] = [:]
-    private(set) var summary = MonitorSummarySnapshot.empty
     private(set) var traffic = LiveTrafficSnapshot.empty
     private(set) var decisions = DecisionBucketSnapshot(buckets: [], coverage: .gap)
     private(set) var loading = false
@@ -179,7 +178,7 @@ final class MonitorFeed {
         queryTask?.cancel()
         activeQueryRequestID = MonitorQueryRequestID()
         hierarchy = []; displayed = []; displayedCount = 0; rowLookup = [:]
-        summary = .empty; traffic = .empty
+        traffic = .empty
         decisions = DecisionBucketSnapshot(buckets: [], coverage: .gap)
         source = nil; pinnedEventID = nil
         selectionID = nil; selectedEventID = nil; selectedNode = nil
@@ -292,12 +291,6 @@ final class MonitorFeed {
         )
     }
 
-    /// The numbers for whatever is selected, so the inspector answers for it.
-    var inspectorSummary: MonitorSummarySnapshot {
-        guard let selectedNode else { return summary }
-        return MonitorSummaryBuilder.build(from: displayed.filter { selectedNode.eventIDs.contains($0.id) })
-    }
-
     /// Assigns only what changed, so views that read unchanged values don't
     /// re-evaluate.
     private func publish(
@@ -310,7 +303,6 @@ final class MonitorFeed {
         let more = evaluation.displayed.count > visibleLimit
         if hasMore != more { hasMore = more }
         if displayed != presentation.visibleRows { displayed = presentation.visibleRows }
-        if summary != evaluation.summary { summary = evaluation.summary }
         let nextHierarchy = pointerIsOverList
             ? MonitorHierarchyOrder.keepingPositions(of: hierarchy, in: presentation.hierarchy)
             : presentation.hierarchy
