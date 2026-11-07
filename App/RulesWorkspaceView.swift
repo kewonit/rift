@@ -40,6 +40,15 @@ struct RulesWorkspaceView: View {
                     .padding(8)
                     .background(.orange.opacity(0.18))
                 }
+                if let notice = model.notice {
+                    HStack(spacing: 10) {
+                        Label(notice, systemImage: "info.circle")
+                        Spacer()
+                        Button("Dismiss") { model.dismissNotice() }
+                    }
+                    .padding(8)
+                    .background(.orange.opacity(0.12))
+                }
                 if model.errorMessage == nil {
                     RulesWorkspaceTable(
                         model: model,

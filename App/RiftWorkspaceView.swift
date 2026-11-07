@@ -61,6 +61,7 @@ struct RiftWorkspaceView: View {
 
     var body: some View {
         destinationView
+            .overlay(alignment: .bottom) { ActionResultBanner(session: session) }
             .navigationTitle("Rift")
             .frame(minWidth: 1_000, minHeight: 600)
             .toolbar {

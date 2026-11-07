@@ -127,13 +127,13 @@ struct MonitorSummaryView: View {
             if let row, MonitorExactRuleSeed.make(from: row) != nil {
                 HStack(spacing: 8) {
                     Button { apply(.allow, node) } label: {
-                        Label("Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
+                        Label("Always Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
                     }
-                    .accessibilityLabel("Allow this connection")
+                    .accessibilityLabel("Always allow this connection")
                     Button { apply(.deny, node) } label: {
-                        Label("Deny", systemImage: "xmark").frame(maxWidth: .infinity)
+                        Label("Always Block", systemImage: "xmark").frame(maxWidth: .infinity)
                     }
-                    .accessibilityLabel("Deny this connection")
+                    .accessibilityLabel("Always block this connection")
                 }
                 .controlSize(.large)
                 .disabled(
@@ -147,6 +147,9 @@ struct MonitorSummaryView: View {
                 if let row {
                     RiftPropertyRow(title: "Result") { Text(row.event.outcome == .blocked ? "Blocked" : "Allowed") }
                     RiftPropertyRow(title: "Because") { Text(row.event.causeSentence).multilineTextAlignment(.trailing) }
+                    if let current = node.ruleCoverage.currentAction {
+                        RiftPropertyRow(title: "From now on") { Text(current == .deny ? "Blocked" : "Allowed") }
+                    }
                     RiftPropertyRow(title: "Destination") {
                         Text(MonitorQuery.endpointLabel(row)).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
                     }

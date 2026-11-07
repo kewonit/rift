@@ -33,6 +33,8 @@ final class ControlPlaneController {
     private(set) var activityRevision: UInt64 = 0
     private(set) var visualActivityRevision: UInt64 = 0
     var currentMode: OperationMode = .silentAllow
+    let ruleChanges = RuleChangeHistory()
+    let actionResults = ActionResultCenter()
     @ObservationIgnored var recentDenyUntil: Date?
     var recentDenyVisible = false
     var persistentHistoryEnabled = false
@@ -114,6 +116,7 @@ final class ControlPlaneController {
 #if DEBUG
     var fixtureTask: Task<Void, Never>?
     var fixtureRuleActions: [String: FilterAction] = [:]
+    var fixtureLastRuleRowID: String?
 #endif
 
     func start() async {

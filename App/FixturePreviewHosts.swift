@@ -23,6 +23,15 @@ enum FixturePreviewOptions {
     static var opensSettings: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-settings") }
     static var showsAlert: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-alert") }
 
+    /// Blocks the first connection through the real action path, and undoes it
+    /// a few seconds later with `undo`.
+    static var sampleRuleAction: String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "--ui-fixture-apply-rule"),
+              arguments.indices.contains(flag + 1) else { return nil }
+        return arguments[flag + 1]
+    }
+
     /// How many alerts to show in the real panel, with a real 30 second deadline.
     static var panelPromptCount: Int? {
         let arguments = ProcessInfo.processInfo.arguments

@@ -134,9 +134,11 @@ struct RiftDecisionBadge: View {
     }
 }
 
+enum RiftBannerTone { case info, warning, error }
+
 /// An inline message for errors and things that need attention.
 struct RiftBanner<Actions: View>: View {
-    enum Tone { case info, warning, error }
+    typealias Tone = RiftBannerTone
     let message: String
     var detail: String?
     var tone: Tone = .info

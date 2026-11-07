@@ -33,13 +33,13 @@ enum RiftDesign {
             .timingCurve(0.19, 1, 0.22, 1, duration: duration)
         }
 
-        /// A small surface sliding in from above and leaving the same way. With
-        /// Reduce Motion it only fades.
-        static func dropIn(reduceMotion: Bool) -> AnyTransition {
+        /// A small surface sliding in and leaving the way it came. With Reduce
+        /// Motion it only fades.
+        static func slide(fromY offset: CGFloat, reduceMotion: Bool) -> AnyTransition {
             guard !reduceMotion else {
                 return .opacity.animation(.easeOut(duration: press))
             }
-            let moved = AnyTransition.opacity.combined(with: .offset(y: -travel))
+            let moved = AnyTransition.opacity.combined(with: .offset(y: offset))
             return .asymmetric(
                 insertion: moved.animation(enter()),
                 removal: moved.animation(enter(exit))

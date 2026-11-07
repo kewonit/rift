@@ -240,9 +240,20 @@ struct ConnectionRow: View {
         }
     }
 
+    /// Says when today's rules differ from what this row recorded.
+    private var futureChange: String? {
+        switch node.ruleCoverage.currentAction {
+        case .deny where node.aggregate.denied == 0: "Blocked from now on"
+        case .allow where node.aggregate.denied > 0: "Allowed from now on"
+        default: nil
+        }
+    }
+
     private var trailing: some View {
         HStack(spacing: RiftDesign.Spacing.xs + 2) {
-            if node.aggregate.denied > 0 {
+            if let change = futureChange {
+                Text(change).foregroundStyle(.primary)
+            } else if node.aggregate.denied > 0 {
                 RiftDecisionBadge(decision: .denied)
                     .imageScale(.small)
                     .accessibilityLabel(node.aggregate.denied == 1 ? "1 blocked" : "\(node.aggregate.denied) blocked")
@@ -293,10 +304,10 @@ struct ConnectionDecisionButtons: View {
         HStack(spacing: 2) {
             Button { apply(.allow) } label: { Image(systemName: "checkmark.circle") }
                 .help("Always allow this connection")
-                .accessibilityLabel("Allow this connection")
+                .accessibilityLabel("Always allow this connection")
             Button { apply(.deny) } label: { Image(systemName: "xmark.circle") }
-                .help("Always deny this connection")
-                .accessibilityLabel("Deny this connection")
+                .help("Always block this connection")
+                .accessibilityLabel("Always block this connection")
         }
         .buttonStyle(.borderless)
         .imageScale(.large)
@@ -314,8 +325,8 @@ struct ConnectionContextMenu: View {
 
     var body: some View {
         if canDecide {
-            Button("Allow This Connection") { apply(.allow) }.disabled(disabled)
-            Button("Deny This Connection") { apply(.deny) }.disabled(disabled)
+            Button("Always Allow") { apply(.allow) }.disabled(disabled)
+            Button("Always Block") { apply(.deny) }.disabled(disabled)
             Divider()
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)

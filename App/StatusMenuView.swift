@@ -124,6 +124,7 @@ struct StatusMenuView: View {
     private var messages: some View {
         let lines: [(String, Bool)] = [
             errorMessage.map { ($0, true) },
+            controller.actionResults.current.map { ($0.message, $0.tone != .success) },
             profileActivationMessage.map { ($0, profileActivationNeedsAttention) },
             controller.lostEventCount > 0 ? ("Some activity wasn’t recorded while Rift was unavailable.", false) : nil,
         ].compactMap { $0 }

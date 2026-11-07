@@ -31,15 +31,20 @@ public struct MonitorRuleCoverage: Sendable, Hashable {
     public let state: MonitorRuleCoverageState
     public let ruleIDs: Set<UUID>
     public let winningRuleID: UUID?
+    /// What today's rules do to this connection, which can differ from what
+    /// happened when it was recorded.
+    public let currentAction: FilterAction?
 
     public init(
         state: MonitorRuleCoverageState,
         ruleIDs: Set<UUID> = [],
-        winningRuleID: UUID? = nil
+        winningRuleID: UUID? = nil,
+        currentAction: FilterAction? = nil
     ) {
         self.state = state
         self.ruleIDs = ruleIDs
         self.winningRuleID = winningRuleID
+        self.currentAction = currentAction
     }
 }
 
@@ -208,8 +213,10 @@ public enum MonitorCoverageEvaluator {
         if values.allSatisfy({ $0.state == first.state && $0.ruleIDs == first.ruleIDs }) {
             let winner = values.allSatisfy({ $0.winningRuleID == first.winningRuleID })
                 ? first.winningRuleID : nil
+            let action = values.allSatisfy({ $0.currentAction == first.currentAction })
+                ? first.currentAction : nil
             return MonitorRuleCoverage(
-                state: first.state, ruleIDs: allIDs, winningRuleID: winner
+                state: first.state, ruleIDs: allIDs, winningRuleID: winner, currentAction: action
             )
         }
         let uncovered: Set<MonitorRuleCoverageState> = [
@@ -259,7 +266,8 @@ public enum MonitorCoverageEvaluator {
             return MonitorRuleCoverage(
                 state: state,
                 ruleIDs: ruleIDs,
-                winningRuleID: winnerID
+                winningRuleID: winnerID,
+                currentAction: decision.filter.action
             )
         }
         if let historicalID = historicalRuleID, !historicalRuleExists {

@@ -55,6 +55,11 @@ extension ControlPlaneController {
             redactedSummary: action.rawValue,
             now: now
         )
+        ruleChanges.nextChangeName = action == .deny ? "Block" : "Allow"
+        ruleChanges.record(
+            before: draft.rules, after: updated.rules,
+            generation: desired.tuple.generation, isRedo: false
+        )
         return await finishSavedMutation(
             desired, lineageID: draft.lineageID, backupTime: now
         )

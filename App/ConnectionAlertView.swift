@@ -322,6 +322,20 @@ struct ConnectionAlertView: View {
                     if result.requiresAttention {
                         try? await controller.answerOnce(prompt, action: action)
                     }
+                    let sentence = RulePlainLanguage.change(
+                        action: action,
+                        application: applicationName,
+                        destination: destinationScope == .any
+                            ? "any destination" : DisplaySanitizer.plainText(destination),
+                        port: nil,
+                        incoming: prompt.direction == .incoming
+                    )
+                    controller.actionResults.post(
+                        result.requiresAttention ? "\(sentence) \(result.message)" : sentence,
+                        tone: result.requiresAttention ? .pending : .success,
+                        ruleIDs: controller.ruleChanges.plan?.affectedRuleIDs ?? [],
+                        offersUndo: true
+                    )
                 } catch {
                     decisionMessage = "The rule wasn’t saved. This alert is still open, so you can try again."
                     decisionNeedsAttention = true

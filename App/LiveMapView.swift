@@ -52,6 +52,24 @@ struct LiveMapView: View {
             panelLayer
         }
         .overlay(alignment: .top) { attentionBanner }
+        .onChange(of: session.controlPlane.ruleChanges.revision) { _, _ in
+            feed.requestPresentationRefresh()
+        }
+#if DEBUG
+        .task {
+            guard let step = FixturePreviewOptions.sampleRuleAction else { return }
+            try? await Task.sleep(for: .seconds(2))
+            guard let node = feed.hierarchy.first(where: {
+                $0.ruleSeedEventID != nil && $0.aggregate.denied == 0
+            }) else { return }
+            feed.selectionID = node.id
+            feed.apply(.deny, to: node)
+            guard step == "undo" else { return }
+            try? await Task.sleep(for: .seconds(2))
+            _ = try? await session.controlPlane.undoLastRuleChange()
+            session.controlPlane.actionResults.post("Undone.", offersUndo: true)
+        }
+#endif
         .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: tableExpanded)
         .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: showingInspector)
         .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: showingTimeline)
@@ -178,7 +196,7 @@ struct LiveMapView: View {
             .frame(maxWidth: 480)
             .riftPanel(cornerRadius: RiftDesign.Radius.card)
             .padding(.top, edge)
-            .transition(RiftDesign.Motion.dropIn(reduceMotion: reduceMotion))
+            .transition(RiftDesign.Motion.slide(fromY: -RiftDesign.Motion.travel, reduceMotion: reduceMotion))
         }
     }
 

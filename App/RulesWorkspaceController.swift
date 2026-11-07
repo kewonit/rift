@@ -30,18 +30,20 @@ final class RulesWorkspaceController {
     var actionFilter: RuleActionFilter = .all
     var sort: RuleWorkspaceSort = .automatic
     var selection: Set<UUID> = []
+    /// Rules couldn't load at all, so there's nothing to show.
     private(set) var errorMessage: String?
+    /// Something worth saying that doesn't stop rules from being shown.
+    private(set) var notice: String?
     let controlPlane: ControlPlaneController
     var allRules: [Rule] = []
     private var reloadTask: Task<Void, Never>?
     private var selectionTask: Task<Void, Never>?
-    private var historyPlan: RuleWorkspaceUndoPlan?
-    private var historyOperationName = ""
-    private var historyIsRedo = false
-    private(set) var historyCommandTitle: String?
-    private(set) var historyCommandIsRunning = false
 
-    var historyCommandIsRedo: Bool { historyCommandTitle != nil && historyIsRedo }
+    var historyCommandTitle: String? {
+        controlPlane.canUndoRuleChange ? controlPlane.ruleChanges.title : nil
+    }
+    var historyCommandIsRunning: Bool { controlPlane.ruleChanges.isRunning }
+    var historyCommandIsRedo: Bool { controlPlane.ruleChanges.isRedo }
 
     init(controlPlane: ControlPlaneController) {
         self.controlPlane = controlPlane
@@ -109,7 +111,7 @@ final class RulesWorkspaceController {
         let available = ids.intersection(Set(rows.map(\.id)))
         selection = available
         if available.isEmpty, !ids.isEmpty {
-            errorMessage = "That rule no longer exists or isn’t available to your account."
+            notice = "That rule no longer exists or isn’t available to your account."
             return .notFound
         }
         return .focused
@@ -161,11 +163,6 @@ final class RulesWorkspaceController {
             identityChoices = identities
             previewEnvironment = preview
             generation = workspace.generation
-            if !historyCommandIsRunning,
-               let historyPlan,
-               historyPlan.expectedGeneration != workspace.generation {
-                clearHistoryCommand()
-            }
             errorMessage = nil
             return true
         } catch {
@@ -240,14 +237,14 @@ final class RulesWorkspaceController {
                     : []
             )
             selectRulesImmediately(ruleIDs)
-            errorMessage = nil
+            notice = nil
             return request
         } catch RuleWorkspaceDropError.noEligibleRules {
-            errorMessage = "Protected and blocklist rules can’t be moved."
+            notice = "Protected and blocklist rules can’t be moved."
         } catch RuleWorkspaceDropError.noChanges {
-            errorMessage = "These rules are already there."
+            notice = "These rules are already there."
         } catch {
-            errorMessage = "The selected rules changed. Try dragging them again."
+            notice = "The selected rules changed. Try dragging them again."
         }
         return nil
     }
@@ -293,63 +290,32 @@ final class RulesWorkspaceController {
     }
 
     func performHistoryCommand() async {
-        guard !historyCommandIsRunning, let plan = historyPlan else { return }
-        guard generation == plan.expectedGeneration else {
-            clearHistoryCommand()
+        let history = controlPlane.ruleChanges
+        guard !history.isRunning, history.plan != nil else { return }
+        guard controlPlane.canUndoRuleChange else {
+            history.clear()
             reportNotSaved("Undo isn’t available because your rules changed.")
             return
         }
-        let previousRules = allRules
-        let actionName = historyOperationName
-        let wasRedo = historyIsRedo
-        historyCommandIsRunning = true
-        defer { historyCommandIsRunning = false }
-        let result: ConfigurationMutationResult
+        let wasRedo = history.isRedo
+        let affected = history.plan?.affectedRuleIDs ?? []
         do {
-            result = try await controlPlane.applyRuleWorkspaceUndo(plan)
+            let result = try await controlPlane.undoLastRuleChange()
+            guard await reload() else {
+                reportNotSaved(
+                    "\(wasRedo ? "Redo" : "Undo") worked, but Rift couldn’t reload your rules."
+                )
+                return
+            }
+            selection = affected.intersection(Set(rows.map(\.id)))
+            if let result { present(result) }
         } catch {
             await reload()
-            clearHistoryCommand()
+            history.clear()
             reportNotSaved(
                 "Couldn’t \(wasRedo ? "redo" : "undo") because your rules changed."
             )
-            return
         }
-        guard await reload() else {
-            clearHistoryCommand()
-            reportNotSaved(
-                "\(wasRedo ? "Redo" : "Undo") worked, but Rift couldn’t reload your rules."
-            )
-            return
-        }
-        let (expectedGeneration, overflow) = plan.expectedGeneration.addingReportingOverflow(1)
-        guard !overflow, generation == expectedGeneration else {
-            clearHistoryCommand()
-            reportNotSaved(
-                "\(wasRedo ? "Redo" : "Undo") worked, but newer changes are already active."
-            )
-            present(result)
-            return
-        }
-        do {
-            historyPlan = try RuleWorkspaceUndoPlan(
-                beforeMutation: previousRules,
-                afterMutation: allRules,
-                expectedGeneration: generation
-            )
-        } catch {
-            clearHistoryCommand()
-            reportNotSaved(
-                "\(wasRedo ? "Redo" : "Undo") worked, but it can’t be reversed."
-            )
-            present(result)
-            return
-        }
-        historyOperationName = actionName
-        historyIsRedo = !wasRedo
-        historyCommandTitle = "\(historyIsRedo ? "Redo" : "Undo") \(actionName)"
-        selection = plan.affectedRuleIDs.intersection(Set(rows.map(\.id)))
-        present(result)
     }
 
     @discardableResult
@@ -357,20 +323,11 @@ final class RulesWorkspaceController {
         _ actionName: String,
         _ operation: () async throws -> ConfigurationMutationResult
     ) async -> Bool {
-        let beforeMutation = allRules
-        let previousGeneration = generation
+        controlPlane.ruleChanges.nextChangeName = actionName
+        defer { controlPlane.ruleChanges.nextChangeName = nil }
         do {
             let result = try await operation()
-            let loaded = await reload()
-            if loaded {
-                registerHistoryCommand(
-                    actionName: actionName,
-                    beforeMutation: beforeMutation,
-                    previousGeneration: previousGeneration
-                )
-            } else {
-                clearHistoryCommand()
-            }
+            await reload()
             present(result)
             return true
         } catch {
@@ -380,41 +337,6 @@ final class RulesWorkspaceController {
             )
             return false
         }
-    }
-
-    private func registerHistoryCommand(
-        actionName: String,
-        beforeMutation: [Rule],
-        previousGeneration: UInt64
-    ) {
-        let (expectedGeneration, overflow) = previousGeneration.addingReportingOverflow(1)
-        guard !overflow, generation == expectedGeneration else {
-            clearHistoryCommand()
-            reportNotSaved("Saved, but Undo isn’t available because your rules changed again.")
-            return
-        }
-        do {
-            historyPlan = try RuleWorkspaceUndoPlan(
-                beforeMutation: beforeMutation,
-                afterMutation: allRules,
-                expectedGeneration: generation
-            )
-            historyOperationName = actionName
-            historyIsRedo = false
-            historyCommandTitle = "Undo \(actionName)"
-        } catch RuleWorkspaceUndoError.noChanges {
-            clearHistoryCommand()
-        } catch {
-            clearHistoryCommand()
-            reportNotSaved("Saved, but this change can’t be undone.")
-        }
-    }
-
-    private func clearHistoryCommand() {
-        historyPlan = nil
-        historyOperationName = ""
-        historyIsRedo = false
-        historyCommandTitle = nil
     }
 
     func definitionCommand(
@@ -450,10 +372,12 @@ final class RulesWorkspaceController {
 
     private func present(_ result: ConfigurationMutationResult) {
         guard result.requiresAttention else { return }
-        errorMessage = [result.message, errorMessage].compactMap { $0 }.joined(separator: " ")
+        notice = [result.message, notice].compactMap { $0 }.joined(separator: " ")
     }
 
+    func dismissNotice() { notice = nil }
+
     private func reportNotSaved(_ message: String) {
-        errorMessage = [message, errorMessage].compactMap { $0 }.joined(separator: " ")
+        notice = [message, notice].compactMap { $0 }.joined(separator: " ")
     }
 }
