@@ -20,6 +20,7 @@ enum LifecycleHealthFailure: Error, Sendable {
     case invalidEmbeddedExtension
     case ambiguousInstalledExtension
     case installedExtensionMismatch
+    case installedExtensionOutdated
     case providerConfigurationMismatch
     case socketFilteringDisabled
     case packetFilteringClaimed
@@ -34,6 +35,8 @@ enum LifecycleHealthFailure: Error, Sendable {
             "macOS found more than one Rift network filter. Remove the extra copy of Rift, then try again."
         case .installedExtensionMismatch:
             "The installed filter doesn’t match this version of Rift. Update or reinstall Rift, then try again."
+        case .installedExtensionOutdated:
+            "This version of Rift comes with a newer network filter. Update the filter to keep filtering."
         case .providerConfigurationMismatch:
             "The filter settings saved in macOS don’t point to Rift’s filter. Uninstall and reinstall the network filter, then try again."
         case .socketFilteringDisabled:
