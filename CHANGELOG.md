@@ -5,16 +5,21 @@ release.
 
 ## Unreleased
 
-- The Map page now fills the window. Connections, the timeline and the
-  inspector float over the map, and the connection list expands into a table
-  with columns (⌘T). The Activity page is part of the Map page; the views are
-  now Map, Rules and Status.
-- The map draws the cable network faintly and the routes your connections
-  likely use in bold, with new markers and a smaller legend.
+- Rift has a new window. One sidebar holds Map, Status and your rules, filters,
+  profiles, groups and blocklists. The Activity page is part of the Map page.
+- The Map page shows the map above a slim timeline and a table of connections.
+  ⌘T hides the map to give the table the whole window.
+- The map is drawn like a chart: faint cables, thin routes and small markers.
+  It opens on This Mac and the places your connections go, and selecting a
+  connection fits its route.
+- The inspector appears when you select a connection, and search sits above
+  each table.
+- Rules show on one line, and the rule inspector matches the connection one.
+- Status shows your mode and rule counts at a glance.
 - One timeline shows traffic or decisions for the chosen time range.
 - The menu-bar panel was rebuilt with a mode menu, recent apps with their
   decisions, and standard menu rows.
-- Rift has an app icon.
+- Rift has a new app icon: two rings split along a fault.
 - Lists show verified app names instead of signing identifiers where Rift can
   match the installed app.
 - Rift uses much less energy while the map is open: route animation, map

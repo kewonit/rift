@@ -12,6 +12,7 @@ struct RiftHealthView: View {
         Form {
             Section {
                 header
+                if status.state != .cannotFilter { facts }
             }
             if showsSetupChoice {
                 SetupChoiceSection(session: session) { setupChoiceMade = true }
@@ -67,8 +68,6 @@ struct RiftHealthView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("Status")
-        .frame(maxWidth: 720)
-        .frame(maxWidth: .infinity)
         .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showsSetupChoice)
         .task(id: session.controlPlane.ruleChanges.revision) {
             ruleCounts = await session.controlPlane.ruleCounts()
@@ -87,18 +86,18 @@ struct RiftHealthView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: status.filledSymbolName)
-                .font(.system(size: 34))
+                .font(.title3)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(status.color)
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
                 .animation(RiftDesign.Motion.enter(), value: status.symbolName)
-                .frame(width: 48)
+                .frame(width: 24)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(status.title)
-                    .font(.title3.weight(.semibold))
+                    .font(.headline)
                 Text(status.detail)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -109,8 +108,31 @@ struct RiftHealthView: View {
                     .buttonStyle(.borderedProminent)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 3)
         .accessibilityElement(children: .contain)
+    }
+
+    /// The numbers worth seeing at a glance. Only what Rift already knows.
+    private var facts: some View {
+        HStack(spacing: RiftDesign.Spacing.l) {
+            if case .active(let mode) = status.state {
+                fact("Mode", mode.displayName)
+                Divider()
+            }
+            fact("Rules", ruleCounts.map { RiftFormat.count($0.rules) } ?? "—")
+            Divider()
+            fact("Blocklists", ruleCounts.map { RiftFormat.count($0.blocklists) } ?? "—")
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func fact(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(value).font(.title3.weight(.semibold)).monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private var filterRowTone: RiftStatusTone {
