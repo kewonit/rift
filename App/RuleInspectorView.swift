@@ -109,7 +109,6 @@ struct RuleInspectorView: View {
             }
         }
         .formStyle(.grouped)
-        .navigationTitle("Rule Inspector")
     }
 
     private var priority: String {

@@ -66,6 +66,7 @@ struct RiftHealthView: View {
             }
         }
         .formStyle(.grouped)
+        .navigationTitle("Status")
         .frame(maxWidth: 720)
         .frame(maxWidth: .infinity)
         .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showsSetupChoice)

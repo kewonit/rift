@@ -3,9 +3,8 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
-/// The map behind the Map page: Apple Maps, the faint cable network, and bold
-/// estimated routes for the connections in the list. Floating panels cover
-/// `chromeInsets`; the map keeps its own messages and attribution clear of them.
+/// The map on the Map page: Apple Maps, the faint cable network, and bold
+/// estimated routes for the connections in the table.
 struct LiveMapCanvas: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let displayed: [MonitorDisplayRow]
@@ -22,7 +21,6 @@ struct LiveMapCanvas: View {
     let loadError: String?
     let style: NetworkMapStyle
     let fitRequest: Int
-    let chromeInsets: EdgeInsets
     let onReady: () -> Void
     private let store = NetworkMapStore.shared
     @State private var activity: [CountryActivity] = []
@@ -43,7 +41,7 @@ struct LiveMapCanvas: View {
 
     var body: some View {
         mapLayer
-            .overlay { overlays.padding(chromeInsets) }
+            .overlay { overlays }
             .onAppear {
                 store.load()
                 onReady()
@@ -63,7 +61,7 @@ struct LiveMapCanvas: View {
         if keepsMap {
             networkMap
         } else {
-            Color(nsColor: .windowBackgroundColor).ignoresSafeArea()
+            Color(nsColor: .windowBackgroundColor).ignoresSafeArea(.container, edges: .top)
         }
     }
 
@@ -92,14 +90,12 @@ struct LiveMapCanvas: View {
             animatesFlow: windowIsVisible && !reduceMotion && !isViewingPast,
             reduceMotion: reduceMotion,
             fitRequest: fitRequest,
-            obscuredInsets: NSEdgeInsets(
-                top: chromeInsets.top, left: chromeInsets.leading,
-                bottom: chromeInsets.bottom, right: chromeInsets.trailing
-            ),
             placeOrigin: placeOrigin,
             selectCountry: selectCountry
         )
-        .ignoresSafeArea()
+        // Only under the toolbar: under the sidebar and inspector, their glass
+        // would pick up the color of the map.
+        .ignoresSafeArea(.container, edges: .top)
     }
 
     @ViewBuilder

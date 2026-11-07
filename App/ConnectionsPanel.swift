@@ -2,26 +2,21 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
-/// The floating connection list on the Map page. Expanding it swaps the
-/// outline for a full table with columns.
+/// The connections pane under the map: one slim bar of filters over the table.
 struct ConnectionsPanel: View {
     @Bindable var feed: MonitorFeed
     let artworkStore: ApplicationArtworkStore
-    let expanded: Bool
-    let toggleExpanded: () -> Void
-    var searchFocus: FocusState<Bool>.Binding
+    let mapHidden: Bool
+    let toggleMap: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider().opacity(0.5)
-            if expanded {
-                ConnectionsTable(feed: feed, artworkStore: artworkStore)
-            } else {
-                list
-            }
+            Divider()
+            ConnectionsTable(feed: feed, artworkStore: artworkStore)
+                .overlay(alignment: .bottom) { orderPausedNote }
             if feed.hasMore {
-                Divider().opacity(0.5)
+                Divider()
                 Button("Show More Connections") { feed.loadMore() }
                     .buttonStyle(.borderless)
                     .controlSize(.small)
@@ -31,30 +26,30 @@ struct ConnectionsPanel: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: RiftDesign.Spacing.s) {
-            HStack(spacing: RiftDesign.Spacing.s) {
-                Text("Connections").font(.headline)
-                if feed.displayedCount > 0 {
-                    Text(RiftFormat.count(feed.displayedCount))
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: RiftDesign.Spacing.xs) {
+            HStack(spacing: RiftDesign.Spacing.m) {
+                HStack(alignment: .firstTextBaseline, spacing: RiftDesign.Spacing.xs + 2) {
+                    Text("Connections").font(.headline)
+                    if feed.displayedCount > 0 {
+                        Text(RiftFormat.count(feed.displayedCount))
+                            .font(.callout.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                Spacer(minLength: 0)
+                ConnectionFilterBar(feed: feed)
                 if feed.loading { ProgressView().controlSize(.small) }
-                Button(action: toggleExpanded) {
+                Button(action: toggleMap) {
                     Label(
-                        expanded ? "Show Map" : "Show Table",
-                        systemImage: expanded
+                        mapHidden ? "Show Map" : "Hide Map",
+                        systemImage: mapHidden
                             ? "arrow.down.right.and.arrow.up.left"
                             : "arrow.up.left.and.arrow.down.right"
                     )
                     .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .help(expanded ? "Return to the map (⌘T)" : "Show all connections in a table (⌘T)")
+                .help(mapHidden ? "Show the map (⌘T)" : "Hide the map to see more connections (⌘T)")
             }
-            RiftSearchField(prompt: "Search apps and destinations", text: $feed.query.search, focus: searchFocus)
-            ConnectionFilterBar(feed: feed)
             if feed.query.isViewingPast {
                 HStack(spacing: RiftDesign.Spacing.s) {
                     Label("Viewing past activity", systemImage: "clock.arrow.circlepath")
@@ -67,37 +62,22 @@ struct ConnectionsPanel: View {
             }
         }
         .animation(.easeOut(duration: RiftDesign.Motion.press), value: feed.query.isViewingPast)
-        .padding(RiftDesign.Spacing.m)
+        .padding(.horizontal, RiftDesign.Spacing.m)
+        .padding(.vertical, RiftDesign.Spacing.s)
     }
 
-    private var list: some View {
-        List(selection: $feed.selectionID) {
-            ForEach(feed.hierarchy) { node in
-                ConnectionTreeRow(node: node, feed: feed, artworkStore: artworkStore)
-            }
+    @ViewBuilder
+    private var orderPausedNote: some View {
+        if feed.orderIsPaused {
+            Text("Order paused while you point at the list")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, RiftDesign.Spacing.s)
+                .padding(.vertical, RiftDesign.Spacing.xxs)
+                .background(.regularMaterial, in: Capsule())
+                .padding(.bottom, RiftDesign.Spacing.xs)
+                .allowsHitTesting(false)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .onHover { feed.pointerIsOverList = $0 }
-        .overlay(alignment: .bottom) {
-            if feed.orderIsPaused {
-                Text("Order paused while you point at the list")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, RiftDesign.Spacing.s)
-                    .padding(.vertical, RiftDesign.Spacing.xxs)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(.bottom, RiftDesign.Spacing.xs)
-                    .allowsHitTesting(false)
-            }
-        }
-        .overlay {
-            if feed.hierarchy.isEmpty, !feed.loading { emptyState }
-        }
-    }
-
-    private var emptyState: some View {
-        ConnectionsEmptyState(feed: feed).controlSize(.small)
     }
 }
 
@@ -140,45 +120,6 @@ struct ConnectionsEmptyState: View {
                 description: Text("Nothing connected in this time range.")
             )
         }
-    }
-}
-
-/// One row and, for a group, everything inside it.
-private struct ConnectionTreeRow: View {
-    let node: MonitorHierarchyNode
-    @Bindable var feed: MonitorFeed
-    let artworkStore: ApplicationArtworkStore
-
-    var body: some View {
-        if let children = node.children, !children.isEmpty {
-            DisclosureGroup(isExpanded: Binding(
-                get: { feed.expandedNodeIDs.contains(node.id) },
-                set: { open in
-                    if open { feed.expandedNodeIDs.insert(node.id) } else { feed.expandedNodeIDs.remove(node.id) }
-                }
-            )) {
-                ForEach(children) { child in
-                    ConnectionTreeRow(node: child, feed: feed, artworkStore: artworkStore)
-                }
-            } label: {
-                row
-            }
-        } else {
-            row
-        }
-    }
-
-    private var row: some View {
-        ConnectionRow(
-            node: node,
-            row: node.ruleSeedEventID.flatMap { feed.rowLookup[$0] },
-            canDecide: { feed.canDecide(node) },
-            isApplying: feed.applyingEventID.map(node.eventIDs.contains) ?? false,
-            artworkStore: artworkStore,
-            apply: { feed.requestRule($0, for: node) },
-            showRules: { feed.showRules(for: node) }
-        )
-        .tag(node.id)
     }
 }
 
@@ -282,96 +223,6 @@ extension MonitorAggregate {
     }
 }
 
-/// One app, destination or connection in the floating list.
-struct ConnectionRow: View {
-    let node: MonitorHierarchyNode
-    let row: MonitorEventRow?
-    /// Checked only when needed, because it looks at every connection in the
-    /// group and rows refresh about once a second.
-    let canDecide: () -> Bool
-    let isApplying: Bool
-    let artworkStore: ApplicationArtworkStore
-    let apply: (FilterAction) -> Void
-    let showRules: () -> Void
-    @State private var hovering = false
-
-    private var pending: Bool { monitorCoveragePending(node.ruleCoverage.state) }
-
-    var body: some View {
-        HStack(spacing: RiftDesign.Spacing.s) {
-            ConnectionIdentityIcon(node: node, row: row, artworkStore: artworkStore, size: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                if node.kind == .application {
-                    ApplicationNameText(identity: node.presentationIdentity, fallback: node.title, artworkStore: artworkStore)
-                        .lineLimit(1)
-                } else {
-                    Text(node.title).lineLimit(1).truncationMode(.middle)
-                }
-                if let subtitle = node.subtitle {
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-            }
-            Spacer(minLength: RiftDesign.Spacing.xs)
-            if hovering, canDecide() {
-                ConnectionDecisionButtons(disabled: isApplying || pending, apply: apply)
-            } else {
-                trailing
-            }
-        }
-        .frame(minHeight: 28)
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
-        .accessibilityAction(named: "Allow…") { apply(.allow) }
-        .accessibilityAction(named: "Block…") { apply(.deny) }
-        .accessibilityAction(named: "Show Rule", showRules)
-        .help(monitorCoverageLabel(node.ruleCoverage.state))
-        .accessibilityElement(children: .contain)
-        .contextMenu {
-            ConnectionContextMenu(
-                canDecide: canDecide, disabled: isApplying || pending,
-                hasRules: !node.ruleCoverage.ruleIDs.isEmpty, apply: apply, showRules: showRules
-            )
-        }
-    }
-
-    /// Says when today's rules differ from what this row recorded.
-    private var futureChange: String? {
-        switch node.ruleCoverage.currentAction {
-        case .deny where node.aggregate.denied == 0: "Blocked from now on"
-        case .allow where node.aggregate.denied > 0: "Allowed from now on"
-        default: nil
-        }
-    }
-
-    private var trailing: some View {
-        HStack(spacing: RiftDesign.Spacing.xs + 2) {
-            if let change = futureChange {
-                Text(change)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .transition(.opacity)
-            } else {
-                if node.aggregate.denied > 0 {
-                    RiftDecisionBadge(decision: .denied)
-                        .imageScale(.small)
-                        .accessibilityLabel(node.aggregate.denied == 1 ? "1 blocked" : "\(node.aggregate.denied) blocked")
-                }
-                if let bytes = node.aggregate.totalBytes {
-                    RiftBytesText(bytes: bytes, partial: node.aggregate.coverage != .complete)
-                        .help("Total traffic")
-                } else {
-                    Text(node.aggregate.flowCount == 1 ? "1 connection" : "\(node.aggregate.flowCount) connections")
-                        .monospacedDigit()
-                }
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .animation(.easeOut(duration: RiftDesign.Motion.press), value: futureChange)
-    }
-}
-
 struct ConnectionIdentityIcon: View {
     let node: MonitorHierarchyNode
     let row: MonitorEventRow?
@@ -394,28 +245,6 @@ struct ConnectionIdentityIcon: View {
                 .frame(width: size)
                 .accessibilityHidden(true)
         }
-    }
-}
-
-struct ConnectionDecisionButtons: View {
-    let disabled: Bool
-    let apply: (FilterAction) -> Void
-
-    private var disabledReason: String { "Waiting for the filter to apply your last rule change" }
-
-    var body: some View {
-        HStack(spacing: 2) {
-            Button { apply(.allow) } label: { Image(systemName: "checkmark.circle") }
-                .help(disabled ? disabledReason : "Choose what to allow")
-                .accessibilityLabel("Allow")
-            Button { apply(.deny) } label: { Image(systemName: "xmark.circle") }
-                .help(disabled ? disabledReason : "Choose what to block")
-                .accessibilityLabel("Block")
-        }
-        .buttonStyle(.borderless)
-        .imageScale(.large)
-        .foregroundStyle(.secondary)
-        .disabled(disabled)
     }
 }
 

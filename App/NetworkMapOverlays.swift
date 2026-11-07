@@ -113,8 +113,39 @@ enum NetworkMapPalette {
         resolved(.controlAccentColor, alpha: dimmed ? 0.22 : 0.95, in: appearance)
     }
 
+    /// Routes are accent blue, which sinks into the blue of the light map, so
+    /// there they get a light edge. Dark and satellite maps don't need one.
+    static func routeOutline(dimmed: Bool, style: NetworkMapStyle, appearance: NSAppearance) -> NSColor? {
+        let dark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        guard !dark, style == .standard else { return nil }
+        return resolved(.white, alpha: dimmed ? 0.25 : 0.9, in: appearance)
+    }
+
+    static let routeOutlineWidth: CGFloat = 2
     static func routeWidth(isCable: Bool) -> CGFloat { isCable ? 3 : 2 }
     static let landDash: [NSNumber] = [4, 4]
+}
+
+/// A route line with an optional edge drawn underneath it.
+final class RoutePolylineRenderer: MKPolylineRenderer {
+    var outlineColor: NSColor?
+
+    override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
+        if let outlineColor {
+            if path == nil { createPath() }
+            if let path {
+                context.saveGState()
+                context.addPath(path)
+                context.setStrokeColor(outlineColor.cgColor)
+                context.setLineWidth((lineWidth + NetworkMapPalette.routeOutlineWidth) / zoomScale)
+                context.setLineCap(.round)
+                context.setLineJoin(.round)
+                context.strokePath()
+                context.restoreGState()
+            }
+        }
+        super.draw(mapRect, zoomScale: zoomScale, in: context)
+    }
 }
 
 /// A few small dots that travel along the routes in focus. Moving a tiny layer

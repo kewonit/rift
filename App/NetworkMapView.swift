@@ -15,8 +15,6 @@ struct NetworkMapView: NSViewRepresentable {
     let animatesFlow: Bool
     let reduceMotion: Bool
     let fitRequest: Int
-    /// Space covered by floating panels, so fitting keeps routes in view.
-    var obscuredInsets = NSEdgeInsets()
     let placeOrigin: (CoarseMapCoordinate) -> Void
     let selectCountry: (String?) -> Void
 
@@ -92,10 +90,6 @@ struct NetworkMapView: NSViewRepresentable {
             parent = view
             guard let container, let mapView else { return }
             container.showsPlacementCursor = view.isPlacingOrigin
-            // Keeps Apple's attribution and the fitting area clear of floating panels.
-            if !NSEdgeInsetsEqual(mapView.additionalSafeAreaInsets, view.obscuredInsets) {
-                mapView.additionalSafeAreaInsets = view.obscuredInsets
-            }
             if shownStyle != view.style {
                 shownStyle = view.style
                 mapView.preferredConfiguration = view.style.configuration
@@ -225,8 +219,11 @@ struct NetworkMapView: NSViewRepresentable {
             for (code, entry) in entries {
                 let dimmed = isDimmed(code)
                 for leg in entry.legs {
-                    guard let renderer = mapView.renderer(for: leg) as? MKPolylineRenderer else { continue }
+                    guard let renderer = mapView.renderer(for: leg) as? RoutePolylineRenderer else { continue }
                     renderer.strokeColor = NetworkMapPalette.route(dimmed: dimmed, appearance: appearance)
+                    renderer.outlineColor = NetworkMapPalette.routeOutline(
+                        dimmed: dimmed, style: parent?.style ?? .standard, appearance: appearance
+                    )
                     renderer.setNeedsDisplay()
                 }
                 if let annotation = entry.annotation {
@@ -280,7 +277,7 @@ struct NetworkMapView: NSViewRepresentable {
                     longitudeDelta: min(340, max(18, (east - west) * 1.15))
                 )
             )
-            // The safe area already excludes the floating panels.
+            // The safe area already excludes the toolbar.
             mapView.setVisibleMapRect(
                 MKMapRect.from(region),
                 edgePadding: NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24),
@@ -303,8 +300,11 @@ struct NetworkMapView: NSViewRepresentable {
                 return renderer
             }
             if let leg = overlay as? RouteLegPolyline {
-                let renderer = MKPolylineRenderer(polyline: leg)
+                let renderer = RoutePolylineRenderer(polyline: leg)
                 renderer.strokeColor = NetworkMapPalette.route(dimmed: isDimmed(leg.countryCode), appearance: appearance)
+                renderer.outlineColor = NetworkMapPalette.routeOutline(
+                    dimmed: isDimmed(leg.countryCode), style: style, appearance: appearance
+                )
                 renderer.lineWidth = NetworkMapPalette.routeWidth(isCable: leg.isCable)
                 renderer.lineCap = .round
                 renderer.lineJoin = .round

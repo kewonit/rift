@@ -40,8 +40,17 @@ enum RulesSidebarSelection: Hashable {
     }
 }
 
-struct RulesWorkspaceSidebarView: View {
+/// One row of the app sidebar.
+enum AppSidebarItem: Hashable {
+    case map
+    case status
+    case rules(RulesSidebarSelection)
+}
+
+/// The app sidebar: the pages, then rules and what they're organized into.
+struct RiftSidebarView: View {
     @Bindable var model: RulesWorkspaceController
+    @Binding var selection: AppSidebarItem
     let isPreview: Bool
     @State private var editor: RuleDefinitionEditor?
     @State private var pendingRemoval: RuleDefinitionRemoval?
@@ -58,11 +67,15 @@ struct RulesWorkspaceSidebarView: View {
     }
 
     var body: some View {
-        List(selection: $model.sidebarSelection) {
+        List(selection: $selection) {
             Section {
+                Label(AppDestination.liveMap.title, systemImage: "map").tag(AppSidebarItem.map)
+                Label(AppDestination.health.title, systemImage: "checkmark.shield").tag(AppSidebarItem.status)
+            }
+            Section("Rules") {
                 ForEach(RuleListFilter.allCases) { filter in
                     Label(filter.rawValue, systemImage: symbol(filter))
-                        .tag(RulesSidebarSelection.filter(filter))
+                        .tag(AppSidebarItem.rules(.filter(filter)))
                 }
             }
             Section("Profiles") {
@@ -85,7 +98,7 @@ struct RulesWorkspaceSidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("Rules")
+        .task { await model.reload() }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 8) {
                 Menu {
@@ -179,7 +192,7 @@ struct RulesWorkspaceSidebarView: View {
             .accessibilityLabel(model.activeProfileID == profile.id
                 ? "Deactivate \(display(profile.name))" : "Activate \(display(profile.name))")
         }
-        .tag(RulesSidebarSelection.profile(profile.id))
+        .tag(AppSidebarItem.rules(.profile(profile.id)))
         .contextMenu {
             Button(model.activeProfileID == profile.id ? "Deactivate" : "Activate") {
                 Task { await model.activateProfile(model.activeProfileID == profile.id ? nil : profile.id) }
@@ -217,7 +230,7 @@ struct RulesWorkspaceSidebarView: View {
             .accessibilityLabel(group.isEnabled
                 ? "Disable \(display(group.name))" : "Enable \(display(group.name))")
         }
-        .tag(RulesSidebarSelection.group(group.id))
+        .tag(AppSidebarItem.rules(.group(group.id)))
         .contextMenu {
             Button(group.isEnabled ? "Disable" : "Enable") {
                 Task { await model.setGroup(group.id, enabled: !group.isEnabled) }
@@ -258,7 +271,7 @@ struct RulesWorkspaceSidebarView: View {
             .accessibilityLabel(source.status == .active
                 ? "Disable \(display(source.name))" : "Enable \(display(source.name))")
         }
-        .tag(RulesSidebarSelection.blocklist(source.id))
+        .tag(AppSidebarItem.rules(.blocklist(source.id)))
         .contextMenu {
             Button(source.status == .active ? "Disable" : "Enable") {
                 Task { await model.setBlocklist(source.id, enabled: source.status != .active) }

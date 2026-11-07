@@ -5,10 +5,10 @@ import SwiftUI
 /// What the Map page offers the menu bar, so everything it can do has a menu
 /// item and a shortcut someone can find.
 struct MapCommandActions {
-    let tableShown: Bool
+    let mapHidden: Bool
     let inspectorShown: Bool
     let timelineShown: Bool
-    let toggleTable: () -> Void
+    let toggleMap: () -> Void
     let toggleInspector: () -> Void
     let toggleTimeline: () -> Void
     let find: () -> Void
@@ -33,8 +33,8 @@ struct MapCommands: Commands {
 
     var body: some Commands {
         CommandGroup(before: .toolbar) {
-            Button(actions?.tableShown == true ? "Show Map" : "Show Connection Table") {
-                actions?.toggleTable()
+            Button(actions?.mapHidden == true ? "Show Map" : "Hide Map") {
+                actions?.toggleMap()
             }
             .keyboardShortcut("t", modifiers: .command)
             .disabled(actions == nil)

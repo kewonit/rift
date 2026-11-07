@@ -2,9 +2,8 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
-/// The Map page: the map fills the window, with floating panels for the
-/// connection list (which expands into a table), the timeline and the
-/// inspector. It replaces both the old Map and Activity pages.
+/// The Map page: the map above a docked timeline and table of connections,
+/// with details in the inspector. It replaces the old Map and Activity pages.
 struct LiveMapView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var session: AppSession
@@ -14,13 +13,11 @@ struct LiveMapView: View {
     @AppStorage("liveMapTimelineMode") private var timelineMode = RiftTimelineMode.traffic
     @State private var feed: MonitorFeed
     @State private var originController: MapOriginController
-    @State private var tableExpanded = false
+    @State private var mapHidden = false
     @State private var showingMapInformation = false
     @State private var mapFitRequest = 0
-    @State private var timelineHeight: CGFloat = 96
     @FocusState private var searchFocused: Bool
 
-    private let edge = RiftDesign.Panel.edge
 
     init(session: AppSession) {
         self.session = session
@@ -29,33 +26,17 @@ struct LiveMapView: View {
     }
 
     var body: some View {
-        ZStack {
-            LiveMapCanvas(
-                displayed: feed.mapRows,
-                selectedCountry: feed.query.country,
-                isViewingPast: feed.query.isViewingPast,
-                selectCountry: { feed.query.country = $0 },
-                originController: originController,
-                selectedEventIDs: Set(feed.selectedNode?.eventIDs ?? []),
-                windowIsVisible: feed.windowIsVisible,
-                isPreview: session.isUIFixture,
-                promptsForLocation: session.protectionStatus.canShowActivity,
-                loadError: feed.loadError,
-                style: mapStyle,
-                fitRequest: mapFitRequest,
-                chromeInsets: chromeInsets,
-                onReady: signalFixtureReadiness
-            )
-            if tableExpanded {
-                Rectangle()
-                    .fill(.black.opacity(0.16))
-                    .ignoresSafeArea()
-                    .onTapGesture { collapseTable() }
-                    .accessibilityHidden(true)
-            }
-            panelLayer
+        RiftVerticalSplit(topHidden: mapHidden, minTop: 220, minBottom: 240) {
+            map
+        } bottom: {
+            connections
         }
-        .overlay(alignment: .top) { attentionBanner }
+        .inspector(isPresented: $showingInspector) {
+            inspector.inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+        }
+        .searchable(text: $feed.query.search, placement: .toolbar, prompt: "Search apps and destinations")
+        .searchFocused($searchFocused)
+        .navigationTitle("Map")
         .focusedSceneValue(\.mapCommands, mapCommands)
         .sheet(item: $feed.pendingRuleRequest) { request in
             RuleScopeChooser(request: request) { breadth, duration in
@@ -93,7 +74,6 @@ struct LiveMapView: View {
             session.controlPlane.actionResults.post("Undone.", offersUndo: true)
         }
 #endif
-        .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showingInspector)
         .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showingTimeline)
         .toolbar { toolbar }
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
@@ -103,12 +83,11 @@ struct LiveMapView: View {
         .background(ActivityWindowVisibility(changed: visibilityChanged))
         .onChange(of: session.requestedMonitorEventID, initial: true) { _, id in
             guard id != nil else { return }
-            tableExpanded = true
             feed.acceptRequestedSelection()
         }
         .onChange(of: session.showsConnectionTable, initial: true) { _, show in
             guard show else { return }
-            tableExpanded = true
+            mapHidden = true
             session.showsConnectionTable = false
         }
         .onChange(of: feed.selectionID) { _, id in if id != nil { showingInspector = true } }
@@ -124,40 +103,29 @@ struct LiveMapView: View {
         ))
     }
 
-    // MARK: Panels
+    // MARK: Panes
 
-    /// Glass panels share one rendering pass in a container instead of each
-    /// keeping its own copy of the map behind it.
-    @ViewBuilder
-    private var panelLayer: some View {
-        if #available(macOS 26, *) {
-            GlassEffectContainer(spacing: edge) { panels }
-        } else {
-            panels
-        }
+    private var map: some View {
+        LiveMapCanvas(
+            displayed: feed.mapRows,
+            selectedCountry: feed.query.country,
+            isViewingPast: feed.query.isViewingPast,
+            selectCountry: { feed.query.country = $0 },
+            originController: originController,
+            selectedEventIDs: Set(feed.selectedNode?.eventIDs ?? []),
+            windowIsVisible: feed.windowIsVisible,
+            isPreview: session.isUIFixture,
+            promptsForLocation: session.protectionStatus.canShowActivity,
+            loadError: feed.loadError,
+            style: mapStyle,
+            fitRequest: mapFitRequest,
+            onReady: signalFixtureReadiness
+        )
+        .overlay(alignment: .top) { attentionBanner }
     }
 
-    private var panels: some View {
-        VStack(spacing: edge) {
-            HStack(alignment: .top, spacing: edge) {
-                ConnectionsPanel(
-                    feed: feed,
-                    artworkStore: session.applicationArtwork,
-                    expanded: tableExpanded,
-                    toggleExpanded: { tableExpanded ? collapseTable() : (tableExpanded = true) },
-                    searchFocus: $searchFocused
-                )
-                .frame(width: tableExpanded ? nil : RiftDesign.Panel.connections)
-                .frame(maxWidth: tableExpanded ? .infinity : nil, maxHeight: .infinity)
-                .riftPanel()
-                if !tableExpanded { Spacer(minLength: 0) }
-                if showingInspector {
-                    inspector
-                        .frame(width: RiftDesign.Panel.inspector)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                }
-            }
+    private var connections: some View {
+        VStack(spacing: 0) {
             if showingTimeline {
                 RiftTimeline(
                     mode: $timelineMode,
@@ -168,12 +136,15 @@ struct LiveMapView: View {
                     isMinimal: feed.isMinimal,
                     refreshFailed: feed.loadError != nil
                 )
-                .riftPanel()
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { timelineHeight = $0 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                Divider()
             }
+            ConnectionsPanel(
+                feed: feed,
+                artworkStore: session.applicationArtwork,
+                mapHidden: mapHidden,
+                toggleMap: { mapHidden.toggle() }
+            )
         }
-        .padding(edge)
     }
 
     private var inspector: some View {
@@ -188,18 +159,6 @@ struct LiveMapView: View {
             canDecide: feed.selectedNode.map(feed.canDecide) ?? false,
             isMinimal: feed.isMinimal
         )
-        .riftPanel()
-        .overlay(alignment: .topTrailing) {
-            Button { showingInspector = false } label: {
-                Label("Hide Inspector", systemImage: "xmark")
-                    .labelStyle(.iconOnly)
-                    .font(.caption.weight(.semibold))
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .padding(RiftDesign.Spacing.m)
-            .help("Hide the inspector")
-        }
     }
 
     @ViewBuilder
@@ -218,7 +177,7 @@ struct LiveMapView: View {
             }
             .frame(maxWidth: 480)
             .riftPanel(cornerRadius: RiftDesign.Radius.card)
-            .padding(.top, edge)
+            .padding(.top, RiftDesign.Spacing.m)
             .transition(RiftDesign.Motion.slide(fromY: -RiftDesign.Motion.travel, reduceMotion: reduceMotion))
         }
     }
@@ -226,10 +185,10 @@ struct LiveMapView: View {
     private var mapCommands: MapCommandActions {
         let selected = feed.selectedNode
         return MapCommandActions(
-            tableShown: tableExpanded,
+            mapHidden: mapHidden,
             inspectorShown: showingInspector,
             timelineShown: showingTimeline,
-            toggleTable: { tableExpanded.toggle() },
+            toggleMap: { mapHidden.toggle() },
             toggleInspector: { showingInspector.toggle() },
             toggleTimeline: { showingTimeline.toggle() },
             find: { searchFocused = true },
@@ -248,18 +207,6 @@ struct LiveMapView: View {
         case .resumeRules: session.resumeRules()
         case .setUp, .showStatus, .reviewWaiting: session.destination = .health
         }
-    }
-
-    /// The parts of the map covered by panels, so the map keeps its messages,
-    /// attribution and fitted routes in the open area.
-    private var chromeInsets: EdgeInsets {
-        guard !tableExpanded else { return EdgeInsets() }
-        return EdgeInsets(
-            top: 0,
-            leading: RiftDesign.Panel.connections + edge * 2,
-            bottom: showingTimeline ? timelineHeight + edge * 2 : 0,
-            trailing: showingInspector ? RiftDesign.Panel.inspector + edge * 2 : 0
-        )
     }
 
     // MARK: Toolbar
@@ -317,17 +264,13 @@ struct LiveMapView: View {
         if !visible { originController.cancelPlacement() }
     }
 
-    private func collapseTable() {
-        tableExpanded = false
-    }
-
     private func escape() {
         if originController.isPlacingManually {
             originController.cancelPlacement()
         } else if feed.selectionID != nil {
             feed.selectionID = nil
-        } else if tableExpanded {
-            collapseTable()
+        } else if mapHidden {
+            mapHidden = false
         }
     }
 

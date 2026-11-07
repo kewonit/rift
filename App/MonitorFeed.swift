@@ -31,7 +31,6 @@ final class MonitorFeed {
     /// stay clickable while one is chosen.
     private(set) var mapRows: [MonitorDisplayRow] = []
     /// Groups open in the list, kept here so a selection can reveal itself.
-    var expandedNodeIDs: Set<String> = []
     private(set) var rowLookup: [String: MonitorEventRow] = [:]
     private(set) var summary = MonitorSummarySnapshot.empty
     private(set) var traffic = LiveTrafficSnapshot.empty
@@ -103,7 +102,6 @@ final class MonitorFeed {
         sort = session.savedMapState?.sort ?? .activity
         selectionID = session.savedMapState?.selectionID
         selectedEventID = session.savedMapState?.selectedEventID
-        expandedNodeIDs = session.savedMapState?.expandedNodeIDs ?? []
 #if DEBUG
         now = session.isUIFixture ? MonitorFixtureData.referenceNow : Date()
 #else
@@ -123,7 +121,7 @@ final class MonitorFeed {
     func stop() {
         session.savedMapState = SavedMapState(
             query: query, sort: sort, selectionID: selectionID,
-            selectedEventID: selectedEventID, expandedNodeIDs: expandedNodeIDs
+            selectedEventID: selectedEventID
         )
         refreshCoordinator.stop()
         queryTask?.cancel()

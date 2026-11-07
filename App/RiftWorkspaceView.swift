@@ -58,42 +58,62 @@ struct RiftRootView: View {
 struct RiftWorkspaceView: View {
     @Bindable var session: AppSession
     @Environment(\.openSettings) private var openSettings
+    /// Lives here because the sidebar shows it on every page.
+    @State private var rules: RulesWorkspaceController
+
+    init(session: AppSession) {
+        self.session = session
+        let model = RulesWorkspaceController(controlPlane: session.controlPlane)
+        model.search = session.savedRulesSearch
+        _rules = State(initialValue: model)
+    }
+
+    private var sidebarSelection: Binding<AppSidebarItem> {
+        Binding {
+            switch session.destination {
+            case .liveMap: .map
+            case .health: .status
+            case .rules: .rules(rules.sidebarSelection)
+            }
+        } set: { item in
+            switch item {
+            case .map: session.destination = .liveMap
+            case .status: session.destination = .health
+            case .rules(let selection):
+                rules.sidebarSelection = selection
+                session.destination = .rules
+            }
+        }
+    }
 
     var body: some View {
-        destinationView
-            .overlay(alignment: .bottom) { ActionResultBanner(session: session) }
-            .navigationTitle("Rift")
-            .frame(minWidth: 1_000, minHeight: 600)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("View", selection: $session.destination) {
-                        ForEach(AppDestination.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    .help("Switch views")
-                }
+        NavigationSplitView {
+            RiftSidebarView(model: rules, selection: sidebarSelection, isPreview: session.isUIFixture)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
+        } detail: {
+            destinationView
+                .overlay(alignment: .bottom) { ActionResultBanner(session: session) }
+        }
+        .frame(minWidth: 1_000, minHeight: 600)
+        .onOpenURL { url in
+            let target = (url.host ?? url.pathComponents.dropFirst().first)?.lowercased()
+            if url.scheme?.lowercased() == "rift", target == "settings" {
+                openSettings()
+            } else if let destination = AppDestination(deepLink: url) {
+                session.destination = destination
+                if target == "activity" { session.showsConnectionTable = true }
             }
-            .onOpenURL { url in
-                let target = (url.host ?? url.pathComponents.dropFirst().first)?.lowercased()
-                if url.scheme?.lowercased() == "rift", target == "settings" {
-                    openSettings()
-                } else if let destination = AppDestination(deepLink: url) {
-                    session.destination = destination
-                    if target == "activity" { session.showsConnectionTable = true }
-                }
-            }
+        }
 #if DEBUG
-            .task {
-                if session.isUIFixture, FixturePreviewOptions.opensSettings { openSettings() }
-            }
+        .task {
+            if session.isUIFixture, FixturePreviewOptions.opensSettings { openSettings() }
+        }
 #endif
-            .onChange(of: session.showingFilterStatus, initial: true) { _, showing in
-                guard showing else { return }
-                session.destination = .health
-                session.showingFilterStatus = false
-            }
+        .onChange(of: session.showingFilterStatus, initial: true) { _, showing in
+            guard showing else { return }
+            session.destination = .health
+            session.showingFilterStatus = false
+        }
     }
 
     @ViewBuilder
@@ -103,7 +123,6 @@ struct RiftWorkspaceView: View {
             LiveMapView(session: session)
         case .rules:
             RulesWorkspaceView(
-                controlPlane: session.controlPlane,
                 requestedSelection: Binding(
                     get: { session.requestedRuleIDs },
                     set: { session.requestedRuleIDs = $0 }
@@ -112,8 +131,8 @@ struct RiftWorkspaceView: View {
                 isPreview: session.isUIFixture,
                 setupIncomplete: !session.protectionStatus.canShowActivity,
                 openStatus: { session.destination = .health },
-                initialSearch: session.savedRulesSearch,
-                searchChanged: { session.savedRulesSearch = $0 }
+                searchChanged: { session.savedRulesSearch = $0 },
+                model: rules
             )
         case .health:
             RiftHealthView(session: session)

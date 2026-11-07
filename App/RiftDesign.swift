@@ -46,13 +46,6 @@ enum RiftDesign {
         }
     }
 
-    /// Widths of the floating panels on the map.
-    enum Panel {
-        static let connections: CGFloat = 320
-        static let inspector: CGFloat = 300
-        static let edge: CGFloat = 12
-    }
-
     static let trafficSent = Color(nsColor: .systemPurple)
     static let trafficReceived = Color(nsColor: .systemBlue)
     /// Bold routes the user's traffic likely takes.

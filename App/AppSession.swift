@@ -11,7 +11,6 @@ struct SavedMapState {
     let sort: MonitorHierarchySort
     let selectionID: String?
     let selectedEventID: String?
-    let expandedNodeIDs: Set<String>
 }
 
 #if DEBUG

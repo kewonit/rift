@@ -27,7 +27,6 @@ extension MonitorFeed {
         guard let target = session.requestedMonitorEventID else { return }
         if displayed.contains(where: { $0.source.id == target }),
            let node = MonitorHierarchyBuilder.node(forEventID: target, in: hierarchy) {
-            expandedNodeIDs.formUnion(MonitorSelectionResolver.ancestors(ofEventID: target, in: hierarchy))
             selectedEventID = target
             selectionID = node.id
             session.requestedMonitorEventID = nil

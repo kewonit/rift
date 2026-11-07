@@ -40,7 +40,7 @@ struct RiftBytesText: View {
     }
 }
 
-/// A floating surface over the map: Liquid Glass on macOS 26, a material on
+/// A small surface on the map, such as the legend: Liquid Glass on macOS 26, a material on
 /// earlier systems, and an opaque fill when Reduce Transparency is on.
 struct RiftPanelModifier: ViewModifier {
     var cornerRadius: CGFloat = RiftDesign.Radius.panel
@@ -79,38 +79,68 @@ extension View {
     }
 }
 
-/// The search field used by every list in Rift.
-struct RiftSearchField: View {
-    let prompt: String
-    @Binding var text: String
-    var focus: FocusState<Bool>.Binding?
+/// Two stacked panes with a draggable divider. SwiftUI's `VSplitView` aborts
+/// the app here: its panes report a new minimum size on every layout pass until
+/// AppKit gives up.
+struct RiftVerticalSplit<Top: View, Bottom: View>: View {
+    var topHidden = false
+    let minTop: CGFloat
+    let minBottom: CGFloat
+    @ViewBuilder var top: Top
+    @ViewBuilder var bottom: Bottom
+    @AppStorage("riftSplitTopFraction") private var topFraction = 0.5
+    @State private var dragStart: Double?
+
+    private static var handleHeight: CGFloat { 9 }
 
     var body: some View {
-        HStack(spacing: RiftDesign.Spacing.xs + 2) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            field
-            if !text.isEmpty {
-                Button { text = "" } label: { Image(systemName: "xmark.circle.fill") }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("Clear Search")
-                    .help("Clear search")
+        GeometryReader { proxy in
+            VStack(spacing: 0) {
+                if !topHidden {
+                    top.frame(height: topHeight(in: proxy.size.height))
+                    handle(height: proxy.size.height)
+                }
+                bottom.frame(maxHeight: .infinity)
             }
         }
-        .padding(.horizontal, RiftDesign.Spacing.s)
-        .frame(height: 28)
-        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: RiftDesign.Radius.control, style: .continuous))
     }
 
-    @ViewBuilder
-    private var field: some View {
-        if let focus {
-            TextField(prompt, text: $text).textFieldStyle(.plain).focused(focus)
-        } else {
-            TextField(prompt, text: $text).textFieldStyle(.plain)
-        }
+    private func topHeight(in height: CGFloat) -> CGFloat {
+        let upper = max(minTop, height - minBottom)
+        return min(max(height * topFraction, minTop), upper)
+    }
+
+    private func handle(height: CGFloat) -> some View {
+        Divider()
+            .frame(height: Self.handleHeight)
+            .padding(.vertical, -(Self.handleHeight / 2))
+            .contentShape(Rectangle())
+            .pointerStyle(.rowResize)
+            .zIndex(1)
+            .gesture(
+                DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                    .onChanged { value in
+                        let start = dragStart ?? topFraction
+                        dragStart = start
+                        guard height > 0 else { return }
+                        topFraction = start + value.translation.height / height
+                    }
+                    .onEnded { _ in
+                        dragStart = nil
+                        guard height > 0 else { return }
+                        topFraction = topHeight(in: height) / height
+                    }
+            )
+            .accessibilityElement()
+            .accessibilityLabel("Pane Divider")
+            .accessibilityValue("\(Int(topFraction * 100)) percent")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: topFraction = min(topFraction + 0.05, 0.9)
+                case .decrement: topFraction = max(topFraction - 0.05, 0.1)
+                @unknown default: break
+                }
+            }
     }
 }
 

@@ -7,8 +7,8 @@ enum RiftTimelineMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// The slim timeline along the bottom of the Map page: traffic or decisions
-/// over the selected time range, with one set of range controls.
+/// The slim band between the map and the table: traffic or decisions over the
+/// selected time range, with one set of range controls.
 struct RiftTimeline: View {
     @Environment(\.calendar) private var calendar
     @Environment(\.openSettings) private var openSettings
@@ -27,23 +27,37 @@ struct RiftTimeline: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: RiftDesign.Spacing.s) {
-            header
-            Group {
-                switch mode {
-                case .traffic: TrafficBars(snapshot: traffic)
-                case .decisions:
-                    DecisionBars(
-                        snapshot: decisions, query: $query, now: now,
-                        selectable: !isMinimal, hovered: $hoveredBucket
-                    )
+        HStack(alignment: .center, spacing: RiftDesign.Spacing.l) {
+            VStack(alignment: .leading, spacing: RiftDesign.Spacing.xs) {
+                Picker("Show", selection: $mode) {
+                    ForEach(RiftTimelineMode.allCases) { Text($0.rawValue).tag($0) }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                summary
             }
-            .frame(height: 44)
-            timeAxis
+            .fixedSize()
+            VStack(spacing: RiftDesign.Spacing.xxs) {
+                Group {
+                    switch mode {
+                    case .traffic: TrafficBars(snapshot: traffic)
+                    case .decisions:
+                        DecisionBars(
+                            snapshot: decisions, query: $query, now: now,
+                            selectable: !isMinimal, hovered: $hoveredBucket
+                        )
+                    }
+                }
+                .frame(height: 30)
+                timeAxis
+            }
+            .frame(maxWidth: .infinity)
+            controls
         }
-        .padding(.horizontal, RiftDesign.Spacing.l - 2)
-        .padding(.vertical, RiftDesign.Spacing.m - 2)
+        .controlSize(.small)
+        .padding(.horizontal, RiftDesign.Spacing.m)
+        .padding(.vertical, RiftDesign.Spacing.s)
         .accessibilityElement(children: .contain)
         .onChange(of: mode) { _, _ in hoveredBucket = nil }
     }
@@ -57,7 +71,10 @@ struct RiftTimeline: View {
             HStack {
                 Text(start.formatted(date: longRange ? .abbreviated : .omitted, time: .shortened))
                 Spacer()
-                if mode == .decisions, !isMinimal {
+                if mode == .decisions, let hoveredBucket {
+                    Text(hoverLabel(hoveredBucket)).lineLimit(1)
+                    Spacer()
+                } else if mode == .decisions, !isMinimal {
                     Text("Drag to look at part of this range")
                     Spacer()
                 }
@@ -71,16 +88,8 @@ struct RiftTimeline: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: RiftDesign.Spacing.m) {
-            Picker("Show", selection: $mode) {
-                ForEach(RiftTimelineMode.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            summary
-            Spacer(minLength: RiftDesign.Spacing.s)
+    private var controls: some View {
+        HStack(spacing: RiftDesign.Spacing.s) {
             if refreshFailed {
                 Label("Couldn’t refresh", systemImage: "exclamationmark.triangle.fill")
                     .labelStyle(.iconOnly)
@@ -88,21 +97,23 @@ struct RiftTimeline: View {
                     .help("Rift couldn’t refresh. Showing what it loaded last.")
             }
             if isMinimal {
-                Text("Recent connections · Not saved")
+                VStack(alignment: .trailing, spacing: RiftDesign.Spacing.xxs) {
+                    Text("Recent connections · Not saved")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .help("Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes while this view is open.")
+                    Button("Keep History…") {
+                        UserDefaults.standard.set(SettingsSection.history.rawValue, forKey: "settingsSection")
+                        openSettings()
+                    }
+                    .buttonStyle(.link)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .help("Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes while this view is open.")
-                Button("Keep History…") {
-                    UserDefaults.standard.set(SettingsSection.history.rawValue, forKey: "settingsSection")
-                    openSettings()
                 }
-                .buttonStyle(.link)
-                .font(.caption)
             } else {
                 rangeControls
             }
         }
-        .controlSize(.small)
+        .fixedSize()
     }
 
     @ViewBuilder
@@ -116,20 +127,13 @@ struct RiftTimeline: View {
                              partial: traffic.partial, color: RiftDesign.trafficReceived)
             }
         case .decisions:
-            if let hoveredBucket {
-                Text(hoverLabel(hoveredBucket))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            } else {
-                HStack(spacing: RiftDesign.Spacing.m) {
-                    DecisionTotal(decision: .allowed, count: decisions.buckets.reduce(0) { $0 + $1.allowed })
-                    DecisionTotal(decision: .denied, count: decisions.buckets.reduce(0) { $0 + $1.denied })
-                    DecisionTotal(decision: .byDefault, count: decisions.buckets.reduce(0) { $0 + $1.unresolved })
-                    if decisions.coverage != .complete {
-                        Text("Partial").font(.caption).foregroundStyle(.tertiary)
-                            .help("Some history is missing for this range.")
-                    }
+            HStack(spacing: RiftDesign.Spacing.m) {
+                DecisionTotal(decision: .allowed, count: decisions.buckets.reduce(0) { $0 + $1.allowed })
+                DecisionTotal(decision: .denied, count: decisions.buckets.reduce(0) { $0 + $1.denied })
+                DecisionTotal(decision: .byDefault, count: decisions.buckets.reduce(0) { $0 + $1.unresolved })
+                if decisions.coverage != .complete {
+                    Text("Partial").font(.caption).foregroundStyle(.tertiary)
+                        .help("Some history is missing for this range.")
                 }
             }
         }
@@ -167,14 +171,6 @@ struct RiftTimeline: View {
             .labelStyle(.iconOnly)
             .disabled(!query.canNavigateForward)
             .help("Show the next range")
-            if query.isViewingPast {
-                Text(displayedRangeLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Button("Back to Live") { query.showNow(); hoveredBucket = nil }
-                    .help("Return to live activity")
-            }
         }
     }
 

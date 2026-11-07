@@ -9,97 +9,68 @@ struct RulesWorkspaceView: View {
     let setupIncomplete: Bool
     let openStatus: () -> Void
     let searchChanged: (String) -> Void
-    @State private var model: RulesWorkspaceController
+    @Bindable var model: RulesWorkspaceController
     @State private var showingEditor = false
     @State private var editingRow: RuleRowViewValue?
     @State private var showingInspector = true
     @State private var showingDeleteConfirmation = false
 
-    init(
-        controlPlane: ControlPlaneController,
-        requestedSelection: Binding<Set<UUID>>,
-        artworkStore: ApplicationArtworkStore,
-        isPreview: Bool = false,
-        setupIncomplete: Bool = false,
-        openStatus: @escaping () -> Void = {},
-        initialSearch: String = "",
-        searchChanged: @escaping (String) -> Void = { _ in }
-    ) {
-        _requestedSelection = requestedSelection
-        self.artworkStore = artworkStore
-        self.isPreview = isPreview
-        self.setupIncomplete = setupIncomplete
-        self.openStatus = openStatus
-        self.searchChanged = searchChanged
-        let model = RulesWorkspaceController(controlPlane: controlPlane)
-        model.search = initialSearch
-        _model = State(initialValue: model)
-    }
-
     var body: some View {
-        HSplitView {
-            RulesWorkspaceSidebarView(model: model, isPreview: isPreview)
-                .frame(minWidth: 160, idealWidth: 190, maxWidth: 220)
-                .frame(maxHeight: .infinity)
-
-            VStack(spacing: 0) {
-                if let message = model.errorMessage, !setupIncomplete {
-                    HStack(spacing: 10) {
-                        Label(message, systemImage: "exclamationmark.triangle")
-                        Spacer()
-                        Button("Try Again") { Task { await model.reload() } }
-                    }
-                    .padding(8)
-                    .background(.orange.opacity(0.18))
+        VStack(spacing: 0) {
+            if let message = model.errorMessage, !setupIncomplete {
+                HStack(spacing: 10) {
+                    Label(message, systemImage: "exclamationmark.triangle")
+                    Spacer()
+                    Button("Try Again") { Task { await model.reload() } }
                 }
-                if let notice = model.notice {
-                    HStack(spacing: 10) {
-                        Label(notice, systemImage: "info.circle")
-                        Spacer()
-                        Button("Dismiss") { model.dismissNotice() }
-                    }
-                    .padding(8)
-                    .background(.orange.opacity(0.12))
-                }
-                if model.errorMessage == nil {
-                    RulesWorkspaceTable(
-                        model: model,
-                        artworkStore: artworkStore,
-                        isPreview: isPreview,
-                        editingRow: $editingRow,
-                        showingEditor: $showingEditor,
-                        showingInspector: $showingInspector,
-                        showingDeleteConfirmation: $showingDeleteConfirmation
-                    )
-                } else if setupIncomplete {
-                    ContentUnavailableView {
-                        Label("Finish Setup First", systemImage: "list.bullet.rectangle")
-                    } description: {
-                        Text("You can add rules once the network filter is on.")
-                    } actions: {
-                        Button("Show Status", action: openStatus)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ContentUnavailableView(
-                        "Rules aren’t available right now",
-                        systemImage: "exclamationmark.triangle"
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+                .padding(8)
+                .background(.orange.opacity(0.18))
             }
-            .frame(minWidth: 400, idealWidth: 560, maxWidth: .infinity)
-            .frame(maxHeight: .infinity)
-            .onChange(of: model.search) { _, value in searchChanged(value) }
+            if let notice = model.notice {
+                HStack(spacing: 10) {
+                    Label(notice, systemImage: "info.circle")
+                    Spacer()
+                    Button("Dismiss") { model.dismissNotice() }
+                }
+                .padding(8)
+                .background(.orange.opacity(0.12))
+            }
+            if model.errorMessage == nil {
+                RulesWorkspaceTable(
+                    model: model,
+                    artworkStore: artworkStore,
+                    isPreview: isPreview,
+                    editingRow: $editingRow,
+                    showingEditor: $showingEditor,
+                    showingInspector: $showingInspector,
+                    showingDeleteConfirmation: $showingDeleteConfirmation
+                )
+            } else if setupIncomplete {
+                ContentUnavailableView {
+                    Label("Finish Setup First", systemImage: "list.bullet.rectangle")
+                } description: {
+                    Text("You can add rules once the network filter is on.")
+                } actions: {
+                    Button("Show Status", action: openStatus)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ContentUnavailableView(
+                    "Rules aren’t available right now",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .onChange(of: model.search) { _, value in searchChanged(value) }
 #if DEBUG
-            .task { if FixturePreviewOptions.opensRuleEditor { showingEditor = true } }
+        .task { if FixturePreviewOptions.opensRuleEditor { showingEditor = true } }
 #endif
-            .onChange(of: model.controlPlane.desiredPolicyTuple) { _, _ in
-                Task { await model.reload() }
-            }
-            .onChange(of: model.controlPlane.activePolicyTuple) { _, _ in
-                Task { await model.reload() }
-            }
+        .onChange(of: model.controlPlane.desiredPolicyTuple) { _, _ in
+            Task { await model.reload() }
+        }
+        .onChange(of: model.controlPlane.activePolicyTuple) { _, _ in
+            Task { await model.reload() }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .inspector(isPresented: $showingInspector) {
