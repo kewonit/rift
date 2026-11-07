@@ -22,11 +22,11 @@ release.
 - Rift has a new app icon: two rings split along a fault.
 - Lists show verified app names instead of signing identifiers where Rift can
   match the installed app.
-- Rift uses much less energy while the map is open: route animation, map
-  updates and app-icon lookups do far less work, and launch no longer waits
-  for the databases to open.
-- Rift releases the map 30 seconds after its window is hidden, roughly halving
-  its memory while it runs in the background.
+- The map does less work while it's open: route animation, map updates and
+  app-icon lookups were reworked, and launch no longer waits for the databases
+  to open.
+- Rift releases the map 30 seconds after its window is hidden, to free its
+  memory while it runs in the background.
 - Fixed app names in connection alerts showing replacement characters.
 - Status, the menu-bar panel and the Map now give the same plain description
   of what Rift is doing. Rift no longer says the Mac is protected when
