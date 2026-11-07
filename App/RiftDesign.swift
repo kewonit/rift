@@ -1,32 +1,75 @@
 import AppKit
 import SwiftUI
 
+/// Rift's design tokens. Views use these instead of literal sizes and colors so
+/// every surface shares one type scale, spacing rhythm and color meaning.
 enum RiftDesign {
     enum Spacing {
-        static let compact: CGFloat = 6
-        static let standard: CGFloat = 10
-        static let section: CGFloat = 16
-        static let spacious: CGFloat = 24
+        static let xxs: CGFloat = 2
+        static let xs: CGFloat = 4
+        static let s: CGFloat = 8
+        static let m: CGFloat = 12
+        static let l: CGFloat = 16
+        static let xl: CGFloat = 24
     }
 
     enum Radius {
         static let control: CGFloat = 8
-        static let surface: CGFloat = 12
-        static let floating: CGFloat = 14
+        static let card: CGFloat = 12
+        static let panel: CGFloat = 16
     }
 
     enum Motion {
         static let press = 0.12
         static let contextual = 0.20
+        static let panel = 0.28
     }
 
-    static let activityViolet = Color(
-        light: NSColor(srgbRed: 0.39, green: 0.20, blue: 0.86, alpha: 1),
-        dark: NSColor(srgbRed: 0.66, green: 0.52, blue: 1, alpha: 1)
-    )
+    /// Widths of the floating panels on the map.
+    enum Panel {
+        static let connections: CGFloat = 320
+        static let inspector: CGFloat = 300
+        static let edge: CGFloat = 12
+    }
 
     static let trafficSent = Color(nsColor: .systemPurple)
     static let trafficReceived = Color(nsColor: .systemBlue)
+    /// Bold routes the user's traffic likely takes.
+    static let route = Color.accentColor
+    /// The faint background cable network.
+    static let cable = Color(nsColor: .systemTeal)
+}
+
+/// The meaning of a firewall decision, shown with both a color and a shape so
+/// it reads without color.
+enum RiftDecision: CaseIterable, Hashable, Sendable {
+    case allowed
+    case denied
+    case byDefault
+
+    var label: String {
+        switch self {
+        case .allowed: "Allowed"
+        case .denied: "Denied"
+        case .byDefault: "By default"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .allowed: "checkmark.circle.fill"
+        case .denied: "xmark.circle.fill"
+        case .byDefault: "questionmark.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .allowed: Color(nsColor: .systemGreen)
+        case .denied: Color(nsColor: .systemRed)
+        case .byDefault: Color(nsColor: .systemOrange)
+        }
+    }
 }
 
 /// A small section title for inspectors and side panels.
@@ -51,7 +94,7 @@ struct RiftPropertyRow<Value: View>: View {
     @ViewBuilder let value: Value
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: RiftDesign.Spacing.s) {
             if let symbol {
                 Image(systemName: symbol)
                     .foregroundStyle(.secondary)
@@ -59,7 +102,7 @@ struct RiftPropertyRow<Value: View>: View {
                     .accessibilityHidden(true)
             }
             Text(title).foregroundStyle(.secondary)
-            Spacer(minLength: 8)
+            Spacer(minLength: RiftDesign.Spacing.s)
             value
         }
         .font(.callout)
@@ -88,7 +131,7 @@ enum RiftStatusTone: String, CaseIterable {
         switch self {
         case .allowed: "checkmark.circle.fill"
         case .denied: "xmark.octagon.fill"
-        case .unresolved: "questionmark.circle.fill"
+        case .unresolved: "minus.circle.fill"
         case .warning: "exclamationmark.triangle.fill"
         case .protected: "checkmark.shield.fill"
         }
@@ -96,10 +139,10 @@ enum RiftStatusTone: String, CaseIterable {
 
     var color: Color {
         switch self {
-        case .allowed, .protected: .green
-        case .denied: .red
+        case .allowed, .protected: Color(nsColor: .systemGreen)
+        case .denied: Color(nsColor: .systemRed)
         case .unresolved: .secondary
-        case .warning: .orange
+        case .warning: Color(nsColor: .systemOrange)
         }
     }
 }
@@ -112,61 +155,9 @@ struct RiftStatusBadge: View {
         Label(label ?? tone.label, systemImage: tone.symbol)
             .font(.caption.weight(.medium))
             .foregroundStyle(tone.color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(tone.color.opacity(0.11), in: Capsule())
+            .padding(.horizontal, RiftDesign.Spacing.s)
+            .padding(.vertical, RiftDesign.Spacing.xs)
+            .background(tone.color.opacity(0.12), in: Capsule())
             .accessibilityElement(children: .combine)
-    }
-}
-
-struct RiftSurfaceModifier: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
-
-    private var increaseContrast: Bool {
-        differentiateWithoutColor || NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .background {
-                if reduceTransparency {
-                    RoundedRectangle(cornerRadius: RiftDesign.Radius.surface, style: .continuous)
-                        .fill(Color(nsColor: .windowBackgroundColor))
-                } else {
-                    RoundedRectangle(cornerRadius: RiftDesign.Radius.surface, style: .continuous)
-                        .fill(.regularMaterial)
-                }
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: RiftDesign.Radius.surface, style: .continuous)
-                    .stroke(.separator.opacity(increaseContrast ? 0.9 : 0.45), lineWidth: 1)
-            }
-    }
-}
-
-extension View {
-    func riftSurface() -> some View { modifier(RiftSurfaceModifier()) }
-}
-
-struct RiftPressButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.76 : 1)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
-            .animation(
-                reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.press),
-                value: configuration.isPressed
-            )
-    }
-}
-
-private extension Color {
-    init(light: NSColor, dark: NSColor) {
-        self.init(nsColor: NSColor(name: nil) { appearance in
-            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
-        })
     }
 }

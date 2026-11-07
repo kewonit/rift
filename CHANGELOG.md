@@ -3,6 +3,27 @@
 The changelog records notable user-visible changes. Rift has no signed public
 release.
 
+## Unreleased
+
+- The Map page now fills the window. Connections, the timeline and the
+  inspector float over the map, and the connection list expands into a table
+  with columns (⌘T). The Activity page is part of the Map page; the views are
+  now Map, Rules and Status.
+- The map draws the cable network faintly and the routes your connections
+  likely use in bold, with new markers and a smaller legend.
+- One timeline shows traffic or decisions for the chosen time range.
+- The menu-bar panel was rebuilt with a mode menu, recent apps with their
+  decisions, and standard menu rows.
+- Rift has an app icon.
+- Lists show verified app names instead of signing identifiers where Rift can
+  match the installed app.
+- Rift uses much less energy while the map is open: route animation, map
+  updates and app-icon lookups do far less work, and launch no longer waits
+  for the databases to open.
+- Rift releases the map 30 seconds after its window is hidden, roughly halving
+  its memory while it runs in the background.
+- Fixed app names in connection alerts showing replacement characters.
+
 ## 0.3.0 (pre-release)
 
 - Redesigned the app to follow macOS conventions: a labeled view switcher

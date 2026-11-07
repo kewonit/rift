@@ -15,7 +15,10 @@ extension ControlPlaneController {
             })
         }
 #endif
-        guard let snapshot = try await repository?.ruleWorkspaceSnapshot() else { return [:] }
+        guard let repository,
+              let snapshot = try await monitorCoverageCache.snapshot(load: {
+                  try await repository.ruleWorkspaceSnapshot()
+              }) else { return [:] }
         let enforcementState = PolicyEnforcementPresentation.state(
             persistedState: snapshot.enforcementState,
             desiredTuple: snapshot.desiredTuple,

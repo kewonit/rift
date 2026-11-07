@@ -11,7 +11,14 @@ public enum DisplaySanitizer {
         var scalars = String.UnicodeScalarView()
         scalars.append(isolateStart)
         var count = 0
-        for scalar in input.unicodeScalars {
+        // Text that was already sanitized arrives wrapped in one isolate pair.
+        // Unwrap it once so sanitizing twice doesn't turn that pair into
+        // replacement characters; the contents are still checked below.
+        var body = Substring(input).unicodeScalars
+        if body.count >= 2, body.first == isolateStart, body.last == isolateEnd {
+            body = body.dropFirst().dropLast()
+        }
+        for scalar in body {
             guard count < limit else { break }
             if scalar.properties.isBidiControl || scalar.value < 0x20 || scalar.value == 0x7F {
                 scalars.append(replacement)

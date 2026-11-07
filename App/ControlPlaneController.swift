@@ -138,7 +138,7 @@ final class ControlPlaneController {
             let configurationURL = support.appendingPathComponent("config.sqlite")
             supportDirectoryURL = support
             configurationDatabaseURL = configurationURL
-            let configurationResult = Result {
+            let configurationResult = await Self.openDatabase {
                 try ConfigurationDatabase.open(at: configurationURL)
             }
             guard case .success(let database) = configurationResult else {
@@ -168,7 +168,7 @@ final class ControlPlaneController {
             } else {
                 persistentHistoryEnabled = savedHistoryPreference ?? true
                 transientHistory = TransientHistoryBuffer()
-                let historyOpenResult = Result {
+                let historyOpenResult = await Self.openDatabase {
                     try HistoryDatabase.openRecovering(
                         at: historyURL
                     )

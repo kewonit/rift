@@ -370,6 +370,7 @@ extension ControlPlaneController {
         lineageID: UUID,
         backupTime: Date
     ) async -> ConfigurationMutationResult {
+        await monitorCoverageCache.invalidateSnapshot()
         guard !savePlan.shouldApply else {
             return await finishSavedMutation(
                 desired,

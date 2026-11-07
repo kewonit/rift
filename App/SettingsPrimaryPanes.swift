@@ -6,20 +6,12 @@ import SwiftUI
 enum SettingsSection: String, CaseIterable, Identifiable {
     case general = "General"
     case alerts = "Alerts"
-    case history = "Monitor & Privacy"
-    case policies = "Policies"
+    case history = "History & Privacy"
+    case policies = "Profiles & Blocklists"
     case advanced = "Advanced"
 
     var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .general: "General"
-        case .alerts: "Alerts"
-        case .history: "History & Privacy"
-        case .policies: "Profiles & Blocklists"
-        case .advanced: "Advanced"
-        }
-    }
+    var title: String { rawValue }
     var symbol: String {
         switch self {
         case .general: "gear"

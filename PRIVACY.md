@@ -14,8 +14,8 @@ service. Core 1.0 does not enable a remote blocklist or software updates.
   validated compiled current and previous policies, ownership state, bounded
   expiry metadata, and recovery indexes. It does not store connection history.
 - New installations do not save connection history. Optional activity keeps at
-  most 10 recent connections in memory for five minutes while Activity or Live
-  Map is visible, or five when only the menu panel is open. Collection stops and
+  most 10 recent connections in memory for five minutes while the Map page is
+  visible, or five when only the menu panel is open. Collection stops and
   these buffers are released when all activity views are hidden, minimized,
   fully obscured, or closed. Rules and prompt handling remain active.
 - Persistent history is opt-in, with default limits of 30 days and 50,000 flows.

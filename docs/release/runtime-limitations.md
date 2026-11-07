@@ -37,7 +37,7 @@ metadata when Rift cannot establish privacy eligibility.
 ## Activity and byte totals
 
 New installations use temporary observed activity: up to 10 connections for five
-minutes while Activity or Live Map is visible, or five for the menu panel alone.
+minutes while the Map page is visible, or five for the menu panel alone.
 Hidden, minimized, fully obscured, and closed activity views stop optional
 collection and release its buffers. Opening a view starts a new observation
 period. Charts cover these limited observations; historical navigation requires

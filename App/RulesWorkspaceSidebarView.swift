@@ -73,6 +73,7 @@ struct RulesWorkspaceSidebarView: View {
                 }
             }
         }
+        .listStyle(.sidebar)
         .navigationTitle("Rules")
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 8) {

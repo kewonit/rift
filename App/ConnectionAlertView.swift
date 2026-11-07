@@ -70,8 +70,8 @@ struct ConnectionAlertView: View {
     @State private var initialDeadlineInterval: TimeInterval = 30
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: RiftDesign.Spacing.l) {
+            HStack(alignment: .top, spacing: RiftDesign.Spacing.m) {
                 ApplicationIdentityIcon(
                     identity: presentationIdentity,
                     fallbackSystemName: "app.dashed",
@@ -210,42 +210,45 @@ struct ConnectionAlertView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    HStack(spacing: 10) {
-                        Button("Deny") { decide(.deny) }
-                            .buttonStyle(.bordered)
-                            .tint(.red)
-                            .keyboardShortcut("d", modifiers: .command)
-                            .frame(maxWidth: .infinity)
-                            .controlSize(.large)
-                            .disabled(decisionDisabled(at: context.date))
-                        Button("Allow") { decide(.allow) }
-                            .buttonStyle(.bordered)
-                            .tint(.accentColor)
-                            .keyboardShortcut("a", modifiers: .command)
-                            .frame(maxWidth: .infinity)
-                            .controlSize(.large)
-                            .disabled(decisionDisabled(at: context.date))
+                    // The width goes on the label so each bezel fills its half.
+                    HStack(spacing: RiftDesign.Spacing.m) {
+                        Button { decide(.deny) } label: {
+                            Label("Deny", systemImage: "xmark").frame(maxWidth: .infinity)
+                        }
+                        .tint(Color(nsColor: .systemRed))
+                        .keyboardShortcut("d", modifiers: .command)
+                        .disabled(decisionDisabled(at: context.date))
+                        Button { decide(.allow) } label: {
+                            Label("Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
+                        }
+                        .tint(Color(nsColor: .systemGreen))
+                        .keyboardShortcut("a", modifiers: .command)
+                        .disabled(decisionDisabled(at: context.date))
                     }
-                    VStack(spacing: 4) {
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    VStack(spacing: RiftDesign.Spacing.xs + 2) {
                         ProgressView(
                             value: max(0, prompt.deadline.timeIntervalSince(context.date)),
                             total: max(1, initialDeadlineInterval)
                         )
-                        .tint(context.date >= prompt.deadline ? .orange : .secondary)
+                        .progressViewStyle(.linear)
+                        .controlSize(.mini)
+                        .tint(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                         HStack {
-                            Text("⌘D Deny  •  ⌘A Allow")
+                            Text("⌘D Deny · ⌘A Allow")
                             Spacer()
                             Text(deadlineLabel(at: context.date))
                                 .monospacedDigit()
                         }
                         .font(.caption)
-                        .foregroundStyle(context.date >= prompt.deadline ? .orange : .secondary)
+                        .foregroundStyle(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                     }
                 }
             }
         }
-        .padding(22)
-        .frame(width: 540)
+        .padding(RiftDesign.Spacing.xl)
+        .frame(width: 520)
         .task {
             if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
             initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
@@ -342,9 +345,12 @@ struct ConnectionAlertView: View {
 
     private func deadlineLabel(at date: Date) -> String {
         let remaining = max(0, Int(prompt.deadline.timeIntervalSince(date).rounded(.up)))
-        return remaining == 0
-            ? "Timed out — connection allowed"
-            : "Allowing in \(remaining)s"
+        guard remaining > 0 else { return "Timed out — connection allowed" }
+        let minutes = remaining / 60
+        let seconds = remaining % 60
+        return minutes > 0
+            ? "Allowing in \(minutes):\(String(format: "%02d", seconds))"
+            : "Allowing in \(seconds)s"
     }
 
     private var canCreateRule: Bool {

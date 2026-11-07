@@ -3,7 +3,6 @@ import SwiftUI
 
 enum AppDestination: String, CaseIterable, Identifiable, Hashable {
     case liveMap
-    case activity
     case rules
     case health
 
@@ -12,7 +11,6 @@ enum AppDestination: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .liveMap: "Map"
-        case .activity: "Activity"
         case .rules: "Rules"
         case .health: "Status"
         }
@@ -21,7 +19,6 @@ enum AppDestination: String, CaseIterable, Identifiable, Hashable {
     var symbol: String {
         switch self {
         case .liveMap: "globe.americas.fill"
-        case .activity: "waveform.path.ecg"
         case .rules: "list.bullet.rectangle"
         case .health: "checkmark.shield"
         }
@@ -31,8 +28,8 @@ enum AppDestination: String, CaseIterable, Identifiable, Hashable {
         guard url.scheme?.lowercased() == "rift" else { return nil }
         let value = url.host?.lowercased() ?? url.pathComponents.dropFirst().first?.lowercased()
         switch value {
-        case "map", "live-map": self = .liveMap
-        case "activity": self = .activity
+        // Activity now lives in the Map page's connection table.
+        case "map", "live-map", "activity": self = .liveMap
         case "rules": self = .rules
         case "health", "status": self = .health
         default: return nil
@@ -47,6 +44,8 @@ struct RiftRootView: View {
 #if DEBUG
         if MonitorFixtureData.usesStatusMenuPreview {
             StatusMenuFixtureHost(session: session)
+        } else if FixturePreviewOptions.showsAlert {
+            AlertFixtureHost(session: session)
         } else {
             RiftWorkspaceView(session: session)
         }
@@ -81,8 +80,14 @@ struct RiftWorkspaceView: View {
                     openSettings()
                 } else if let destination = AppDestination(deepLink: url) {
                     session.destination = destination
+                    if target == "activity" { session.showsConnectionTable = true }
                 }
             }
+#if DEBUG
+            .task {
+                if session.isUIFixture, FixturePreviewOptions.opensSettings { openSettings() }
+            }
+#endif
             .onChange(of: session.showingFilterStatus) { _, showing in
                 guard showing else { return }
                 session.destination = .health
@@ -95,8 +100,6 @@ struct RiftWorkspaceView: View {
         switch session.destination {
         case .liveMap:
             LiveMapView(session: session)
-        case .activity:
-            MonitorView(session: session)
         case .rules:
             RulesWorkspaceView(
                 controlPlane: session.controlPlane,
@@ -140,8 +143,9 @@ struct RiftHealthView: View {
                     detail: NetworkMapStore.shared.loadFailed
                         ? "The cable map couldn’t load. Filtering isn’t affected."
                         : "Rift finds each connection’s country on this Mac and estimates the undersea cables it uses. Apple Maps gets no connection details from Rift.",
-                    tone: NetworkMapStore.shared.loadFailed ? .warning : .protected,
-                    symbol: "map"
+                    tone: NetworkMapStore.shared.loadFailed ? .warning : .allowed,
+                    symbol: "map",
+                    badge: NetworkMapStore.shared.loadFailed ? nil : "Ready"
                 )
             }
         }
@@ -231,6 +235,7 @@ private struct StatusRow: View {
     let detail: String
     let tone: RiftStatusTone
     let symbol: String
+    var badge: String?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -247,7 +252,7 @@ private struct StatusRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            RiftStatusBadge(tone: tone)
+            RiftStatusBadge(tone: tone, label: badge)
         }
         .padding(.vertical, 3)
         .accessibilityElement(children: .combine)

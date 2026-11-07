@@ -77,7 +77,9 @@ enum MonitorFixtureData {
             }
         case .unresolved:
             baseRows.filter { $0.event.reason != .concreteDecision }
-        case .live, .burst, .missingOrigin, .rulesFailure, .healthSetup, .alertDeliveryFailure:
+        case .burst:
+            MonitorFixtureStream.rows(merging: baseRows)
+        case .live, .missingOrigin, .rulesFailure, .healthSetup, .alertDeliveryFailure:
             baseRows
         }
     }
@@ -177,63 +179,74 @@ enum MonitorFixtureData {
     }
 
     private static func makeRows() throws -> [MonitorEventRow] {
-        let provider = try requiredUUID("612E26C2-C04B-42EA-90E9-78BD0567799C")
-        let appNames = [
-            "Safari", "Google Chrome", "Mail", "Music", "App Store", "FaceTime",
-            "Maps", "Calendar", "Messages", "Notes", "Photos", "Terminal",
-            "Preview", "Weather", "Xcode", "Books", "Podcasts", "TV",
-        ]
-        return try (0..<54).map { index in
-            let appName = appNames[index % appNames.count]
-            let identity = ProcessIdentity.developerID(try SignedCodeIdentity(
-                teamIdentifier: "RIFTPREVIEW",
-                signingIdentifier: appName
-            ))
-            let host = try DomainName("node-\(index + 1).rift.test")
-            let address = try IPAddress(address(for: index))
-            let endpoint = Endpoint(
-                address: address,
-                port: index % 7 == 0 ? 993 : 443,
-                hostname: host,
-                hostnameCoverage: .observed,
-                classes: [],
-                interfaceSnapshotGeneration: 1
-            )
-            let occurredAt = referenceNow.addingTimeInterval(-fixtureAge(for: index))
-            let flow = FlowDescriptor(
-                flowID: try requiredUUID(String(
-                    format: "00000000-0000-4000-8000-%012d", index + 1
-                )),
-                observedAt: occurredAt,
-                sourceAppIdentity: identity,
-                sourceProcessIdentity: identity,
-                owner: .user(uid: 501),
-                direction: index % 11 == 0 ? .incoming : .outgoing,
-                transportProtocol: index % 5 == 0 ? .udp : .tcp,
-                localEndpoint: nil,
-                remoteEndpoint: endpoint,
-                observedHostname: host,
-                metadataConfidence: [.appIdentity, .endpoint, .observedHostname, .owner]
-            )
-            let unresolved = index % 13 == 0
-            let missingBytes = index % 10 == 0
-            return MonitorEventRow(
-                event: RuntimeEvent(
-                    providerEpoch: provider,
-                    sequence: UInt64(index + 1),
-                    occurredAt: occurredAt,
-                    flow: flow,
-                    action: index % 6 == 0 ? .deny : .allow,
-                    reason: unresolved ? .unmatchedModeFallback : .concreteDecision,
-                    policy: nil
-                ),
-                coverage: missingBytes ? .partial : .complete,
-                closedAt: missingBytes ? nil : occurredAt.addingTimeInterval(75),
-                bytesInbound: missingBytes ? nil : UInt64(42_000 * (index + 1)),
-                bytesOutbound: missingBytes ? nil : UInt64(11_000 * (index + 1)),
-                flowEndReason: missingBytes ? nil : .networkExtensionReport
+        try (0..<54).map { index in
+            try makeRow(
+                index: index,
+                addressIndex: index,
+                occurredAt: referenceNow.addingTimeInterval(-fixtureAge(for: index))
             )
         }
+    }
+
+    private static let appNames = [
+        "Safari", "Google Chrome", "Mail", "Music", "App Store", "FaceTime",
+        "Maps", "Calendar", "Messages", "Notes", "Photos", "Terminal",
+        "Preview", "Weather", "Xcode", "Books", "Podcasts", "TV",
+    ]
+
+    /// Builds one synthetic connection. `addressIndex` picks the documentation
+    /// address (and so the preview country); it must stay below 254.
+    static func makeRow(index: Int, addressIndex: Int, occurredAt: Date) throws -> MonitorEventRow {
+        let provider = try requiredUUID("612E26C2-C04B-42EA-90E9-78BD0567799C")
+        let appName = appNames[index % appNames.count]
+        let identity = ProcessIdentity.developerID(try SignedCodeIdentity(
+            teamIdentifier: "RIFTPREVIEW",
+            signingIdentifier: appName
+        ))
+        let host = try DomainName("node-\(addressIndex + 1).rift.test")
+        let address = try IPAddress(address(for: addressIndex))
+        let endpoint = Endpoint(
+            address: address,
+            port: index % 7 == 0 ? 993 : 443,
+            hostname: host,
+            hostnameCoverage: .observed,
+            classes: [],
+            interfaceSnapshotGeneration: 1
+        )
+        let flow = FlowDescriptor(
+            flowID: try requiredUUID(String(
+                format: "00000000-0000-4000-8000-%012d", index + 1
+            )),
+            observedAt: occurredAt,
+            sourceAppIdentity: identity,
+            sourceProcessIdentity: identity,
+            owner: .user(uid: 501),
+            direction: index % 11 == 0 ? .incoming : .outgoing,
+            transportProtocol: index % 5 == 0 ? .udp : .tcp,
+            localEndpoint: nil,
+            remoteEndpoint: endpoint,
+            observedHostname: host,
+            metadataConfidence: [.appIdentity, .endpoint, .observedHostname, .owner]
+        )
+        let unresolved = index % 13 == 0
+        let missingBytes = index % 10 == 0
+        let scale = UInt64(index % 54 + 1)
+        return MonitorEventRow(
+            event: RuntimeEvent(
+                providerEpoch: provider,
+                sequence: UInt64(index + 1),
+                occurredAt: occurredAt,
+                flow: flow,
+                action: index % 6 == 0 ? .deny : .allow,
+                reason: unresolved ? .unmatchedModeFallback : .concreteDecision,
+                policy: nil
+            ),
+            coverage: missingBytes ? .partial : .complete,
+            closedAt: missingBytes ? nil : occurredAt.addingTimeInterval(75),
+            bytesInbound: missingBytes ? nil : 42_000 * scale,
+            bytesOutbound: missingBytes ? nil : 11_000 * scale,
+            flowEndReason: missingBytes ? nil : .networkExtensionReport
+        )
     }
 
     private static func makeRules() throws -> [Rule] {

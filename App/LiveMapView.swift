@@ -2,140 +2,191 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
+/// The Map page: the map fills the window, with floating panels for the
+/// connection list (which expands into a table), the timeline and the
+/// inspector. It replaces both the old Map and Activity pages.
 struct LiveMapView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var session: AppSession
-    @AppStorage("liveMapTrafficChartVisible") private var showingTrafficChart = true
-    @AppStorage("liveMapSummaryVisible") private var showingSummary = true
+    @AppStorage("liveMapTrafficChartVisible") private var showingTimeline = true
+    @AppStorage("liveMapSummaryVisible") private var showingInspector = true
     @AppStorage("liveMapStyle") private var mapStyle = NetworkMapStyle.standard
-    @State private var query = MonitorQueryState(time: .tenMinutes)
-    @State private var queryNow: Date
-    @State private var rows: [MonitorEventRow] = []
-    @State private var displayed: [MonitorDisplayRow] = []
-    @State private var summary = MonitorSummarySnapshot.empty
-    @State private var presentationHierarchy: [MonitorHierarchyNode] = []
-    @State private var rowLookup: [String: MonitorEventRow] = [:]
-    @State private var hierarchySelectionID: String?
-    @State private var selectedEventID: String?
-    @State private var applyingEventID: String?
-    @State private var pendingManagedListOverride: MonitorHierarchyNode?
+    @AppStorage("liveMapTimelineMode") private var timelineMode = RiftTimelineMode.traffic
+    @State private var feed: MonitorFeed
     @State private var originController: MapOriginController
-    @State private var sourceSnapshot: MonitorRowsSnapshot?
-    @State private var sourceRevision: UInt64?
-    @State private var sourceTime: MonitorTimeFilter?
-    @State private var sourceAnchor: Date?
-    @State private var traffic = LiveTrafficSnapshot.empty
-    @State private var refreshCoordinator = VisualRefreshCoordinator()
-    @State private var windowIsVisible = false
-    @State private var ready = false
-    @State private var loading = false
-    @State private var loadError: String?
+    @State private var tableExpanded = false
     @State private var showingMapInformation = false
     @State private var mapFitRequest = 0
-    @State private var queryTask: Task<Void, Never>?
-    @State private var activeQueryRequestID = MonitorQueryRequestID()
+    @State private var timelineHeight: CGFloat = 96
+    @FocusState private var searchFocused: Bool
+
+    private let edge = RiftDesign.Panel.edge
 
     init(session: AppSession) {
         self.session = session
+        _feed = State(initialValue: MonitorFeed(session: session))
         _originController = State(initialValue: MapOriginController(persists: !session.isUIFixture))
-#if DEBUG
-        _queryNow = State(initialValue: session.isUIFixture
-            ? MonitorFixtureData.referenceNow : Date())
-#else
-        _queryNow = State(initialValue: Date())
-#endif
-    }
-
-    private var hierarchy: [MonitorHierarchyNode] {
-        presentationHierarchy
-    }
-
-    private var selectedNode: MonitorHierarchyNode? {
-        hierarchySelectionID.flatMap { MonitorHierarchyBuilder.node(withID: $0, in: hierarchy) }
-    }
-
-    private var selectedRow: MonitorEventRow? {
-        guard let id = selectedNode?.eventID ?? selectedNode?.ruleSeedEventID else { return nil }
-        return rows.first { $0.id == id }
     }
 
     var body: some View {
-        observedWorkspace
-    }
-
-    private var observedWorkspace: some View {
-        presentedWorkspace
-            .task { await start() }
-            .modifier(ActivityRefreshSignal(controller: session.controlPlane, changed: { scheduleReload() }))
-            .onChange(of: session.controlPlane.persistentHistoryEnabled) { _, _ in
-                sourceTime = nil; sourceSnapshot = nil; sourceRevision = nil
-                if session.controlPlane.isMinimalActivity { query.selectTimeFilter(.tenMinutes); releaseActivity() }
-                scheduleReload(immediate: true)
+        ZStack {
+            LiveMapCanvas(
+                displayed: feed.displayed,
+                originController: originController,
+                selectedEventIDs: Set(feed.selectedNode?.eventIDs ?? []),
+                windowIsVisible: feed.windowIsVisible,
+                isPreview: session.isUIFixture,
+                loadError: feed.loadError,
+                style: mapStyle,
+                fitRequest: mapFitRequest,
+                chromeInsets: chromeInsets,
+                onReady: signalFixtureReadiness
+            )
+            if tableExpanded {
+                Rectangle()
+                    .fill(.black.opacity(0.16))
+                    .ignoresSafeArea()
+                    .onTapGesture { collapseTable() }
+                    .accessibilityHidden(true)
             }
-            .onChange(of: query) { _, _ in scheduleQueryUpdate() }
-            .background(ActivityWindowVisibility(changed: visibilityChanged))
-            .onChange(of: hierarchySelectionID, handleHierarchySelection)
-            .onDisappear(perform: stop)
-    }
-
-    private var presentedWorkspace: some View {
-        workspace
-            .toolbar { toolbar }
-            .modifier(MonitorManagedListOverrideConfirmation(
-                pending: $pendingManagedListOverride,
-                confirm: { apply(.allow, $0, elevatedOverrideConfirmed: true) }
-            ))
-    }
-
-    private var workspace: some View {
-        HSplitView {
-            LiveMapConnectionsPane(
-                query: $query, selectionID: $hierarchySelectionID,
-                displayed: displayed, hierarchy: hierarchy,
-                rows: rowLookup,
-                loading: loading, isMinimal: session.controlPlane.isMinimalActivity,
-                artworkStore: session.applicationArtwork,
-                availableLenses: MonitorLens.allCases, now: queryNow, traffic: traffic,
-                applyingEventID: applyingEventID,
-                showingTrafficChart: $showingTrafficChart,
-                apply: { action, node in apply(action, node) },
-                investigate: investigate, showRules: showRules
-            )
-            .frame(minWidth: 280, idealWidth: 320, maxWidth: 380, maxHeight: .infinity)
-
-            mapWorkspace
-                .frame(minWidth: 460, maxWidth: .infinity, maxHeight: .infinity)
+            panelLayer
         }
-        .inspector(isPresented: $showingSummary) {
-            MonitorSummaryView(
-                summary: summary,
-                selectedNode: selectedNode,
-                selectedRow: selectedRow,
-                applyingEventID: applyingEventID,
-                artworkStore: session.applicationArtwork,
-                apply: { action, node in apply(action, node) },
-                showRules: {
-                    selectedNode.map { showRules($0.ruleCoverage.ruleIDs) }
-                },
-                isMinimal: session.controlPlane.isMinimalActivity
-            )
-            .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
+        .overlay(alignment: .top) { attentionBanner }
+        .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: tableExpanded)
+        .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: showingInspector)
+        .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: showingTimeline)
+        .toolbar { toolbar }
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .task { start() }
+        .modifier(ActivityRefreshSignal(controller: session.controlPlane, changed: { feed.scheduleReload() }))
+        .onChange(of: session.controlPlane.persistentHistoryEnabled) { _, _ in feed.historyPreferenceChanged() }
+        .background(ActivityWindowVisibility(changed: visibilityChanged))
+        .onChange(of: session.requestedMonitorEventID, initial: true) { _, id in
+            guard id != nil else { return }
+            tableExpanded = true
+            feed.acceptRequestedSelection()
+        }
+        .onChange(of: session.showsConnectionTable, initial: true) { _, show in
+            guard show else { return }
+            tableExpanded = true
+            session.showsConnectionTable = false
+        }
+        .onChange(of: feed.selectionID) { _, id in if id != nil { showingInspector = true } }
+        .onChange(of: timelineMode, initial: true) { _, mode in feed.wantsDecisionBuckets = mode == .decisions }
+        .onExitCommand(perform: escape)
+        .onDisappear {
+            feed.stop()
+            originController.cancelPlacement()
+        }
+        .modifier(MonitorManagedListOverrideConfirmation(
+            pending: $feed.pendingManagedListOverride,
+            confirm: feed.confirmManagedListOverride
+        ))
+    }
+
+    // MARK: Panels
+
+    /// Glass panels share one rendering pass in a container instead of each
+    /// keeping its own copy of the map behind it.
+    @ViewBuilder
+    private var panelLayer: some View {
+        if #available(macOS 26, *) {
+            GlassEffectContainer(spacing: edge) { panels }
+        } else {
+            panels
         }
     }
 
-    private var mapWorkspace: some View {
-        LiveMapCanvas(
-            displayed: displayed,
-            originController: originController,
-            selectedEventIDs: Set(selectedNode?.eventIDs ?? []),
-            windowIsVisible: windowIsVisible,
-            isPreview: session.isUIFixture,
-            loadError: loadError,
-            style: mapStyle,
-            fitRequest: mapFitRequest,
-            onReady: signalFixtureReadiness
+    private var panels: some View {
+        VStack(spacing: edge) {
+            HStack(alignment: .top, spacing: edge) {
+                ConnectionsPanel(
+                    feed: feed,
+                    artworkStore: session.applicationArtwork,
+                    expanded: tableExpanded,
+                    toggleExpanded: { tableExpanded ? collapseTable() : (tableExpanded = true) },
+                    searchFocus: $searchFocused
+                )
+                .frame(width: tableExpanded ? nil : RiftDesign.Panel.connections)
+                .frame(maxWidth: tableExpanded ? .infinity : nil, maxHeight: .infinity)
+                .riftPanel()
+                if !tableExpanded { Spacer(minLength: 0) }
+                if showingInspector {
+                    inspector
+                        .frame(width: RiftDesign.Panel.inspector)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+            }
+            if showingTimeline {
+                RiftTimeline(
+                    mode: $timelineMode,
+                    query: $feed.query,
+                    traffic: feed.traffic,
+                    decisions: feed.decisions,
+                    now: feed.now,
+                    isMinimal: feed.isMinimal,
+                    refreshFailed: feed.loadError != nil
+                )
+                .riftPanel()
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { timelineHeight = $0 }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .padding(edge)
+    }
+
+    private var inspector: some View {
+        MonitorSummaryView(
+            summary: feed.summary,
+            selectedNode: feed.selectedNode,
+            selectedRow: feed.selectedRow,
+            applyingEventID: feed.applyingEventID,
+            artworkStore: session.applicationArtwork,
+            apply: { feed.apply($0, to: $1) },
+            showRules: { feed.selectedNode.map { feed.showRules($0.ruleCoverage.ruleIDs) } },
+            isMinimal: feed.isMinimal
+        )
+        .riftPanel()
+        .overlay(alignment: .topTrailing) {
+            Button { showingInspector = false } label: {
+                Label("Hide Inspector", systemImage: "xmark")
+                    .labelStyle(.iconOnly)
+                    .font(.caption.weight(.semibold))
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .padding(RiftDesign.Spacing.m)
+            .help("Hide the inspector")
+        }
+    }
+
+    @ViewBuilder
+    private var attentionBanner: some View {
+        if !session.isUIFixture, let message = monitorAttentionMessage(for: session.lifecycle) {
+            RiftBanner(message: message, tone: .warning) {
+                Button("Show Status") { session.destination = .health }
+                    .controlSize(.small)
+            }
+            .frame(maxWidth: 440)
+            .riftPanel(cornerRadius: RiftDesign.Radius.card)
+            .padding(.top, edge)
+        }
+    }
+
+    /// The parts of the map covered by panels, so the map keeps its messages,
+    /// attribution and fitted routes in the open area.
+    private var chromeInsets: EdgeInsets {
+        guard !tableExpanded else { return EdgeInsets() }
+        return EdgeInsets(
+            top: 0,
+            leading: RiftDesign.Panel.connections + edge * 2,
+            bottom: showingTimeline ? timelineHeight + edge * 2 : 0,
+            trailing: showingInspector ? RiftDesign.Panel.inspector + edge * 2 : 0
         )
     }
+
+    // MARK: Toolbar
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
@@ -147,7 +198,7 @@ struct LiveMapView: View {
                 .pickerStyle(.inline)
                 Divider()
                 Button("Show All Routes") {
-                    hierarchySelectionID = nil
+                    feed.selectionID = nil
                     mapFitRequest &+= 1
                 }
                 Button("About the Map…") { showingMapInformation = true }
@@ -156,205 +207,52 @@ struct LiveMapView: View {
             }
             .help("Map style and options")
             .popover(isPresented: $showingMapInformation) { LiveMapInformation() }
-            originMenu
-            Button {
-                withAnimation(reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.contextual)) {
-                    showingTrafficChart.toggle()
-                }
-            } label: {
-                Label(showingTrafficChart ? "Hide Traffic" : "Show Traffic", systemImage: "chart.bar.xaxis")
+            LiveMapOriginControl(
+                hasOrigin: originController.origin != nil,
+                beginPlacement: originController.beginManualPlacement,
+                clearOrigin: originController.clearOrigin
+            )
+            Button { showingTimeline.toggle() } label: {
+                Label(showingTimeline ? "Hide Timeline" : "Show Timeline", systemImage: "chart.bar.xaxis")
             }
-            .help(showingTrafficChart ? "Hide the traffic chart" : "Show the traffic chart")
-            Button { showingSummary.toggle() } label: {
-                Label(showingSummary ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
+            .help(showingTimeline ? "Hide the timeline" : "Show the timeline")
+            Button { showingInspector.toggle() } label: {
+                Label(showingInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
             }
-            .help(showingSummary ? "Hide the inspector" : "Show the inspector")
+            .help(showingInspector ? "Hide the inspector" : "Show the inspector")
+            .keyboardShortcut("i", modifiers: [.command, .option])
         }
     }
 
-    private var originMenu: some View {
-        LiveMapOriginControl(
-            hasOrigin: originController.origin != nil,
-            beginPlacement: originController.beginManualPlacement,
-            clearOrigin: originController.clearOrigin
-        )
-    }
+    // MARK: Lifecycle
 
-    private func start() async {
-        guard !Task.isCancelled else { return }
+    private func start() {
 #if DEBUG
         if session.isUIFixture, MonitorFixtureData.scenario != .missingOrigin,
            let coordinate = try? CoarseMapCoordinate(latitude: 37.75, longitude: -122.5) {
             originController.origin = CoarseMapOrigin(coordinate: coordinate)
         }
 #endif
-        ready = true
-        scheduleReload(immediate: true)
-    }
-
-    private func handleHierarchySelection(_ oldValue: String?, _ value: String?) {
-        guard value != nil else { return }
-        selectedEventID = selectedNode?.eventID ?? selectedNode?.ruleSeedEventID
-        showingSummary = true
+        feed.start()
     }
 
     private func visibilityChanged(_ visible: Bool) {
-        guard visible != windowIsVisible else { return }
-        windowIsVisible = visible
-        if visible { session.controlPlane.monitorDidAppear() }
-        else { session.monitorDidDisappear(); originController.cancelPlacement() }
-        if !visible, session.controlPlane.isMinimalActivity { releaseActivity() }
-        refreshCoordinator.setVisible(visible)
-        if visible { scheduleReload(immediate: true) }
+        feed.visibilityChanged(visible)
+        if !visible { originController.cancelPlacement() }
     }
 
-    private func stop() {
-        refreshCoordinator.stop()
-        queryTask?.cancel()
-        originController.cancelPlacement()
-        if windowIsVisible { session.monitorDidDisappear() }
-        if session.controlPlane.isMinimalActivity { releaseActivity() }
-        windowIsVisible = false
-        ready = false
+    private func collapseTable() {
+        tableExpanded = false
     }
 
-    private func scheduleReload(immediate: Bool = false) {
-        guard ready else { return }
-        if immediate { session.controlPlane.scheduleActivityDrain(immediate: true) }
-        refreshCoordinator.request(immediate: immediate) { await refresh(loadSource: true) }
-    }
-
-    private func releaseActivity() {
-        queryTask?.cancel()
-        activeQueryRequestID = MonitorQueryRequestID()
-        rows = []; displayed = []; rowLookup = [:]
-        presentationHierarchy = []; summary = .empty; traffic = .empty
-        sourceSnapshot = nil; sourceRevision = nil
-        hierarchySelectionID = nil; selectedEventID = nil
-    }
-
-    private func scheduleQueryUpdate() {
-        queryTask?.cancel()
-        activeQueryRequestID = MonitorQueryRequestID()
-        queryTask = Task {
-            do { try await Task.sleep(for: .milliseconds(160)) }
-            catch { return }
-            guard !Task.isCancelled else { return }
-            refreshCoordinator.request(immediate: true) { await refresh(loadSource: false) }
+    private func escape() {
+        if originController.isPlacingManually {
+            originController.cancelPlacement()
+        } else if feed.selectionID != nil {
+            feed.selectionID = nil
+        } else if tableExpanded {
+            collapseTable()
         }
-    }
-
-    private func refresh(loadSource: Bool) async {
-        guard ready, windowIsVisible else { return }
-        let interval = ActivityPerformance.signposter.beginInterval("Live Map Refresh")
-        defer { ActivityPerformance.signposter.endInterval("Live Map Refresh", interval) }
-        let requestID = activeQueryRequestID
-        let state = query
-        let revision = session.controlPlane.activityRevision
-        let sameRange = sourceTime == state.time && sourceAnchor == state.timeAnchor
-        loading = sourceSnapshot == nil
-        defer { loading = false }
-        do {
-#if DEBUG
-            let refreshedNow = session.isUIFixture ? queryNow : Date()
-#else
-            let refreshedNow = Date()
-#endif
-            let window = state.baseTimeWindow(now: refreshedNow).flatMap {
-                MonitorTimeWindow(start: $0.start, end: state.isLiveTimeRange ? nil : $0.end)
-            }
-            let snapshot: MonitorRowsSnapshot
-            if !loadSource, sourceRevision == revision, sameRange, let saved = sourceSnapshot {
-                snapshot = saved
-            } else {
-                snapshot = try await session.controlPlane.monitorRowsSnapshot(
-                    window: window, previous: sameRange ? sourceSnapshot : nil
-                )
-            }
-            let result = try await MonitorQueryEvaluator.evaluate(
-                rows: snapshot.rows, state: state,
-                now: refreshedNow, queryComplete: snapshot.isComplete, coverage: snapshot.coverage
-            )
-            let refreshedCoverage = try await session.controlPlane.monitorRuleCoverage(
-                for: Array(result.displayed.prefix(1_000)).map(\.source)
-            )
-            let presentation = try await ActivityPresentation.build(
-                evaluation: result, rows: snapshot.rows, query: state, now: refreshedNow,
-                coverages: refreshedCoverage, visibleLimit: 1_000
-            )
-            guard windowIsVisible, MonitorQueryPublication.permits(
-                requestID, active: activeQueryRequestID, taskIsCancelled: Task.isCancelled
-            ) else { return }
-            sourceSnapshot = snapshot
-            sourceRevision = revision
-            sourceTime = state.time
-            sourceAnchor = state.timeAnchor
-            if rows != snapshot.rows { rows = snapshot.rows }
-            queryNow = refreshedNow
-            if displayed != result.displayed { displayed = result.displayed }
-            if summary != result.summary { summary = result.summary }
-            if presentationHierarchy != presentation.hierarchy { presentationHierarchy = presentation.hierarchy }
-            if rowLookup != presentation.rowLookup { rowLookup = presentation.rowLookup }
-            if traffic != presentation.traffic { traffic = presentation.traffic }
-            restoreSelection()
-            loadError = nil
-            signalFixtureReadiness()
-        } catch is CancellationError {
-        } catch {
-            guard windowIsVisible, !Task.isCancelled, requestID == activeQueryRequestID else { return }
-            loadError = "Rift couldn’t refresh live activity. Existing map data is unchanged."
-        }
-    }
-
-    private func restoreSelection() {
-        if let selectedEventID,
-           let node = MonitorHierarchyBuilder.node(forEventID: selectedEventID, in: hierarchy) {
-            hierarchySelectionID = node.id
-        } else if hierarchySelectionID.flatMap({
-            MonitorHierarchyBuilder.node(withID: $0, in: hierarchy)
-        }) == nil {
-            hierarchySelectionID = nil
-            selectedEventID = nil
-        }
-    }
-
-    private func apply(
-        _ action: FilterAction,
-        _ node: MonitorHierarchyNode,
-        elevatedOverrideConfirmed: Bool = false
-    ) {
-        guard let eventID = node.ruleSeedEventID,
-              let row = rows.first(where: { $0.id == eventID }) else { return }
-        applyingEventID = eventID
-        Task {
-            do {
-                try await session.controlPlane.applyExactMonitorRule(
-                    for: row, action: action,
-                    elevatedOverrideConfirmed: elevatedOverrideConfirmed
-                )
-                loadError = nil
-                refreshCoordinator.request(immediate: true) { await refresh(loadSource: false) }
-            } catch ControlPlaneController.RuleCommandError.elevatedOverrideRequiresConfirmation {
-                pendingManagedListOverride = node
-                loadError = nil
-            } catch {
-                loadError = "The exact rule wasn’t applied. Retry after Rift reconnects."
-            }
-            applyingEventID = nil
-        }
-    }
-
-    private func investigate(_ node: MonitorHierarchyNode) {
-        guard let eventID = node.eventID ?? node.ruleSeedEventID
-                ?? node.eventIDs.first else { return }
-        session.requestedMonitorEventID = eventID
-        session.destination = .activity
-    }
-
-    private func showRules(_ ids: Set<UUID>) {
-        guard !ids.isEmpty else { return }
-        session.requestedRuleIDs = ids
-        session.destination = .rules
     }
 
     private func signalFixtureReadiness() {

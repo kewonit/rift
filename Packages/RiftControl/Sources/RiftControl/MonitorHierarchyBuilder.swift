@@ -7,7 +7,11 @@ public enum MonitorHierarchyBuilder {
         lens: MonitorLens,
         coverages: [String: MonitorRuleCoverage]
     ) -> [MonitorHierarchyNode] {
-        group(rows, depth: 0, parentID: lens.rawValue, lens: lens, coverages: coverages)
+        // Each row's grouping path and rule seed are computed once, not once per level.
+        let entries = rows.map { row in
+            Entry(row: row, path: path(for: row, lens: lens), seed: MonitorExactRuleSeed.make(from: row.source))
+        }
+        return group(entries, depth: 0, parentID: lens.rawValue, coverages: coverages)
     }
 
     public static func node(
@@ -38,6 +42,12 @@ public enum MonitorHierarchyBuilder {
         return nil
     }
 
+    private struct Entry {
+        let row: MonitorDisplayRow
+        let path: [Component]
+        let seed: MonitorExactRuleSeed?
+    }
+
     private struct Component: Hashable {
         let kind: MonitorHierarchyKind
         let key: String
@@ -46,33 +56,28 @@ public enum MonitorHierarchyBuilder {
     }
 
     private static func group(
-        _ rows: [MonitorDisplayRow],
+        _ entries: [Entry],
         depth: Int,
         parentID: String,
-        lens: MonitorLens,
         coverages: [String: MonitorRuleCoverage]
     ) -> [MonitorHierarchyNode] {
-        let paths = rows.map { path(for: $0, lens: lens) }
-        guard paths.contains(where: { depth < $0.count }) else {
-            return rows.map { leaf($0, parentID: parentID, coverages: coverages) }
+        guard entries.contains(where: { depth < $0.path.count }) else {
+            return entries.map { leaf($0, parentID: parentID, coverages: coverages) }
         }
         var order: [Component] = []
-        var grouped: [Component: [MonitorDisplayRow]] = [:]
-        for (index, row) in rows.enumerated() {
-            let path = paths[index]
-            guard depth < path.count else { continue }
-            let component = path[depth]
+        var grouped: [Component: [Entry]] = [:]
+        for entry in entries {
+            guard depth < entry.path.count else { continue }
+            let component = entry.path[depth]
             if grouped[component] == nil { order.append(component) }
-            grouped[component, default: []].append(row)
+            grouped[component, default: []].append(entry)
         }
         return order.map { component in
-            let members = grouped[component] ?? []
+            let memberEntries = grouped[component] ?? []
+            let members = memberEntries.map(\.row)
             let id = parentID + "/" + component.kind.rawValue + ":" + escape(component.key)
-            let children = group(
-                members, depth: depth + 1, parentID: id, lens: lens,
-                coverages: coverages
-            )
-            let seeds = members.compactMap { MonitorExactRuleSeed.make(from: $0.source) }
+            let children = group(memberEntries, depth: depth + 1, parentID: id, coverages: coverages)
+            let seeds = memberEntries.compactMap(\.seed)
             let exactSeed = seeds.count == members.count
                 && seeds.dropFirst().allSatisfy { $0 == seeds.first } ? seeds.first : nil
             return MonitorHierarchyNode(
@@ -95,11 +100,12 @@ public enum MonitorHierarchyBuilder {
     }
 
     private static func leaf(
-        _ row: MonitorDisplayRow,
+        _ entry: Entry,
         parentID: String,
         coverages: [String: MonitorRuleCoverage]
     ) -> MonitorHierarchyNode {
-        let exactSeed = MonitorExactRuleSeed.make(from: row.source)
+        let row = entry.row
+        let exactSeed = entry.seed
         return MonitorHierarchyNode(
             id: parentID + "/flow:" + row.id,
             kind: .flow,

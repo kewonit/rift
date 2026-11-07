@@ -23,6 +23,7 @@ struct RulesWorkspaceTable: View {
             .width(min: 190, ideal: 260)
             TableColumn("On") { node in
                 Image(systemName: enabledSymbol(node))
+                    .foregroundStyle(enabledColor(node))
                     .accessibilityLabel(enabledLabel(node))
             }
             .width(34)
@@ -188,9 +189,21 @@ struct RulesWorkspaceTable: View {
                 }
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(node.title).lineLimit(1)
-                if let subtitle = node.subtitle {
-                    Text(subtitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                if node.row == nil, let identity = node.applicationIdentity {
+                    // Lead with the app's name; who signed it is secondary.
+                    ApplicationNameText(
+                        identity: identity,
+                        fallback: MonitorQuery.identityLabel(identity),
+                        artworkStore: artworkStore
+                    )
+                    .lineLimit(1)
+                    Text([identity.signerKind, node.subtitle].compactMap { $0 }.joined(separator: " · "))
+                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                } else {
+                    Text(node.title).lineLimit(1)
+                    if let subtitle = node.subtitle {
+                        Text(subtitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
                 }
             }
         }
@@ -375,6 +388,14 @@ struct RulesWorkspaceTable: View {
         if values.allSatisfy({ $0 }) { return "checkmark.circle.fill" }
         if values.allSatisfy({ !$0 }) { return "circle" }
         return "minus.circle.fill"
+    }
+
+    private func enabledColor(_ node: RuleWorkspaceNode) -> Color {
+        switch enabledSymbol(node) {
+        case "checkmark.circle.fill": Color(nsColor: .systemGreen)
+        case "circle": .secondary
+        default: Color(nsColor: .systemOrange)
+        }
     }
 
     private func enabledLabel(_ node: RuleWorkspaceNode) -> String {

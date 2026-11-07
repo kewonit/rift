@@ -12,7 +12,7 @@ Add `--ui-fixture-state <state>` to review a specific state:
 
 - `live`
 - `empty`
-- `burst`
+- `burst` (streams four new connections a second, for profiling)
 - `denied`
 - `unresolved`
 - `missing-origin`
@@ -24,11 +24,35 @@ For example:
 
 ```sh
 open -n .build/DerivedData/Build/Products/Debug/Rift.app --args \
-  --ui-fixture --ui-fixture-state missing-origin
+  --ui-fixture-state missing-origin --ui-fixture
 ```
 
 Use `--ui-fixture --ui-fixture-status-menu` to render the menu-bar dashboard in
 a Debug window without changing the real macOS status area.
+
+Other preview options:
+
+- `--ui-fixture-page rules` or `--ui-fixture-page status` opens that page.
+- `--ui-fixture-table` opens the Map page with the connection table expanded.
+- `--ui-fixture-alert` shows a connection alert for a sample request.
+- `--ui-fixture-settings` opens the Settings window.
+- `--ui-fixture-dark` uses the dark appearance.
+- `--ui-fixture-float` keeps preview windows above other apps without taking
+  focus, so screenshots of the map render.
+- `--ui-fixture-hide` hides the app a few seconds after launch, to measure
+  background cost.
+
+macOS reads launch arguments as `-key value` pairs, and treats a leftover word
+as a document to open, which stops the window from appearing. Put options that
+take a value first, for example:
+
+```sh
+open -n .build/DerivedData/Build/Products/Debug/Rift.app --args \
+  -ApplePersistenceIgnoreState YES --ui-fixture-state burst --ui-fixture --ui-fixture-dark
+```
+
+`-ApplePersistenceIgnoreState YES` stops macOS from restoring a previous
+preview's window state.
 
 The Release verifier rejects fixture flags and their canaries in distributable
 products.

@@ -24,6 +24,8 @@ public struct MonitorSearchQuery: Sendable, Hashable {
 
     public func matches(_ row: MonitorEventRow) -> Bool {
         guard !isRejected else { return false }
+        // An empty search matches everything; skip building the document.
+        guard !terms.isEmpty else { return true }
         let document = Document(row: row)
         return terms.allSatisfy { term in
             switch term {

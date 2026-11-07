@@ -31,6 +31,8 @@ final class AppSession {
     let applicationArtwork: ApplicationArtworkStore
     var destination: AppDestination = .liveMap
     var requestedMonitorEventID: String?
+    /// Asks the Map page to show every connection in its table.
+    var showsConnectionTable = false
     var requestedRuleIDs: Set<UUID> = []
     var showingFilterStatus = false
 
@@ -77,8 +79,24 @@ final class AppSession {
         self.launchMode = launchMode
         applicationArtwork = ApplicationArtworkStore(uiFixture: launchMode == .uiFixture)
         if launchMode == .uiFixture {
-            if ProcessInfo.processInfo.arguments.contains("--ui-fixture") {
-                NSApplication.shared.appearance = NSAppearance(named: .aqua)
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("--ui-fixture") {
+                NSApplication.shared.appearance = NSAppearance(
+                    named: arguments.contains("--ui-fixture-dark") ? .darkAqua : .aqua
+                )
+            }
+            if arguments.contains("--ui-fixture-float") {
+                Self.floatFixtureWindows()
+            }
+            if let page = FixturePreviewOptions.initialPage { destination = page }
+            if arguments.contains("--ui-fixture-table") {
+                showsConnectionTable = true
+            }
+            if arguments.contains("--ui-fixture-hide") {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(4))
+                    NSApplication.shared.hide(nil)
+                }
             }
             controlPlane = ControlPlaneController(runtimeMode: .uiFixture)
             lifecycle = nil
@@ -87,6 +105,9 @@ final class AppSession {
             lifecycle = FilterLifecycleController()
         }
         start()
+        if launchMode == .uiFixture, MonitorFixtureData.scenario == .burst {
+            MonitorFixtureStream.startDriver(controlPlane)
+        }
     }
 #else
     init() {
@@ -94,6 +115,30 @@ final class AppSession {
         controlPlane = ControlPlaneController()
         lifecycle = FilterLifecycleController()
         start()
+    }
+#endif
+
+#if DEBUG
+    /// Keeps preview windows above other apps without taking keyboard focus, so
+    /// screenshots of the map can render.
+    private static func floatFixtureWindows() {
+        Task { @MainActor in
+            for _ in 0..<40 {
+                try? await Task.sleep(for: .milliseconds(500))
+                let sharpest = NSScreen.screens.max { $0.backingScaleFactor < $1.backingScaleFactor }
+                for window in NSApplication.shared.windows where window.isVisible && window.frame.width > 300 {
+                    if let sharpest, window.screen != sharpest {
+                        let area = sharpest.visibleFrame
+                        window.setFrameOrigin(NSPoint(
+                            x: area.midX - window.frame.width / 2,
+                            y: area.midY - window.frame.height / 2
+                        ))
+                    }
+                    window.level = .floating
+                    window.orderFrontRegardless()
+                }
+            }
+        }
     }
 #endif
 

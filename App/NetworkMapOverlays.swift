@@ -32,8 +32,8 @@ extension GeoPoint {
     }
 }
 
-/// The whole cable network, drawn as one overlay. Estimated routes are dashed,
-/// like ferry lines in Apple Maps.
+/// The whole cable network, drawn as one faint overlay. Approximate cables are
+/// dashed, like ferry lines in Apple Maps.
 final class CableNetworkOverlay: MKMultiPolyline {
     private(set) var isEstimated = false
 
@@ -70,10 +70,10 @@ final class OriginAnnotation: NSObject, MKAnnotation {
 }
 
 final class DestinationAnnotation: NSObject, MKAnnotation {
-    let destination: MapDestination
+    private(set) var destination: MapDestination
     let coordinate: CLLocationCoordinate2D
-    let title: String?
-    let subtitle: String?
+    private(set) var title: String?
+    private(set) var subtitle: String?
 
     init(destination: MapDestination, point: GeoPoint) {
         self.destination = destination
@@ -81,8 +81,16 @@ final class DestinationAnnotation: NSObject, MKAnnotation {
         title = destination.name
         subtitle = destination.summary
     }
+
+    /// Refreshes counts without moving the marker; the route key guarantees the
+    /// position is unchanged.
+    func update(_ destination: MapDestination) {
+        self.destination = destination
+        subtitle = destination.summary
+    }
 }
 
+/// The cable network is quiet background; routes in use are bold.
 enum NetworkMapPalette {
     static func resolved(_ color: NSColor, alpha: CGFloat, in appearance: NSAppearance) -> NSColor {
         var result = color
@@ -94,28 +102,39 @@ enum NetworkMapPalette {
 
     static func cable(estimated: Bool, style: NetworkMapStyle, appearance: NSAppearance) -> NSColor {
         let base: NSColor = style == .satellite ? .white : .systemTeal
-        return resolved(base, alpha: estimated ? 0.45 : 0.7, in: appearance)
+        let dark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let strength: CGFloat = style == .satellite || dark ? 0.32 : 0.42
+        return resolved(base, alpha: estimated ? strength * 0.6 : strength, in: appearance)
     }
+
+    static func cableWidth(estimated: Bool) -> CGFloat { estimated ? 0.8 : 1 }
 
     static func route(dimmed: Bool, appearance: NSAppearance) -> NSColor {
-        resolved(.controlAccentColor, alpha: dimmed ? 0.3 : 0.95, in: appearance)
+        resolved(.controlAccentColor, alpha: dimmed ? 0.22 : 0.95, in: appearance)
     }
+
+    static func routeWidth(isCable: Bool) -> CGFloat { isCable ? 3 : 2 }
+    static let landDash: [NSNumber] = [4, 4]
 }
 
-/// Small dots that travel along each highlighted route. Core Animation runs the
-/// motion on the GPU; the map only re-projects paths when the view moves.
+/// A few small dots that travel along the routes in focus. Moving a tiny layer
+/// along a path is cheap for the window server, unlike animating a dash
+/// pattern, which redraws the whole stroked path every frame. Dots hide while
+/// the map moves and are re-projected once it stops.
 final class FlowOverlayView: NSView {
     struct Flow: Equatable {
         let id: String
         let points: [GeoPoint]
-        let dimmed: Bool
     }
 
-    private static let spacing: CGFloat = 14
+    private static let dotsPerRoute = 2
+    private static let pointsPerSecond: Double = 90
     private var flows: [Flow] = []
-    private var layers: [String: CAShapeLayer] = [:]
+    private var tracks: [CALayer] = []
+    private var regionChanging = false
+    private weak var mapView: MKMapView?
     var animates = true {
-        didSet { if animates != oldValue { applyAnimations() } }
+        didSet { if animates != oldValue { rebuild() } }
     }
 
     override init(frame: NSRect) {
@@ -129,70 +148,85 @@ final class FlowOverlayView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
     func setFlows(_ newFlows: [Flow], mapView: MKMapView) {
+        self.mapView = mapView
         guard newFlows != flows else { return }
-        let keep = Set(newFlows.map(\.id))
-        for (id, shape) in layers where !keep.contains(id) {
-            shape.removeFromSuperlayer()
-            layers[id] = nil
-        }
-        for flow in newFlows where layers[flow.id] == nil {
-            let shape = CAShapeLayer()
-            shape.fillColor = nil
-            shape.lineCap = .round
-            shape.lineWidth = 3.2
-            shape.lineDashPattern = [0.01, NSNumber(value: Double(Self.spacing))]
-            layer?.addSublayer(shape)
-            layers[flow.id] = shape
-        }
         flows = newFlows
-        for flow in flows {
-            layers[flow.id]?.strokeColor = NSColor.white.withAlphaComponent(flow.dimmed ? 0.35 : 0.95).cgColor
-            layers[flow.id]?.shadowColor = NSColor.black.cgColor
-            layers[flow.id]?.shadowOpacity = flow.dimmed ? 0 : 0.25
-            layers[flow.id]?.shadowRadius = 1.5
-            layers[flow.id]?.shadowOffset = .zero
-        }
-        reproject(using: mapView)
-        applyAnimations()
+        rebuild()
     }
 
-    func reproject(using mapView: MKMapView) {
+    func regionWillChange() {
+        guard !regionChanging else { return }
+        regionChanging = true
+        rebuild()
+    }
+
+    func regionDidChange() {
+        regionChanging = false
+        rebuild()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        rebuild()
+    }
+
+    private func rebuild() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        tracks.forEach { $0.removeFromSuperlayer() }
+        tracks = []
+        guard animates, !regionChanging, let mapView, let root = layer else { return }
+        let fill = NetworkMapPalette.resolved(.white, alpha: 1, in: effectiveAppearance).cgColor
+        let ring = NetworkMapPalette.resolved(.controlAccentColor, alpha: 1, in: effectiveAppearance).cgColor
         for flow in flows {
-            layers[flow.id]?.frame = bounds
-            layers[flow.id]?.path = path(for: flow.points, mapView: mapView)
+            guard let (path, length) = longestRun(of: flow.points, in: mapView), length > 40 else { continue }
+            let duration = min(max(Double(length) / Self.pointsPerSecond, 2.5), 9)
+            let track = CALayer()
+            track.frame = bounds
+            for index in 0..<Self.dotsPerRoute {
+                let dot = CALayer()
+                dot.bounds = CGRect(x: 0, y: 0, width: 7, height: 7)
+                dot.cornerRadius = 3.5
+                dot.backgroundColor = fill
+                dot.borderColor = ring
+                dot.borderWidth = 1.5
+                let animation = CAKeyframeAnimation(keyPath: "position")
+                animation.path = path
+                animation.calculationMode = .paced
+                animation.duration = duration
+                animation.repeatCount = .infinity
+                animation.timeOffset = duration * Double(index) / Double(Self.dotsPerRoute)
+                animation.preferredFrameRateRange = CAFrameRateRange(minimum: 12, maximum: 30, preferred: 24)
+                dot.add(animation, forKey: "flow")
+                track.addSublayer(dot)
+            }
+            root.addSublayer(track)
+            tracks.append(track)
         }
-        CATransaction.commit()
     }
 
-    private func path(for points: [GeoPoint], mapView: MKMapView) -> CGPath {
-        let path = CGMutablePath()
-        var previous: CGPoint?
+    /// The longest unbroken on-screen run of a route, as a path and its length.
+    private func longestRun(of points: [GeoPoint], in mapView: MKMapView) -> (CGPath, CGFloat)? {
+        var best: [CGPoint] = []
+        var current: [CGPoint] = []
         for point in points {
             let projected = mapView.convert(point.mapCoordinate, toPointTo: self)
-            if let previous, abs(projected.x - previous.x) < bounds.width / 2 {
-                path.addLine(to: projected)
-            } else {
-                path.move(to: projected)
+            if let last = current.last, abs(projected.x - last.x) >= bounds.width / 2 {
+                if length(of: current) > length(of: best) { best = current }
+                current = []
             }
-            previous = projected
+            current.append(projected)
         }
-        return path
+        if length(of: current) > length(of: best) { best = current }
+        guard best.count > 1 else { return nil }
+        let path = CGMutablePath()
+        path.addLines(between: best)
+        return (path, length(of: best))
     }
 
-    private func applyAnimations() {
-        for shape in layers.values {
-            shape.removeAnimation(forKey: "flow")
-            shape.isHidden = !animates
-            guard animates else { continue }
-            let animation = CABasicAnimation(keyPath: "lineDashPhase")
-            animation.fromValue = Self.spacing
-            animation.toValue = 0
-            animation.duration = 0.9
-            animation.repeatCount = .infinity
-            shape.add(animation, forKey: "flow")
-        }
+    private func length(of points: [CGPoint]) -> CGFloat {
+        zip(points, points.dropFirst()).reduce(0) { $0 + hypot($1.1.x - $1.0.x, $1.1.y - $1.0.y) }
     }
 }
 

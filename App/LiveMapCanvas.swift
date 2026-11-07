@@ -1,9 +1,11 @@
+import AppKit
 import RiftControl
 import RiftCore
 import SwiftUI
 
-/// The map area of Live Map: Apple Maps, undersea cables, and estimated routes
-/// for the connections currently in the list.
+/// The map behind the Map page: Apple Maps, the faint cable network, and bold
+/// estimated routes for the connections in the list. Floating panels cover
+/// `chromeInsets`; the map keeps its own messages and attribution clear of them.
 struct LiveMapCanvas: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let displayed: [MonitorDisplayRow]
@@ -14,12 +16,18 @@ struct LiveMapCanvas: View {
     let loadError: String?
     let style: NetworkMapStyle
     let fitRequest: Int
+    let chromeInsets: EdgeInsets
     let onReady: () -> Void
     private let store = NetworkMapStore.shared
     @State private var activity: [CountryActivity] = []
     @State private var destinations: [MapDestination] = []
     @State private var mapSelection: String?
     @State private var generation = 0
+    /// MapKit holds a few hundred MB of tiles and textures. Keep the map while
+    /// the window is only briefly hidden, then release it.
+    @State private var keepsMap = true
+    @State private var releaseTask: Task<Void, Never>?
+    private static let releaseDelay: Duration = .seconds(30)
 
     private var highlighted: Set<String> {
         if let mapSelection { return [mapSelection] }
@@ -28,110 +36,137 @@ struct LiveMapCanvas: View {
     }
 
     var body: some View {
-        ZStack {
-            if windowIsVisible {
-                NetworkMapView(
-                    resources: store.resources,
-                    destinations: destinations,
-                    origin: originController.origin,
-                    isPlacingOrigin: originController.isPlacingManually,
-                    highlightedCountries: highlighted,
-                    style: style,
-                    animatesFlow: !reduceMotion,
-                    reduceMotion: reduceMotion,
-                    fitRequest: fitRequest,
-                    placeOrigin: placeOrigin,
-                    selectCountry: { mapSelection = $0 }
-                )
-            } else {
-                Color(nsColor: .windowBackgroundColor)
+        mapLayer
+            .overlay { overlays.padding(chromeInsets) }
+            .onAppear {
+                store.load()
+                onReady()
             }
-            overlays
+            .onChange(of: windowIsVisible, initial: true) { _, visible in scheduleRelease(visible) }
+            .onDisappear { releaseTask?.cancel() }
+            .onChange(of: displayed, initial: true) { _, _ in recompute() }
+            .onChange(of: originController.origin) { _, _ in recompute() }
+            .onChange(of: store.resources != nil) { _, _ in recompute() }
+            .onChange(of: selectedEventIDs) { _, _ in mapSelection = nil }
+            .onExitCommand {
+                if originController.isPlacingManually { originController.cancelPlacement() } else { mapSelection = nil }
+            }
+    }
+
+    @ViewBuilder
+    private var mapLayer: some View {
+        if keepsMap {
+            networkMap
+        } else {
+            Color(nsColor: .windowBackgroundColor).ignoresSafeArea()
         }
-        .onAppear {
-            store.load()
-            onReady()
+    }
+
+    private func scheduleRelease(_ visible: Bool) {
+        releaseTask?.cancel()
+        releaseTask = nil
+        if visible {
+            keepsMap = true
+            return
         }
-        .onChange(of: displayed, initial: true) { _, _ in recompute() }
-        .onChange(of: originController.origin) { _, _ in recompute() }
-        .onChange(of: store.resources != nil) { _, _ in recompute() }
-        .onChange(of: selectedEventIDs) { _, _ in mapSelection = nil }
-        .onExitCommand {
-            if originController.isPlacingManually { originController.cancelPlacement() } else { mapSelection = nil }
+        releaseTask = Task {
+            try? await Task.sleep(for: Self.releaseDelay)
+            guard !Task.isCancelled else { return }
+            keepsMap = false
         }
+    }
+
+    private var networkMap: some View {
+        NetworkMapView(
+            resources: store.resources,
+            destinations: destinations,
+            origin: originController.origin,
+            isPlacingOrigin: originController.isPlacingManually,
+            highlightedCountries: highlighted,
+            style: style,
+            animatesFlow: windowIsVisible && !reduceMotion,
+            reduceMotion: reduceMotion,
+            fitRequest: fitRequest,
+            obscuredInsets: NSEdgeInsets(
+                top: chromeInsets.top, left: chromeInsets.leading,
+                bottom: chromeInsets.bottom, right: chromeInsets.trailing
+            ),
+            placeOrigin: placeOrigin,
+            selectCountry: { mapSelection = $0 }
+        )
+        .ignoresSafeArea()
     }
 
     @ViewBuilder
     private var overlays: some View {
-        if originController.isPlacingManually {
-            placementBanner
-                .frame(maxHeight: .infinity, alignment: .top)
-        } else if originController.origin == nil {
-            ContentUnavailableView {
-                Label("Set Your Location", systemImage: "location.circle")
-            } description: {
-                Text("Place this Mac on the map to see which undersea cables your connections likely use. Your location stays on this Mac.")
-            } actions: {
-                Button("Set My Location") { originController.beginManualPlacement() }
-                    .buttonStyle(.borderedProminent)
+        ZStack {
+            if originController.isPlacingManually {
+                placementBanner
+                    .frame(maxHeight: .infinity, alignment: .top)
+            } else if originController.origin == nil {
+                setLocationCard
             }
-            .frame(maxWidth: 380)
-            .padding(28)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-        }
-        VStack(alignment: .leading, spacing: 8) {
             if let message = statusMessage {
                 Label(message.text, systemImage: message.symbol)
                     .font(.callout)
-                    .foregroundStyle(message.isError ? Color.orange : Color.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(.regularMaterial, in: Capsule())
+                    .foregroundStyle(message.isError ? Color(nsColor: .systemOrange) : Color.secondary)
+                    .padding(.horizontal, RiftDesign.Spacing.m)
+                    .padding(.vertical, RiftDesign.Spacing.xs + 2)
+                    .riftPanel(cornerRadius: RiftDesign.Radius.card)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .allowsHitTesting(false)
             }
-            Spacer()
+            legend
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .allowsHitTesting(false)
-        legend
-            .padding(12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        .padding(RiftDesign.Spacing.m)
+    }
+
+    private var setLocationCard: some View {
+        ContentUnavailableView {
+            Label("Set Your Location", systemImage: "location.circle")
+        } description: {
+            Text("Place this Mac on the map to see which undersea cables your connections likely use. Your location stays on this Mac.")
+        } actions: {
+            Button("Set My Location") { originController.beginManualPlacement() }
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: 360)
+        .padding(RiftDesign.Spacing.xl)
+        .riftPanel()
     }
 
     private var placementBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "hand.point.up.left.fill")
+        HStack(spacing: RiftDesign.Spacing.s) {
+            Image(systemName: "hand.point.up.left.fill").accessibilityHidden(true)
             Text("Click the map to place this Mac")
             Button("Cancel") { originController.cancelPlacement() }
                 .controlSize(.small)
         }
         .font(.callout.weight(.medium))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: Capsule())
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
-        .padding(.top, 14)
+        .padding(.horizontal, RiftDesign.Spacing.l)
+        .padding(.vertical, RiftDesign.Spacing.s)
+        .riftPanel(cornerRadius: RiftDesign.Radius.card)
     }
 
     private var legend: some View {
-        HStack(spacing: 12) {
-            LegendSwatch(dashed: false, title: "Cable", satellite: style == .satellite)
-            LegendSwatch(dashed: true, title: "Estimated route", satellite: style == .satellite)
-            Text("© OpenStreetMap")
-                .foregroundStyle(.secondary)
+        HStack(spacing: RiftDesign.Spacing.m) {
+            LegendSwatch(kind: .route, satellite: style == .satellite)
+            LegendSwatch(kind: .cable, satellite: style == .satellite)
+            LegendSwatch(kind: .approximate, satellite: style == .satellite)
+            Text("© OpenStreetMap").foregroundStyle(.secondary)
         }
-        .font(.caption)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.regularMaterial, in: Capsule())
+        .font(.caption2)
+        .padding(.horizontal, RiftDesign.Spacing.s + 2)
+        .padding(.vertical, RiftDesign.Spacing.xs + 1)
+        .riftPanel(cornerRadius: RiftDesign.Radius.control)
         .accessibilityElement(children: .combine)
     }
 
     private var statusMessage: (text: String, symbol: String, isError: Bool)? {
         if let loadError { return (loadError, "exclamationmark.triangle.fill", true) }
         if store.loadFailed { return ("The cable map couldn’t load.", "exclamationmark.triangle.fill", true) }
-        if originController.origin != nil, store.resources != nil, destinations.isEmpty {
+        if originController.origin != nil, store.resources != nil, destinations.isEmpty, !displayed.isEmpty {
             return ("No connections to other countries right now", "globe", false)
         }
         return nil
@@ -142,23 +177,29 @@ struct LiveMapCanvas: View {
         originController.cancelPlacement()
     }
 
+    /// Groups rows by country off the main thread, then asks the store for
+    /// routes. A newer request supersedes an older one.
     private func recompute() {
-        let lookup: (IPAddress) -> String?
-#if DEBUG
-        if isPreview {
-            lookup = MonitorFixtureData.countryCode(for:)
-        } else {
-            lookup = { store.countryCode(for: $0) }
-        }
-#else
-        lookup = { store.countryCode(for: $0) }
-#endif
-        let grouped = store.resources == nil ? [] : CountryActivityBuilder.build(displayed, countryCode: lookup)
-        activity = grouped
         generation &+= 1
         let current = generation
+        let rows = displayed
         let origin = originController.origin?.coordinate
+        guard let table = store.resources?.table else {
+            activity = []; destinations = []
+            return
+        }
+        let preview = isPreview
         Task {
+            let grouped = await Task.detached(priority: .userInitiated) {
+                CountryActivityBuilder.build(rows) { address in
+#if DEBUG
+                    if preview { return MonitorFixtureData.countryCode(for: address) }
+#endif
+                    return table.countryCode(for: address)
+                }
+            }.value
+            guard current == generation else { return }
+            if activity != grouped { activity = grouped }
             let result = await store.destinations(for: grouped, origin: origin)
             guard current == generation else { return }
             if destinations != result { destinations = result }
@@ -170,23 +211,42 @@ struct LiveMapCanvas: View {
 }
 
 private struct LegendSwatch: View {
-    let dashed: Bool
-    let title: String
+    enum Kind { case route, cable, approximate }
+    let kind: Kind
     let satellite: Bool
 
+    private var title: String {
+        switch kind {
+        case .route: "Likely route"
+        case .cable: "Cable"
+        case .approximate: "Approximate cable"
+        }
+    }
+
+    private var color: Color {
+        switch kind {
+        case .route: .accentColor
+        case .cable, .approximate: satellite ? Color.primary.opacity(0.6) : RiftDesign.cable
+        }
+    }
+
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: RiftDesign.Spacing.xs) {
             Canvas { context, size in
                 var path = Path()
                 path.move(to: CGPoint(x: 0, y: size.height / 2))
                 path.addLine(to: CGPoint(x: size.width, y: size.height / 2))
                 context.stroke(
                     path,
-                    with: .color(satellite ? Color.primary.opacity(0.75) : Color(nsColor: .systemTeal)),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: dashed ? [4, 3] : [])
+                    with: .color(color),
+                    style: StrokeStyle(
+                        lineWidth: kind == .route ? 2.5 : 1.5,
+                        lineCap: .round,
+                        dash: kind == .approximate ? [3, 2.5] : []
+                    )
                 )
             }
-            .frame(width: 18, height: 6)
+            .frame(width: 16, height: 6)
             .accessibilityHidden(true)
             Text(title)
         }
