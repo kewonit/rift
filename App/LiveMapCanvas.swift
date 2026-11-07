@@ -9,6 +9,8 @@ import SwiftUI
 struct LiveMapCanvas: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let displayed: [MonitorDisplayRow]
+    let selectedCountry: String?
+    let selectCountry: (String?) -> Void
     let originController: MapOriginController
     let selectedEventIDs: Set<String>
     let windowIsVisible: Bool
@@ -23,7 +25,7 @@ struct LiveMapCanvas: View {
     private let store = NetworkMapStore.shared
     @State private var activity: [CountryActivity] = []
     @State private var destinations: [MapDestination] = []
-    @State private var mapSelection: String?
+    @State private var localConnections = 0
     @State private var generation = 0
     /// MapKit holds a few hundred MB of tiles and textures. Keep the map while
     /// the window is only briefly hidden, then release it.
@@ -32,7 +34,7 @@ struct LiveMapCanvas: View {
     private static let releaseDelay: Duration = .seconds(30)
 
     private var highlighted: Set<String> {
-        if let mapSelection { return [mapSelection] }
+        if let selectedCountry { return [selectedCountry] }
         guard !selectedEventIDs.isEmpty else { return [] }
         return Set(activity.filter { !selectedEventIDs.isDisjoint(with: $0.eventIDs) }.map(\.countryCode))
     }
@@ -49,9 +51,8 @@ struct LiveMapCanvas: View {
             .onChange(of: displayed, initial: true) { _, _ in recompute() }
             .onChange(of: originController.origin) { _, _ in recompute() }
             .onChange(of: store.resources != nil) { _, _ in recompute() }
-            .onChange(of: selectedEventIDs) { _, _ in mapSelection = nil }
             .onExitCommand {
-                if originController.isPlacingManually { originController.cancelPlacement() } else { mapSelection = nil }
+                if originController.isPlacingManually { originController.cancelPlacement() } else { selectCountry(nil) }
             }
     }
 
@@ -94,7 +95,7 @@ struct LiveMapCanvas: View {
                 bottom: chromeInsets.bottom, right: chromeInsets.trailing
             ),
             placeOrigin: placeOrigin,
-            selectCountry: { mapSelection = $0 }
+            selectCountry: selectCountry
         )
         .ignoresSafeArea()
     }
@@ -156,6 +157,8 @@ struct LiveMapCanvas: View {
             LegendSwatch(kind: .route, satellite: style == .satellite)
             LegendSwatch(kind: .cable, satellite: style == .satellite)
             LegendSwatch(kind: .approximate, satellite: style == .satellite)
+            Label("Blocked", systemImage: "xmark.circle.fill")
+                .foregroundStyle(Color(nsColor: .systemRed))
             Text("© OpenStreetMap").foregroundStyle(.secondary)
         }
         .font(.caption2)
@@ -171,6 +174,8 @@ struct LiveMapCanvas: View {
         if originController.origin != nil, store.resources != nil, destinations.isEmpty, !displayed.isEmpty {
             return ("No connections to other countries right now", "globe", false)
         }
+        if activity.count >= 12 { return ("Showing the 12 busiest countries", "globe", false) }
+        if localConnections > 0 { return ("Local connections aren’t shown on the map", "house", false) }
         return nil
     }
 
@@ -205,9 +210,12 @@ struct LiveMapCanvas: View {
             let result = await store.destinations(for: grouped, origin: origin)
             guard current == generation else { return }
             if destinations != result { destinations = result }
-            if let mapSelection, !result.contains(where: { $0.countryCode == mapSelection }) {
-                self.mapSelection = nil
+            if let selectedCountry, !result.contains(where: { $0.countryCode == selectedCountry }) {
+                selectCountry(nil)
             }
+            localConnections = rows.filter {
+                !($0.source.event.flow.destinationEndpoint?.classes.isEmpty ?? true)
+            }.count
         }
     }
 }

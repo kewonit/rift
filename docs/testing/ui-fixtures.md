@@ -45,6 +45,8 @@ Other preview options:
   deadline, and `--ui-fixture-alert-queue` shows it with two more waiting.
 - `--ui-fixture-apply-rule block` blocks the first connection through the real
   action path, `undo` also undoes it, and `chooser` stops at the scope chooser.
+- `--ui-fixture-country <code>` starts the Map narrowed to one country, such as
+  `JP`, as if its marker was clicked.
 - `--ui-fixture-status <state>` shows one status on Status, the menu-bar panel
   and the Map instead of Preview. The states are `cannot-filter`, `unreadable`,
   `setup`, `installing`, `approval`, `off`, `problem`, `connecting`,

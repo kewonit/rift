@@ -31,7 +31,9 @@ struct LiveMapView: View {
     var body: some View {
         ZStack {
             LiveMapCanvas(
-                displayed: feed.displayed,
+                displayed: feed.mapRows,
+                selectedCountry: feed.query.country,
+                selectCountry: { feed.query.country = $0 },
                 originController: originController,
                 selectedEventIDs: Set(feed.selectedNode?.eventIDs ?? []),
                 windowIsVisible: feed.windowIsVisible,
@@ -66,6 +68,7 @@ struct LiveMapView: View {
         }
 #if DEBUG
         .task {
+            if let country = FixturePreviewOptions.sampleCountry { feed.query.country = country }
             guard let step = FixturePreviewOptions.sampleRuleAction else { return }
             try? await Task.sleep(for: .seconds(2))
             guard let node = feed.hierarchy.first(where: {
@@ -85,9 +88,8 @@ struct LiveMapView: View {
             session.controlPlane.actionResults.post("Undone.", offersUndo: true)
         }
 #endif
-        .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: tableExpanded)
-        .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: showingInspector)
-        .animation(reduceMotion ? nil : .smooth(duration: RiftDesign.Motion.panel), value: showingTimeline)
+        .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showingInspector)
+        .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showingTimeline)
         .toolbar { toolbar }
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .task { start() }
@@ -171,7 +173,7 @@ struct LiveMapView: View {
 
     private var inspector: some View {
         MonitorSummaryView(
-            summary: feed.summary,
+            summary: feed.inspectorSummary,
             selectedNode: feed.selectedNode,
             selectedRow: feed.selectedRow,
             applyingEventID: feed.applyingEventID,
@@ -248,6 +250,7 @@ struct LiveMapView: View {
                 .pickerStyle(.inline)
                 Divider()
                 Button("Show All Routes") {
+                    feed.query.country = nil
                     feed.selectionID = nil
                     mapFitRequest &+= 1
                 }

@@ -22,11 +22,11 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         isRejected = false
     }
 
-    public func matches(_ row: MonitorEventRow) -> Bool {
+    public func matches(_ row: MonitorEventRow, context: MonitorSearchContext = .none) -> Bool {
         guard !isRejected else { return false }
         // An empty search matches everything; skip building the document.
         guard !terms.isEmpty else { return true }
-        let document = Document(row: row)
+        let document = Document(row: row, context: context)
         return terms.allSatisfy { term in
             switch term {
             case .unqualified(let value):
@@ -84,7 +84,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         let direction: TrafficDirection
         let unqualified: [String]
 
-        init(row: MonitorEventRow) {
+        init(row: MonitorEventRow, context: MonitorSearchContext) {
             let flow = row.event.flow
             let applicationIdentity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
             application = normalizedMonitorSearchText(MonitorQuery.identityLabel(applicationIdentity))
@@ -116,7 +116,11 @@ public struct MonitorSearchQuery: Sendable, Hashable {
                 ? "deny denied block blocked" : "allow allowed"
             if decisions.contains(.unresolved) { decisionValue += " fallback unresolved by default no rule" }
             if row.event.cause == .alertTimedOut { decisionValue += " timed out" }
+            let identity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
+            let country = endpoint.flatMap { context.countryCode?($0.address) }
             unqualified = [
+                identity.flatMap { context.displayNames[$0] } ?? "",
+                country.flatMap { context.countryName?($0) } ?? "",
                 MonitorQuery.applicationLabel(row),
                 flow.sourceProcessIdentity.map { MonitorQuery.identityLabel($0) } ?? "",
                 MonitorQuery.endpointLabel(row),

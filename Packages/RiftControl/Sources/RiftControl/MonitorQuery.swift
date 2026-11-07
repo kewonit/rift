@@ -163,6 +163,8 @@ public enum MonitorQuery {
         owner: MonitorOwnerFilter,
         timeWindow: MonitorTimeWindow,
         sort: MonitorSort,
+        country: String? = nil,
+        context: MonitorSearchContext = .none,
         cancellationCheck: () throws -> Void
     ) rethrows -> [MonitorDisplayRow] {
         try cancellationCheck()
@@ -179,7 +181,8 @@ public enum MonitorQuery {
                   matches(row, direction: direction),
                   matches(row, locality: locality),
                   matches(row, owner: owner) else { continue }
-            guard searchQuery.matches(row) else { continue }
+            guard matches(row, country: country, context: context),
+                  searchQuery.matches(row, context: context) else { continue }
             let rawLabels: (String, String)
             switch lens {
             case .application:
@@ -267,6 +270,16 @@ public enum MonitorQuery {
         case .unsigned(let path, _): path
         case nil: "Unknown app"
         }
+    }
+
+    private static func matches(
+        _ row: MonitorEventRow,
+        country: String?,
+        context: MonitorSearchContext
+    ) -> Bool {
+        guard let country else { return true }
+        guard let address = row.event.flow.destinationEndpoint?.address else { return false }
+        return context.countryCode?(address) == country
     }
 
     private static func matches(

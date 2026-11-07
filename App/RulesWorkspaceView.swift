@@ -8,6 +8,7 @@ struct RulesWorkspaceView: View {
     let isPreview: Bool
     let setupIncomplete: Bool
     let openStatus: () -> Void
+    let searchChanged: (String) -> Void
     @State private var model: RulesWorkspaceController
     @State private var showingEditor = false
     @State private var editingRow: RuleRowViewValue?
@@ -20,14 +21,19 @@ struct RulesWorkspaceView: View {
         artworkStore: ApplicationArtworkStore,
         isPreview: Bool = false,
         setupIncomplete: Bool = false,
-        openStatus: @escaping () -> Void = {}
+        openStatus: @escaping () -> Void = {},
+        initialSearch: String = "",
+        searchChanged: @escaping (String) -> Void = { _ in }
     ) {
         _requestedSelection = requestedSelection
         self.artworkStore = artworkStore
         self.isPreview = isPreview
         self.setupIncomplete = setupIncomplete
         self.openStatus = openStatus
-        _model = State(initialValue: RulesWorkspaceController(controlPlane: controlPlane))
+        self.searchChanged = searchChanged
+        let model = RulesWorkspaceController(controlPlane: controlPlane)
+        model.search = initialSearch
+        _model = State(initialValue: model)
     }
 
     var body: some View {
@@ -84,6 +90,7 @@ struct RulesWorkspaceView: View {
             }
             .frame(minWidth: 400, idealWidth: 560, maxWidth: .infinity)
             .frame(maxHeight: .infinity)
+            .onChange(of: model.search) { _, value in searchChanged(value) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .inspector(isPresented: $showingInspector) {

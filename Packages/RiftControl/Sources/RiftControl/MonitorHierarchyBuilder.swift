@@ -5,11 +5,12 @@ public enum MonitorHierarchyBuilder {
     public static func build(
         _ rows: [MonitorDisplayRow],
         lens: MonitorLens,
-        coverages: [String: MonitorRuleCoverage]
+        coverages: [String: MonitorRuleCoverage],
+        displayNames: [ProcessIdentity: String] = [:]
     ) -> [MonitorHierarchyNode] {
         // Each row's grouping path and rule seed are computed once, not once per level.
         let entries = rows.map { row in
-            Entry(row: row, path: path(for: row, lens: lens), seed: MonitorExactRuleSeed.make(from: row.source))
+            Entry(row: row, path: path(for: row, lens: lens, displayNames: displayNames), seed: MonitorExactRuleSeed.make(from: row.source))
         }
         return group(entries, depth: 0, parentID: lens.rawValue, coverages: coverages)
     }
@@ -126,40 +127,44 @@ public enum MonitorHierarchyBuilder {
 
     private static func path(
         for row: MonitorDisplayRow,
-        lens: MonitorLens
+        lens: MonitorLens,
+        displayNames: [ProcessIdentity: String]
     ) -> [Component] {
         let source = row.source
         let flow = source.event.flow
-        let app = MonitorQuery.applicationLabel(source)
-        let appKey = String(reflecting: flow.sourceAppIdentity ?? flow.sourceProcessIdentity)
+        let identity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
+        let app = identity.flatMap { displayNames[$0] } ?? MonitorQuery.applicationLabel(source)
+        let appKey = String(reflecting: identity)
         let appComponent = Component(
             kind: .application, key: appKey, title: app, subtitle: nil
         )
         let helper = helperComponent(flow)
         switch lens {
         case .application:
-            return [appComponent] + helper + [routeComponent(flow)]
-                + hostnameComponents(flow)
+            return [appComponent] + helper + hostnameComponents(flow, subtitle: routeSubtitle(flow))
         case .hostname:
             return hostnameComponents(flow) + [appComponent] + helper
         }
     }
 
-    private static func hostnameComponents(_ flow: FlowDescriptor) -> [Component] {
+    private static func hostnameComponents(
+        _ flow: FlowDescriptor,
+        subtitle: String? = nil
+    ) -> [Component] {
         if flow.metadataConfidence.contains(.observedHostname),
            let hostname = flow.observedHostname {
             return [Component(
                 kind: .hostname,
                 key: "observed-hostname:" + hostname.ascii,
                 title: hostname.ascii,
-                subtitle: nil
+                subtitle: subtitle
             )]
         }
         let unavailable = Component(
             kind: .hostname,
             key: "hostname-unavailable",
             title: "Hostname unavailable",
-            subtitle: nil
+            subtitle: subtitle
         )
         guard let endpoint = flow.destinationEndpoint else { return [unavailable] }
         return [unavailable, Component(
@@ -192,30 +197,20 @@ public enum MonitorHierarchyBuilder {
         return nil
     }
 
-    private static func routeComponent(_ flow: FlowDescriptor) -> Component {
-        let direction = flow.direction == .outgoing ? "Outgoing" : "Incoming"
-        let locality: String
-        guard let classes = flow.destinationEndpoint?.classes else {
-            return Component(
-                kind: .route,
-                key: direction + "Unknown locality",
-                title: direction + " • Unknown network",
-                subtitle: nil
-            )
-        }
-        if classes.contains(.loopback) { locality = "Loopback" }
-        else if classes.contains(.bonjour) { locality = "Bonjour" }
-        else if classes.contains(.broadcast) { locality = "Broadcast" }
-        else if classes.contains(.multicast) { locality = "Multicast" }
-        else if classes.contains(.localNetwork) { locality = "Local network" }
-        else if classes.contains(.linkLocal) { locality = "Link-local" }
-        else { locality = "Internet" }
-        return Component(
-            kind: .route,
-            key: direction + locality,
-            title: direction + " • " + locality,
-            subtitle: nil
-        )
+    /// Says where a connection went when it isn't the ordinary case of an
+    /// outgoing connection to the internet.
+    private static func routeSubtitle(_ flow: FlowDescriptor) -> String? {
+        let classes = flow.destinationEndpoint?.classes ?? []
+        let locality: String? =
+            if classes.contains(.loopback) { "This Mac" }
+            else if classes.contains(.bonjour) { "Bonjour" }
+            else if classes.contains(.broadcast) { "Broadcast" }
+            else if classes.contains(.multicast) { "Multicast" }
+            else if classes.contains(.localNetwork) { "Local network" }
+            else if classes.contains(.linkLocal) { "Local network" }
+            else { nil }
+        let parts = [flow.direction == .incoming ? "Incoming" : nil, locality].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private static func escape(_ value: String) -> String {

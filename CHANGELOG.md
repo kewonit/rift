@@ -76,6 +76,19 @@ release.
 - The connection list holds still while you point at it, so a click can't land
   on the wrong row.
 - The inspector names the rule that decided a connection and opens it directly.
+- Clicking a country on the map now narrows the list, table and timeline to it,
+  with a chip to clear it. The map keeps showing the other countries.
+- Selection stays on what you picked when the list refreshes, and a connection
+  opened from elsewhere reveals itself in the list.
+- Search finds the app and country names shown on screen, and sorting by name
+  uses them too.
+- The inspector shows numbers for the selected app, with its destinations, and
+  apps open straight to their destinations.
+- Switching pages keeps your search, filters and selection.
+- Empty lists say whether nothing happened or your filters hid it, with a way to
+  clear them. Rows that are partly blocked now say so.
+- The map legend explains blocked markers and says when it leaves connections
+  out. The inspector and timeline open faster, and the table opens instantly.
 
 ## 0.3.0 (pre-release)
 

@@ -27,6 +27,11 @@ final class MonitorFeed {
     private(set) var hierarchy: [MonitorHierarchyNode] = []
     private(set) var displayedCount = 0
     private(set) var displayed: [MonitorDisplayRow] = []
+    /// What the map draws. It ignores the country filter, so other countries
+    /// stay clickable while one is chosen.
+    private(set) var mapRows: [MonitorDisplayRow] = []
+    /// Groups open in the list, kept here so a selection can reveal itself.
+    var expandedNodeIDs: Set<String> = []
     private(set) var rowLookup: [String: MonitorEventRow] = [:]
     private(set) var summary = MonitorSummarySnapshot.empty
     private(set) var traffic = LiveTrafficSnapshot.empty
@@ -81,6 +86,9 @@ final class MonitorFeed {
     @ObservationIgnored var selectedEventID: String?
     @ObservationIgnored private var rowsAreComplete = true
     @ObservationIgnored private var historyCoverage = HistoryCoverageSnapshot.unavailable
+    /// App names already on screen. Built from the list rather than every row,
+    /// because rows can number 50,000 and this runs about once a second.
+    @ObservationIgnored private var knownNames: [ProcessIdentity: String] = [:]
 
     private struct SourceCache {
         let snapshot: MonitorRowsSnapshot
@@ -91,7 +99,11 @@ final class MonitorFeed {
 
     init(session: AppSession) {
         self.session = session
-        query = MonitorQueryState(time: .tenMinutes)
+        query = session.savedMapState?.query ?? MonitorQueryState(time: .tenMinutes)
+        sort = session.savedMapState?.sort ?? .activity
+        selectionID = session.savedMapState?.selectionID
+        selectedEventID = session.savedMapState?.selectedEventID
+        expandedNodeIDs = session.savedMapState?.expandedNodeIDs ?? []
 #if DEBUG
         now = session.isUIFixture ? MonitorFixtureData.referenceNow : Date()
 #else
@@ -109,6 +121,10 @@ final class MonitorFeed {
     }
 
     func stop() {
+        session.savedMapState = SavedMapState(
+            query: query, sort: sort, selectionID: selectionID,
+            selectedEventID: selectedEventID, expandedNodeIDs: expandedNodeIDs
+        )
         refreshCoordinator.stop()
         queryTask?.cancel()
         if windowIsVisible { session.monitorDidDisappear() }
@@ -202,10 +218,20 @@ final class MonitorFeed {
                     window: window, previous: sameRange ? source?.snapshot : nil
                 )
             }
+            let context = searchContext()
             let evaluation = try await MonitorQueryEvaluator.evaluate(
                 rows: snapshot.rows, state: state, now: refreshedNow,
-                queryComplete: snapshot.isComplete, coverage: snapshot.coverage
+                queryComplete: snapshot.isComplete, coverage: snapshot.coverage, context: context
             )
+            var unfiltered = evaluation
+            if state.country != nil {
+                var mapState = state
+                mapState.country = nil
+                unfiltered = try await MonitorQueryEvaluator.evaluate(
+                    rows: snapshot.rows, state: mapState, now: refreshedNow,
+                    queryComplete: snapshot.isComplete, coverage: snapshot.coverage, context: context
+                )
+            }
             let pinnedID = session.requestedMonitorEventID ?? pinnedEventID
             let limit = visibleLimit
             let visibleSources = Array(evaluation.displayed.prefix(limit)).map(\.source)
@@ -214,7 +240,7 @@ final class MonitorFeed {
                 evaluation: evaluation, rows: snapshot.rows, query: state, now: refreshedNow,
                 coverage: snapshot.coverage, isComplete: snapshot.isComplete,
                 coverages: coverages, visibleLimit: limit, pinnedID: pinnedID,
-                sort: sort, includeDecisions: includeDecisions
+                sort: sort, includeDecisions: includeDecisions, displayNames: context.displayNames
             )
             guard windowIsVisible, MonitorQueryPublication.permits(
                 requestID, active: activeQueryRequestID, taskIsCancelled: Task.isCancelled
@@ -223,6 +249,9 @@ final class MonitorFeed {
                 snapshot: snapshot, revision: revision, time: state.time, anchor: state.timeAnchor
             )
             publish(presentation, evaluation: evaluation, now: refreshedNow)
+            let visibleMapRows = state.country == nil
+                ? presentation.visibleRows : Array(unfiltered.displayed.prefix(limit))
+            if mapRows != visibleMapRows { mapRows = visibleMapRows }
             rowsAreComplete = snapshot.isComplete
             historyCoverage = snapshot.coverage
             pinnedEventID = pinnedID.flatMap { id in evaluation.displayed.contains { $0.id == id } ? id : nil }
@@ -235,6 +264,40 @@ final class MonitorFeed {
             guard windowIsVisible, !Task.isCancelled, requestID == activeQueryRequestID else { return }
             loadError = "Rift couldn’t refresh activity. Showing what it loaded last."
         }
+    }
+
+    private func searchContext() -> MonitorSearchContext {
+        var pending = hierarchy
+        while let node = pending.popLast() {
+            if let identity = node.presentationIdentity,
+               knownNames[identity] == nil,
+               let name = session.applicationArtwork.cachedArtworkIfAvailable(for: identity)?.displayName {
+                knownNames[identity] = name
+            }
+            pending.append(contentsOf: node.children ?? [])
+        }
+        let table = NetworkMapStore.shared.resources?.table
+        let lookup: @Sendable (IPAddress) -> String?
+#if DEBUG
+        if session.isUIFixture {
+            lookup = { MonitorFixtureData.countryCode(for: $0) }
+        } else {
+            lookup = { table?.countryCode(for: $0) }
+        }
+#else
+        lookup = { table?.countryCode(for: $0) }
+#endif
+        return MonitorSearchContext(
+            displayNames: knownNames,
+            countryCode: lookup,
+            countryName: { Locale.autoupdatingCurrent.localizedString(forRegionCode: $0) }
+        )
+    }
+
+    /// The numbers for whatever is selected, so the inspector answers for it.
+    var inspectorSummary: MonitorSummarySnapshot {
+        guard let selectedNode else { return summary }
+        return MonitorSummaryBuilder.build(from: displayed.filter { selectedNode.eventIDs.contains($0.id) })
     }
 
     /// Assigns only what changed, so views that read unchanged values don't

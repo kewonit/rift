@@ -32,6 +32,14 @@ enum FixturePreviewOptions {
         return arguments[flag + 1]
     }
 
+    /// Starts the Map narrowed to one country, as if its marker was clicked.
+    static var sampleCountry: String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "--ui-fixture-country"),
+              arguments.indices.contains(flag + 1) else { return nil }
+        return arguments[flag + 1]
+    }
+
     /// How many alerts to show in the real panel, with a real 30 second deadline.
     static var panelPromptCount: Int? {
         let arguments = ProcessInfo.processInfo.arguments

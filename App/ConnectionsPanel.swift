@@ -70,17 +70,8 @@ struct ConnectionsPanel: View {
 
     private var list: some View {
         List(selection: $feed.selectionID) {
-            OutlineGroup(feed.hierarchy, children: \.children) { node in
-                ConnectionRow(
-                    node: node,
-                    row: node.ruleSeedEventID.flatMap { feed.rowLookup[$0] },
-                    canDecide: { feed.canDecide(node) },
-                    isApplying: feed.applyingEventID.map(node.eventIDs.contains) ?? false,
-                    artworkStore: artworkStore,
-                    apply: { feed.requestRule($0, for: node) },
-                    showRules: { feed.showRules(for: node) }
-                )
-                .tag(node.id)
+            ForEach(feed.hierarchy) { node in
+                ConnectionTreeRow(node: node, feed: feed, artworkStore: artworkStore)
             }
         }
         .listStyle(.plain)
@@ -103,24 +94,22 @@ struct ConnectionsPanel: View {
         }
     }
 
-    @ViewBuilder
     private var emptyState: some View {
-        let status = feed.session.protectionStatus
-        if status.canShowActivity {
-            ContentUnavailableView {
-                Label(
-                    feed.query.search.isEmpty
-                        ? (feed.isMinimal ? "Waiting for Connections" : "No Connections")
-                        : "No Matches",
-                    systemImage: feed.query.search.isEmpty ? "network" : "magnifyingglass"
-                )
-            } description: {
-                if feed.isMinimal, feed.query.search.isEmpty {
-                    Text("New connections appear while this window is open. They aren’t saved.")
-                }
-            }
-            .controlSize(.small)
-        } else {
+        ConnectionsEmptyState(feed: feed).controlSize(.small)
+    }
+}
+
+/// Says why the list is empty, because each reason has a different next step.
+struct ConnectionsEmptyState: View {
+    @Bindable var feed: MonitorFeed
+
+    private var isFiltered: Bool {
+        !feed.query.search.isEmpty || feed.query.country != nil || feed.query.decision != .all
+            || feed.query.direction != .all || feed.query.locality != .all || feed.query.owner != .all
+    }
+
+    var body: some View {
+        if !feed.session.protectionStatus.canShowActivity {
             ContentUnavailableView {
                 Label("No Connections to Show", systemImage: "network.slash")
             } description: {
@@ -128,8 +117,66 @@ struct ConnectionsPanel: View {
             } actions: {
                 Button("Show Status") { feed.session.destination = .health }
             }
-            .controlSize(.small)
+        } else if isFiltered {
+            ContentUnavailableView {
+                Label("No Matches", systemImage: "magnifyingglass")
+            } description: {
+                Text("Nothing matches your search and filters.")
+            } actions: {
+                Button("Clear Filters") { feed.query.clearExcludingFilters() }
+            }
+        } else if feed.isMinimal {
+            ContentUnavailableView(
+                "Waiting for Connections",
+                systemImage: "network",
+                description: Text("New connections appear while this window is open. They aren’t saved.")
+            )
+        } else {
+            ContentUnavailableView(
+                "No Connections",
+                systemImage: "network",
+                description: Text("Nothing connected in this time range.")
+            )
         }
+    }
+}
+
+/// One row and, for a group, everything inside it.
+private struct ConnectionTreeRow: View {
+    let node: MonitorHierarchyNode
+    @Bindable var feed: MonitorFeed
+    let artworkStore: ApplicationArtworkStore
+
+    var body: some View {
+        if let children = node.children, !children.isEmpty {
+            DisclosureGroup(isExpanded: Binding(
+                get: { feed.expandedNodeIDs.contains(node.id) },
+                set: { open in
+                    if open { feed.expandedNodeIDs.insert(node.id) } else { feed.expandedNodeIDs.remove(node.id) }
+                }
+            )) {
+                ForEach(children) { child in
+                    ConnectionTreeRow(node: child, feed: feed, artworkStore: artworkStore)
+                }
+            } label: {
+                row
+            }
+        } else {
+            row
+        }
+    }
+
+    private var row: some View {
+        ConnectionRow(
+            node: node,
+            row: node.ruleSeedEventID.flatMap { feed.rowLookup[$0] },
+            canDecide: { feed.canDecide(node) },
+            isApplying: feed.applyingEventID.map(node.eventIDs.contains) ?? false,
+            artworkStore: artworkStore,
+            apply: { feed.requestRule($0, for: node) },
+            showRules: { feed.showRules(for: node) }
+        )
+        .tag(node.id)
     }
 }
 
@@ -178,6 +225,19 @@ struct ConnectionFilterBar: View {
                 Text(activeFilterCount == 0 ? "Filter" : "Filter (\(activeFilterCount))")
             }
             .help("Filter connections")
+            if let country = feed.query.country {
+                Button {
+                    feed.query.country = nil
+                } label: {
+                    Label(
+                        Locale.autoupdatingCurrent.localizedString(forRegionCode: country) ?? country,
+                        systemImage: "xmark.circle.fill"
+                    )
+                    .lineLimit(1)
+                }
+                .buttonStyle(.borderless)
+                .help("Show every country again")
+            }
             Menu {
                 Picker("Sort By", selection: $feed.sort) {
                     ForEach(MonitorHierarchySort.allCases) { Text($0.rawValue).tag($0) }
@@ -208,8 +268,8 @@ extension MonitorLens {
 /// The overall decision for a group of connections.
 extension MonitorAggregate {
     var decision: RiftDecision {
-        if denied > 0, allowed == 0 { return .denied }
-        if unresolved > 0, allowed == 0, denied == 0 { return .byDefault }
+        if denied > 0 { return allowed == 0 && unresolved == 0 ? .denied : .mixed }
+        if unresolved > 0, allowed == 0 { return .byDefault }
         return .allowed
     }
 

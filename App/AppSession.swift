@@ -5,6 +5,14 @@ import Foundation
 import NetworkExtension
 import Observation
 
+struct SavedMapState {
+    let query: MonitorQueryState
+    let sort: MonitorHierarchySort
+    let selectionID: String?
+    let selectedEventID: String?
+    let expandedNodeIDs: Set<String>
+}
+
 #if DEBUG
 enum AppLaunchMode: Equatable {
     case live
@@ -31,6 +39,10 @@ final class AppSession {
     let lifecycle: FilterLifecycleController?
     let applicationArtwork: ApplicationArtworkStore
     var destination: AppDestination = .liveMap
+    /// What the Map and Rules pages were showing, so switching pages keeps it.
+    /// This is small on purpose: the rows themselves are released with the page.
+    var savedMapState: SavedMapState?
+    var savedRulesSearch = ""
     var requestedMonitorEventID: String?
     /// Asks the Map page to show every connection in its table.
     var showsConnectionTable = false

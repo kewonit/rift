@@ -23,7 +23,6 @@ enum RiftDesign {
     enum Motion {
         static let press = 0.12
         static let contextual = 0.20
-        static let panel = 0.28
         static let exit = 0.15
         /// How far small surfaces travel as they enter and leave.
         static let travel: CGFloat = 8
@@ -69,6 +68,7 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
     case denied
     case byDefault
     case timedOut
+    case mixed
 
     var label: String {
         switch self {
@@ -76,6 +76,7 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         case .denied: "Blocked"
         case .byDefault: "No rule"
         case .timedOut: "Timed out"
+        case .mixed: "Some blocked"
         }
     }
 
@@ -85,6 +86,7 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         case .denied: "xmark.circle.fill"
         case .byDefault: "minus.circle.fill"
         case .timedOut: "exclamationmark.circle.fill"
+        case .mixed: "circle.lefthalf.filled"
         }
     }
 
@@ -94,6 +96,7 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         case .denied: Color(nsColor: .systemRed)
         case .byDefault: .secondary
         case .timedOut: Color(nsColor: .systemOrange)
+        case .mixed: Color(nsColor: .systemRed)
         }
     }
 }

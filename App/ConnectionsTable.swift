@@ -60,6 +60,7 @@ struct ConnectionsTable: View {
             .width(min: 80, ideal: 110)
         }
         .scrollContentBackground(.hidden)
+        .onHover { feed.pointerIsOverList = $0 }
         .contextMenu(forSelectionType: String.self) { ids in
             if let id = ids.first, ids.count == 1,
                let node = MonitorHierarchyBuilder.node(withID: id, in: feed.hierarchy) {
@@ -74,10 +75,7 @@ struct ConnectionsTable: View {
         }
         .overlay {
             if feed.hierarchy.isEmpty, !feed.loading {
-                ContentUnavailableView(
-                    feed.query.search.isEmpty ? "No Connections" : "No Matches",
-                    systemImage: feed.query.search.isEmpty ? "network" : "magnifyingglass"
-                )
+                ConnectionsEmptyState(feed: feed)
             }
         }
     }
@@ -94,8 +92,8 @@ struct ConnectionsTable: View {
 
     /// The destination country, for nodes that have a single destination.
     private func countryName(for node: MonitorHierarchyNode) -> String? {
-        guard node.kind != .application, node.kind != .helper,
-              let address = row(for: node)?.event.flow.destinationEndpoint?.address else { return nil }
+        if (node.children?.count ?? 0) > 1 { return "Several" }
+        guard let address = row(for: node)?.event.flow.destinationEndpoint?.address else { return nil }
         let code: String?
 #if DEBUG
         code = feed.session.isUIFixture
@@ -119,7 +117,6 @@ private struct DecisionCell: View {
     }
 
     private var label: String {
-        if aggregate.denied > 0, aggregate.allowed > 0 { return "\(aggregate.denied) blocked" }
-        return aggregate.decision.label
+        aggregate.decision == .mixed ? "\(aggregate.denied) blocked" : aggregate.decision.label
     }
 }

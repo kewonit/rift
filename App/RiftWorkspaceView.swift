@@ -111,7 +111,9 @@ struct RiftWorkspaceView: View {
                 artworkStore: session.applicationArtwork,
                 isPreview: session.isUIFixture,
                 setupIncomplete: !session.protectionStatus.canShowActivity,
-                openStatus: { session.destination = .health }
+                openStatus: { session.destination = .health },
+                initialSearch: session.savedRulesSearch,
+                searchChanged: { session.savedRulesSearch = $0 }
             )
         case .health:
             RiftHealthView(session: session)

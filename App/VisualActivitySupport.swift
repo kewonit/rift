@@ -1,3 +1,4 @@
+import RiftCore
 import AppKit
 import OSLog
 import RiftControl
@@ -95,7 +96,8 @@ struct ActivityPresentation: Sendable {
         visibleLimit: Int,
         pinnedID: String? = nil,
         sort: MonitorHierarchySort? = nil,
-        includeDecisions: Bool = true
+        includeDecisions: Bool = true,
+        displayNames: [ProcessIdentity: String] = [:]
     ) async throws -> ActivityPresentation {
         try await MonitorQueryWorker.run(priority: .utility) {
             try Task.checkCancellation()
@@ -104,7 +106,9 @@ struct ActivityPresentation: Sendable {
                let pinned = evaluation.displayed.first(where: { $0.id == pinnedID }) {
                 visible.append(pinned)
             }
-            var hierarchy = MonitorHierarchyBuilder.build(visible, lens: query.lens, coverages: coverages)
+            var hierarchy = MonitorHierarchyBuilder.build(
+                visible, lens: query.lens, coverages: coverages, displayNames: displayNames
+            )
             if let sort { hierarchy.sort(by: sort.comparator) }
             try Task.checkCancellation()
             let displayedRows = evaluation.displayed.map(\.source)

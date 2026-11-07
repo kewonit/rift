@@ -101,7 +101,16 @@ struct MonitorSummaryView: View {
                                 artworkStore: artworkStore
                             )
                         }
-                        Text(value.label).lineLimit(1).truncationMode(.middle)
+                        if showsApplicationIcons {
+                            ApplicationNameText(
+                                identity: value.presentationIdentity,
+                                fallback: value.label,
+                                artworkStore: artworkStore
+                            )
+                            .lineLimit(1)
+                        } else {
+                            Text(value.label).lineLimit(1).truncationMode(.middle)
+                        }
                         Spacer(minLength: 8)
                         Text("\(value.count)")
                             .monospacedDigit()
@@ -149,6 +158,16 @@ struct MonitorSummaryView: View {
                         .multilineTextAlignment(.trailing)
                 }
                 if let row {
+                    if node.kind != .application, node.kind != .helper {
+                        RiftPropertyRow(title: "App") {
+                            ApplicationNameText(
+                                identity: row.event.flow.sourceAppIdentity ?? row.event.flow.sourceProcessIdentity,
+                                fallback: MonitorQuery.applicationLabel(row),
+                                artworkStore: artworkStore
+                            )
+                            .lineLimit(1)
+                        }
+                    }
                     RiftPropertyRow(title: "Result") { Text(row.event.outcome == .blocked ? "Blocked" : "Allowed") }
                     RiftPropertyRow(title: "Because") { Text(row.event.causeSentence).multilineTextAlignment(.trailing) }
                     if let current = node.ruleCoverage.currentAction {
@@ -182,7 +201,14 @@ struct MonitorSummaryView: View {
                 )
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(node.title).font(.headline)
+                if node.kind == .application || node.kind == .helper {
+                    ApplicationNameText(
+                        identity: node.presentationIdentity, fallback: node.title, artworkStore: artworkStore
+                    )
+                    .font(.headline)
+                } else {
+                    Text(node.title).font(.headline)
+                }
                 if let subtitle = node.subtitle {
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                 }

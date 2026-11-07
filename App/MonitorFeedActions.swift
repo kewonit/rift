@@ -13,16 +13,12 @@ extension MonitorFeed {
         if selectionID == nil { selectedEventID = nil }
     }
 
-    /// Keeps the same connection selected when a refresh rebuilds the tree.
+    /// Keeps the same row selected when a refresh rebuilds the tree.
     func restoreSelection() {
-        if let selectedEventID,
-           let node = MonitorHierarchyBuilder.node(forEventID: selectedEventID, in: hierarchy) {
-            if selectionID != node.id { selectionID = node.id } else { selectionDidChange() }
-        } else if selectionID.flatMap({ MonitorHierarchyBuilder.node(withID: $0, in: hierarchy) }) == nil {
-            selectionID = nil
-        } else {
-            selectionDidChange()
-        }
+        let target = MonitorSelectionResolver.resolve(
+            selectionID: selectionID, eventID: selectedEventID, in: hierarchy
+        )
+        if selectionID != target { selectionID = target } else { selectionDidChange() }
     }
 
     /// Selects a connection another surface asked for (the menu panel, a
@@ -31,6 +27,7 @@ extension MonitorFeed {
         guard let target = session.requestedMonitorEventID else { return }
         if displayed.contains(where: { $0.source.id == target }),
            let node = MonitorHierarchyBuilder.node(forEventID: target, in: hierarchy) {
+            expandedNodeIDs.formUnion(MonitorSelectionResolver.ancestors(ofEventID: target, in: hierarchy))
             selectedEventID = target
             selectionID = node.id
             session.requestedMonitorEventID = nil
@@ -38,6 +35,7 @@ extension MonitorFeed {
         }
         if loadedRowsContain(target) {
             query.clearExcludingFilters()
+            session.controlPlane.actionResults.post("Filters were cleared to show this connection.")
         } else if rowsAreCompleteForRequest {
             session.controlPlane.actionResults.post(
                 "That connection is no longer available. It may have been removed from history or hidden by a rule.",
