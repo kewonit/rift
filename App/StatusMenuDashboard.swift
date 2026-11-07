@@ -114,20 +114,6 @@ enum RiftRelativeTime {
     }
 }
 
-extension OperationMode {
-    static let menuChoices: [OperationMode] = [.alert, .silentAllow, .silentDeny, .filterOff]
-
-    var menuTitle: String {
-        switch self {
-        case .alert: "Alert"
-        case .silentAllow: "Silent Allow"
-        case .silentDeny: "Silent Deny"
-        case .filterOff: "Observe Only"
-        case .degradedFallback: "Fallback"
-        }
-    }
-}
-
 /// Status and mode. Equatable so the once-a-second activity refresh doesn't
 /// rebuild the mode menu.
 private struct StatusMenuHeader: View, Equatable {
@@ -160,12 +146,19 @@ private struct StatusMenuHeader: View, Equatable {
                 Text(status.title).font(.headline).lineLimit(2)
                 Spacer(minLength: RiftDesign.Spacing.s)
                 Menu {
-                    Picker("Mode", selection: Binding(get: { mode }, set: selectMode)) {
-                        ForEach(OperationMode.menuChoices, id: \.self) { Text($0.menuTitle).tag($0) }
+                    Section(profile.map { "Mode for \($0)" } ?? "Mode") {
+                        ForEach(OperationMode.choices, id: \.self) { choice in
+                            Toggle(isOn: Binding(
+                                get: { choice == mode },
+                                set: { if $0 { selectMode(choice) } }
+                            )) {
+                                Text(choice.displayName)
+                                Text(choice.summary)
+                            }
+                        }
                     }
-                    .pickerStyle(.inline)
                 } label: {
-                    Text(modeIsUnreadable ? "Unknown" : mode.menuTitle)
+                    Text(modeIsUnreadable ? "Unknown" : mode.displayName)
                 }
                 .fixedSize()
                 .controlSize(.small)

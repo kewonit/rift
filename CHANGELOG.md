@@ -57,6 +57,12 @@ release.
   what will happen from now on as well as what happened then.
 - Errors from Map actions stay until you dismiss them, and notices on the Rules
   page no longer hide your rules.
+- Modes have plain names that say what happens: Ask Me, Allow and Watch, Block
+  Unless Allowed, and Pause Rules. Each one explains itself where you choose it.
+- Risky mode changes now warn the same way everywhere, and Resume Rules returns
+  you to the mode you paused from.
+- Status shows your mode and how many rules and blocklists you have.
+- Quitting Rift now tells you what will happen to connections in your mode.
 
 ## 0.3.0 (pre-release)
 

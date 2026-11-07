@@ -99,6 +99,7 @@ public struct ProtectionStatus: Sendable, Equatable {
         case openSystemSettings
         case showStatus
         case reviewWaiting
+        case resumeRules
 
         public var title: String {
             switch self {
@@ -106,6 +107,7 @@ public struct ProtectionStatus: Sendable, Equatable {
             case .openSystemSettings: "Open System Settings"
             case .showStatus: "Show Status"
             case .reviewWaiting: "Review"
+            case .resumeRules: "Resume Rules"
             }
         }
     }
@@ -137,6 +139,24 @@ public struct ProtectionStatus: Sendable, Equatable {
         case .allowingEverything: "None are in effect."
         case .configurationUnreadable: "Rift can’t read them."
         default: "Rift can’t confirm they’re in effect."
+        }
+    }
+
+    /// The rules line with counts, shown only when rules are really in use.
+    public func rulesDetail(ruleCount: Int?, blocklistCount: Int?) -> String {
+        guard rulesApply, let ruleCount, let blocklistCount else { return rulesSummary }
+        if ruleCount == 0, blocklistCount == 0 { return "\(rulesSummary) You have no rules yet." }
+        let rules = ruleCount == 1 ? "1 rule" : "\(ruleCount) rules"
+        guard blocklistCount > 0 else { return "\(rulesSummary) \(rules)." }
+        let lists = blocklistCount == 1 ? "1 blocklist" : "\(blocklistCount) blocklists"
+        return "\(rulesSummary) \(rules) and \(lists)."
+    }
+
+    private var rulesApply: Bool {
+        switch state {
+        case .active(.filterOff): false
+        case .active, .waiting, .rulesAtRisk: true
+        default: false
         }
     }
 
@@ -334,7 +354,7 @@ public struct ProtectionStatus: Sendable, Equatable {
             ProtectionStatus(
                 state: .active(mode), title: "Rules are paused",
                 detail: "All connections are allowed and your rules are off.",
-                tone: .neutral, traffic: .allAllowed, action: nil, symbolName: "pause.circle"
+                tone: .neutral, traffic: .allAllowed, action: .resumeRules, symbolName: "pause.circle"
             )
         case .degradedFallback:
             modeUnknown

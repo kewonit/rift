@@ -17,6 +17,8 @@ struct SettingsView: View {
     @State private var loginItemLoaded = false
     @State private var baseMode: OperationMode = .silentAllow
     @State private var effectiveMode: OperationMode = .silentAllow
+    @State private var activeProfileName: String?
+    @State private var pendingBaseMode: OperationMode?
     @State private var confirmedBaseMode: OperationMode = .silentAllow
     @State private var isChangingBaseMode = false
     @State private var historyEnabled = false
@@ -97,6 +99,7 @@ struct SettingsView: View {
                     .background(.bar)
             }
         }
+        .modifier(ModeChangeConfirmation(pendingMode: $pendingBaseMode, confirm: saveBaseMode))
         .confirmationDialog(
             "Restore this configuration?",
             isPresented: $showingRestoreConfirmation,
@@ -179,6 +182,7 @@ struct SettingsView: View {
                 baseMode: $baseMode,
                 launchAtLogin: $launchAtLogin,
                 effectiveMode: effectiveMode,
+                activeProfileName: activeProfileName,
                 isChangingBaseMode: isChangingBaseMode || !loaded,
                 isLoginItemReady: loginItemLoaded,
                 baseModeChanged: changeBaseMode,
@@ -239,6 +243,7 @@ struct SettingsView: View {
         baseMode = configuration.baseOperationMode
         confirmedBaseMode = configuration.baseOperationMode
         effectiveMode = configuration.operationMode
+        activeProfileName = configuration.profiles.first { $0.id == configuration.activeProfileID }?.name
         groups = configuration.localGroups
         profiles = configuration.profiles
         blocklists = configuration.blocklists
@@ -252,6 +257,7 @@ struct SettingsView: View {
             baseMode = presentation.baseMode
             confirmedBaseMode = presentation.baseMode
             effectiveMode = presentation.effectiveMode
+            activeProfileName = presentation.profile?.name
             if let settings = try await controlPlane.historySettings() {
                 historyEnabled = settings.enabled
                 retentionDays = settings.retentionDays
@@ -280,6 +286,17 @@ struct SettingsView: View {
             baseMode = confirmedBaseMode
             return
         }
+        guard !value.needsConfirmation || value == confirmedBaseMode else {
+            baseMode = confirmedBaseMode
+            pendingBaseMode = value
+            return
+        }
+        saveBaseMode(value)
+    }
+
+    private func saveBaseMode(_ value: OperationMode) {
+        if value == .filterOff { PausedModeMemory.remember(confirmedBaseMode) }
+        baseMode = value
         let previous = confirmedBaseMode
         isChangingBaseMode = true
         Task { @MainActor in
@@ -297,6 +314,7 @@ struct SettingsView: View {
                 baseMode = presentation.baseMode
                 confirmedBaseMode = presentation.baseMode
                 effectiveMode = presentation.effectiveMode
+                activeProfileName = presentation.profile?.name
             } catch {
                 baseMode = wasSaved ? value : previous
                 confirmedBaseMode = wasSaved ? value : previous

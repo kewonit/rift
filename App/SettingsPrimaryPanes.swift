@@ -27,6 +27,7 @@ struct GeneralSettingsPane: View {
     @Binding var baseMode: OperationMode
     @Binding var launchAtLogin: Bool
     let effectiveMode: OperationMode
+    let activeProfileName: String?
     let isChangingBaseMode: Bool
     let isLoginItemReady: Bool
     let baseModeChanged: (OperationMode) -> Void
@@ -42,17 +43,16 @@ struct GeneralSettingsPane: View {
                         baseModeChanged(value)
                     }
                 )) {
-                    Text("Alert").tag(OperationMode.alert)
-                    Text("Silent Allow").tag(OperationMode.silentAllow)
-                    Text("Silent Deny").tag(OperationMode.silentDeny)
-                    Text("Observe Only").tag(OperationMode.filterOff)
+                    ForEach(OperationMode.choices, id: \.self) { Text($0.displayName).tag($0) }
                 }
                 .disabled(isChangingBaseMode)
-                LabeledContent("Current mode", value: label(effectiveMode))
+                if effectiveMode != baseMode {
+                    LabeledContent("Current mode", value: currentModeLabel)
+                }
             } header: {
                 Text("Filtering")
             } footer: {
-                Text("Observe Only shows activity but allows all connections. A profile can use a different mode.")
+                Text("\(baseMode.summary) A profile can use its own mode.")
             }
             Section("Startup") {
                 Toggle("Open Rift at login", isOn: Binding(
@@ -68,14 +68,8 @@ struct GeneralSettingsPane: View {
         .formStyle(.grouped)
     }
 
-    private func label(_ mode: OperationMode) -> String {
-        switch mode {
-        case .alert: "Alert"
-        case .silentAllow: "Silent Allow"
-        case .silentDeny: "Silent Deny"
-        case .filterOff: "Observe Only"
-        case .degradedFallback: "Fallback"
-        }
+    private var currentModeLabel: String {
+        activeProfileName.map { "\($0) uses \(effectiveMode.displayName)" } ?? effectiveMode.displayName
     }
 }
 

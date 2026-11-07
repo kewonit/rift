@@ -16,6 +16,8 @@ struct PolicySettingsPane: View {
     let editProfile: (PolicyProfile) -> Void
     let editGroup: (LocalRuleGroup) -> Void
     let reload: @MainActor () async -> Void
+    @State private var pendingMode: OperationMode?
+    @State private var pendingModeProfile: PolicyProfile?
     @State private var blocklistEntry = ""
     @State private var entryImpact: BlocklistEntryImpact?
     @State private var pendingDisableImpact: BlocklistEntryImpact?
@@ -28,6 +30,9 @@ struct PolicySettingsPane: View {
             blocklistsSection
         }
         .formStyle(.grouped)
+        .modifier(ModeChangeConfirmation(pendingMode: $pendingMode) { mode in
+            if let pendingModeProfile { updateProfileMode(pendingModeProfile, mode: mode) }
+        })
         .confirmationDialog(
             "Disable this entry in all blocklists?",
             isPresented: $showingDisableConfirmation,
@@ -151,10 +156,16 @@ struct PolicySettingsPane: View {
     @ViewBuilder
     private func modeButtons(_ profile: PolicyProfile) -> some View {
         Button("Use Default Mode") { updateProfileMode(profile, mode: nil) }
-        Button("Alert") { updateProfileMode(profile, mode: .alert) }
-        Button("Silent Allow") { updateProfileMode(profile, mode: .silentAllow) }
-        Button("Silent Deny") { updateProfileMode(profile, mode: .silentDeny) }
-        Button("Observe Only") { updateProfileMode(profile, mode: .filterOff) }
+        ForEach(OperationMode.choices, id: \.self) { choice in
+            Button(choice.displayName) {
+                if choice.needsConfirmation {
+                    pendingModeProfile = profile
+                    pendingMode = choice
+                } else {
+                    updateProfileMode(profile, mode: choice)
+                }
+            }
+        }
     }
 
     private func addProfile() {

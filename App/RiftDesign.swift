@@ -84,7 +84,7 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         case .allowed: "checkmark.circle.fill"
         case .denied: "xmark.circle.fill"
         case .byDefault: "minus.circle.fill"
-        case .timedOut: "clock.fill"
+        case .timedOut: "exclamationmark.circle.fill"
         }
     }
 

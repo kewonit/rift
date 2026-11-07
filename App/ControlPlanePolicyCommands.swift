@@ -65,6 +65,13 @@ extension ControlPlaneController {
         )
     }
 
+    /// How many of the person's own rules and blocklists exist.
+    func ruleCounts() async -> (rules: Int, blocklists: Int)? {
+        guard let draft = try? await repository?.currentConfiguration() else { return nil }
+        let own = draft.rules.filter { !$0.flags.contains(.sourceManaged) }
+        return (own.count, draft.blocklists.count)
+    }
+
     func policyDefinitions() async throws -> (
         groups: [LocalRuleGroup], profiles: [PolicyProfile], active: UUID?
     ) {

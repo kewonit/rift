@@ -89,7 +89,7 @@ struct AdvancedSettingsPane: View {
                 .disabled(resetConfirmation != "RESET")
             Button("Cancel", role: .cancel) { resetConfirmation = "" }
         } message: {
-            Text("This deletes your rules, profiles, groups, and blocklists, and starts fresh in Silent Allow mode. Rift keeps a private copy of the damaged configuration. All traffic is allowed until the reset finishes.")
+            Text("This deletes your rules, profiles, groups, and blocklists, and starts fresh in Allow and Watch mode. Rift keeps a private copy of the damaged configuration. All traffic is allowed until the reset finishes.")
         }
     }
 
@@ -188,7 +188,7 @@ struct AdvancedSettingsPane: View {
             do {
                 let outcome = try await controlPlane.resetConfiguration()
                 message = outcome == .enforced
-                    ? "Configuration reset. Rift is starting fresh in Silent Allow mode."
+                    ? "Configuration reset. Rift is starting fresh in Allow and Watch mode."
                     : "Configuration reset. All traffic is allowed until the filter reconnects."
             } catch {
                 message = "The configuration wasn’t reset, and all traffic may be allowed for now. Try again while signed in to the Mac account that manages Rift."

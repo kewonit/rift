@@ -203,6 +203,7 @@ struct LiveMapView: View {
     private func perform(_ action: ProtectionStatus.Action) {
         switch action {
         case .openSystemSettings: session.lifecycle?.openSystemSettings()
+        case .resumeRules: session.resumeRules()
         case .setUp, .showStatus, .reviewWaiting: session.destination = .health
         }
     }

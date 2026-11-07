@@ -41,7 +41,6 @@ struct StatusMenuView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
     @Bindable var session: AppSession
-    @AppStorage("statusPreviousFilteringMode") private var previousMode = OperationMode.silentAllow.rawValue
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @State private var mode: OperationMode = .silentAllow
     @State private var profiles: [PolicyProfile] = []
@@ -98,25 +97,12 @@ struct StatusMenuView: View {
             refreshCoordinator.request { await loadActivity() }
         }))
         .onChange(of: notificationsEnabled) { _, _ in controller.requestActivitySubscriptionUpdate() }
-        .confirmationDialog(
-            pendingMode == .filterOff ? "Switch to Observe Only?" : "Switch to Silent Deny?",
-            isPresented: Binding(get: { pendingMode != nil }, set: { if !$0 { pendingMode = nil } }),
-            titleVisibility: .visible
-        ) {
-            if let pendingMode {
-                Button("Switch to \(pendingMode.menuTitle)") { setMode(pendingMode) }
-            }
-            Button("Cancel", role: .cancel) { pendingMode = nil }
-        } message: {
-            Text(pendingMode == .filterOff
-                ? "Rift will allow all connections and stop applying your rules. You’ll still see activity."
-                : "Rift will deny every connection that no rule allows. Apps without an allow rule lose network access.")
-        }
+        .modifier(ModeChangeConfirmation(pendingMode: $pendingMode, confirm: setMode))
         .confirmationDialog("Quit Rift?", isPresented: $showingQuitConfirmation, titleVisibility: .visible) {
             Button("Quit Rift", role: .destructive) { NSApplication.shared.terminate(nil) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your rules stay active, but Rift can’t ask about new connections, and activity may have gaps until you open Rift again.")
+            Text(mode.quitMessage)
         }
     }
 
@@ -203,6 +189,8 @@ struct StatusMenuView: View {
             session.lifecycle?.openSystemSettings()
         case .reviewWaiting:
             openNextAlert()
+        case .resumeRules:
+            setMode(PausedModeMemory.resumeMode)
         }
     }
 
@@ -228,13 +216,13 @@ struct StatusMenuView: View {
 
     private func requestMode(_ target: OperationMode) {
         guard target != mode, !session.isUIFixture else { return }
-        if target == .filterOff || target == .silentDeny { pendingMode = target } else { setMode(target) }
+        if target.needsConfirmation { pendingMode = target } else { setMode(target) }
     }
 
     private func setMode(_ target: OperationMode) {
         pendingMode = nil
         guard !session.isUIFixture else { return }
-        if target == .filterOff, mode != .filterOff, mode != .degradedFallback { previousMode = mode.rawValue }
+        if target == .filterOff { PausedModeMemory.remember(mode) }
         Task {
             do {
                 let result = try await controller.setEffectiveMode(target)

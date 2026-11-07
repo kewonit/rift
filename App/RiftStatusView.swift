@@ -4,6 +4,7 @@ import SwiftUI
 
 struct RiftHealthView: View {
     @Bindable var session: AppSession
+    @State private var ruleCounts: (rules: Int, blocklists: Int)?
 
     var body: some View {
         Form {
@@ -25,9 +26,20 @@ struct RiftHealthView: View {
             }
             if status.state != .preview, status.state != .cannotFilter {
                 Section {
+                    if case .active(let mode) = status.state {
+                        StatusRow(
+                            title: "Mode: \(mode.displayName)",
+                            detail: mode.summary,
+                            tone: .unresolved,
+                            symbol: "slider.horizontal.3",
+                            showsBadge: false
+                        )
+                    }
                     StatusRow(
                         title: "Your rules",
-                        detail: status.rulesSummary,
+                        detail: status.rulesDetail(
+                            ruleCount: ruleCounts?.rules, blocklistCount: ruleCounts?.blocklists
+                        ),
                         tone: rulesRowTone,
                         symbol: "list.bullet.rectangle"
                     )
@@ -48,6 +60,9 @@ struct RiftHealthView: View {
         .formStyle(.grouped)
         .frame(maxWidth: 720)
         .frame(maxWidth: .infinity)
+        .task(id: session.controlPlane.ruleChanges.revision) {
+            ruleCounts = await session.controlPlane.ruleCounts()
+        }
     }
 
     private var status: ProtectionStatus { session.protectionStatus }
@@ -67,9 +82,14 @@ struct RiftHealthView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            Spacer(minLength: 8)
+            if status.action == .resumeRules {
+                Button("Resume Rules") { session.resumeRules() }
+                    .buttonStyle(.borderedProminent)
+            }
         }
         .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
     private var filterRowTone: RiftStatusTone {
@@ -152,6 +172,7 @@ private struct StatusRow: View {
     let tone: RiftStatusTone
     let symbol: String
     var badge: String?
+    var showsBadge = true
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -168,7 +189,7 @@ private struct StatusRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            RiftStatusBadge(tone: tone, label: badge)
+            if showsBadge { RiftStatusBadge(tone: tone, label: badge) }
         }
         .padding(.vertical, 3)
         .accessibilityElement(children: .combine)

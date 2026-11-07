@@ -101,6 +101,20 @@ final class AppSession {
         )
     }
 
+    func resumeRules() {
+        guard !isUIFixture else { return }
+        let results = controlPlane.actionResults
+        let mode = PausedModeMemory.resumeMode
+        Task { @MainActor in
+            do {
+                _ = try await controlPlane.setEffectiveMode(mode)
+                results.post("Rules are back on, using \(mode.displayName).")
+            } catch {
+                results.post("Couldn’t turn rules back on. Try again.", tone: .failure)
+            }
+        }
+    }
+
     var statusSymbolName: String {
         let status = protectionStatus
         if case .active = status.state, controlPlane.recentDenyVisible { return "xmark.shield.fill" }
