@@ -30,6 +30,11 @@ release.
 - Problems shown in the menu-bar panel and on the Map now give the reason and a
   direct way to fix them.
 - Fixed the menu-bar icon disappearing in Alert mode.
+- Every blocked connection now reads as Blocked, including ones blocked by your
+  mode, and counts, filters and search all agree. Each connection shows its
+  result and the reason in plain words.
+- The menu-bar panel no longer says there were no connections when Rift simply
+  wasn't keeping history.
 
 ## 0.3.0 (pre-release)
 

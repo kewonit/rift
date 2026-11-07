@@ -25,7 +25,7 @@ actor NotificationRouter {
             && (event.action == .deny || event.reason != .concreteDecision) {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
-            content.title = event.action == .deny ? "Rift denied a connection" : "Rift allowed a connection by default"
+            content.title = event.action == .deny ? "Rift blocked a connection" : "Rift allowed a connection with no rule"
             if UserDefaults.standard.bool(forKey: "notificationSensitiveDetails"),
                let endpoint = event.flow.destinationEndpoint {
                 let value = endpoint.hostname?.ascii ?? endpoint.address.description

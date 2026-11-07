@@ -15,7 +15,7 @@ func monitorCoverageLabel(_ state: MonitorRuleCoverageState) -> String {
     case .savedPendingEnforcement: "Rule saved, waiting for the filter"
     case .persistedPendingProvider: "Rule saved, waiting for the filter"
     case .applyFailed: "Rule couldn’t be applied"
-    case .unresolved: "Decided by default"
+    case .unresolved: "No rule decided this"
     case .policyChanged: "Rules changed since this connection"
     case .historicalRuleMissing: "The rule that decided this was removed"
     case .identityChanged: "The app’s identity changed"

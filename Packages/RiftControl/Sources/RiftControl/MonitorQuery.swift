@@ -11,8 +11,8 @@ public enum MonitorLens: String, CaseIterable, Sendable, Identifiable {
 public enum MonitorDecisionFilter: String, CaseIterable, Sendable, Identifiable {
     case all = "All decisions"
     case allowed = "Allowed"
-    case denied = "Denied"
-    case unresolved = "Decided by default"
+    case denied = "Blocked"
+    case unresolved = "No rule applied"
     public var id: String { rawValue }
 }
 
@@ -275,9 +275,9 @@ public enum MonitorQuery {
     ) -> Bool {
         switch decision {
         case .all: true
-        case .allowed: row.event.action == .allow && !isUnresolved(row)
-        case .denied: row.event.action == .deny && !isUnresolved(row)
-        case .unresolved: isUnresolved(row)
+        case .allowed: row.event.outcome == .allowed
+        case .denied: row.event.outcome == .blocked
+        case .unresolved: row.event.reason != .concreteDecision
         }
     }
 
@@ -313,10 +313,6 @@ public enum MonitorQuery {
         case (.all, _), (.user, .user), (.system, .system), (.unknown, .unknown): true
         default: false
         }
-    }
-
-    private static func isUnresolved(_ row: MonitorEventRow) -> Bool {
-        row.event.reason != .concreteDecision
     }
 
     private static func bytes(_ value: UInt64?) -> UInt64 { value ?? 0 }

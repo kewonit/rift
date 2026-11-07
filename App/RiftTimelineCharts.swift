@@ -74,9 +74,9 @@ struct DecisionBars: View {
             ForEach(snapshot.buckets) { bucket in
                 BarMark(x: .value("Time", bucket.start), y: .value("Allowed", bucket.allowed), width: .fixed(5))
                     .foregroundStyle(by: .value("Result", RiftDecision.allowed.label))
-                BarMark(x: .value("Time", bucket.start), y: .value("Denied", bucket.denied), width: .fixed(5))
+                BarMark(x: .value("Time", bucket.start), y: .value("Blocked", bucket.denied), width: .fixed(5))
                     .foregroundStyle(by: .value("Result", RiftDecision.denied.label))
-                BarMark(x: .value("Time", bucket.start), y: .value("By default", bucket.unresolved), width: .fixed(5))
+                BarMark(x: .value("Time", bucket.start), y: .value("No rule", bucket.unresolved), width: .fixed(5))
                     .foregroundStyle(by: .value("Result", RiftDecision.byDefault.label))
             }
             if let hovered {
@@ -121,7 +121,7 @@ struct DecisionBars: View {
         let denied = snapshot.buckets.reduce(0) { $0 + $1.denied }
         let unresolved = snapshot.buckets.reduce(0) { $0 + $1.unresolved }
         let suffix = snapshot.coverage == .complete ? "" : ", some history missing"
-        return "\(allowed) allowed, \(denied) denied, \(unresolved) by default\(suffix)"
+        return "\(allowed) allowed, \(denied) blocked, \(unresolved) with no rule\(suffix)"
     }
 
     private func updateHover(_ phase: HoverPhase, proxy: ChartProxy, geometry: GeometryProxy) {

@@ -72,9 +72,7 @@ enum MonitorFixtureData {
         switch scenario {
         case .empty: []
         case .denied:
-            baseRows.filter {
-                $0.event.reason == .concreteDecision && $0.event.action == .deny
-            }
+            baseRows.filter { $0.event.outcome == .blocked }
         case .unresolved:
             baseRows.filter { $0.event.reason != .concreteDecision }
         case .burst:
@@ -167,12 +165,12 @@ enum MonitorFixtureData {
             ) else { continue }
             let current = values[key]
                 ?? DecisionBucket(start: key, allowed: 0, denied: 0, unresolved: 0)
-            let unresolved = event.reason != .concreteDecision
+            let tally = event.tally
             values[key] = DecisionBucket(
                 start: key,
-                allowed: current.allowed + (unresolved || event.action == .deny ? 0 : 1),
-                denied: current.denied + (!unresolved && event.action == .deny ? 1 : 0),
-                unresolved: current.unresolved + (unresolved ? 1 : 0)
+                allowed: current.allowed + (tally == .allowed ? 1 : 0),
+                denied: current.denied + (tally == .blocked ? 1 : 0),
+                unresolved: current.unresolved + (tally == .noRule ? 1 : 0)
             )
         }
         return values.values.sorted { $0.start < $1.start }
@@ -228,7 +226,11 @@ enum MonitorFixtureData {
             observedHostname: host,
             metadataConfidence: [.appIdentity, .endpoint, .observedHostname, .owner]
         )
-        let unresolved = index % 13 == 0
+        let reason: RuntimeEventReason = switch index {
+        case _ where index % 13 == 0: .unmatchedModeFallback
+        case _ where index % 17 == 1: .promptDeadlineFallback
+        default: .concreteDecision
+        }
         let missingBytes = index % 10 == 0
         let scale = UInt64(index % 54 + 1)
         return MonitorEventRow(
@@ -237,8 +239,8 @@ enum MonitorFixtureData {
                 sequence: UInt64(index + 1),
                 occurredAt: occurredAt,
                 flow: flow,
-                action: index % 6 == 0 ? .deny : .allow,
-                reason: unresolved ? .unmatchedModeFallback : .concreteDecision,
+                action: index % 6 == 0 && reason != .promptDeadlineFallback ? .deny : .allow,
+                reason: reason,
                 policy: nil
             ),
             coverage: missingBytes ? .partial : .complete,

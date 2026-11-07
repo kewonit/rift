@@ -162,7 +162,7 @@ struct RiftTimeline: View {
 
     private func hoverLabel(_ bucket: DecisionBucket) -> String {
         let time = bucket.start.formatted(date: .omitted, time: .shortened)
-        return "\(time) · \(bucket.allowed) allowed · \(bucket.denied) denied · \(bucket.unresolved) by default"
+        return "\(time) · \(bucket.allowed) allowed · \(bucket.denied) blocked · \(bucket.unresolved) with no rule"
     }
 }
 

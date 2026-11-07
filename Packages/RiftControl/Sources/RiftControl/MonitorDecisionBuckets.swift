@@ -17,9 +17,11 @@ public enum MonitorDecisionBuckets {
                 for: row.event.occurredAt, anchor: window.start, width: query.time.decisionBucketWidth
             ) else { continue }
             var value = values[key] ?? (0, 0, 0)
-            if row.event.reason != .concreteDecision { value.unresolved += 1 }
-            else if row.event.action == .deny { value.deny += 1 }
-            else { value.allow += 1 }
+            switch row.event.tally {
+            case .allowed: value.allow += 1
+            case .blocked: value.deny += 1
+            case .noRule: value.unresolved += 1
+            }
             values[key] = value
         }
         return DecisionBucketSnapshot(

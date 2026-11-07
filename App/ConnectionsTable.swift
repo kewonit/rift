@@ -119,7 +119,7 @@ private struct DecisionCell: View {
     }
 
     private var label: String {
-        if aggregate.denied > 0, aggregate.allowed > 0 { return "\(aggregate.denied) denied" }
+        if aggregate.denied > 0, aggregate.allowed > 0 { return "\(aggregate.denied) blocked" }
         return aggregate.decision.label
     }
 }

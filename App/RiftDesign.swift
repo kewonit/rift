@@ -68,12 +68,14 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
     case allowed
     case denied
     case byDefault
+    case timedOut
 
     var label: String {
         switch self {
         case .allowed: "Allowed"
-        case .denied: "Denied"
-        case .byDefault: "By default"
+        case .denied: "Blocked"
+        case .byDefault: "No rule"
+        case .timedOut: "Timed out"
         }
     }
 
@@ -81,7 +83,8 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         switch self {
         case .allowed: "checkmark.circle.fill"
         case .denied: "xmark.circle.fill"
-        case .byDefault: "questionmark.circle.fill"
+        case .byDefault: "minus.circle.fill"
+        case .timedOut: "clock.fill"
         }
     }
 
@@ -89,7 +92,8 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         switch self {
         case .allowed: Color(nsColor: .systemGreen)
         case .denied: Color(nsColor: .systemRed)
-        case .byDefault: Color(nsColor: .systemOrange)
+        case .byDefault: .secondary
+        case .timedOut: Color(nsColor: .systemOrange)
         }
     }
 }

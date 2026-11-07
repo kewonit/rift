@@ -69,6 +69,7 @@ struct StatusMenuView: View {
                 profile: activeProfileName,
                 snapshot: snapshot,
                 now: dashboardNow,
+                keepsHistory: !controller.isMinimalActivity,
                 notificationsEnabled: session.isUIFixture ? fixtureNotificationsEnabled : notificationsEnabled,
                 canChangeMode: !session.isUIFixture,
                 artworkStore: session.applicationArtwork,

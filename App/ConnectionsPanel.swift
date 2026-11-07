@@ -245,7 +245,7 @@ struct ConnectionRow: View {
             if node.aggregate.denied > 0 {
                 RiftDecisionBadge(decision: .denied)
                     .imageScale(.small)
-                    .accessibilityLabel(node.aggregate.denied == 1 ? "1 denied" : "\(node.aggregate.denied) denied")
+                    .accessibilityLabel(node.aggregate.denied == 1 ? "1 blocked" : "\(node.aggregate.denied) blocked")
             }
             if let bytes = node.aggregate.totalBytes {
                 RiftBytesText(bytes: bytes, partial: node.aggregate.coverage != .complete)
@@ -324,7 +324,11 @@ struct ConnectionContextMenu: View {
 
 extension MonitorEventRow {
     var decision: RiftDecision {
-        if event.reason != .concreteDecision { return .byDefault }
-        return event.action == .deny ? .denied : .allowed
+        if event.outcome == .blocked { return .denied }
+        return switch event.cause {
+        case .rule, .yourAnswer: .allowed
+        case .alertTimedOut, .alertUnavailable: .timedOut
+        case .mode, .noActiveRules: .byDefault
+        }
     }
 }

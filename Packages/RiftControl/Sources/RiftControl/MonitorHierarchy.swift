@@ -56,13 +56,9 @@ public struct MonitorAggregate: Sendable, Hashable {
 
     init(rows: [MonitorEventRow]) {
         flowCount = rows.count
-        allowed = rows.filter {
-            $0.event.action == .allow && $0.event.reason == .concreteDecision
-        }.count
-        denied = rows.filter {
-            $0.event.action == .deny && $0.event.reason == .concreteDecision
-        }.count
-        unresolved = rows.filter { $0.event.reason != .concreteDecision }.count
+        allowed = rows.filter { $0.event.tally == .allowed }.count
+        denied = rows.filter { $0.event.tally == .blocked }.count
+        unresolved = rows.filter { $0.event.tally == .noRule }.count
         bytesInbound = Self.total(rows.map(\.bytesInbound))
         bytesOutbound = Self.total(rows.map(\.bytesOutbound))
         coverage = rows.contains { $0.coverage == .gap } ? .gap

@@ -10,6 +10,7 @@ struct StatusMenuDashboard: View {
     let profile: String?
     let snapshot: StatusMenuSnapshot
     let now: Date
+    let keepsHistory: Bool
     let notificationsEnabled: Bool
     let canChangeMode: Bool
     let artworkStore: ApplicationArtworkStore
@@ -51,8 +52,11 @@ struct StatusMenuDashboard: View {
                 .padding(.horizontal, RiftDesign.Spacing.xs + 2)
                 .padding(.bottom, RiftDesign.Spacing.xs)
             if snapshot.applications.isEmpty {
-                Text("No connections in the last 5 minutes")
+                Text(keepsHistory
+                    ? "No connections in the last 5 minutes"
+                    : "Watching since you opened this panel. Turn on history in Settings to see earlier connections.")
                     .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, RiftDesign.Spacing.xs + 2)
                     .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
             } else {
@@ -86,7 +90,7 @@ struct StatusMenuDashboard: View {
                 StatusMenuButton(action: { snapshot.latestDeniedID.map(openConnection) }) {
                     HStack(spacing: RiftDesign.Spacing.s) {
                         RiftDecisionBadge(decision: .denied).frame(width: 18)
-                        Text(snapshot.deniedCount == 1 ? "1 connection denied" : "\(snapshot.deniedCount) connections denied")
+                        Text(snapshot.deniedCount == 1 ? "1 connection blocked" : "\(snapshot.deniedCount) connections blocked")
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))

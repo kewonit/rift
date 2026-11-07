@@ -7,7 +7,7 @@ enum MonitorHierarchySort: String, CaseIterable, Identifiable, Sendable {
     case traffic = "Total Traffic"
     case sent = "Data Sent"
     case received = "Data Received"
-    case denied = "Most Denied"
+    case denied = "Most Blocked"
 
     var id: String { rawValue }
 

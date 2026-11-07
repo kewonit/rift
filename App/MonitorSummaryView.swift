@@ -34,8 +34,8 @@ struct MonitorSummaryView: View {
                     .accessibilityValue(accessible(summary.received))
                 }
                 section("Connections") {
-                    countRow("Denied", summary.denied, "xmark.circle")
-                    countRow("By default", summary.unresolved, "questionmark.circle")
+                    countRow("Blocked", summary.denied, "xmark.circle")
+                    countRow("No rule", summary.unresolved, "minus.circle")
                     countRow("Incoming", summary.incoming, "arrow.down.left")
                 }
                 rankedSection("Top Apps", values: summary.topApplications, showsApplicationIcons: true)
@@ -145,8 +145,8 @@ struct MonitorSummaryView: View {
                 RiftPropertyRow(title: "Connections") { Text("\(node.aggregate.flowCount)").monospacedDigit() }
                 RiftPropertyRow(title: "Rule") { Text(monitorCoverageLabel(node.ruleCoverage.state)).multilineTextAlignment(.trailing) }
                 if let row {
-                    RiftPropertyRow(title: "Decision") { Text(decisionLabel(row.event.action)) }
-                    RiftPropertyRow(title: "Reason") { Text(reasonLabel(row.event.reason)).multilineTextAlignment(.trailing) }
+                    RiftPropertyRow(title: "Result") { Text(row.event.outcome == .blocked ? "Blocked" : "Allowed") }
+                    RiftPropertyRow(title: "Because") { Text(row.event.causeSentence).multilineTextAlignment(.trailing) }
                     RiftPropertyRow(title: "Destination") {
                         Text(MonitorQuery.endpointLabel(row)).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
                     }
@@ -179,24 +179,6 @@ struct MonitorSummaryView: View {
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                 }
             }
-        }
-    }
-
-    private func decisionLabel(_ action: FilterAction) -> String {
-        switch action {
-        case .allow: "Allowed"
-        case .deny: "Denied"
-        case .ask: "Asked"
-        }
-    }
-
-    private func reasonLabel(_ reason: RuntimeEventReason) -> String {
-        switch reason {
-        case .concreteDecision: "Matched a rule"
-        case .unmatchedModeFallback: "No rule matched, so the mode decided"
-        case .promptUnavailableFallback: "Alert couldn’t be shown, so the default was used"
-        case .promptDeadlineFallback: "Alert timed out, so the default was used"
-        case .noActivePolicy: "No rules were active"
         }
     }
 
