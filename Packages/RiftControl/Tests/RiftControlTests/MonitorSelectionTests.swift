@@ -126,3 +126,37 @@ private func tree(_ rows: [MonitorEventRow], names: [ProcessIdentity: String] = 
     state.clearExcludingFilters()
     #expect(state.country == nil)
 }
+
+@Test func calendarRangesNeverClaimToBeRolling() {
+    #expect(MonitorTimeFilter.day.liveLabel == "Today")
+    #expect(MonitorTimeFilter.hour.liveLabel == "This hour")
+    #expect(MonitorTimeFilter.tenMinutes.liveLabel == "Last 10 minutes")
+    #expect(MonitorTimeFilter.all.liveLabel == "All saved activity")
+}
+
+@Test func theQueryKnowsWhenItIsShowingThePast() {
+    var state = MonitorQueryState(time: .hour)
+    #expect(!state.isViewingPast)
+    state.timeAnchor = now
+    #expect(state.isViewingPast)
+    state.timeAnchor = nil
+    state.selectedTimeRange = now...now.addingTimeInterval(60)
+    #expect(state.isViewingPast)
+}
+
+@Test func theDecisionChartFollowsFiltersButNotADraggedSelection() throws {
+    let blocked = try connection(host: "a.example.test")
+    let other = try connection(host: "b.example.test")
+    var state = MonitorQueryState(time: .all)
+    state.search = "a.example.test"
+    let filtered = state.apply(to: [blocked, other], now: now).map(\.source)
+    #expect(MonitorDecisionBuckets.rows(
+        displayed: filtered, all: [blocked, other], query: state, now: now
+    ).map(\.id) == [blocked.id])
+    state.selectedTimeRange = now.addingTimeInterval(-10)...now.addingTimeInterval(-5)
+    let dragged = state.apply(to: [blocked, other], now: now).map(\.source)
+    #expect(dragged.isEmpty)
+    #expect(MonitorDecisionBuckets.rows(
+        displayed: dragged, all: [blocked, other], query: state, now: now
+    ).map(\.id) == [blocked.id])
+}

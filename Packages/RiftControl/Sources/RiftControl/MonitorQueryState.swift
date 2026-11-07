@@ -40,6 +40,8 @@ public struct MonitorQueryState: Sendable, Hashable {
     }
 
     public var isLiveTimeRange: Bool { timeAnchor == nil }
+    /// True whenever what's on screen isn't happening now.
+    public var isViewingPast: Bool { timeAnchor != nil || selectedTimeRange != nil }
     public var canNavigateBackward: Bool { time.supportsNavigation }
     public var canNavigateForward: Bool { time.supportsNavigation && timeAnchor != nil }
 

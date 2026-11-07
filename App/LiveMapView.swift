@@ -33,6 +33,7 @@ struct LiveMapView: View {
             LiveMapCanvas(
                 displayed: feed.mapRows,
                 selectedCountry: feed.query.country,
+                isViewingPast: feed.query.isViewingPast,
                 selectCountry: { feed.query.country = $0 },
                 originController: originController,
                 selectedEventIDs: Set(feed.selectedNode?.eventIDs ?? []),
@@ -69,6 +70,9 @@ struct LiveMapView: View {
 #if DEBUG
         .task {
             if let country = FixturePreviewOptions.sampleCountry { feed.query.country = country }
+            if ProcessInfo.processInfo.arguments.contains("--ui-fixture-past") {
+                feed.query.navigateTime(.previous, now: feed.now)
+            }
             guard let step = FixturePreviewOptions.sampleRuleAction else { return }
             try? await Task.sleep(for: .seconds(2))
             guard let node = feed.hierarchy.first(where: {

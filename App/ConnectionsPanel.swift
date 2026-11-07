@@ -64,7 +64,18 @@ struct ConnectionsPanel: View {
                         .accessibilityHidden(true)
                 }
             ConnectionFilterBar(feed: feed)
+            if feed.query.isViewingPast {
+                HStack(spacing: RiftDesign.Spacing.s) {
+                    Label("Viewing past activity", systemImage: "clock.arrow.circlepath")
+                        .font(.callout)
+                    Spacer(minLength: 0)
+                    Button("Back to Live") { feed.query.showNow() }
+                        .controlSize(.small)
+                }
+                .transition(.opacity)
+            }
         }
+        .animation(.easeOut(duration: RiftDesign.Motion.press), value: feed.query.isViewingPast)
         .padding(RiftDesign.Spacing.m)
     }
 

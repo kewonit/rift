@@ -42,14 +42,28 @@ public enum MonitorTimeFilter: String, CaseIterable, Sendable, Identifiable {
     case twoMinutes = "2 minutes"
     case tenMinutes = "10 minutes"
     case all = "All history"
-    case hour = "Hour"
+    case hour = "This Hour"
     case fiveHours = "5 hours"
-    case day = "Day"
+    case day = "Today"
     case threeDays = "3 days"
-    case week = "Week"
-    case month = "Month"
+    case week = "This Week"
+    case month = "This Month"
     case thirtyDays = "30 days"
     public var id: String { rawValue }
+
+    /// How a live range reads in a sentence. The calendar ranges run from the
+    /// start of the period, so they never say "last".
+    public var liveLabel: String {
+        switch self {
+        case .all: "All saved activity"
+        case .hour: "This hour"
+        case .day: "Today"
+        case .week: "This week"
+        case .month: "This month"
+        case .twoMinutes, .tenMinutes, .fiveHours, .threeDays, .thirtyDays:
+            "Last \(rawValue)"
+        }
+    }
 }
 
 public enum MonitorSort: String, CaseIterable, Sendable, Identifiable {

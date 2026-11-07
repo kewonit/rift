@@ -89,6 +89,10 @@ release.
   clear them. Rows that are partly blocked now say so.
 - The map legend explains blocked markers and says when it leaves connections
   out. The inspector and timeline open faster, and the table opens instantly.
+- Looking at the past is now obvious: Rift shows the dates, a Viewing past
+  activity label with Back to Live, and stops the map's flow dots.
+- Time ranges say what they mean, such as This Hour and Today. The timeline has
+  time labels, and the Decisions chart now follows your search and filters.
 
 ## 0.3.0 (pre-release)
 

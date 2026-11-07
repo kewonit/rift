@@ -240,7 +240,7 @@ final class MonitorFeed {
                 evaluation: evaluation, rows: snapshot.rows, query: state, now: refreshedNow,
                 coverage: snapshot.coverage, isComplete: snapshot.isComplete,
                 coverages: coverages, visibleLimit: limit, pinnedID: pinnedID,
-                sort: sort, includeDecisions: includeDecisions, displayNames: context.displayNames
+                sort: sort, includeDecisions: includeDecisions, context: context
             )
             guard windowIsVisible, MonitorQueryPublication.permits(
                 requestID, active: activeQueryRequestID, taskIsCancelled: Task.isCancelled

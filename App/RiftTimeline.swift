@@ -40,11 +40,35 @@ struct RiftTimeline: View {
                 }
             }
             .frame(height: 44)
+            timeAxis
         }
         .padding(.horizontal, RiftDesign.Spacing.l - 2)
         .padding(.vertical, RiftDesign.Spacing.m - 2)
         .accessibilityElement(children: .contain)
         .onChange(of: mode) { _, _ in hoveredBucket = nil }
+    }
+
+    /// Where the chart starts and ends, so a bar can be read against the clock.
+    @ViewBuilder
+    private var timeAxis: some View {
+        if let window = query.baseTimeWindow(now: now, calendar: calendar), let start = window.start {
+            let end = window.end ?? now
+            let longRange = end.timeIntervalSince(start) > 86_400
+            HStack {
+                Text(start.formatted(date: longRange ? .abbreviated : .omitted, time: .shortened))
+                Spacer()
+                if mode == .decisions, !isMinimal {
+                    Text("Drag to look at part of this range")
+                    Spacer()
+                }
+                Text(query.isViewingPast
+                    ? end.formatted(date: longRange ? .abbreviated : .omitted, time: .shortened)
+                    : "Now")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+        }
     }
 
     private var header: some View {
@@ -143,9 +167,14 @@ struct RiftTimeline: View {
             .labelStyle(.iconOnly)
             .disabled(!query.canNavigateForward)
             .help("Show the next range")
-            Button("Now") { query.showNow(); hoveredBucket = nil }
-                .disabled(query.isLiveTimeRange && query.selectedTimeRange == nil)
-                .help("Return to live activity")
+            if query.isViewingPast {
+                Text(displayedRangeLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Button("Back to Live") { query.showNow(); hoveredBucket = nil }
+                    .help("Return to live activity")
+            }
         }
     }
 
@@ -154,8 +183,7 @@ struct RiftTimeline: View {
     }
 
     private var displayedRangeLabel: String {
-        if query.time == .all { return "All saved activity" }
-        if query.isLiveTimeRange { return "Last " + query.time.rawValue.lowercased() }
+        if query.isLiveTimeRange { return query.time.liveLabel }
         guard let window = query.baseTimeWindow(now: now, calendar: calendar),
               let start = window.start, let end = window.end else { return query.time.rawValue }
         return start.formatted(date: .abbreviated, time: .shortened)

@@ -10,6 +10,8 @@ struct LiveMapCanvas: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let displayed: [MonitorDisplayRow]
     let selectedCountry: String?
+    /// Flow dots mean traffic is moving now, so they stop for past activity.
+    let isViewingPast: Bool
     let selectCountry: (String?) -> Void
     let originController: MapOriginController
     let selectedEventIDs: Set<String>
@@ -87,7 +89,7 @@ struct LiveMapCanvas: View {
             isPlacingOrigin: originController.isPlacingManually,
             highlightedCountries: highlighted,
             style: style,
-            animatesFlow: windowIsVisible && !reduceMotion,
+            animatesFlow: windowIsVisible && !reduceMotion && !isViewingPast,
             reduceMotion: reduceMotion,
             fitRequest: fitRequest,
             obscuredInsets: NSEdgeInsets(

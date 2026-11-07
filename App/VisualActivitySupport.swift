@@ -97,7 +97,7 @@ struct ActivityPresentation: Sendable {
         pinnedID: String? = nil,
         sort: MonitorHierarchySort? = nil,
         includeDecisions: Bool = true,
-        displayNames: [ProcessIdentity: String] = [:]
+        context: MonitorSearchContext = .none
     ) async throws -> ActivityPresentation {
         try await MonitorQueryWorker.run(priority: .utility) {
             try Task.checkCancellation()
@@ -107,7 +107,7 @@ struct ActivityPresentation: Sendable {
                 visible.append(pinned)
             }
             var hierarchy = MonitorHierarchyBuilder.build(
-                visible, lens: query.lens, coverages: coverages, displayNames: displayNames
+                visible, lens: query.lens, coverages: coverages, displayNames: context.displayNames
             )
             if let sort { hierarchy.sort(by: sort.comparator) }
             try Task.checkCancellation()
@@ -126,7 +126,10 @@ struct ActivityPresentation: Sendable {
                 traffic: traffic,
                 decisions: includeDecisions
                     ? MonitorDecisionBuckets.build(
-                        rows: rows, query: query, now: now, coverage: coverage, isComplete: isComplete
+                        rows: MonitorDecisionBuckets.rows(
+                            displayed: displayedRows, all: rows, query: query, now: now, context: context
+                        ),
+                        query: query, now: now, coverage: coverage, isComplete: isComplete
                     )
                     : DecisionBucketSnapshot(buckets: [], coverage: .gap),
                 includesDecisions: includeDecisions
