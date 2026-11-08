@@ -72,12 +72,14 @@ struct RiftSidebarView: View {
                 Label(AppDestination.liveMap.title, systemImage: "map").tag(AppSidebarItem.map)
                 Label(AppDestination.health.title, systemImage: "shield").tag(AppSidebarItem.status)
             }
+            .listItemTint(.monochrome)
             Section("Rules") {
                 ForEach(RuleListFilter.allCases) { filter in
                     Label(filter.rawValue, systemImage: symbol(filter))
                         .tag(AppSidebarItem.rules(.filter(filter)))
                 }
             }
+            .listItemTint(.monochrome)
             // These sections wait for the first load. Filling them while the
             // sidebar does its first layout made AppKit warn about reentrancy.
             if model.hasLoaded {
@@ -87,22 +89,24 @@ struct RiftSidebarView: View {
                         emptyHint("Rule sets, like Home and Work.")
                     }
                 }
+                .listItemTint(.monochrome)
                 Section("Groups") {
                     ForEach(model.groups) { group in groupRow(group) }
                     if model.groups.isEmpty {
                         emptyHint("Turn rules on and off together.")
                     }
                 }
+                .listItemTint(.monochrome)
                 Section("Blocklists") {
                     ForEach(model.blocklists) { source in blocklistRow(source) }
                     if model.blocklists.isEmpty {
                         emptyHint("Block many sites from a file.")
                     }
                 }
+                .listItemTint(.monochrome)
             }
         }
         .listStyle(.sidebar)
-        .listItemTint(.monochrome)
         .task { await model.reload() }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 8) {
