@@ -179,4 +179,18 @@ if otool -L "$EXTENSION_BINARY" | grep -Eiq '(GRDB|libsqlite)'; then
   exit 1
 fi
 
+# Every framework the app links through @rpath must be inside the app, or the
+# app can't launch.
+app_rpaths=(${(f)"$(otool -l "$APP_BINARY" | awk '/cmd LC_RPATH/ { getline; getline; print $2 }')"})
+for library in ${(f)"$(otool -L "$APP_BINARY" | awk '$1 ~ /^@rpath\/.*\.framework\// { print $1 }')"}; do
+  found=0
+  for rpath in $app_rpaths; do
+    [[ -e "${rpath/@executable_path/${APP_BINARY:h}}/${library#@rpath/}" ]] && found=1
+  done
+  if (( ! found )); then
+    echo "app links $library, but no run path inside the app provides it" >&2
+    exit 1
+  fi
+done
+
 echo "PASS: built arm64-only app, extension, and CLI structure"

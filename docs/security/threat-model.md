@@ -59,6 +59,13 @@ in-memory rings.
   to `unclaimed`. It then requests OS deactivation. It never deactivates first
   and cleans up afterward.
 
+- The app checks a Sparkle feed on GitHub for updates. It installs one only when
+  the archive carries an EdDSA signature from Rift's update key, Sparkle verifies
+  it before extracting it, and the new app has a Developer ID signature from the
+  same team as the installed copy and is notarized. Control of GitHub alone
+  can't ship code. The filter and CLI have no update code; the new app replaces
+  the filter through the normal system-extension request.
+
 ## Compromise boundaries
 
 Arbitrary root authority can alter the extension cache. The protection claim
@@ -66,3 +73,7 @@ does not cover it. Same-user code that escapes normal sandbox or DAC restriction
 may alter the user's source database. Reconciliation still requires the exact
 signed app and controller path. Persistent self-protection and enterprise
 administration are deferred.
+
+Someone holding both Rift's update key and its Developer ID signing identity
+could ship an update. Both stay on the maintainer's Mac, outside the repository
+and CI.

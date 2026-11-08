@@ -22,6 +22,7 @@ struct RiftApp: App {
                 RuleWorkspaceCommands(session: session)
             }
             MapCommands()
+            UpdateCommands()
         }
 
         Settings {
@@ -133,6 +134,8 @@ private final class AppStartupCoordinator {
             session = AppSession(launchMode: .live)
 #else
             session = AppSession()
+            // Sparkle wants its controller before the menus are built.
+            RiftUpdater.start()
 #endif
         case .terminate, .startupFailed:
             session = nil

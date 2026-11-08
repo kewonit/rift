@@ -19,6 +19,12 @@ release.
 - A newer Rift updates its network filter by itself when it opens, instead of
   asking you to find a button.
 - `rift://` links now open Rift. The app never told macOS it handles them.
+- Rift updates itself. It checks GitHub once a day and installs a new version
+  only when it's signed by Rift's developer and notarized by Apple, then updates
+  its network filter. Turn this off in Settings › General, or use Check for
+  Updates… in the Rift menu.
+- App helpers, such as Chrome's, show their app's name and icon.
+- Sidebar icons are monochrome.
 - One timeline shows traffic or decisions for the chosen time range.
 - The menu-bar panel was rebuilt with a mode menu, recent apps with their
   decisions, and standard menu rows.

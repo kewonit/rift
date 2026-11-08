@@ -24,7 +24,7 @@ if ! /usr/bin/grep -Fq 'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83d
 fi
 
 control_inventory=$'grdb.swift\thttps://github.com/groue/GRDB.swift.git\t7.10.0\t36e30a6f1ef10e4194f6af0cff90888526f0c115'
-workspace_inventory=$'grdb.swift\thttps://github.com/groue/GRDB.swift.git\t7.10.0\t36e30a6f1ef10e4194f6af0cff90888526f0c115\nswift-argument-parser\thttps://github.com/apple/swift-argument-parser.git\t1.8.2\t6a52f3251125d74daf04fcbd5e6f08a75d074382'
+workspace_inventory=$'grdb.swift\thttps://github.com/groue/GRDB.swift.git\t7.10.0\t36e30a6f1ef10e4194f6af0cff90888526f0c115\nsparkle\thttps://github.com/sparkle-project/Sparkle\t2.10.0\teef1a539a373c1f1a320624b1130fc5de7b2e100\nswift-argument-parser\thttps://github.com/apple/swift-argument-parser.git\t1.8.2\t6a52f3251125d74daf04fcbd5e6f08a75d074382'
 verify_lock() {
   local lock_path=$1
   local expected=$2
@@ -39,7 +39,8 @@ verify_lock "$ROOT/Rift.xcworkspace/xcshareddata/swiftpm/Package.resolved" "$wor
 verify_lock "$ROOT/Rift.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" "$workspace_inventory"
 
 for pin in 36e30a6f1ef10e4194f6af0cff90888526f0c115 \
-  6a52f3251125d74daf04fcbd5e6f08a75d074382; do
+  6a52f3251125d74daf04fcbd5e6f08a75d074382 \
+  eef1a539a373c1f1a320624b1130fc5de7b2e100; do
   if ! /usr/bin/grep -Fq "$pin" "$ROOT/Rift.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
     || ! /usr/bin/grep -Fq "$pin" "$ROOT/docs/release/sbom.spdx.json" \
     || ! /usr/bin/grep -Fq "$pin" "$ROOT/THIRD_PARTY_NOTICES.md"; then

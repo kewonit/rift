@@ -78,6 +78,18 @@
       "name": "Natural Earth 1:50m admin-0 countries",
       "primaryPackagePurpose": "DATA",
       "versionInfo": "5.1.1"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-Sparkle",
+      "copyrightText": "Copyright Andy Matuschak, Elgato Systems GmbH, Kornel Lesiński, Mayur Pawashe, C.W. Betts and the Sparkle Project contributors",
+      "downloadLocation": "git+https://github.com/sparkle-project/Sparkle@eef1a539a373c1f1a320624b1130fc5de7b2e100",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "name": "Sparkle",
+      "primaryPackagePurpose": "FRAMEWORK",
+      "supplier": "Organization: Sparkle Project",
+      "versionInfo": "2.10.0"
     }
   ],
   "relationships": [
@@ -109,6 +121,11 @@
     {
       "relatedSpdxElement": "SPDXRef-Package-NaturalEarthCountries",
       "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-Rift"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-Sparkle",
+      "relationshipType": "DEPENDS_ON",
       "spdxElementId": "SPDXRef-Package-Rift"
     }
   ],

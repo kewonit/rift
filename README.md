@@ -138,7 +138,8 @@ performance tests. Direct distribution has a separate notarization gate.
   Persistent history is opt-in; saved rules remain enforced either way.
 - The app owns editable user configuration. The extension owns the validated,
   durable enforcement cache.
-- Rift does not enable a remote blocklist URL or an automatic updater. Country
+- Rift does not enable a remote blocklist URL. It checks GitHub once a day for
+  signed updates, which you can turn off in Settings. Country
   lookups for the map use a bundled table on the Mac. Apple MapKit requests the
   visible basemap region.
 
