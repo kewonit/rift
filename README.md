@@ -1,14 +1,33 @@
 # Rift
 
-Rift is an open-source, native macOS content-filter firewall for Apple silicon
-Macs. It uses SwiftUI, AppKit, NetworkExtension, SystemExtensions, and Swift 6
-strict concurrency. Core 1.0 targets macOS 15 and later and builds only
-`arm64` binaries.
+Rift is an open-source network firewall for Apple silicon Macs. It shows which
+apps connect where, draws each connection's likely route across the world's
+undersea cables, and lets you allow or block apps and sites.
 
-> **Early release:** Rift 0.4.0 is the first signed and notarized download, on
-> the [Releases page](https://github.com/kewonit/rift/releases). Signed
-> live-filtering, clean-install, fault, and soak testing are not complete. Do not
-> treat Rift as an independently verified firewall.
+![Rift's Map page in dark mode, showing a connection's route to Japan and its details](docs/images/map.webp)
+
+> **Early release.** Signed live-filtering, clean-install, fault, and soak
+> testing are not complete. Don't treat Rift as an independently verified
+> firewall.
+
+## Features
+
+- **Modes:** Ask Me, Allow and Watch, Block Unless Allowed, and Pause Rules.
+- **Rules** for apps and sites, organized with profiles, groups, and local
+  blocklists.
+- **Connection alerts** in Ask Me mode, so you decide when an app connects
+  somewhere new.
+- **Map** of connections over undersea cables, with a timeline and a searchable
+  connection table. Routes are estimates.
+- **Menu-bar panel** with the current mode and recent apps.
+- **`riftctl`**, a command-line client inside the app at
+  `Rift.app/Contents/Helpers/riftctl`.
+- **Automatic updates**, signed and notarized.
+
+## Requirements
+
+- Apple silicon Mac
+- macOS 15 or later
 
 ## Install
 
@@ -18,152 +37,57 @@ strict concurrency. Core 1.0 targets macOS 15 and later and builds only
    Rift's filter from the Applications folder.
 3. Approve the system extension and network filter when macOS asks.
 
-Rift then checks for updates once a day. Turn this off in Settings › General.
+Rift checks GitHub for updates once a day. Turn this off in Settings › General.
 
-## Apple membership requirements
+## Privacy
 
-You can clone, inspect, change, test, and compile the source at no cost. The
-unsigned local lane does not require an Apple account. A free Personal Team can
-sign ordinary personal apps, but it does not make Rift's full content-filter
-lane generally runnable or distributable.
+- Rift doesn't collect packet contents or full URLs, has no analytics, and
+  doesn't upload diagnostics.
+- Connection history stays in memory unless you turn on saved history.
+- The map finds each connection's country in a table bundled with the app. Apple
+  Maps loads map imagery but gets no connection details from Rift.
+- The daily update check sends nothing about your connections, rules, or Mac.
 
-To run Rift as a system-wide firewall, provision the host app and system
-extension with Apple-authorized App Group, System Extension, and Network
-Extension capabilities. To distribute a download from GitHub, you also need
-Developer ID signing and notarization. An Apple Developer Program team provides
-these assets. Signed live-filtering evidence and Mac App Store validation are
-still pending.
+Read the [privacy notice](PRIVACY.md) for details.
 
-Apple references:
+## Safety
 
-- [Developer account overview](https://developer.apple.com/help/account/basics/about-your-developer-account)
-- [Network Extensions entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.networkextension)
-- [Supported macOS capabilities](https://developer.apple.com/help/account/reference/supported-capabilities-macos/)
+If Rift has no valid policy, it allows connections instead of blocking them.
+Read [runtime limitations and recovery](docs/release/runtime-limitations.md)
+before you rely on it, and to remove it cleanly.
 
-In short:
+## Build from source
 
-| Use | Free local lane | Paid Apple program/team |
-|---|---:|---:|
-| Read, modify, and run package tests | Yes | No |
-| Compile the unsigned app, extension, and CLI | Yes | No |
-| Test the Live Map, cable map, and UI fixtures | Yes | No |
-| Exercise pure rule/history/archive/IPC logic | Yes | No |
-| Activate the system-wide content filter | No | Yes, with matching capabilities and profiles |
-| Publish a notarized GitHub download | No | Yes, with Developer ID and notarization |
-
-For contributors, a GitHub source archive or clone provides a free build, test,
-and UI lane. It does not turn the unsigned app into a functioning system-wide
-firewall. A contributor with an authorized Developer Program team can supply
-their own identifiers and profiles for signed integration testing.
-
-For end users, signed and notarized downloads are on GitHub. A paid Mac App
-Store download is also planned.
-End users will not need an Apple account beyond the normal App Store account or
-their own developer membership. They will need to approve the Network Extension
-and system extension in macOS. Store receipt, clean-install, and entitlement
-validation are still pending.
-
-## Build the unsigned local lane
-
-Requirements:
-
-- Apple silicon Mac
-- macOS 15 or later
-- Xcode 26.6 or newer with the command-line tools selected
-
-Run the maintained unsigned build workflow:
+Requires Xcode 26.6 or later.
 
 ```sh
 ./Scripts/test-nonfiltering.sh
 ```
 
-The workflow runs all four Swift package suites. It creates an unsigned Release
-build. It checks that the app, extension, and embedded CLI are arm64-only and
-correctly contained. It does not install, launch, activate, or modify a system
-extension. The same script is the only job in the GitHub Actions workflow. That
-job is named **Unsigned arm64 audit (no filtering)** and publishes no app
-artifact.
+This runs the package tests and builds an unsigned Release copy. An unsigned
+copy runs the interface but can't filter. The content filter needs an Apple
+Developer Program team with the Network Extension and System Extension
+capabilities; see the [build and signing guide](docs/release/build-signing.md).
+The repository contains no signing identities, profiles, or credentials.
 
-Before any source publication or release candidate, run the stricter gate:
+Run `./Scripts/release-local-audit.sh` before you open a pull request.
 
-```sh
-./Scripts/release-local-audit.sh
-```
+## Documentation
 
-The gate includes the unsigned workflow. It also verifies release metadata and
-the tracked publication inventory. It does not stage, delete, rewrite, or
-publish anything.
+- [Changelog](CHANGELOG.md)
+- [Privacy notice](PRIVACY.md)
+- [Threat model](docs/security/threat-model.md)
+- [Runtime limitations and recovery](docs/release/runtime-limitations.md)
+- [Build and signing](docs/release/build-signing.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md),
+  [SBOM](docs/release/sbom.spdx.json), and
+  [reproducibility notes](docs/release/reproducibility.md)
 
-For the lighter pure-package lane:
+## Contributing
 
-```sh
-swift test --package-path Packages/RiftCore
-swift test --package-path Packages/RiftIPC
-swift test --package-path Packages/RiftControl
-swift test --package-path Packages/RiftFilterRuntime
-```
+Read the [contribution guide](CONTRIBUTING.md). Report vulnerabilities
+privately as described in the [security policy](SECURITY.md).
 
-Package tests cover the deterministic matcher, policy and state machines, and
-bounded IPC and file transfer. They cover root policy-store recovery,
-configuration and history repositories, backups, and archives. They also cover
-diagnostics redaction, monitor logic, and rule logic. They do not claim that
-live macOS filtering works.
+## License
 
-## Map
-
-The Live Map draws the world's undersea internet cables on Apple Maps and shows
-which cables your connections most likely use, with traffic flowing along them.
-You place this Mac on the map yourself; Rift never looks up your location. For
-each public destination, Rift finds the country in a bundled IP-to-country table
-on the Mac, then estimates the path from your location across the cable map.
-Destination addresses never leave the Mac.
-
-Paths are estimates. Solid lines are cables mapped in OpenStreetMap; dashed
-lines are main sea routes drawn from where cables come ashore, because
-OpenStreetMap doesn't map every cable. Country data can be wrong for VPNs,
-relays, and content delivery networks. The bundled data and how to rebuild it
-are described in the [third-party notices](THIRD_PARTY_NOTICES.md).
-
-MapKit requests imagery and labels from Apple as you pan and zoom; Rift doesn't
-give Apple destination IP addresses, hostnames, app identities, or firewall
-decisions.
-
-## Signed integration and distribution
-
-The repository contains no Team ID, certificate, provisioning profile, notary
-credential, or signing secret. To sign your own build with an authorized Apple
-Developer Program team, follow the [build and signing guide](docs/release/build-signing.md).
-The paid Mac App Store lane still requires capability approval, App Store
-Connect/TestFlight validation, and clean-machine filtering, recovery, and
-performance tests. GitHub downloads are signed with Developer ID and notarized.
-
-## Design and safety boundaries
-
-- Rift fails open when no compatible, validated policy is available.
-- Rift does not collect packet payloads or complete URLs. It does not use
-  analytics or upload diagnostics automatically.
-- Privacy-hidden flows do not enter monitor history or user-visible aggregates.
-- New installations keep connection history in memory only: up to 10 recent
-  connections for five minutes in visible activity views, or five in the menu
-  panel alone. Hidden activity views stop collection and release those buffers.
-  Persistent history is opt-in; saved rules remain enforced either way.
-- The app owns editable user configuration. The extension owns the validated,
-  durable enforcement cache.
-- Rift does not enable a remote blocklist URL. It checks GitHub once a day for
-  signed updates, which you can turn off in Settings. Country
-  lookups for the map use a bundled table on the Mac. Apple MapKit requests the
-  visible basemap region.
-
-Read the [runtime limitations and recovery](docs/release/runtime-limitations.md),
-[threat model](docs/security/threat-model.md), [privacy notice](PRIVACY.md),
-and [third-party notices](THIRD_PARTY_NOTICES.md). The [software bill of
-materials (SBOM)](docs/release/sbom.spdx.json) and [reproducibility and symbol
-notes](docs/release/reproducibility.md) describe Rift 0.4.0.
-
-## Contribute or report a security issue
-
-Read [the contribution guide](CONTRIBUTING.md) before changing code. Report
-security issues as described in [the security policy](SECURITY.md). Do not
-attach private network data or signing material.
-
-Licensed under the [Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE)

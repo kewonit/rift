@@ -76,8 +76,9 @@ for path in ${(k)tracked}; do
     .env|.env.*|*/.env|*/.env.*)
       fail "publication inventory contains a credential-shaped file: $path"
       ;;
-    *.png|*.jpg|*.jpeg|*.heic|*.tiff)
-      if [[ "$path" != *Assets.xcassets/* ]]; then
+    *.png|*.jpg|*.jpeg|*.heic|*.tiff|*.webp)
+      # docs/images holds README screenshots the maintainer approved.
+      if [[ "$path" != *Assets.xcassets/* && "$path" != docs/images/* ]]; then
         fail "publication inventory contains an unapproved raster image: $path"
       fi
       ;;
