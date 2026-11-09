@@ -34,6 +34,8 @@ done
 
 fail() { print -u2 -- "release: $*"; exit 1; }
 setting() { awk -F' = ' -v key="$1" '$1 == key { print $2 }' Configuration/Base.xcconfig; }
+# The version's CHANGELOG.md section, which becomes the release notes.
+release_notes() { awk -v heading="## $VERSION" '$0 == heading { keep = 1; next } /^## / { keep = 0 } keep' CHANGELOG.md; }
 
 NOTARY_PROFILE=${RIFT_NOTARY_PROFILE:-rift}
 SPARKLE_ACCOUNT=${RIFT_SPARKLE_ACCOUNT:-rift}
@@ -52,6 +54,7 @@ if (( PUBLISH )); then
   if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
     fail "$TAG already exists; raise MARKETING_VERSION and CURRENT_PROJECT_VERSION"
   fi
+  [[ -n ${$(release_notes)//[[:space:]]/} ]] || fail "CHANGELOG.md needs a \"## $VERSION\" section"
 fi
 
 IDENTITY=$(security find-identity -v -p codesigning \
@@ -173,7 +176,7 @@ print "Built $OUT/$ARCHIVE and $OUT/appcast.xml"
 print -n "Publish Rift $VERSION ($BUILD) to github.com/$REPO? Installed copies will update to it. [y/N] "
 read -q || { print; fail "not published"; }
 print
-awk '/^## Unreleased/ { keep = 1; next } /^## / { keep = 0 } keep' CHANGELOG.md > "$OUT/notes.md"
+release_notes > "$OUT/notes.md"
 git tag -a "$TAG" -m "Rift $VERSION"
 git push origin "$TAG"
 gh release create "$TAG" "$OUT/$ARCHIVE" "$OUT/appcast.xml" --title "Rift $VERSION" --notes-file "$OUT/notes.md"

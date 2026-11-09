@@ -11,6 +11,10 @@ report.
 
 The project publishes no security bounty or release SLA.
 
+## Supported versions
+
+Only the latest release gets security fixes. They ship in the next release.
+
 ## Security boundaries
 
 Rift fails open when no compatible, validated policy is available. The integrity

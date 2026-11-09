@@ -61,7 +61,8 @@ Mac. Turn off **Check for updates automatically** in **Settings › General** to
 stop the daily check; **Check for Updates…** in the Rift menu still works.
 
 An update installs only when it's signed with Rift's update key and by the same
-Apple Developer ID team as the copy you have, and Apple has notarized it.
+Apple Developer ID team as the copy you have. Every release is also notarized
+by Apple.
 
 ## Exports and sharing
 
@@ -82,5 +83,4 @@ user clears them separately. Deleting the app without completing removal can
 leave the approved system extension and its last durable policy active. Follow
 the recovery steps in [runtime limitations and recovery](docs/release/runtime-limitations.md).
 
-This page describes pre-release source behavior. Review it before a public
-binary release.
+This page describes Rift 0.4.0.

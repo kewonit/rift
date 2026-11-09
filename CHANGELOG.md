@@ -1,9 +1,11 @@
 # Changelog
 
-The changelog records notable user-visible changes. Rift has no signed public
-release.
+The changelog records notable user-visible changes.
 
-## Unreleased
+## 0.4.0
+
+The first signed and notarized download of Rift. These notes list the changes
+since the unpublished 0.3.0 source.
 
 - Rift has a new window. One sidebar holds Map, Status and your rules, filters,
   profiles, groups and blocklists. The Activity page is part of the Map page.
@@ -15,13 +17,12 @@ release.
 - The inspector appears when you select a connection, and search sits above
   each table.
 - Rules show on one line, and the rule inspector matches the connection one.
-- Status shows your mode and rule counts at a glance.
 - A newer Rift updates its network filter by itself when it opens, instead of
   asking you to find a button.
 - `rift://` links now open Rift. The app never told macOS it handles them.
 - Rift updates itself. It checks GitHub once a day and installs a new version
-  only when it's signed by Rift's developer and notarized by Apple, then updates
-  its network filter. Turn this off in Settings › General, or use Check for
+  only when it's signed by Rift's developer, then updates its network filter.
+  Every release is also notarized by Apple. Turn this off in Settings › General, or use Check for
   Updates… in the Rift menu.
 - App helpers, such as Chrome's, show their app's name and icon.
 - Sidebar icons are monochrome.
@@ -102,7 +103,7 @@ release.
 - Empty lists say whether nothing happened or your filters hid it, with a way to
   clear them. Rows that are partly blocked now say so.
 - The map legend explains blocked markers and says when it leaves connections
-  out. The inspector and timeline open faster, and the table opens instantly.
+  out.
 - Looking at the past is now obvious: Rift shows the dates, a Viewing past
   activity label with Back to Live, and stops the map's flow dots.
 - Time ranges say what they mean, such as This Hour and Today. The timeline has
@@ -148,7 +149,7 @@ release.
   Mac; `Scripts/build-network-data.sh` rebuilds the data from pinned sources.
 - Rewrote the text throughout the app in plain language.
 
-## Unreleased (0.1.0 source)
+## 0.1.0 (pre-release)
 
 - Added the initial Apple silicon macOS firewall source tree, native app,
   content-filter system extension, and embedded `riftctl` command-line client.

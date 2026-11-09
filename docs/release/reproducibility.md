@@ -2,7 +2,9 @@
 
 The maintained local lane builds an unsigned Apple silicon product. The
 reference environment recorded on 2026-08-11 uses macOS 26.5.2 (`25F84`), Xcode
-26.6 (`17F113`), and Apple Swift 6.3.3. The deployment target is macOS 15.
+26.6 (`17F113`), and Apple Swift 6.3.3. The signed Rift 0.4.0 download was
+built on 2026-11-09 with macOS 27.0.1 (`26A434`), Xcode 27.2 (`27B52`), and
+Apple Swift 6.4.2. The deployment target is macOS 15.
 All three shipped executables contain only `arm64`.
 
 Run from a clean source checkout:
@@ -15,8 +17,8 @@ The script validates source and release metadata, runs all package suites, build
 with signing disabled, and inspects
 `.build/DerivedData/Build/Products/Release`. The SHA-256 hash of the workspace
 dependency lock is
-`e9d43ad174ac4f16964859856294af1f0f45b44e7f8e5a5b794146b9ee2d7f81` for the
-current source candidate. Dependency revisions also appear in the SPDX SBOM
+`8a862ae10e2744d0e5dd6fea4ea9912546b7928e975cf353a67444dc5deb895c` for
+Rift 0.4.0. Dependency revisions also appear in the SPDX SBOM
 and third-party notices.
 
 ## Keep symbol bundles

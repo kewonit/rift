@@ -62,7 +62,8 @@ in-memory rings.
 - The app checks a Sparkle feed on GitHub for updates. It installs one only when
   the archive carries an EdDSA signature from Rift's update key, Sparkle verifies
   it before extracting it, and the new app has a Developer ID signature from the
-  same team as the installed copy and is notarized. Control of GitHub alone
+  same team as the installed copy. Releases are notarized, but the updater
+  doesn't check for it. Control of GitHub alone
   can't ship code. The filter and CLI have no update code; the new app replaces
   the filter through the normal system-extension request.
 

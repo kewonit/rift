@@ -104,7 +104,9 @@ replaces the system extension by itself when it opens.
 1. Raise `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in
    `Configuration/Base.xcconfig`. Sparkle compares `CURRENT_PROJECT_VERSION`, so
    it must always increase.
-2. Merge to `main`, then run `Scripts/release.sh --publish`. It builds, signs
+2. Put the release notes under a `## <version>` heading in `CHANGELOG.md`,
+   matching `MARKETING_VERSION`. They become the GitHub release notes.
+3. Merge to `main`, then run `Scripts/release.sh --publish`. It builds, signs
    inside out, notarizes, staples, signs the archive for Sparkle, writes
    `appcast.xml`, and asks before it tags the version and creates the GitHub
    release.

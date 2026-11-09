@@ -1,6 +1,6 @@
 # Runtime limitations and recovery
 
-Rift is a pre-release project. The unsigned source build exercises the
+Rift is early software. The unsigned source build exercises the
 interface, rule engine, persistence, and IPC models. It cannot activate the
 macOS content filter. Do not rely on an unsigned build as a
 system-wide firewall.
@@ -14,7 +14,7 @@ system-wide firewall.
   capabilities for live filtering
 
 Intel Macs, remote administration, and automatic remote list updates are outside
-this release scope. Mac App Store validation remains a signed release gate.
+this release scope. Mac App Store validation is still pending.
 
 ## Filtering behavior
 
