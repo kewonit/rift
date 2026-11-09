@@ -110,6 +110,11 @@ struct RiftWorkspaceView: View {
             if session.isUIFixture, FixturePreviewOptions.opensSettings { openSettings() }
         }
 #endif
+        // The sidebar's rules load at launch, which can fall in the middle of a
+        // filter update. Load them again once the filter's state settles.
+        .onChange(of: session.protectionStatus.state) { _, _ in
+            Task { await rules.reload() }
+        }
         .onChange(of: session.showingFilterStatus, initial: true) { _, showing in
             guard showing else { return }
             session.destination = .health

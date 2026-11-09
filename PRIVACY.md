@@ -3,7 +3,8 @@
 Rift makes firewall decisions on the Mac. It does not use analytics, an
 advertising SDK, a telemetry service, automatic diagnostics upload, or
 packet-payload capture. It doesn't send destination IP addresses to any
-service. Core 1.0 does not enable a remote blocklist or software updates.
+service. Rift does not enable a remote blocklist. It checks GitHub once a day
+for software updates, as described under [Update checks](#update-checks).
 
 ## Data kept on the Mac
 
@@ -51,6 +52,18 @@ country can be wrong for VPNs, relays, and content delivery networks, and the
 path is an estimate, not the route your data actually takes. Countries and
 paths are shown only while the map is open and aren't saved.
 
+## Update checks
+
+Rift checks for a new version once a day by downloading a small feed from
+GitHub. GitHub sees your IP address and Rift's version in that request, as with
+any download. Rift sends no connections, rules, history, or details about the
+Mac. Turn off **Check for updates automatically** in **Settings › General** to
+stop the daily check; **Check for Updates…** in the Rift menu still works.
+
+An update installs only when it's signed with Rift's update key and by the same
+Apple Developer ID team as the copy you have. Every release is also notarized
+by Apple.
+
 ## Exports and sharing
 
 Configuration archives exclude history, counters, machine identifiers, policy
@@ -70,5 +83,4 @@ user clears them separately. Deleting the app without completing removal can
 leave the approved system extension and its last durable policy active. Follow
 the recovery steps in [runtime limitations and recovery](docs/release/runtime-limitations.md).
 
-This page describes pre-release source behavior. Review it before a public
-binary release.
+This page describes Rift 0.4.0.

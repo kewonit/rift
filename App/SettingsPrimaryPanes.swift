@@ -67,6 +67,9 @@ struct GeneralSettingsPane: View {
                 ))
                 .disabled(!isLoginItemReady)
             }
+            if let updater = RiftUpdater.shared {
+                UpdateSettingsSection(updater: updater)
+            }
         }
         .formStyle(.grouped)
     }

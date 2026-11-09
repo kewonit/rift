@@ -5,10 +5,20 @@ Macs. It uses SwiftUI, AppKit, NetworkExtension, SystemExtensions, and Swift 6
 strict concurrency. Core 1.0 targets macOS 15 and later and builds only
 `arm64` binaries.
 
-> **Pre-release status:** The non-filtering source lane builds, and its automated
-> tests pass. Signed live-filtering, clean-install, fault, and soak testing are
-> not complete, and no signed build has been published. Do not treat this
-> repository as a released or independently verified firewall.
+> **Early release:** Rift 0.4.0 is the first signed and notarized download, on
+> the [Releases page](https://github.com/kewonit/rift/releases). Signed
+> live-filtering, clean-install, fault, and soak testing are not complete. Do not
+> treat Rift as an independently verified firewall.
+
+## Install
+
+1. Download the `.zip` from the
+   [latest release](https://github.com/kewonit/rift/releases/latest) and open it.
+2. Move Rift to the Applications folder and open it from there. macOS only runs
+   Rift's filter from the Applications folder.
+3. Approve the system extension and network filter when macOS asks.
+
+Rift then checks for updates once a day. Turn this off in Settings › General.
 
 ## Apple membership requirements
 
@@ -46,7 +56,8 @@ and UI lane. It does not turn the unsigned app into a functioning system-wide
 firewall. A contributor with an authorized Developer Program team can supply
 their own identifiers and profiles for signed integration testing.
 
-For end users, the intended distribution is a paid Mac App Store download.
+For end users, signed and notarized downloads are on GitHub. A paid Mac App
+Store download is also planned.
 End users will not need an Apple account beyond the normal App Store account or
 their own developer membership. They will need to approve the Network Extension
 and system extension in macOS. Store receipt, clean-install, and entitlement
@@ -120,11 +131,11 @@ decisions.
 ## Signed integration and distribution
 
 The repository contains no Team ID, certificate, provisioning profile, notary
-credential, or signing secret. When an authorized Apple Developer Program team
-is available, follow the [build and signing guide](docs/release/build-signing.md).
+credential, or signing secret. To sign your own build with an authorized Apple
+Developer Program team, follow the [build and signing guide](docs/release/build-signing.md).
 The paid Mac App Store lane still requires capability approval, App Store
 Connect/TestFlight validation, and clean-machine filtering, recovery, and
-performance tests. Direct distribution has a separate notarization gate.
+performance tests. GitHub downloads are signed with Developer ID and notarized.
 
 ## Design and safety boundaries
 
@@ -138,7 +149,8 @@ performance tests. Direct distribution has a separate notarization gate.
   Persistent history is opt-in; saved rules remain enforced either way.
 - The app owns editable user configuration. The extension owns the validated,
   durable enforcement cache.
-- Rift does not enable a remote blocklist URL or an automatic updater. Country
+- Rift does not enable a remote blocklist URL. It checks GitHub once a day for
+  signed updates, which you can turn off in Settings. Country
   lookups for the map use a bundled table on the Mac. Apple MapKit requests the
   visible basemap region.
 
@@ -146,7 +158,7 @@ Read the [runtime limitations and recovery](docs/release/runtime-limitations.md)
 [threat model](docs/security/threat-model.md), [privacy notice](PRIVACY.md),
 and [third-party notices](THIRD_PARTY_NOTICES.md). The [software bill of
 materials (SBOM)](docs/release/sbom.spdx.json) and [reproducibility and symbol
-notes](docs/release/reproducibility.md) describe the current source candidate.
+notes](docs/release/reproducibility.md) describe Rift 0.4.0.
 
 ## Contribute or report a security issue
 

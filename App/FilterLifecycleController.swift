@@ -26,6 +26,7 @@ final class FilterLifecycleController: NSObject {
     private var activeRequestKind: RequestKind?
     private var retryAction: RetryAction?
     private var installedExtensionUpdateAvailable = false
+    private var attemptedAutomaticUpdate = false
     private(set) var initialStatusResolved = false
     private(set) var activationPreflightFailure:
         SystemExtensionActivationPreflightFailure?
@@ -71,6 +72,7 @@ final class FilterLifecycleController: NSObject {
 
     /// Says what the retry button will actually do in this state.
     var retryTitle: String {
+        if installedExtensionUpdateAvailable, case .failed = state { return "Update Filter" }
         guard case .disabled = state else { return "Try Again" }
         return filterNeedsConfiguration ? "Finish Setup" : "Turn On Filter"
     }
@@ -280,7 +282,7 @@ final class FilterLifecycleController: NSObject {
             installedExtensionUpdateAvailable = permitsReplacement(
                 existing: observation.identity, incoming: expected
             )
-            return failed(.installedExtensionMismatch)
+            return failed(installedExtensionUpdateAvailable ? .installedExtensionOutdated : .installedExtensionMismatch)
         }
         filterNeedsConfiguration = false
         guard observation.enabled else { return .disabled }
@@ -333,6 +335,12 @@ final class FilterLifecycleController: NSObject {
             retryAction = nil
         }
         initialStatusResolved = true
+        // A newer Rift updates its own filter once per launch. macOS doesn't ask
+        // again when the update comes from the same team.
+        if installedExtensionUpdateAvailable, !attemptedAutomaticUpdate {
+            attemptedAutomaticUpdate = true
+            installAndEnable()
+        }
     }
 
     private func transition(_ event: LifecycleEvent) {

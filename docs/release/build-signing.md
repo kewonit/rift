@@ -92,3 +92,32 @@ Invoke the app-bundled CLI at
 `/Applications/Rift.app/Contents/Helpers/riftctl`. A user can create a symlink
 in an existing personal `PATH`. Rift never writes `/usr/local/bin` or edits
 shell startup files.
+
+## Publish an update
+
+Installed copies of Rift use Sparkle to check
+`https://github.com/kewonit/rift/releases/latest/download/appcast.xml` once a
+day. They install a new version only when it carries Rift's EdDSA update
+signature and a Developer ID signature from the same team. The new copy then
+replaces the system extension by itself when it opens.
+
+1. Raise `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in
+   `Configuration/Base.xcconfig`. Sparkle compares `CURRENT_PROJECT_VERSION`, so
+   it must always increase.
+2. Put the release notes under a `## <version>` heading in `CHANGELOG.md`,
+   matching `MARKETING_VERSION`. They become the GitHub release notes.
+3. Merge to `main`, then run `Scripts/release.sh --publish`. It builds, signs
+   inside out, notarizes, staples, signs the archive for Sparkle, writes
+   `appcast.xml`, and asks before it tags the version and creates the GitHub
+   release.
+
+The script reads the Developer ID identity, provisioning profiles, notary
+profile (`RIFT_NOTARY_PROFILE`, default `rift`) and Sparkle key
+(`RIFT_SPARKLE_ACCOUNT`, default `rift`) from the Mac. None of them are in the
+repository. Back up the Sparkle key with Sparkle's `generate_keys -x`: without
+it, installed copies can't accept a new version.
+
+Without `--publish`, the script builds everything in `.build/release/` and
+stops. Use `--download-base` with a local web server to test an update before
+publishing it.
+

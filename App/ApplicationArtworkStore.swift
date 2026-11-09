@@ -79,23 +79,41 @@ final class ApplicationArtworkStore {
         if let task = inFlight[identity] { return await task.value }
         guard inFlight.count < Self.maximumPending else { return nil }
         let candidates = await candidateURLs(for: identity)
-        guard !candidates.isEmpty else {
-            insert(nil, for: identity)
-            return nil
-        }
         let task: Task<ApplicationArtwork?, Never> = Task { [verifier] in
-            guard let proof = await verifier.select(
-                candidates: candidates,
-                identity: identity
-            ), let artwork = renderArtwork(at: proof.url),
-                  await verifier.revalidate(proof, identity: identity) else { return nil }
-            return artwork
+            if !candidates.isEmpty,
+               let proof = await verifier.select(candidates: candidates, identity: identity),
+               let artwork = renderArtwork(at: proof.url),
+               await verifier.revalidate(proof, identity: identity) {
+                return artwork
+            }
+            return await helperArtwork(for: identity)
         }
         inFlight[identity] = task
         let artwork = await task.value
         if cache[identity] == nil { insert(artwork, for: identity) }
         inFlight.removeValue(forKey: identity)
         return artwork
+    }
+
+    /// A helper such as `com.google.Chrome.helper` lives inside its app and has
+    /// no bundle of its own to look up, so its app stands in. Only an app signed
+    /// by the same team qualifies.
+    private func helperArtwork(for identity: ProcessIdentity) async -> ApplicationArtwork? {
+        guard let signed = identity.signedCode else { return nil }
+        var parts = signed.signingIdentifier.split(separator: ".")
+        while parts.count > 2 {
+            parts.removeLast()
+            let parent = parts.joined(separator: ".")
+            guard isSafeLookup(parent) else { return nil }
+            let urls = NSWorkspace.shared.urlsForApplications(withBundleIdentifier: parent)
+            guard !urls.isEmpty else { continue }
+            guard urls.count <= Self.maximumCandidates,
+                  let proof = await verifier.selectParent(candidates: urls, of: identity),
+                  let artwork = renderArtwork(at: proof.url),
+                  await verifier.revalidate(proof, identity: identity) else { return nil }
+            return ApplicationArtwork(image: artwork.image, displayName: artwork.displayName.map { "\($0) Helper" })
+        }
+        return nil
     }
 
     /// Artwork already in the cache, so a recreated view can show it at once.
@@ -328,140 +346,4 @@ final class ApplicationArtworkStore {
         return ApplicationArtwork(image: image, displayName: nil)
     }
 #endif
-}
-
-private struct ApplicationCandidateProof: Sendable, Equatable {
-    let url: URL
-    let device: UInt64
-    let inode: UInt64
-    let modifiedSeconds: Int64
-    let modifiedNanoseconds: Int64
-    let executableDevice: UInt64
-    let executableInode: UInt64
-    let executableSize: UInt64
-    let executableModifiedSeconds: Int64
-    let executableModifiedNanoseconds: Int64
-}
-
-private final class ApplicationArtworkVerifier: @unchecked Sendable {
-    /// Signature checks are expensive for large apps. A validated bundle is
-    /// remembered against its file proof (bundle and executable device, inode,
-    /// size and modification time), which changes whenever the app is replaced
-    /// or re-signed, so the identity is only re-derived when the files change.
-    private let memoLock = NSLock()
-    private var memo: [String: (ApplicationCandidateProof, ProcessIdentity)] = [:]
-
-    func forgetValidations() {
-        memoLock.withLock { memo.removeAll() }
-    }
-
-    private let queue: OperationQueue = {
-        let value = OperationQueue()
-        value.name = "io.rift.firewall.application-artwork"
-        value.qualityOfService = .utility
-        value.maxConcurrentOperationCount = 2
-        return value
-    }()
-
-    func select(
-        candidates: [URL],
-        identity: ProcessIdentity
-    ) async -> ApplicationCandidateProof? {
-        await withCheckedContinuation { continuation in
-            queue.addOperation {
-                let matches = candidates.compactMap { self.proof(for: $0, identity: identity) }
-                continuation.resume(returning: matches.count == 1 ? matches[0] : nil)
-            }
-        }
-    }
-
-    func index(candidates: [URL]) async -> [ProcessIdentity: [URL]] {
-        await withCheckedContinuation { continuation in
-            queue.addOperation {
-                var result: [ProcessIdentity: [URL]] = [:]
-                for candidate in candidates {
-                    guard let (proof, identity) = self.validatedCandidate(candidate) else { continue }
-                    result[identity, default: []].append(proof.url)
-                }
-                continuation.resume(returning: result)
-            }
-        }
-    }
-
-    func revalidate(
-        _ proof: ApplicationCandidateProof,
-        identity: ProcessIdentity
-    ) async -> Bool {
-        await withCheckedContinuation { continuation in
-            queue.addOperation {
-                // The file proof guards against the bundle changing between
-                // selection and drawing; the identity was verified for this proof.
-                continuation.resume(returning: Self.fileProof(proof.url) == proof)
-            }
-        }
-    }
-
-    private func proof(
-        for candidate: URL,
-        identity: ProcessIdentity
-    ) -> ApplicationCandidateProof? {
-        guard let (proof, resolved) = validatedCandidate(candidate), resolved == identity else {
-            return nil
-        }
-        return proof
-    }
-
-    private func validatedCandidate(
-        _ candidate: URL
-    ) -> (ApplicationCandidateProof, ProcessIdentity)? {
-        guard candidate.isFileURL, candidate.pathExtension.lowercased() == "app" else { return nil }
-        let url = candidate.standardizedFileURL
-        if let current = Self.fileProof(url),
-           let remembered = memoLock.withLock({ memo[url.path] }), remembered.0 == current {
-            return remembered
-        }
-        guard let validated = Self.validate(url) else {
-            memoLock.withLock { memo[url.path] = nil }
-            return nil
-        }
-        memoLock.withLock {
-            if memo.count >= 512 { memo.removeAll() }
-            memo[url.path] = validated
-        }
-        return validated
-    }
-
-    private static func validate(_ url: URL) -> (ApplicationCandidateProof, ProcessIdentity)? {
-        guard url.resolvingSymlinksInPath().path == url.path,
-              let values = try? url.resourceValues(forKeys: [
-                .isDirectoryKey, .isSymbolicLinkKey, .volumeIsLocalKey,
-              ]), values.isDirectory == true, values.isSymbolicLink != true,
-              values.volumeIsLocal == true, FileManager.default.isReadableFile(atPath: url.path),
-              let before = fileProof(url),
-              let resolved = try? StaticCodeIdentityResolver.identity(at: url),
-              let after = fileProof(url), before == after else { return nil }
-        return (before, resolved)
-    }
-
-    private static func fileProof(_ url: URL) -> ApplicationCandidateProof? {
-        var value = stat()
-        guard lstat(url.path, &value) == 0, value.st_mode & S_IFMT == S_IFDIR,
-              let executableURL = Bundle(url: url)?.executableURL?.standardizedFileURL,
-              executableURL.resolvingSymlinksInPath().path == executableURL.path else { return nil }
-        var executable = stat()
-        guard lstat(executableURL.path, &executable) == 0,
-              executable.st_mode & S_IFMT == S_IFREG else { return nil }
-        return ApplicationCandidateProof(
-            url: url,
-            device: UInt64(value.st_dev),
-            inode: UInt64(value.st_ino),
-            modifiedSeconds: Int64(value.st_mtimespec.tv_sec),
-            modifiedNanoseconds: Int64(value.st_mtimespec.tv_nsec),
-            executableDevice: UInt64(executable.st_dev),
-            executableInode: UInt64(executable.st_ino),
-            executableSize: UInt64(executable.st_size),
-            executableModifiedSeconds: Int64(executable.st_mtimespec.tv_sec),
-            executableModifiedNanoseconds: Int64(executable.st_mtimespec.tv_nsec)
-        )
-    }
 }
