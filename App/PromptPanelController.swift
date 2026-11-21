@@ -3,59 +3,133 @@ import AppKit
 import Foundation
 import SwiftUI
 
-/// Shows the oldest waiting connection. The panel has no close button, because
-/// closing it would look like dismissing the alert while the connection is
-/// quietly allowed at the deadline.
+/// Shows a waiting connection: the oldest, unless another one was chosen. The
+/// panel has no close button, because closing it would look like dismissing
+/// the alert while the connection is quietly allowed at the deadline. It can
+/// be minimized to a bar that still counts down.
 @MainActor
 final class PromptPanelController {
     static let shared = PromptPanelController()
+    static let keepMinimizedKey = "alertsKeepMinimized"
 
     private var panel: NSPanel?
-    private var host: NSHostingController<ConnectionAlertView>?
+    private var host: NSHostingController<AnyView>?
     private var presentedNonce: UUID?
+    private var presentedMinimized = false
+    /// The connection picked from "more waiting", while it's still waiting.
+    private var chosenNonce: UUID?
+    private var minimized = false
+    private var lastInput: (prompts: [PromptRequest], controller: ControlPlaneController, artworkStore: ApplicationArtworkStore)?
 
     func update(
         prompts: [PromptRequest],
         controller: ControlPlaneController,
         artworkStore: ApplicationArtworkStore
     ) {
-        guard let next = prompts.first else {
+        lastInput = (prompts, controller, artworkStore)
+        guard let first = prompts.first else {
             closePanel()
+            chosenNonce = nil
+            minimized = false
             return
         }
-        let view = ConnectionAlertView(
-            prompt: next,
-            moreWaiting: prompts.count - 1,
-            controller: controller,
-            artworkStore: artworkStore
-        )
-        if presentedNonce == next.nonce, let host {
+        let next = prompts.first { $0.nonce == chosenNonce } ?? first
+        if next.nonce != chosenNonce { chosenNonce = nil }
+        // A new alert after none were waiting opens the way the person chose.
+        if panel == nil {
+            minimized = UserDefaults.standard.bool(forKey: Self.keepMinimizedKey)
+        }
+        let others = prompts.filter { $0.nonce != next.nonce }
+        let view: AnyView
+        if minimized {
+            view = AnyView(ConnectionAlertMinimizedView(
+                prompt: next, others: others, controller: controller, artworkStore: artworkStore,
+                expand: { [weak self] in self?.setMinimized(false) },
+                choose: { [weak self] nonce in self?.choose(nonce, expand: true) }
+            ))
+        } else {
+            view = AnyView(ConnectionAlertView(
+                prompt: next,
+                moreWaiting: others.count,
+                others: others,
+                choose: { [weak self] nonce in self?.choose(nonce, expand: false) },
+                minimize: { [weak self] in self?.setMinimized(true) },
+                controller: controller,
+                artworkStore: artworkStore
+            )
+            // A new identity for each connection, so choices made for one
+            // never carry over to the next.
+            .id(next.nonce))
+        }
+        if presentedNonce == next.nonce, presentedMinimized == minimized, let host {
             host.rootView = view
+            return
+        }
+        if minimized, presentedMinimized, let host {
+            // The bar stays where it is while the waiting connection changes.
+            host.rootView = view
+            presentedNonce = next.nonce
             return
         }
         closePanel()
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: minimized ? 380 : 540, height: minimized ? 80 : 500),
             styleMask: [.titled, .utilityWindow, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        panel.title = "Rift Connection Alert"
+        panel.title = minimized ? "Rift: Connection Waiting" : "Rift Connection Alert"
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
         let host = NSHostingController(rootView: view)
         panel.contentViewController = host
-        panel.center()
+        if minimized {
+            place(panel, nearTopRightOf: NSScreen.main)
+        } else {
+            panel.center()
+        }
         panel.orderFrontRegardless()
         self.panel = panel
         self.host = host
         presentedNonce = next.nonce
+        presentedMinimized = minimized
     }
 
+    /// Shows the whole alert, from the menu bar's Review Waiting Connections.
     func bringForward() {
+        if minimized { setMinimized(false) }
         panel?.orderFrontRegardless()
+    }
+
+    private func setMinimized(_ value: Bool) {
+        guard minimized != value else { return }
+        minimized = value
+        refresh()
+    }
+
+    private func choose(_ nonce: UUID, expand: Bool) {
+        chosenNonce = nonce
+        if expand { minimized = false }
+        refresh()
+    }
+
+    private func refresh() {
+        guard let lastInput else { return }
+        update(prompts: lastInput.prompts, controller: lastInput.controller, artworkStore: lastInput.artworkStore)
+    }
+
+    private func place(_ panel: NSPanel, nearTopRightOf screen: NSScreen?) {
+        guard let frame = screen?.visibleFrame else {
+            panel.center()
+            return
+        }
+        let size = panel.frame.size
+        panel.setFrameOrigin(NSPoint(
+            x: frame.maxX - size.width - 16,
+            y: frame.maxY - size.height - 16
+        ))
     }
 
     private func closePanel() {

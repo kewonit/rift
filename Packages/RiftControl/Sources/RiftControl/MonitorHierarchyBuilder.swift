@@ -6,11 +6,17 @@ public enum MonitorHierarchyBuilder {
         _ rows: [MonitorDisplayRow],
         lens: MonitorLens,
         coverages: [String: MonitorRuleCoverage],
-        displayNames: [ProcessIdentity: String] = [:]
+        displayNames: [ProcessIdentity: String] = [:],
+        context: MonitorSearchContext = .none
     ) -> [MonitorHierarchyNode] {
+        let names = displayNames.merging(context.displayNames) { first, _ in first }
         // Each row's grouping path and rule seed are computed once, not once per level.
         let entries = rows.map { row in
-            Entry(row: row, path: path(for: row, lens: lens, displayNames: displayNames), seed: MonitorExactRuleSeed.make(from: row.source))
+            Entry(
+                row: row,
+                path: path(for: row, lens: lens, displayNames: names, context: context),
+                seed: MonitorExactRuleSeed.make(from: row.source)
+            )
         }
         return group(entries, depth: 0, parentID: lens.rawValue, coverages: coverages)
     }
@@ -128,7 +134,8 @@ public enum MonitorHierarchyBuilder {
     private static func path(
         for row: MonitorDisplayRow,
         lens: MonitorLens,
-        displayNames: [ProcessIdentity: String]
+        displayNames: [ProcessIdentity: String],
+        context: MonitorSearchContext
     ) -> [Component] {
         let source = row.source
         let flow = source.event.flow
@@ -144,6 +151,13 @@ public enum MonitorHierarchyBuilder {
             return [appComponent] + helper + hostnameComponents(flow, subtitle: routeSubtitle(flow))
         case .hostname:
             return hostnameComponents(flow) + [appComponent] + helper
+        case .country:
+            let country = MonitorCountryGroup(flow, context: context)
+            let countryComponent = Component(
+                kind: .country, key: country.key, title: country.title, subtitle: nil
+            )
+            return [countryComponent, appComponent] + helper
+                + hostnameComponents(flow, subtitle: routeSubtitle(flow))
         }
     }
 
@@ -200,7 +214,9 @@ public enum MonitorHierarchyBuilder {
     /// Says where a connection went when it isn't the ordinary case of an
     /// outgoing connection to the internet.
     private static func routeSubtitle(_ flow: FlowDescriptor) -> String? {
-        let classes = flow.destinationEndpoint?.classes ?? []
+        // The peer's network, so an incoming connection from the internet
+        // isn't labeled local because this Mac's own address is.
+        let classes = flow.remoteEndpoint?.classes ?? []
         let locality: String? =
             if classes.contains(.loopback) { "This Mac" }
             else if classes.contains(.bonjour) { "Bonjour" }

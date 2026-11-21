@@ -9,11 +9,19 @@ extension RulesWorkspaceTable {
         Button("New Rule…") { showingEditor = true }
             .disabled(isPreview)
         Divider()
-        Button("Edit") {
-            let selected = applySelection(ids)
-            editingRow = selected.count == 1 ? row(selected.first) : nil
+        if eligibleCount(ids) > 1 {
+            Button("Edit Rules…") {
+                applySelection(ids)
+                model.bulkEditing = true
+            }
+            .disabled(isPreview)
+        } else {
+            Button("Edit") {
+                let selected = applySelection(ids)
+                editingRow = selected.count == 1 ? row(selected.first) : nil
+            }
+            .disabled(isPreview || !selectionIsEditable(ids))
         }
-        .disabled(isPreview || !selectionIsEditable(ids))
         Button("Duplicate") {
             applySelection(ids)
             Task { await model.duplicateSelected() }
@@ -77,6 +85,11 @@ extension RulesWorkspaceTable {
             .disabled(isPreview || selectedApplicationIdentity(ids) == nil)
         Button("Copy Details") { copyDetails(ids) }
             .disabled(isPreview || selectedRows(ids).count != 1)
+        Button("Export…") {
+            applySelection(ids)
+            Task { await model.exportSelected() }
+        }
+        .disabled(isPreview || !selectedRows(ids).contains { ConfigurationArchiveCodec.isShareable($0.rule) })
         Divider()
         Button("Delete…", role: .destructive) {
             applySelection(ids)

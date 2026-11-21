@@ -1,4 +1,5 @@
 import SwiftUI
+import RiftControl
 
 struct AdvancedSettingsPane: View {
     let controlPlane: ControlPlaneController
@@ -119,6 +120,9 @@ struct AdvancedSettingsPane: View {
                 importData = data
                 message = try await controlPlane.previewConfigurationArchive(data)
                 showingRestoreConfirmation = true
+            } catch ConfigurationArchiveError.ruleSubset {
+                importData = nil
+                message = "This file has some rules, not a whole configuration. To add them, use Import Rules on the Rules page."
             } catch {
                 importData = nil
                 message = ArchiveFileAccess.message(

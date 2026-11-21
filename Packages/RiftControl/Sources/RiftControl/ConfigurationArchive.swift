@@ -73,6 +73,9 @@ public enum ConfigurationArchiveError: Error, Sendable, Equatable {
     case duplicateRule, duplicateGroup, duplicateProfile, duplicateBlocklist, invalidRelationship
     case countMismatch, invalidFeatureFlags, excessiveCount, excessiveNesting, invalidShape
     case invalidDefinition, protectedSource
+    /// The file holds selected rules, not a whole configuration, so it can
+    /// only be imported into the Rules page, never restored.
+    case ruleSubset
 }
 
 public enum ConfigurationArchiveCodec {
@@ -91,14 +94,65 @@ public enum ConfigurationArchiveCodec {
             blocklists: draft.blocklists,
             disabledBlocklistEntries: draft.disabledBlocklistEntries.sorted()
         )
+        return try encode(payload, flags: knownFlags, appVersion: appVersion, now: now)
+    }
+
+    /// Exports some rules to share or move them, with the groups and profiles
+    /// they belong to. Blocklist and protected rules are left out, because
+    /// they're managed by Rift. The file is marked as a rule set, so older
+    /// versions refuse it and Restore won't replace a configuration with it.
+    public static func exportRules(
+        _ ids: Set<UUID>,
+        from draft: PolicyConfigurationDraft,
+        appVersion: String,
+        now: Date
+    ) throws -> Data {
+        let rules = draft.rules.filter { ids.contains($0.id) && isShareable($0) }
+        let groupIDs = Set(rules.compactMap(\.localGroupID))
+        let profileIDs = Set(rules.compactMap(\.profileID))
+        let payload = ConfigurationArchivePayload(
+            baseOperationMode: draft.baseOperationMode,
+            activeProfileID: nil,
+            rules: rules,
+            localGroups: draft.localGroups.filter { groupIDs.contains($0.id) },
+            profiles: draft.profiles.filter { profileIDs.contains($0.id) },
+            blocklists: []
+        )
+        try validate(payload)
+        return try encode(
+            payload, flags: knownFlags + [ruleSubsetFlag], appVersion: appVersion, now: now
+        )
+    }
+
+    /// Whether a rule can go in a rule set: rules Rift manages can't.
+    public static func isShareable(_ rule: Rule) -> Bool {
+        guard !rule.flags.contains(.protected), !rule.flags.contains(.sourceManaged) else {
+            return false
+        }
+        if case .specificUser = rule.owner { return false }
+        switch rule.source {
+        case .manual, .imported: return true
+        case .blocklist, .feature: return false
+        }
+    }
+
+    private static let knownFlags = [
+        "blocklistEntryOverrides", "blocklists", "localGroups", "profiles", "reviewState",
+    ]
+    private static let ruleSubsetFlag = "ruleSubset"
+
+    private static func encode(
+        _ payload: ConfigurationArchivePayload,
+        flags: [String],
+        appVersion: String,
+        now: Date
+    ) throws -> Data {
         let checksum = Data(SHA256.hash(data: try encoder.encode(payload)))
         let archive = ConfigurationArchive(
             schemaVersion: ConfigurationArchive.schemaVersion,
             appVersion: String(appVersion.prefix(64)), exportedAt: now,
             counts: counts(payload),
-            featureFlags: [
-                "blocklistEntryOverrides", "blocklists", "localGroups", "profiles", "reviewState",
-            ],
+            featureFlags: flags,
             payload: payload, checksum: checksum
         )
         let bytes = try encoder.encode(archive)
@@ -108,7 +162,21 @@ public enum ConfigurationArchiveCodec {
         return bytes
     }
 
+    /// Reads a whole configuration to restore. A rule set is refused.
     public static func decode(_ data: Data) throws -> ConfigurationArchivePayload {
+        try decode(data, allowingRuleSubset: false)
+    }
+
+    /// Reads rules to add to the current ones, from a rule set or a whole
+    /// configuration.
+    public static func decodeRules(_ data: Data) throws -> ConfigurationArchivePayload {
+        try decode(data, allowingRuleSubset: true)
+    }
+
+    private static func decode(
+        _ data: Data,
+        allowingRuleSubset: Bool
+    ) throws -> ConfigurationArchivePayload {
         guard data.count <= ConfigurationArchive.maximumBytes else {
             throw ConfigurationArchiveError.oversized
         }
@@ -126,13 +194,18 @@ public enum ConfigurationArchiveCodec {
         guard archive.counts == counts(archive.payload) else {
             throw ConfigurationArchiveError.countMismatch
         }
-        let knownFlags = Set([
-            "blocklistEntryOverrides", "blocklists", "localGroups", "profiles", "reviewState",
-        ])
-        guard Set(archive.featureFlags).count == archive.featureFlags.count,
-              Set(archive.featureFlags) == knownFlags,
+        let flags = Set(archive.featureFlags)
+        let isRuleSubset = flags == Set(knownFlags + [ruleSubsetFlag])
+        guard flags.count == archive.featureFlags.count,
+              flags == Set(knownFlags) || isRuleSubset,
               archive.appVersion.unicodeScalars.count <= 64 else {
             throw ConfigurationArchiveError.invalidFeatureFlags
+        }
+        if isRuleSubset {
+            guard allowingRuleSubset else { throw ConfigurationArchiveError.ruleSubset }
+            guard archive.payload.activeProfileID == nil, archive.payload.blocklists.isEmpty else {
+                throw ConfigurationArchiveError.invalidDefinition
+            }
         }
         try validate(archive.payload)
         return archive.payload

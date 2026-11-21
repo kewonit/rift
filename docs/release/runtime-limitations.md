@@ -93,9 +93,10 @@ never uploaded automatically.
 ## Map
 
 The Live Map shows undersea internet cables and the location you place for this
-Mac, rounded to `0.25°` and saved on this Mac. For each public destination,
-Rift looks up the country in a bundled table on the Mac and estimates the cables
-the connection most likely uses. It never sends destination addresses to a
+Mac, rounded to `0.25°` and saved on this Mac. For each public destination, and
+for the remote peer of an incoming connection, Rift looks up the country in a
+bundled table on the Mac and estimates the cables the connection most likely
+uses. It never sends destination addresses to a
 lookup service.
 
 These are estimates. Country data describes where an address is routed and can

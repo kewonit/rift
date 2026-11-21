@@ -79,6 +79,31 @@ extension ControlPlaneController {
         }
     }
 
+    /// Temporary rules that are still running, soonest to end first, for the
+    /// menu-bar panel.
+    func runningTemporaryRules(now: Date, limit: Int) async -> [StatusTemporaryRule] {
+        guard let draft = try? await repository?.currentConfiguration() else { return [] }
+        return draft.rules
+            .filter { rule in
+                rule.isEnabled && !rule.flags.contains(.sourceManaged)
+                    && rule.expiresAt.map { $0 > now } == true
+                    // Only rules in effect: in the active profile and an enabled group.
+                    && (rule.profileID == nil || rule.profileID == draft.activeProfileID)
+                    && (rule.localGroupID.map(draft.enabledLocalGroupIDs.contains) ?? true)
+            }
+            .sorted { ($0.expiresAt ?? .distantFuture, $0.id.uuidString) < ($1.expiresAt ?? .distantFuture, $1.id.uuidString) }
+            .prefix(limit)
+            .compactMap { rule in
+                guard let expiresAt = rule.expiresAt else { return nil }
+                return StatusTemporaryRule(
+                    id: rule.id,
+                    action: rule.action,
+                    summary: RuleRowViewValue.oneLineSummary(rule, blocklistName: nil),
+                    expiresAt: expiresAt
+                )
+            }
+    }
+
     /// How many of the person's own rules and blocklists exist.
     func ruleCounts() async -> (rules: Int, blocklists: Int)? {
         guard let draft = try? await repository?.currentConfiguration() else { return nil }

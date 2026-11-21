@@ -44,7 +44,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             case .country(let value):
                 document.countryCode == value || document.countryName == value
             case .ip(let value):
-                document.ip == value
+                document.ip == value || document.peerIP == value
             case .port(let value):
                 document.port == value
             case .decision(let value):
@@ -92,6 +92,8 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         let countryCode: String?
         let countryName: String?
         let ip: IPAddress?
+        /// Where an incoming connection came from, so `ip:` finds it too.
+        let peerIP: IPAddress?
         let port: UInt16?
         let decisions: Set<Decision>
         let direction: TrafficDirection
@@ -112,6 +114,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             }
             let endpoint = flow.destinationEndpoint
             ip = endpoint?.address
+            peerIP = flow.direction == .incoming ? flow.remoteEndpoint?.address : nil
             port = endpoint?.port
             var matchedDecisions: Set<Decision> = [
                 row.event.outcome == .blocked ? .denied : .allowed,
@@ -132,7 +135,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             if decisions.contains(.unresolved) { decisionValue += " fallback unresolved by default no rule" }
             if row.event.cause == .alertTimedOut { decisionValue += " timed out" }
             let identity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
-            let country = endpoint.flatMap { context.countryCode?($0.address) }
+            let country = flow.remoteEndpoint.flatMap { context.countryCode?($0.address) }
             countryCode = country.map(normalizedMonitorSearchText)
             countryName = country.flatMap { context.countryName?($0) }.map(normalizedMonitorSearchText)
             unqualified = [
@@ -143,6 +146,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
                 MonitorQuery.endpointLabel(row),
                 MonitorQuery.hostnameLabel(row),
                 endpoint?.address.description ?? "",
+                peerIP?.description ?? "",
                 endpoint?.port.map(String.init) ?? "",
                 decisionValue,
                 protocolValue,

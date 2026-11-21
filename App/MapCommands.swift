@@ -9,7 +9,7 @@ struct MapCommandActions {
     let inspectorShown: Bool
     let timelineShown: Bool
     let toggleMap: () -> Void
-    let hideInspector: () -> Void
+    let toggleInspector: () -> Void
     let toggleTimeline: () -> Void
     let find: () -> Void
     let startFromNow: () -> Void
@@ -49,9 +49,11 @@ struct MapCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: .command)
             .disabled(actions == nil)
-            Button("Hide Inspector") { actions?.hideInspector() }
-                .keyboardShortcut("i", modifiers: [.command, .option])
-                .disabled(actions?.inspectorShown != true)
+            Button(actions?.inspectorShown == true ? "Hide Inspector" : "Show Inspector") {
+                actions?.toggleInspector()
+            }
+            .keyboardShortcut("i", modifiers: [.command, .option])
+            .disabled(actions == nil)
             Button(actions?.timelineShown == true ? "Hide Timeline" : "Show Timeline") {
                 actions?.toggleTimeline()
             }

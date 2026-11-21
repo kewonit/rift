@@ -46,6 +46,7 @@ struct StatusMenuView: View {
     @State private var profiles: [PolicyProfile] = []
     @State private var activeProfileID: UUID?
     @State private var snapshot = StatusMenuSnapshot.empty
+    @State private var temporaryRules: [StatusTemporaryRule] = []
     /// Loading state the view never displays; a reference so updating it
     /// doesn't redraw the panel.
     @State private var cache = StatusMenuLoadCache()
@@ -77,6 +78,19 @@ struct StatusMenuView: View {
                 toggleNotifications: toggleNotifications,
                 openConnection: openActivity
             )
+            StatusMenuBlockedList(
+                items: snapshot.recentlyBlocked,
+                now: dashboardNow,
+                artworkStore: session.applicationArtwork,
+                open: openActivity,
+                allowForFiveMinutes: allowForFiveMinutes
+            )
+            StatusMenuTemporaryRules(
+                rules: temporaryRules,
+                now: dashboardNow,
+                makePermanent: makePermanent,
+                remove: removeRule
+            )
             messages
             Divider().padding(.vertical, RiftDesign.Spacing.xxs)
             commands
@@ -97,6 +111,10 @@ struct StatusMenuView: View {
             refreshCoordinator.request { await loadActivity() }
         }))
         .onChange(of: notificationsEnabled) { _, _ in controller.requestActivitySubscriptionUpdate() }
+        // Rules made elsewhere, such as from an alert, show up while the panel is open.
+        .onChange(of: controller.desiredPolicyTuple) { _, _ in
+            if windowIsVisible { refreshCoordinator.request { await load() } }
+        }
         .modifier(ModeChangeConfirmation(pendingMode: $pendingMode, confirm: setMode))
         .confirmationDialog("Quit Rift?", isPresented: $showingQuitConfirmation, titleVisibility: .visible) {
             Button("Quit Rift", role: .destructive) { NSApplication.shared.terminate(nil) }
@@ -307,6 +325,72 @@ struct StatusMenuView: View {
         showMainWindow()
     }
 
+    // MARK: Quick rules
+
+    /// Lets a blocked connection through for five minutes, the same way the
+    /// Map does, with the narrowest useful scope.
+    private func allowForFiveMinutes(_ eventID: String) {
+        let results = controller.actionResults
+        guard !session.isUIFixture,
+              let row = cache.rows.first(where: { $0.id == eventID }),
+              let breadth = MonitorRuleScope.options(for: [row]).first else {
+            results.post("Rift can’t make a rule for this connection here. Open it in Rift.", tone: .failure)
+            return
+        }
+        Task {
+            do {
+                let change = try await controller.applyMonitorRule(
+                    for: row, action: .allow, breadth: breadth, duration: .fiveMinutes
+                )
+                if let result = change.result {
+                    results.post(
+                        result.requiresAttention ? "Allowed for 5 minutes. \(result.message)" : "Allowed for 5 minutes.",
+                        tone: result.requiresAttention ? .pending : .success,
+                        ruleIDs: change.ruleIDs,
+                        offersUndo: true
+                    )
+                } else {
+                    results.post("This is already allowed.", ruleIDs: change.ruleIDs)
+                }
+                await load()
+            } catch ControlPlaneController.RuleCommandError.elevatedOverrideRequiresConfirmation {
+                results.post("This destination is on a blocklist. Open it in Rift to allow it.", tone: .failure)
+            } catch ControlPlaneController.RuleCommandError.permanentRuleConflict {
+                results.post("A permanent rule blocks this. Change it in Rift.", tone: .failure)
+            } catch ControlPlaneController.RuleCommandError.overriddenByRule {
+                results.post("Nothing changed, because another rule still decides this connection.", tone: .failure)
+            } catch ControlPlaneController.RuleCommandError.incomingBlocklistOverride {
+                results.post("This address is on a blocklist. To let it in, turn off its entry in Settings › Blocklists.", tone: .failure)
+            } catch {
+                results.post("The rule wasn’t added. Try again in Rift.", tone: .failure)
+            }
+        }
+    }
+
+    private func makePermanent(_ id: UUID) {
+        guard let generation = controller.desiredPolicyTuple?.generation else { return }
+        Task {
+            do {
+                try await controller.makeRulesPermanent([id], expectedGeneration: generation)
+            } catch {
+                controller.actionResults.post("The rule wasn’t changed. Try again.", tone: .failure)
+            }
+            await load()
+        }
+    }
+
+    private func removeRule(_ id: UUID) {
+        guard let generation = controller.desiredPolicyTuple?.generation else { return }
+        Task {
+            do {
+                try await controller.deleteRules([id], expectedGeneration: generation)
+            } catch {
+                controller.actionResults.post("The rule wasn’t removed. Try again.", tone: .failure)
+            }
+            await load()
+        }
+    }
+
     // MARK: Loading
 
     private func load() async {
@@ -319,6 +403,8 @@ struct StatusMenuView: View {
                 activeProfileID = definitions.active
             }
         }
+        let running = await controller.runningTemporaryRules(now: Date(), limit: 4)
+        if windowIsVisible, !Task.isCancelled, temporaryRules != running { temporaryRules = running }
         await loadActivity()
     }
 

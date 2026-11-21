@@ -52,6 +52,30 @@ The changelog records notable user-visible changes.
   like other names, and `;` comments. Adblock rules Rift can't apply are
   skipped. Before, an element-hiding line such as `example.com##.ad` blocked
   example.com, and other Adblock rules stopped the import.
+- For incoming connections, the map, the Country column, the Network filter and
+  `country:` search use the remote peer. Before, they used this Mac's own
+  address, so incoming connections from the internet showed as local and had
+  no country. `ip:` also finds an incoming connection by its peer's address.
+- The connections list can be grouped by country.
+- The connections list can show a log instead: one line per connection,
+  newest first, under day headings, with the same search and filters.
+- With nothing selected, the Map inspector can show a summary of the
+  connections in the list: counts, data sent and received, and the most active
+  apps, hostnames and countries. View › Show Inspector (⌥⌘I) turns it on.
+- The Rules page can export the selected rules to a file and import rules from
+  one. Importing adds rules without replacing any; rules you already have are
+  skipped, and imported rules are marked unreviewed. Blocklist exceptions and
+  rules for system processes arrive turned off until you check them. Restore
+  in Settings won't open a file of selected rules, so it can't replace your
+  configuration with them. Older versions of Rift can't read these files.
+- Edit Rules… changes the action, protocol, port or notes of several rules at
+  once, and can be undone.
+- The menu bar panel lists recently blocked connections, with Allow for 5
+  Minutes, and temporary rules that are still running, with the time left,
+  Make Permanent and Remove.
+- A connection alert can be minimized to a small bar that keeps counting down,
+  and another waiting connection can be answered first. Settings › Alerts can
+  show alerts minimized.
 
 ## 0.4.0
 

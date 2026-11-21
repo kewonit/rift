@@ -62,6 +62,9 @@ struct ConnectionAlertView: View {
 
     let prompt: PromptRequest
     var moreWaiting = 0
+    var others: [PromptRequest] = []
+    var choose: (UUID) -> Void = { _ in }
+    var minimize: (() -> Void)?
     @Bindable var controller: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
     @Environment(\.controlActiveState) private var controlActiveState
@@ -111,11 +114,18 @@ struct ConnectionAlertView: View {
                         .padding(.top, 2)
                 }
                 Spacer()
-                if let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
-                    Text(waiting)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                VStack(alignment: .trailing, spacing: RiftDesign.Spacing.xs) {
+                    // Once answered, the alert stays put, so it can't be answered again.
+                    if let minimize, !decisionInProgress, !durableRuleSaved {
+                        Button("Minimize", systemImage: "arrow.down.right.and.arrow.up.left", action: minimize)
+                            .labelStyle(.iconOnly).buttonStyle(.borderless)
+                            .help("Minimize. The connection keeps waiting and is allowed when time runs out.")
+                    }
+                    if others.isEmpty, let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
+                        Text(waiting).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                    ConnectionAlertWaitingMenu(others: others, choose: choose)
+                        .disabled(decisionInProgress || durableRuleSaved)
                 }
             }
 
@@ -405,13 +415,7 @@ struct ConnectionAlertView: View {
     }
 
     private func deadlineLabel(at date: Date) -> String {
-        let remaining = max(0, Int(prompt.deadline.timeIntervalSince(date).rounded(.up)))
-        guard remaining > 0 else { return "Timed out — connection allowed" }
-        let minutes = remaining / 60
-        let seconds = remaining % 60
-        return minutes > 0
-            ? "Allowing in \(minutes):\(String(format: "%02d", seconds))"
-            : "Allowing in \(seconds)s"
+        ConnectionAlertCountdown.label(deadline: prompt.deadline, now: date)
     }
 
     private var canCreateRule: Bool {
