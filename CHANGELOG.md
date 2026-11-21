@@ -2,6 +2,31 @@
 
 The changelog records notable user-visible changes.
 
+## Unreleased
+
+- Blocklists now block listed destinations for every account on the Mac,
+  including processes running as root. Before, they covered only your account.
+- While you aren't at the console, such as before login, app rules for your
+  account and root now apply, and Block Unless Allowed keeps blocking
+  connections with no rule. Before, Rift couldn't identify the app, so these
+  connections were allowed.
+- IP blocklists block incoming connections from listed addresses, and "Local
+  network" matches an incoming connection only when the peer is on your local
+  network. Before, both checked this Mac's own address. To let one listed
+  address in, turn off its blocklist entry; an Allow rule would open the
+  service to every listed address, so Rift won't make one.
+- Choosing One hour on the Map no longer turns a permanent rule into a
+  temporary one. Rift says when a permanent rule does the opposite.
+- Removing a group or profile and keeping its rules no longer turns on rules
+  that were off: rules from a turned-off group or an inactive profile stay off.
+- `riftctl profiles activate` refuses a switch that weakens protection or that
+  Rift would ask you to confirm, including one that turns off a profile's
+  blocking rules. Make those switches in Rift.
+- Internationalized names, shown in their `xn--` form, can be blocked by name
+  and imported from blocklists. Before, Rift ignored them.
+- Settings and the Block Unless Allowed confirmation now say that Rift filters
+  TCP and UDP only, and that blocklist names match exact hosts.
+
 ## 0.4.0
 
 The first signed and notarized download of Rift. These notes list the changes

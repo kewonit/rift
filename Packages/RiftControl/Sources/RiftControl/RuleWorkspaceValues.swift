@@ -297,18 +297,29 @@ public enum RuleMutation {
         )
     }
 
-    public static func removingGroup(_ rule: Rule, now: Date) throws -> Rule {
-        try copyAssignment(rule, profileID: rule.profileID, localGroupID: nil, now: now)
+    /// Keeps a rule whose group is removed. A rule from a turned-off group is
+    /// turned off, so removing the group doesn't start applying it.
+    public static func removingGroup(_ rule: Rule, groupWasOn: Bool, now: Date) throws -> Rule {
+        try copyAssignment(
+            rule, profileID: rule.profileID, localGroupID: nil,
+            isEnabled: rule.isEnabled && groupWasOn, now: now
+        )
     }
 
-    public static func removingProfile(_ rule: Rule, now: Date) throws -> Rule {
-        try copyAssignment(rule, profileID: nil, localGroupID: rule.localGroupID, now: now)
+    /// Keeps a rule whose profile is removed. It then applies in every
+    /// profile, so a rule from a profile that wasn't active is turned off.
+    public static func removingProfile(_ rule: Rule, profileWasActive: Bool, now: Date) throws -> Rule {
+        try copyAssignment(
+            rule, profileID: nil, localGroupID: rule.localGroupID,
+            isEnabled: rule.isEnabled && profileWasActive, now: now
+        )
     }
 
     private static func copyAssignment(
         _ rule: Rule,
         profileID: UUID?,
         localGroupID: UUID?,
+        isEnabled: Bool,
         now: Date
     ) throws -> Rule {
         try Rule(
@@ -317,7 +328,7 @@ public enum RuleMutation {
             destination: rule.destination, transportProtocol: rule.transportProtocol,
             port: rule.port, direction: rule.direction, owner: rule.owner,
             profileID: profileID, localGroupID: localGroupID,
-            expiresAt: rule.expiresAt, isEnabled: rule.isEnabled,
+            expiresAt: rule.expiresAt, isEnabled: isEnabled,
             flags: rule.flags, reviewState: rule.reviewState, source: rule.source,
             notes: rule.notes, createdAt: rule.createdAt, modifiedAt: now
         )

@@ -80,7 +80,7 @@ enum RuleApplicability {
         guard let endpoint = flow.destinationEndpoint else {
             return .failure(.endpointUnavailable)
         }
-        guard let destination = destinationMatch(rule.destination, flow: flow, endpoint: endpoint) else {
+        guard let destination = destinationMatch(rule, flow: flow, endpoint: endpoint) else {
             switch rule.destination {
             case .exactHostnameSet where flow.observedHostname == nil,
                  .domainSet where flow.observedHostname == nil:
@@ -93,7 +93,11 @@ enum RuleApplicability {
             guard let flowPort = endpoint.port else { return .failure(.portUnavailable) }
             guard requiredPort.contains(flowPort) else { return .failure(.portMismatch) }
         }
-        guard ownerMatches(rule.owner, flow.owner, authorizedUID: context.authorizedUID) else {
+        // A blocklist names destinations to block on the whole Mac, so it
+        // covers every owner: root, other accounts, and unknown owners too.
+        // Its stored owner stays `.authorizedUser`, so formats don't change.
+        guard rule.priority == .blocklistDeny
+            || ownerMatches(rule.owner, flow.owner, authorizedUID: context.authorizedUID) else {
             if flow.owner == .unknown { return .failure(.ownerUnavailable) }
             return .failure(.ownerMismatch)
         }
@@ -125,14 +129,21 @@ enum RuleApplicability {
         }
     }
 
+    /// `endpoint` is the flow's destination: the remote side of an outgoing
+    /// flow, and this Mac's side of an incoming one, so incoming rules name a
+    /// local service. Two conditions describe the peer instead: a blocklist,
+    /// and "local network" on an incoming flow.
     private static func destinationMatch(
-        _ condition: DestinationCondition,
+        _ rule: Rule,
         flow: FlowDescriptor,
         endpoint: Endpoint
     ) -> DestinationSpecificity? {
-        switch condition {
+        switch rule.destination {
         case .ipSet(let values):
-            let matches = values.filter { $0.contains(endpoint.address) }
+            let address = rule.priority == .blocklistDeny
+                ? flow.remoteEndpoint?.address : endpoint.address
+            guard let address else { return nil }
+            let matches = values.filter { $0.contains(address) }
             guard let best = matches.min(by: { lhs, rhs in
                 if lhs.spanMagnitude != rhs.spanMagnitude {
                     return lhs.spanMagnitude.lexicographicallyPrecedes(rhs.spanMagnitude)
@@ -153,7 +164,9 @@ enum RuleApplicability {
             }) else { return nil }
             return .domain(set: values, matched: best)
         case .endpointClass(let value):
-            guard endpoint.classes.contains(value) else { return nil }
+            let classes = value == .localNetwork && flow.direction == .incoming
+                ? flow.remoteEndpoint?.classes ?? [] : endpoint.classes
+            guard classes.contains(value) else { return nil }
             return .endpointClass(value)
         case .anyEndpoint:
             return .anyEndpoint

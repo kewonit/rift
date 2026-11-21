@@ -165,7 +165,9 @@ struct RuleInspectorView: View {
     }
 
     private var ownerLabel: String {
-        switch row.rule.owner {
+        // Blocklists apply to every account; see RuleApplicability.
+        if row.rule.priority == .blocklistDeny { return "Every account" }
+        return switch row.rule.owner {
         case .authorizedUser: "Your account"
         case .specificUser(let uid): "User ID \(uid)"
         case .system: "System"

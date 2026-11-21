@@ -36,12 +36,36 @@ import Testing
     ))
 }
 
-@Test func restrictedSessionsEnforceOnlyConcreteAllowOrDenyWinners() {
+private let allOwners: [FlowOwner] = [.user(uid: 501), .system, .user(uid: 502), .unknown]
+
+private func restricted(_ decision: Decision, _ owner: FlowOwner) -> FilterAction {
+    ConsoleSessionPolicy.restrictedAction(for: decision, flowOwner: owner, authorizedUID: 501)
+}
+
+@Test func restrictedSessionsEnforceConcreteWinnersForEveryOwner() {
     let ruleID = UUID()
-    #expect(ConsoleSessionPolicy.restrictedAction(for: decision(.deny, winner: ruleID)) == .deny)
-    #expect(ConsoleSessionPolicy.restrictedAction(for: decision(.allow, winner: ruleID)) == .allow)
-    #expect(ConsoleSessionPolicy.restrictedAction(for: decision(.ask, winner: ruleID)) == .allow)
-    #expect(ConsoleSessionPolicy.restrictedAction(for: decision(.deny, winner: nil)) == .allow)
+    for owner in allOwners {
+        #expect(restricted(decision(.deny, winner: ruleID), owner) == .deny)
+        #expect(restricted(decision(.allow, winner: ruleID), owner) == .allow)
+        #expect(restricted(decision(.ask, winner: ruleID), owner) == .allow)
+    }
+}
+
+@Test func restrictedSessionsKeepBlockUnlessAllowedForTheAuthorizedAccountAndRoot() {
+    #expect(restricted(decision(.deny, winner: nil), .user(uid: 501)) == .deny)
+    #expect(restricted(decision(.deny, winner: nil), .system) == .deny)
+}
+
+@Test func restrictedSessionsApplyOnlyExplicitRulesToOtherAccountsAndUnknownOwners() {
+    #expect(restricted(decision(.deny, winner: nil), .user(uid: 502)) == .allow)
+    #expect(restricted(decision(.deny, winner: nil), .unknown) == .allow)
+}
+
+@Test func restrictedSessionsNeverWaitForAnAlert() {
+    for owner in allOwners {
+        #expect(restricted(decision(.ask, winner: nil), owner) == .allow)
+        #expect(restricted(decision(.allow, winner: nil), owner) == .allow)
+    }
 }
 
 private func decision(_ action: FilterAction, winner: UUID?) -> Decision {
@@ -67,4 +91,11 @@ private func decision(_ action: FilterAction, winner: UUID?) -> Decision {
         issues: [],
         earliestExpiry: nil
     )
+}
+
+@Test func onlyTheAuthorizedAccountAndRootWaitForAnAppIdentityWhenRestricted() {
+    #expect(ConsoleSessionPolicy.appliesAccountPolicy(to: .user(uid: 501), authorizedUID: 501))
+    #expect(ConsoleSessionPolicy.appliesAccountPolicy(to: .system, authorizedUID: 501))
+    #expect(!ConsoleSessionPolicy.appliesAccountPolicy(to: .user(uid: 502), authorizedUID: 501))
+    #expect(!ConsoleSessionPolicy.appliesAccountPolicy(to: .unknown, authorizedUID: 501))
 }

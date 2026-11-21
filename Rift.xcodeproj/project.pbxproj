@@ -76,6 +76,7 @@
 		100000000000000000000046 /* ApplicationIdentityIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000048 /* ApplicationIdentityIcon.swift */; };
 		100000000000000000000047 /* ConsoleSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000049 /* ConsoleSessionTracker.swift */; };
 		100000000000000000000048 /* FlowResolutionOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004A /* FlowResolutionOutput.swift */; };
+		1000000000000000000000FB /* FlowResolutionRestricted.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000FB /* FlowResolutionRestricted.swift */; };
 		100000000000000000000049 /* FilterLifecycleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004B /* FilterLifecycleSupport.swift */; };
 		10000000000000000000004A /* InterfaceRouteSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004C /* InterfaceRouteSnapshotStore.swift */; };
 		10000000000000000000004B /* ControlPlaneCommandErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004D /* ControlPlaneCommandErrors.swift */; };
@@ -256,6 +257,7 @@
 		200000000000000000000048 /* ApplicationIdentityIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationIdentityIcon.swift; sourceTree = "<group>"; };
 		200000000000000000000049 /* ConsoleSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleSessionTracker.swift; sourceTree = "<group>"; };
 		20000000000000000000004A /* FlowResolutionOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowResolutionOutput.swift; sourceTree = "<group>"; };
+		2000000000000000000000FB /* FlowResolutionRestricted.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowResolutionRestricted.swift; sourceTree = "<group>"; };
 		20000000000000000000004B /* FilterLifecycleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLifecycleSupport.swift; sourceTree = "<group>"; };
 		20000000000000000000004C /* InterfaceRouteSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceRouteSnapshotStore.swift; sourceTree = "<group>"; };
 		20000000000000000000004D /* ControlPlaneCommandErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneCommandErrors.swift; sourceTree = "<group>"; };
@@ -496,6 +498,7 @@
 				20000000000000000000001D /* IdentityResolver.swift */,
 				20000000000000000000001E /* FlowResolutionCoordinator.swift */,
 				20000000000000000000004A /* FlowResolutionOutput.swift */,
+				2000000000000000000000FB /* FlowResolutionRestricted.swift */,
 				200000000000000000000026 /* FlowDescriptorRuntimeExtensions.swift */,
 			);
 			path = Extension;
@@ -809,6 +812,7 @@
 				100000000000000000000019 /* IdentityResolver.swift in Sources */,
 				10000000000000000000001A /* FlowResolutionCoordinator.swift in Sources */,
 				100000000000000000000048 /* FlowResolutionOutput.swift in Sources */,
+				1000000000000000000000FB /* FlowResolutionRestricted.swift in Sources */,
 				100000000000000000000022 /* FlowDescriptorRuntimeExtensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

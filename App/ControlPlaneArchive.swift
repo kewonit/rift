@@ -333,7 +333,7 @@ extension ControlPlaneController {
                     || $0.name.caseInsensitiveCompare(value) == .orderedSame
             }
             guard value == "none" || profile != nil else { throw ArchiveControllerError.unknownProfile }
-            let result = try await activateProfile(profile?.id)
+            let result = try await activateProfile(profile?.id, unattended: true)
             let selection = profile.map { "Profile selection saved: \($0.name)." }
                 ?? "Profile selection saved: none."
             return try CLIRelayResponse(summary: selection + " " + result.message)

@@ -190,3 +190,133 @@ private func target(_ row: MonitorEventRow) throws -> MonitorRuleTarget {
         forOneHour: true, isPreview: true
     ) == "Safari will be able to connect to example.test for one hour.")
 }
+
+private func temporaryPlan(
+    _ action: FilterAction,
+    row: MonitorEventRow,
+    target: MonitorRuleTarget,
+    rules: [Rule]
+) throws -> MonitorRulePlanResult {
+    let expiry = now.addingTimeInterval(3_600)
+    return try MonitorRulePlan.plan(
+        action: action, priority: .normal, target: target, flow: row.event.flow,
+        configuration: configuration(rules), expiresAt: expiry, now: now
+    ) {
+        try Rule(
+            id: UUID(), lineageID: lineage, revision: 1, action: .filter(action),
+            priority: .normal, process: target.process, destination: target.destination,
+            transportProtocol: target.transport, port: target.port,
+            direction: target.direction, owner: target.owner, expiresAt: expiry,
+            createdAt: now, modifiedAt: now
+        )
+    }
+}
+
+@Test func aTemporaryChoiceNeverEndsAPermanentRuleThatDoesTheOpposite() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let permanent = try rule(.deny, target: conditions)
+    let result = try temporaryPlan(.allow, row: row, target: conditions, rules: [permanent])
+    #expect(result == .permanentRuleConflict(ruleID: permanent.id))
+}
+
+@Test func aTemporaryChoiceLeavesAPermanentRuleThatAlreadyAgrees() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let permanent = try rule(.deny, target: conditions)
+    let result = try temporaryPlan(.deny, row: row, target: conditions, rules: [permanent])
+    #expect(result == .alreadyDecided(ruleID: permanent.id))
+}
+
+@Test func aTemporaryChoiceStillFlipsATemporaryRule() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let temporary = try Rule(
+        id: UUID(), lineageID: lineage, revision: 1, action: .filter(.deny), priority: .normal,
+        process: conditions.process, destination: conditions.destination,
+        transportProtocol: conditions.transport, port: conditions.port,
+        direction: conditions.direction, owner: conditions.owner,
+        expiresAt: now.addingTimeInterval(600), createdAt: now, modifiedAt: now
+    )
+    let result = try temporaryPlan(.allow, row: row, target: conditions, rules: [temporary])
+    guard case .changed(let rules, let affected) = result else {
+        Issue.record("Expected a change, got \(result)")
+        return
+    }
+    #expect(affected == [temporary.id])
+    #expect(rules.first?.action == .filter(.allow))
+    #expect(rules.first?.expiresAt == now.addingTimeInterval(3_600))
+}
+
+@Test func aTemporaryChoiceFlipsADisagreeingTemporaryRuleBesideAnAgreeingPermanentOne() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let permanent = try rule(.allow, target: conditions)
+    let temporary = try Rule(
+        id: UUID(), lineageID: lineage, revision: 1, action: .filter(.deny), priority: .normal,
+        process: conditions.process, destination: conditions.destination,
+        transportProtocol: conditions.transport, port: conditions.port,
+        direction: conditions.direction, owner: conditions.owner,
+        expiresAt: now.addingTimeInterval(600), createdAt: now, modifiedAt: now
+    )
+    let result = try temporaryPlan(.allow, row: row, target: conditions, rules: [permanent, temporary])
+    guard case .changed(let rules, _) = result else {
+        Issue.record("Expected a change, got \(result)")
+        return
+    }
+    #expect(rules.first { $0.id == permanent.id } == permanent)
+    #expect(rules.first { $0.id == temporary.id }?.action == .filter(.allow))
+}
+
+@Test func aTemporaryOverrideAddsARuleWhenThePermanentOneHasTooLowAPriority() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let permanent = try rule(.allow, target: conditions)
+    let expiry = now.addingTimeInterval(3_600)
+    var made: Rule?
+    let result = try MonitorRulePlan.plan(
+        action: .allow, priority: .elevatedUser, target: conditions, flow: row.event.flow,
+        configuration: configuration([permanent]), expiresAt: expiry, now: now
+    ) {
+        let rule = try Rule(
+            id: UUID(), lineageID: lineage, revision: 1, action: .filter(.allow),
+            priority: .elevatedUser, process: conditions.process,
+            destination: conditions.destination, transportProtocol: conditions.transport,
+            port: conditions.port, direction: conditions.direction, owner: conditions.owner,
+            expiresAt: expiry, createdAt: now, modifiedAt: now
+        )
+        made = rule
+        return rule
+    }
+    guard case .changed(let rules, _) = result, let made else {
+        Issue.record("Expected a new rule, got \(result)")
+        return
+    }
+    #expect(rules.contains(permanent))
+    #expect(rules.contains(made))
+}
+
+@Test func aTemporaryOverrideBeatsALowerPriorityPermanentRuleThatDisagrees() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let permanent = try rule(.deny, target: conditions)
+    let expiry = now.addingTimeInterval(3_600)
+    let result = try MonitorRulePlan.plan(
+        action: .allow, priority: .elevatedUser, target: conditions, flow: row.event.flow,
+        configuration: configuration([permanent]), expiresAt: expiry, now: now
+    ) {
+        try Rule(
+            id: UUID(), lineageID: lineage, revision: 1, action: .filter(.allow),
+            priority: .elevatedUser, process: conditions.process,
+            destination: conditions.destination, transportProtocol: conditions.transport,
+            port: conditions.port, direction: conditions.direction, owner: conditions.owner,
+            expiresAt: expiry, createdAt: now, modifiedAt: now
+        )
+    }
+    guard case .changed(let rules, _) = result else {
+        Issue.record("Expected a new elevated rule, got \(result)")
+        return
+    }
+    #expect(rules.contains(permanent))
+    #expect(rules.contains { $0.priority == .elevatedUser && $0.expiresAt == expiry })
+}

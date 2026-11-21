@@ -26,6 +26,32 @@ public struct PolicyCompatibility: Sendable, Hashable, Codable {
         self.minimumAppProtocol = minimumAppProtocol
         self.minimumExtensionProtocol = minimumExtensionProtocol
     }
+
+    /// The oldest extension protocol that can decode `rules`. Policies with
+    /// nothing new keep the baseline, so their bytes don't change.
+    public static func minimumExtensionProtocol(for rules: [Rule]) -> ProtocolVersion {
+        rules.contains(where: \.hasInternationalName) ? .internationalNames : .baseline
+    }
+
+    func raisingExtensionMinimum(to version: ProtocolVersion) -> PolicyCompatibility {
+        guard version.major == minimumExtensionProtocol.major,
+              version.minor > minimumExtensionProtocol.minor else { return self }
+        return PolicyCompatibility(
+            minimumAppProtocol: minimumAppProtocol,
+            minimumExtensionProtocol: version
+        )
+    }
+}
+
+private extension Rule {
+    var hasInternationalName: Bool {
+        let names: [DomainName]
+        switch destination {
+        case .exactHostnameSet(let values), .domainSet(let values): names = values
+        case .ipSet, .endpointClass, .anyEndpoint: return false
+        }
+        return names.contains { $0.ascii.split(separator: ".").contains { $0.hasPrefix("xn--") } }
+    }
 }
 
 public struct CompiledPolicyPayload: Sendable, Hashable, Codable {
@@ -70,7 +96,9 @@ public struct CompiledPolicyPayload: Sendable, Hashable, Codable {
         self.lineageID = lineageID
         self.generation = generation
         self.authorizedUID = authorizedUID
-        self.compatibility = compatibility
+        self.compatibility = compatibility.raisingExtensionMinimum(
+            to: PolicyCompatibility.minimumExtensionProtocol(for: rules)
+        )
         self.createdAt = createdAt
         self.operationMode = operationMode
         self.activeProfileID = activeProfileID

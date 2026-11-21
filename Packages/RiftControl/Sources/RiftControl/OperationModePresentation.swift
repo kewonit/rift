@@ -34,7 +34,7 @@ extension OperationMode {
     public var confirmationMessage: String {
         self == .filterOff
             ? "Rift will allow all connections and stop applying your rules. You’ll still see activity."
-            : "Rift will block every connection that no rule allows. Apps without an allow rule lose network access."
+            : "Rift will block every connection that no rule allows. Apps without an allow rule lose network access. Rift filters TCP and UDP only, so other traffic, such as ping, isn’t blocked."
     }
 
     /// What happens to connections while Rift isn't running. The filter keeps

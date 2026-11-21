@@ -134,7 +134,7 @@ struct PolicySettingsPane: View {
     }
 
     private var blocklistsSection: some View {
-        Section("Blocklists") {
+        Section {
             ForEach(blocklists) { source in
                 HStack {
                     Toggle(source.name, isOn: Binding(
@@ -179,6 +179,10 @@ struct PolicySettingsPane: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        } header: {
+            Text("Blocklists")
+        } footer: {
+            Text("Blocklists apply to every account on this Mac. Each name blocks that exact host, not its subdomains.")
         }
     }
 

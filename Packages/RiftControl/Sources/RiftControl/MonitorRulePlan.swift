@@ -46,14 +46,20 @@ public enum MonitorRulePlanResult: Sendable, Equatable {
     case changed(rules: [Rule], affectedRuleIDs: Set<UUID>)
     /// Saving wouldn't change the result, because this rule would still decide.
     case overridden(by: UUID?)
+    /// A permanent rule with the same conditions does the opposite. A
+    /// temporary choice can't change it, because the permanent rule would be
+    /// gone when the time runs out.
+    case permanentRuleConflict(ruleID: UUID)
 }
 
 /// Works out how to make a connection allowed or blocked from now on.
 ///
 /// Rules with the same conditions are flipped rather than added to, because a
 /// new rule would tie with the old one and a block always wins a tie. Broader
-/// rules are never edited, because that would change other traffic. The result
-/// is checked before saving, so Rift never reports a change that won't happen.
+/// rules are never edited, because that would change other traffic. A
+/// temporary choice never edits a permanent rule, because the permanent rule
+/// would end with it. The result is checked before saving, so Rift never
+/// reports a change that won't happen.
 public enum MonitorRulePlan {
     public static func plan(
         action: FilterAction,
@@ -70,49 +76,73 @@ public enum MonitorRulePlan {
             target.describes($0) && isEditable($0) && scope.includes($0)
         }
         let wanted = RuleAction.filter(action)
-        let needsChange = matching.filter {
-            $0.action != wanted || (priority != .normal && $0.priority != priority)
-                || $0.expiresAt != expiresAt
+        let temporary = expiresAt != nil
+        // A temporary choice never edits a permanent rule.
+        let permanent = temporary ? matching.filter { $0.expiresAt == nil } : []
+        // A permanent rule that does the opposite blocks a temporary choice
+        // only if it would still win; a higher-priority temporary rule beats it.
+        if let conflict = permanent.first(where: {
+            $0.action != wanted && rank($0.priority) >= rank(priority)
+        }) {
+            return .permanentRuleConflict(ruleID: conflict.id)
         }
-        let proposed: [Rule]
-        let affected: Set<UUID>
-        if matching.isEmpty {
+        let editable = temporary ? matching.filter { $0.expiresAt != nil } : matching
+        // A permanent rule that already does this, at a high enough priority,
+        // covers the temporary choice. Temporary rules that disagree still flip,
+        // because a block wins a tie.
+        let covered = permanent.contains {
+            $0.action == wanted && (priority == .normal || $0.priority == priority)
+        }
+        let needsChange = editable.filter {
+            $0.action != wanted || (!covered && (
+                (priority != .normal && $0.priority != priority) || $0.expiresAt != expiresAt
+            ))
+        }
+        let addsRule = editable.isEmpty && !covered
+        let ids = Set(needsChange.map(\.id))
+        var proposed = try configuration.rules.map { rule in
+            guard ids.contains(rule.id) else { return rule }
+            return try RuleMutation.edited(
+                rule,
+                action: wanted,
+                priority: priority == .normal ? rule.priority : priority,
+                process: rule.process,
+                destination: rule.destination,
+                transport: rule.transportProtocol,
+                port: rule.port,
+                direction: rule.direction,
+                owner: rule.owner,
+                profileID: rule.profileID,
+                localGroupID: rule.localGroupID,
+                expiresAt: expiresAt,
+                isEnabled: true,
+                reviewState: .reviewed,
+                note: rule.notes,
+                now: now
+            )
+        }
+        var affected = Set(editable.map(\.id))
+        if addsRule {
             let rule = try makeRule()
-            proposed = configuration.rules + [rule]
-            affected = [rule.id]
-        } else {
-            let ids = Set(needsChange.map(\.id))
-            proposed = try configuration.rules.map { rule in
-                guard ids.contains(rule.id) else { return rule }
-                return try RuleMutation.edited(
-                    rule,
-                    action: wanted,
-                    priority: priority == .normal ? rule.priority : priority,
-                    process: rule.process,
-                    destination: rule.destination,
-                    transport: rule.transportProtocol,
-                    port: rule.port,
-                    direction: rule.direction,
-                    owner: rule.owner,
-                    profileID: rule.profileID,
-                    localGroupID: rule.localGroupID,
-                    expiresAt: expiresAt,
-                    isEnabled: true,
-                    reviewState: .reviewed,
-                    note: rule.notes,
-                    now: now
-                )
-            }
-            affected = Set(matching.map(\.id))
+            proposed.append(rule)
+            affected.insert(rule.id)
         }
         let result = decision(for: flow, rules: proposed, configuration: configuration, now: now)
         guard result.filter.action == action else {
             return .overridden(by: result.filter.winningRuleID)
         }
-        if !matching.isEmpty, needsChange.isEmpty {
+        if !addsRule, needsChange.isEmpty {
             return .alreadyDecided(ruleID: result.filter.winningRuleID)
         }
         return .changed(rules: proposed, affectedRuleIDs: affected)
+    }
+
+    private static func rank(_ priority: RulePriority) -> Int {
+        switch priority {
+        case .normal: 0
+        case .blocklistDeny: 1
+        case .elevatedUser: 2
+        }
     }
 
     private static func isEditable(_ rule: Rule) -> Bool {

@@ -64,12 +64,7 @@ final class FilterDataProvider: NEFilterDataProvider {
             currentConsoleUID: consoleSession.currentUID,
             flowOwner: captured.descriptor.owner
         ) else {
-            let decision = policy.decision(
-                for: captured.descriptor,
-                now: captured.descriptor.observedAt
-            )
-            let action = ConsoleSessionPolicy.restrictedAction(for: decision)
-            return reporting(action == .deny ? .drop() : .allow(), hidden: true)
+            return flowCoordinator.restrictedVerdict(for: flow, metadata: captured, policy: policy)
         }
         return flowCoordinator.verdict(for: flow, metadata: captured, policy: policy)
     }

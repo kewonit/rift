@@ -18,16 +18,40 @@ this release scope. Mac App Store validation is still pending.
 
 ## Filtering behavior
 
-Rift filters new flows through the macOS Network Extension content-filter
-surface. It does not inspect packet payloads or complete URLs. An existing
-connection can remain established until the application or operating system
-opens another flow. A policy change does not promise to terminate every
-already-open connection immediately.
+Rift filters new TCP and UDP flows through the macOS Network Extension
+content-filter surface. Other IP traffic, such as ICMP (ping), isn't filtered in
+any mode, including Block Unless Allowed. It does not inspect packet payloads or
+complete URLs. A blocklist name, or a host in a rule you make in Rift, matches
+that exact host, not its subdomains. Only a domain rule (shown as `*.name`),
+which can arrive in an imported configuration, also covers subdomains. An existing connection can remain established until the application
+or operating system opens another flow. A policy change does not promise to
+terminate every already-open connection immediately.
 
 When the extension has no compatible, validated policy, Rift fails open instead
 of silently disconnecting the Mac. This also applies to unavailable or degraded
 policy persistence. Before the status surface describes a saved policy as
 enforced, it must confirm the active provider tuple.
+
+Rules apply to your account and to processes running as root. Blocklists apply
+to every account on the Mac. When you aren't at the console, before login or
+while another account is in front, nobody can answer an alert, so connections
+that would ask are allowed. Rift still identifies the app behind connections from
+your account and from root, so app rules apply, and Block Unless Allowed still
+blocks connections with no rule. Connections from other accounts, and ones whose
+owner Rift can't determine, are allowed unless a blocklist covers them.
+
+An incoming rule's destination is the service on this Mac: its address and
+port. Two conditions describe the remote peer instead: a blocklist's addresses,
+and "Local network", which matches an incoming connection only when the peer is
+on a network this Mac is directly connected to. Because a rule can't name the
+peer, Rift won't make an Allow rule that overrides a blocklist for an incoming
+connection: it would let every listed address reach that service. Turn off the
+blocklist entry instead.
+
+`riftctl profiles activate` won't make a switch that weakens protection or that
+Rift would ask you to confirm: a weaker mode, Pause Rules or Block Unless
+Allowed, or a profile change that turns off rules that block or turns on rules
+that allow. Make those switches in Rift.
 
 Alert decisions have deadlines. If the app cannot answer safely before a
 deadline, the runtime uses the configured bounded fallback. It resumes the flow
@@ -87,9 +111,12 @@ unknown enforcement state.
 
 Configuration restore keeps a rollback anchor until it saves and reconciles the
 replacement. You can recover a corrupt configuration database from a known-good
-archive or remove it through the verified uninstall path. Rift does not provide
-an in-place reset that preserves the installed extension when no known-good
-archive exists.
+archive or remove it through the verified uninstall path. If no known-good
+archive exists, Settings › Advanced offers Reset Configuration… while the
+database is damaged. It keeps the filter installed, saves a private copy of the
+damaged configuration, deletes your rules, profiles, groups, and blocklists, and
+starts fresh in Allow and Watch. All traffic is allowed until the reset
+finishes.
 
 For an unrecoverable local problem, preserve the affected files. Do not publish
 connection metadata or policy contents. Follow the private reporting process in

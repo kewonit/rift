@@ -96,6 +96,18 @@ extension MonitorFeed {
                     tone: .failure,
                     ruleIDs: ruleID.map { [$0] } ?? []
                 )
+            } catch ControlPlaneController.RuleCommandError.incomingBlocklistOverride(let ruleIDs) {
+                results.post(
+                    "Nothing changed. A rule would let every address on the blocklist reach this service. To let this one in, turn off its entry in Settings › Blocklists.",
+                    tone: .failure,
+                    ruleIDs: ruleIDs
+                )
+            } catch ControlPlaneController.RuleCommandError.permanentRuleConflict(let ruleID) {
+                results.post(
+                    "Nothing changed, because a permanent rule does the opposite. Choose Always to change it.",
+                    tone: .failure,
+                    ruleIDs: [ruleID]
+                )
             } catch {
                 results.post("The rule wasn’t added. Try again after Rift reconnects.", tone: .failure)
             }

@@ -195,14 +195,19 @@ struct CompiledRuleIndex: Sendable {
         var result = anyEndpoint
         var included = Set(result)
 
-        let key = IPBucketKey(family: endpoint.address.family, firstByte: endpoint.address.bytes[0])
-        for entry in ipBuckets[key, default: []]
-        where entry.interval.contains(endpoint.address) && included.insert(entry.ruleID).inserted {
-            result.append(entry.ruleID)
-        }
-        for entry in spanningIPEntries[endpoint.address.family, default: []]
-        where entry.interval.contains(endpoint.address) && included.insert(entry.ruleID).inserted {
-            result.append(entry.ruleID)
+        // Blocklists and "local network" match an incoming flow's peer, so
+        // its remote side is a candidate source too.
+        let peer = flow.direction == .incoming ? flow.remoteEndpoint : nil
+        for address in [endpoint.address] + (peer.map { [$0.address] } ?? []) {
+            let key = IPBucketKey(family: address.family, firstByte: address.bytes[0])
+            for entry in ipBuckets[key, default: []]
+            where entry.interval.contains(address) && included.insert(entry.ruleID).inserted {
+                result.append(entry.ruleID)
+            }
+            for entry in spanningIPEntries[address.family, default: []]
+            where entry.interval.contains(address) && included.insert(entry.ruleID).inserted {
+                result.append(entry.ruleID)
+            }
         }
 
         if flow.direction == .outgoing, let hostname = flow.observedHostname {
@@ -213,7 +218,7 @@ struct CompiledRuleIndex: Sendable {
                 appendUnique(domains[suffix, default: []], to: &result, included: &included)
             }
         }
-        for endpointClass in endpoint.classes {
+        for endpointClass in endpoint.classes.union(peer?.classes ?? []) {
             appendUnique(
                 endpointClasses[endpointClass, default: []],
                 to: &result,
