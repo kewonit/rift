@@ -26,6 +26,32 @@ The changelog records notable user-visible changes.
   and imported from blocklists. Before, Rift ignored them.
 - Settings and the Block Unless Allowed confirmation now say that Rift filters
   TCP and UDP only, and that blocklist names match exact hosts.
+- In a connection alert, Return allows and Esc blocks. Keys pressed in the
+  first second after an alert appears are ignored. ⌘A and ⌘B still work.
+- Alerts offer Five minutes, and a rule can cover this destination on any port.
+  Settings › Alerts can preselect either.
+- Alerts warn when the app or its helper isn't signed, is signed only by
+  itself, uses a certificate Apple didn't issue, or runs from a temporary copy
+  macOS made, and when a name uses international letters.
+- Alert Details and the Map inspector say who signed the app and list the rules
+  that apply to the connection.
+- Allow and Block on the Map offer Five minutes.
+- Temporary rules count down in the inspector and can be made permanent, even
+  after they've expired.
+- The Rules page has Expired, Incoming, Unused and Redundant lists. Redundant
+  shows rules another rule already covers, so deleting them changes nothing.
+  Rules can also be sorted by precedence, the order the filter ranks them in.
+- Map search understands `domain:`, `proto:`, `country:` and
+  `decision:timedout`. The search field's tooltip lists every filter.
+- From Now (⌘K) hides earlier connections. A chip shows them again.
+- Connection rows have Copy and Copy Hostname.
+- Window › Float on Top keeps Rift above other windows.
+- Notifications have separate switches for blocked connections, connections no
+  rule decided, and Notify rules, with an optional sound for Notify rules.
+- Blocklists read Adblock-style `||name^` lines, which block that exact host
+  like other names, and `;` comments. Adblock rules Rift can't apply are
+  skipped. Before, an element-hiding line such as `example.com##.ad` blocked
+  example.com, and other Adblock rules stopped the import.
 
 ## 0.4.0
 

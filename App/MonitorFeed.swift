@@ -55,7 +55,12 @@ final class MonitorFeed {
     private(set) var orderIsPaused = false
 
     var selectedRow: MonitorEventRow? {
-        guard let id = selectedNode?.eventID ?? selectedNode?.ruleSeedEventID else { return nil }
+        selectedNode.flatMap(representativeRow(for:))
+    }
+
+    /// The connection a row stands for: its own, or the one a rule would be made from.
+    func representativeRow(for node: MonitorHierarchyNode) -> MonitorEventRow? {
+        guard let id = node.eventID ?? node.ruleSeedEventID else { return nil }
         return rowLookup[id]
     }
 

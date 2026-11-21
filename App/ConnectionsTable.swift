@@ -74,7 +74,11 @@ struct ConnectionsTable: View {
                     disabled: feed.applyingEventID != nil || monitorCoveragePending(node.ruleCoverage.state),
                     hasRules: !node.ruleCoverage.ruleIDs.isEmpty,
                     apply: { feed.requestRule($0, for: node) },
-                    showRules: { feed.showRules(for: node) }
+                    showRules: { feed.showRules(for: node) },
+                    copyText: feed.representativeRow(for: node)?.copyDescription,
+                    hostname: feed.representativeRow(for: node).flatMap { row in
+                        row.event.flow.observedHostname?.ascii
+                    }
                 )
             }
         }

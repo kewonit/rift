@@ -62,10 +62,37 @@ struct ConnectionAlertFacts {
         case .unsigned(let path, _): return path
         }
     }
+
+    func signer(for identity: ProcessIdentity) -> String { Self.signerLabel(for: identity) }
+
+    /// Who vouches for the code, as the Details section names it.
+    static func signerLabel(for identity: ProcessIdentity) -> String {
+        switch identity {
+        case .applePlatform: "Apple"
+        case .developerID(let value):
+            "Developer ID, team \(DisplaySanitizer.plainText(value.teamIdentifier ?? "unknown"))"
+        case .appStore: "Mac App Store"
+        case .otherSigner: "A certificate Apple didn’t issue"
+        case .adHoc: "Ad hoc (signed only by itself)"
+        case .unsigned: "Not signed"
+        }
+    }
+
+    /// The fingerprint Rift matches rules against, when there is one.
+    func fingerprint(for identity: ProcessIdentity) -> String? {
+        switch identity {
+        case .applePlatform, .developerID, .appStore: nil
+        case .otherSigner(let key, _): "Certificate key SHA-256 \(key)"
+        case .adHoc(let hash): "Code hash \(hash)"
+        case .unsigned(_, let hash): "File SHA-256 \(hash)"
+        }
+    }
 }
 
 struct ConnectionAlertDetails: View {
     let prompt: PromptRequest
+    let controller: ControlPlaneController
+    @State private var ruleSummaries: [(id: UUID, text: String)] = []
 
     private var facts: ConnectionAlertFacts { ConnectionAlertFacts(prompt: prompt) }
 
@@ -79,21 +106,48 @@ struct ConnectionAlertDetails: View {
                 row("Owner", facts.ownerLabel)
             }
             if let appIdentity = prompt.appIdentity {
-                LabeledContent(
-                    "App",
-                    value: DisplaySanitizer.plainText(facts.identityEvidence(for: appIdentity))
-                )
+                identity("App", appIdentity)
             }
             if let processIdentity = prompt.processIdentity,
                processIdentity != prompt.appIdentity {
-                LabeledContent(
-                    "Helper process",
-                    value: DisplaySanitizer.plainText(facts.identityEvidence(for: processIdentity))
-                )
+                identity("Helper process", processIdentity)
+            }
+            if !ruleSummaries.isEmpty {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Rules that apply").foregroundStyle(.secondary)
+                    ForEach(ruleSummaries, id: \.id) { summary in
+                        Text(summary.text)
+                            .lineLimit(2)
+                            .textSelection(.enabled)
+                    }
+                }
             }
         }
         .padding(.top, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: prompt.affectingRuleIDs) {
+            ruleSummaries = await controller.ruleSummaries(prompt.affectingRuleIDs)
+        }
+    }
+
+    private func identity(_ title: String, _ identity: ProcessIdentity) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            LabeledContent(
+                title,
+                value: DisplaySanitizer.plainText(facts.identityEvidence(for: identity))
+            )
+            Text("Signed by: \(facts.signer(for: identity))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if let fingerprint = facts.fingerprint(for: identity) {
+                Text(fingerprint)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+            }
+        }
     }
 
     private func row(_ title: String, _ value: String) -> some View {
@@ -101,5 +155,40 @@ struct ConnectionAlertDetails: View {
             Text(title).foregroundStyle(.secondary)
             Text(DisplaySanitizer.plainText(value)).textSelection(.enabled)
         }
+    }
+}
+
+/// Reasons to look twice, shown above the alert's choices.
+struct ConnectionAlertWarningList: View {
+    let warnings: [ConnectionAlertWarning]
+
+    var body: some View {
+        if !warnings.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(warnings, id: \.self) { warning in
+                    Label(warning.message, systemImage: "exclamationmark.triangle")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+
+/// Return allows and Esc blocks, like the default and cancel buttons of a
+/// dialog. The buttons are invisible because the visible ones keep ⌘A and ⌘B.
+struct ConnectionAlertKeys: View {
+    let allow: () -> Void
+    let block: () -> Void
+
+    var body: some View {
+        ZStack {
+            Button("Allow", action: allow).keyboardShortcut(.defaultAction)
+            Button("Block", action: block).keyboardShortcut(.cancelAction)
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
     }
 }

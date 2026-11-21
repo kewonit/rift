@@ -91,6 +91,7 @@ struct RulesWorkspaceView: View {
                             : RuleInspectorActions(
                                 edit: { editingRow = row },
                                 setEnabled: { value in Task { await model.setSelectedEnabled(value) } },
+                                makePermanent: { Task { await model.makeSelectedPermanent() } },
                                 delete: { showingDeleteConfirmation = true }
                             )
                     )

@@ -39,6 +39,8 @@ public enum RuleWorkspaceSort: String, CaseIterable, Sendable, Identifiable {
     case action = "Action"
     case modified = "Modified"
     case usage = "Usage"
+    /// The order the filter ranks rules in, highest first.
+    case precedence = "Precedence"
 
     public var id: String { rawValue }
 }
@@ -121,6 +123,8 @@ public enum RuleWorkspaceQuery {
         usage: [UUID: RuleUsageValue] = [:]
     ) -> [RuleRowViewValue] {
         let tokens = searchTokens(search)
+        let redundant = filter == .redundant
+            ? RuleRedundancy.redundantRules(in: rules, now: context?.now ?? Date()) : [:]
         return rules.lazy
             .map { rule in
                 RuleRowViewValue(
@@ -133,7 +137,11 @@ public enum RuleWorkspaceQuery {
                     context: context
                 )
             }
-            .filter { row in includes(row, filter: filter, context: context) }
+            .filter { row in
+                filter == .redundant
+                    ? redundant[row.id] != nil
+                    : includes(row, filter: filter, context: context)
+            }
             .filter { collection.includes($0.rule) }
             .filter { actionFilter.includes($0.rule.action) }
             .filter { row in
@@ -159,6 +167,11 @@ public enum RuleWorkspaceQuery {
         case .recentlyModified: true
         case .recentlyUsed: row.usage.lastUsedAt != nil
         case .temporary: row.rule.expiresAt != nil
+        case .expired: row.rule.expiresAt.map { $0 <= (context?.now ?? Date()) } ?? false
+        case .incoming: row.rule.direction != .outgoing
+        // Only complete counts can show a rule was never used.
+        case .unused: row.usage.lowerBoundCount == 0 && row.usage.coverage == .complete
+        case .redundant: true
         case .unreviewed: row.rule.reviewState == .unreviewed
         }
     }
@@ -238,6 +251,9 @@ public enum RuleWorkspaceQuery {
         } else {
             effectiveSort = sort
         }
+        if effectiveSort == .precedence {
+            return RuleOrdering.precedes(lhs.rule, rhs.rule)
+        }
         let order: ComparisonResult
         switch effectiveSort {
         case .automatic, .application:
@@ -255,6 +271,8 @@ public enum RuleWorkspaceQuery {
                 ? .orderedSame
                 : (lhs.usage.lowerBoundCount > rhs.usage.lowerBoundCount
                     ? .orderedAscending : .orderedDescending)
+        case .precedence:
+            order = .orderedSame
         }
         if order != .orderedSame { return order == .orderedAscending }
         let conditionOrder = compare(lhs.conditionSummary, rhs.conditionSummary)

@@ -12,6 +12,7 @@ struct MapCommandActions {
     let hideInspector: () -> Void
     let toggleTimeline: () -> Void
     let find: () -> Void
+    let startFromNow: () -> Void
     /// Nil when the selection can't be decided.
     let decide: ((FilterAction) -> Void)?
     let showRule: (() -> Void)?
@@ -73,9 +74,25 @@ struct MapCommands: Commands {
                 .keyboardShortcut("b", modifiers: [.command, .shift])
                 .disabled(actions?.decide == nil)
             Divider()
+            Button("From Now") { actions?.startFromNow() }
+                .keyboardShortcut("k", modifiers: .command)
+                .disabled(actions == nil)
             Button("Show Rule") { actions?.showRule?() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
                 .disabled(actions?.showRule == nil)
+        }
+    }
+}
+
+/// Keeps the Rift window above other windows, to watch connections while
+/// working in another app.
+struct WindowLevelCommands: Commands {
+    static let storageKey = "windowFloatsOnTop"
+    @AppStorage(storageKey) private var floatsOnTop = false
+
+    var body: some Commands {
+        CommandGroup(after: .windowArrangement) {
+            Toggle("Float on Top", isOn: $floatsOnTop)
         }
     }
 }

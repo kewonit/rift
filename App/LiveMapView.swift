@@ -166,6 +166,7 @@ struct LiveMapView: View {
                 artworkStore: session.applicationArtwork,
                 apply: { feed.requestRule($0, for: node) },
                 showRules: { feed.showRules(for: node) },
+                ruleSummaries: { await session.controlPlane.ruleSummaries($0) },
                 canDecide: feed.canDecide(node)
             )
         }
@@ -202,6 +203,7 @@ struct LiveMapView: View {
             hideInspector: { feed.selectionID = nil },
             toggleTimeline: { showingTimeline.toggle() },
             find: { searchFocused = true },
+            startFromNow: { feed.query.startFromNow(Date()) },
             decide: selected.flatMap { node in
                 feed.canDecide(node) ? { feed.requestRule($0, for: node) } : nil
             },

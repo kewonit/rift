@@ -8,6 +8,10 @@ public enum RuleListFilter: String, CaseIterable, Sendable, Identifiable {
     case recentlyModified = "Recently Modified"
     case recentlyUsed = "Recently Used"
     case temporary = "Temporary"
+    case expired = "Expired"
+    case incoming = "Incoming"
+    case unused = "Unused"
+    case redundant = "Redundant"
     case unreviewed = "Unreviewed"
 
     public var id: String { rawValue }
@@ -107,6 +111,18 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
         enforcementState = state
         self.generation = generation
         self.usage = usage
+    }
+
+    /// One line for a rule, such as "Block Safari • example.com • 443". A
+    /// blocklist rule holds hundreds of names, so it says only where it's from.
+    /// The app and condition are sanitized already, so they aren't again.
+    public static func oneLineSummary(_ rule: Rule, blocklistName: String? = nil) -> String {
+        if case .blocklist = rule.source {
+            guard let blocklistName else { return "Block • from a blocklist" }
+            return "Block • from the blocklist “\(DisplaySanitizer.plainText(blocklistName))”"
+        }
+        let application = RuleWorkspacePresentation.process(rule.process)
+        return "\(action(rule.action)) \(application) • \(condition(rule))"
     }
 
     private static func action(_ action: RuleAction) -> String {
@@ -246,6 +262,17 @@ public enum RuleMutation {
             localGroupID: localGroupID, expiresAt: expiresAt,
             isEnabled: isEnabled, flags: rule.flags, reviewState: reviewState,
             source: rule.source, notes: note, createdAt: rule.createdAt, modifiedAt: now
+        )
+    }
+
+    /// Keeps a temporary rule for good. An expired one starts applying again.
+    public static func permanent(_ rule: Rule, now: Date) throws -> Rule {
+        try edited(
+            rule, action: rule.action, priority: rule.priority, process: rule.process,
+            destination: rule.destination, transport: rule.transportProtocol, port: rule.port,
+            direction: rule.direction, owner: rule.owner, profileID: rule.profileID,
+            localGroupID: rule.localGroupID, expiresAt: nil, isEnabled: rule.isEnabled,
+            reviewState: rule.reviewState, note: rule.notes, now: now
         )
     }
 

@@ -181,6 +181,12 @@ final class RulesWorkspaceController {
         }
     }
 
+    func makeSelectedPermanent() async {
+        await ruleCommand("Make Rules Permanent") {
+            try await controlPlane.makeRulesPermanent(selection, expectedGeneration: generation)
+        }
+    }
+
     func deleteSelected() async {
         await ruleCommand("Delete Rules") {
             try await controlPlane.deleteRules(selection, expectedGeneration: generation)

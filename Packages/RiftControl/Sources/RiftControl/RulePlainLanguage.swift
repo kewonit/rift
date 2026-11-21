@@ -9,10 +9,11 @@ public enum RulePlainLanguage {
         port: UInt16?,
         incoming: Bool = false,
         forOneHour: Bool = false,
+        lasting: String? = nil,
         isPreview: Bool = false
     ) -> String {
         let onPort = port.map { " on port \($0)" } ?? ""
-        let duration = forOneHour ? " for one hour" : ""
+        let duration = (lasting ?? (forOneHour ? "one hour" : nil)).map { " for \($0)" } ?? ""
         if incoming {
             let result = action == .deny ? "blocked" : "allowed"
             let verb = isPreview ? "will be" : "are now"

@@ -14,13 +14,31 @@ public enum MonitorRuleBreadth: String, Sendable, Hashable, CaseIterable, Identi
 }
 
 public enum MonitorRuleDuration: String, Sendable, Hashable, CaseIterable, Identifiable {
-    case always = "Always"
+    case fiveMinutes = "Five minutes"
     case oneHour = "One hour"
+    case always = "Always"
 
     public var id: String { rawValue }
 
+    public var interval: TimeInterval? {
+        switch self {
+        case .always: nil
+        case .oneHour: 3_600
+        case .fiveMinutes: 300
+        }
+    }
+
+    /// How long the rule lasts, as the end of a sentence, or nil for always.
+    public var phrase: String? {
+        switch self {
+        case .always: nil
+        case .oneHour: "one hour"
+        case .fiveMinutes: "five minutes"
+        }
+    }
+
     public func expiry(from now: Date) -> Date? {
-        self == .oneHour ? now.addingTimeInterval(3_600) : nil
+        interval.map { now.addingTimeInterval($0) }
     }
 }
 

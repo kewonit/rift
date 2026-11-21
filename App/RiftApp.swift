@@ -7,6 +7,7 @@ struct RiftApp: App {
     @NSApplicationDelegateAdaptor(RiftApplicationDelegate.self)
     private var applicationDelegate
     private let startup = AppStartupCoordinator.shared
+    @AppStorage(WindowLevelCommands.storageKey) private var floatsOnTop = false
 
     var body: some Scene {
         Window("Rift", id: "main") {
@@ -16,12 +17,14 @@ struct RiftApp: App {
         }
         .defaultSize(width: 1_360, height: 780)
         .windowResizability(.contentMinSize)
+        .windowLevel(floatsOnTop ? .floating : .normal)
         .commands {
             if let session = startup.session {
                 RiftNavigationCommands(session: session)
                 RuleWorkspaceCommands(session: session)
             }
             MapCommands()
+            WindowLevelCommands()
             UpdateCommands()
         }
 

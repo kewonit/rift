@@ -218,7 +218,13 @@ private struct BlocklistLineParser {
         guard let text = String(bytes: line, encoding: .utf8) else {
             throw BlocklistParserError.malformedLine(lineNumber)
         }
-        let comment = text.firstIndex(of: "#") ?? text.endIndex
+        let trimmed = text.drop(while: \.isWhitespace)
+        if let adblock = BlocklistAdblockLine(trimmed) {
+            guard case .name(let name) = adblock else { return }
+            try insert(.domain(name))
+            return
+        }
+        let comment = text.firstIndex(where: { $0 == "#" || $0 == ";" }) ?? text.endIndex
         let fields = text[..<comment].split(whereSeparator: { $0.isWhitespace || $0 == "," })
         guard !fields.isEmpty else { return }
         let candidates: ArraySlice<Substring>
@@ -234,13 +240,17 @@ private struct BlocklistLineParser {
             guard let entry = try parseToken(String(candidate)) else {
                 throw BlocklistParserError.malformedLine(lineNumber)
             }
-            if entries.count == BlocklistParser.maximumEntries,
-               !entries.contains(entry) {
-                throw BlocklistParserError.tooManyEntries
-            }
-            entries.insert(entry)
-            uniqueEntryHighWater = max(uniqueEntryHighWater, entries.count)
+            try insert(entry)
         }
+    }
+
+    private mutating func insert(_ entry: BlocklistEntry) throws {
+        if entries.count == BlocklistParser.maximumEntries,
+           !entries.contains(entry) {
+            throw BlocklistParserError.tooManyEntries
+        }
+        entries.insert(entry)
+        uniqueEntryHighWater = max(uniqueEntryHighWater, entries.count)
     }
 
     private func parseToken(_ token: String) throws -> BlocklistEntry? {
@@ -266,5 +276,58 @@ private struct BlocklistLineParser {
         }
         if let domain = try? DomainName(token) { return .domain(domain) }
         return nil
+    }
+}
+
+/// The part of Adblock filter syntax a name list can use. `||name^` blocks a
+/// name; comments, the header, exceptions, element-hiding rules, and rules
+/// with options or paths are skipped, because Rift can't apply them. Blocking
+/// a name an option limits, such as `$third-party`, would block more than the
+/// list means.
+enum BlocklistAdblockLine: Equatable {
+    case name(DomainName)
+    case skipped
+
+    init?(_ line: Substring) {
+        if line.hasPrefix("!") || line.hasPrefix("[") || line.hasPrefix("@@") {
+            self = .skipped
+            return
+        }
+        // An element-hiding rule puts its marker right after the names, with
+        // no space; a hosts file comment has a space before it.
+        for marker in ["##", "#@#", "#?#", "#$#", "#%#"] {
+            if let range = line.range(of: marker),
+               !line[..<range.lowerBound].contains(where: \.isWhitespace) {
+                self = .skipped
+                return
+            }
+        }
+        guard line.hasPrefix("||") else {
+            if Self.usesAdblockOnlySyntax(line) {
+                self = .skipped
+                return
+            }
+            return nil
+        }
+        let body = line.dropFirst(2).prefix { !$0.isWhitespace }
+        guard body.hasSuffix("^"), let name = try? DomainName(String(body.dropLast())) else {
+            self = .skipped
+            return
+        }
+        self = .name(name)
+    }
+
+    /// Characters and starts that only Adblock rules use, such as `/ads/*`,
+    /// `-banner.`, `|https://`, or `&ad_type=`. A hosts file or name list
+    /// never has them, though an address range like `203.0.113.0/24` has a
+    /// slash, so a slash alone doesn't count.
+    private static func usesAdblockOnlySyntax(_ line: Substring) -> Bool {
+        let token = line.prefix { !$0.isWhitespace }
+        if let first = token.first, "/|-._:?=&*".contains(first) { return true }
+        if token.contains(where: { "^$*|&=?~@!".contains($0) }) { return true }
+        if let slash = token.firstIndex(of: "/") {
+            return (try? IPAddress(String(token[..<slash]))) == nil
+        }
+        return false
     }
 }

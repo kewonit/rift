@@ -1,3 +1,4 @@
+import AppKit
 import RiftControl
 import RiftCore
 import SwiftUI
@@ -40,6 +41,7 @@ struct ConnectionsPanel: View {
                 ConnectionFilterBar(feed: feed)
                 if feed.loading { ProgressView().controlSize(.small) }
                 RiftSearchField(prompt: "Search apps and destinations", text: $feed.query.search, focus: searchFocus)
+                    .help("Narrow with app:, host:, domain:, ip:, port:, proto:, country:, decision: (allowed, blocked, timedout), or direction:")
                 Button(action: toggleMap) {
                     Label(
                         mapHidden ? "Show Map" : "Hide Map",
@@ -88,7 +90,8 @@ struct ConnectionsEmptyState: View {
     @Bindable var feed: MonitorFeed
 
     private var isFiltered: Bool {
-        !feed.query.search.isEmpty || feed.query.country != nil || feed.query.decision != .all
+        !feed.query.search.isEmpty || feed.query.country != nil || feed.query.startsAt != nil
+            || feed.query.decision != .all
             || feed.query.direction != .all || feed.query.locality != .all || feed.query.owner != .all
     }
 
@@ -170,6 +173,19 @@ struct ConnectionFilterBar: View {
                 Text(activeFilterCount == 0 ? "Filter" : "Filter (\(activeFilterCount))")
             }
             .help("Filter connections")
+            if let startsAt = feed.query.startsAt {
+                Button {
+                    feed.query.startsAt = nil
+                } label: {
+                    Label(
+                        "Since \(startsAt.formatted(date: .omitted, time: .shortened))",
+                        systemImage: "xmark.circle.fill"
+                    )
+                    .lineLimit(1)
+                }
+                .buttonStyle(.borderless)
+                .help("Show earlier connections again")
+            }
             if let country = feed.query.country {
                 Button {
                     feed.query.country = nil
@@ -256,6 +272,8 @@ struct ConnectionContextMenu: View {
     let hasRules: Bool
     let apply: (FilterAction) -> Void
     let showRules: () -> Void
+    var copyText: String?
+    var hostname: String?
 
     var body: some View {
         if canDecide() {
@@ -264,6 +282,33 @@ struct ConnectionContextMenu: View {
             Divider()
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)
+        Divider()
+        Button("Copy") { copy(copyText) }.disabled(copyText == nil)
+        if let hostname {
+            Button("Copy Hostname") { copy(hostname) }
+        }
+    }
+
+    private func copy(_ text: String?) {
+        guard let text else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+}
+
+extension MonitorEventRow {
+    /// One line describing the connection, for pasting into a note or report.
+    var copyDescription: String {
+        let flow = event.flow
+        let result = event.outcome == .blocked ? "blocked" : "allowed"
+        let protocolLabel = MonitorQuery.protocolLabel(self)
+        let parts = [
+            MonitorQuery.applicationLabel(self),
+            flow.direction == .incoming ? "←" : "→",
+            MonitorQuery.endpointLabel(self),
+            "(\(protocolLabel), \(result), \(event.occurredAt.formatted(date: .abbreviated, time: .standard)))",
+        ]
+        return DisplaySanitizer.plainText(parts.joined(separator: " "))
     }
 }
 

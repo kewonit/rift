@@ -134,7 +134,7 @@ extension MonitorFeed {
             destination: MonitorRuleScope.phrase(breadth, host: request.host),
             port: breadth == .exactConnection ? request.port : nil,
             incoming: request.row.event.flow.direction == .incoming,
-            forOneHour: duration == .oneHour
+            lasting: duration.phrase
         )
         results.post(
             result.requiresAttention ? "\(sentence) \(result.message)" : sentence,

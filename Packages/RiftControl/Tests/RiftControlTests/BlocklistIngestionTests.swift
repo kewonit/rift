@@ -101,7 +101,7 @@ struct BlocklistIngestionTests {
         let probe = GenerationMutationProbe()
         await #expect(throws: BlocklistParserError.malformedLine(1)) {
             try await BlocklistIngestion.ingest(
-                data: Data("@@bad".utf8), name: "Parse failure"
+                data: Data("bad%name".utf8), name: "Parse failure"
             ) { preparation in
                 await probe.record(preparation)
             }

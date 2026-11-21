@@ -39,6 +39,11 @@ extension RulesWorkspaceTable {
             Task { await model.markSelectedReviewed(false) }
         }
         .disabled(isPreview || eligibleCount(ids) == 0)
+        Button("Make Permanent") {
+            applySelection(ids)
+            Task { await model.makeSelectedPermanent() }
+        }
+        .disabled(isPreview || !selectedRows(ids).contains { $0.rule.expiresAt != nil })
         Menu("Assign to Group") {
             Button("No Group") {
                 applySelection(ids)

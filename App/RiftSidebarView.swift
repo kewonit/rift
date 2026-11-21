@@ -373,6 +373,10 @@ struct RiftSidebarView: View {
         case .recentlyModified: "pencil"
         case .recentlyUsed: "clock"
         case .temporary: "hourglass"
+        case .expired: "hourglass.bottomhalf.filled"
+        case .incoming: "arrow.down.left"
+        case .unused: "moon.zzz"
+        case .redundant: "square.on.square"
         case .unreviewed: "tray"
         }
     }

@@ -47,6 +47,22 @@ extension ControlPlaneController {
     }
 
     @discardableResult
+    func makeRulesPermanent(
+        _ ids: Set<UUID>, expectedGeneration: UInt64
+    ) async throws -> ConfigurationMutationResult {
+        return try await mutateRules(
+            expectedGeneration: expectedGeneration, kind: "makePermanent"
+        ) { rules in
+            try rules.map { rule in
+                guard ids.contains(rule.id), rule.expiresAt != nil,
+                      !rule.flags.contains(.protected),
+                      !rule.flags.contains(.sourceManaged) else { return rule }
+                return try RuleMutation.permanent(rule, now: Date())
+            }
+        }
+    }
+
+    @discardableResult
     func assignRulesToGroup(
         _ ids: Set<UUID>, groupID: UUID?, expectedGeneration: UInt64
     ) async throws -> ConfigurationMutationResult {

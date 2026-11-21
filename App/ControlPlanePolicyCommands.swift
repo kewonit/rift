@@ -65,6 +65,20 @@ extension ControlPlaneController {
         )
     }
 
+    /// One line for each rule in `ids` that still exists, in the given order.
+    func ruleSummaries(_ ids: [UUID]) async -> [(id: UUID, text: String)] {
+        guard !ids.isEmpty,
+              let draft = try? await repository?.currentConfiguration() else { return [] }
+        let rules = Dictionary(draft.rules.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let lists = Dictionary(draft.blocklists.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        return ids.compactMap { id in
+            guard let rule = rules[id] else { return nil }
+            var listName: String?
+            if case .blocklist(let source) = rule.source { listName = lists[source] }
+            return (id, RuleRowViewValue.oneLineSummary(rule, blocklistName: listName))
+        }
+    }
+
     /// How many of the person's own rules and blocklists exist.
     func ruleCounts() async -> (rules: Int, blocklists: Int)? {
         guard let draft = try? await repository?.currentConfiguration() else { return nil }

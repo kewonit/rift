@@ -53,6 +53,18 @@ Rift would ask you to confirm: a weaker mode, Pause Rules or Block Unless
 Allowed, or a profile change that turns off rules that block or turns on rules
 that allow. Make those switches in Rift.
 
+Blocklists read plain names, hosts files, and the name rules of Adblock-style
+lists (`||name^`). Like every blocklist name, a `||name^` rule blocks that exact
+host. Ad blockers also apply it to subdomains, so an Adblock list blocks less in
+Rift than in an ad blocker. Rift skips Adblock rules it can't apply as written:
+exceptions, element hiding, and rules with paths, wildcards or options.
+
+A rule is listed as Redundant only when another rule with the same action
+applies whenever it does and covers everything it matches, and no rule with a
+different action could match the same connections. Deleting it can't change a
+decision. The check errs toward keeping rules, so some unneeded rules aren't
+listed.
+
 Alert decisions have deadlines. If the app cannot answer safely before a
 deadline, the runtime uses the configured bounded fallback. It resumes the flow
 exactly once. Identity resolution failures suppress potentially private monitor

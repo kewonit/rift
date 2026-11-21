@@ -182,7 +182,7 @@ struct PolicySettingsPane: View {
         } header: {
             Text("Blocklists")
         } footer: {
-            Text("Blocklists apply to every account on this Mac. Each name blocks that exact host, not its subdomains.")
+            Text("Blocklists apply to every account on this Mac. Each name, including an Adblock ||name^ line, blocks that exact host, not its subdomains.")
         }
     }
 
