@@ -74,7 +74,11 @@ struct ConnectionsTable: View {
                     disabled: feed.applyingEventID != nil || monitorCoveragePending(node.ruleCoverage.state),
                     hasRules: !node.ruleCoverage.ruleIDs.isEmpty,
                     apply: { feed.requestRule($0, for: node) },
-                    showRules: { feed.showRules(for: node) }
+                    showRules: { feed.showRules(for: node) },
+                    copyText: feed.representativeRow(for: node)?.copyDescription,
+                    hostname: feed.representativeRow(for: node).flatMap { row in
+                        row.event.flow.observedHostname?.ascii
+                    }
                 )
             }
         }
@@ -98,8 +102,10 @@ struct ConnectionsTable: View {
 
     /// The destination country, for nodes that have a single destination.
     private func countryName(for node: MonitorHierarchyNode) -> String? {
-        if (node.children?.count ?? 0) > 1 { return "Several" }
-        guard let address = row(for: node)?.event.flow.destinationEndpoint?.address else { return nil }
+        if node.kind == .country { return node.title }
+        // Grouped by country, everything under a country shares it.
+        if feed.query.lens != .country, (node.children?.count ?? 0) > 1 { return "Several" }
+        guard let address = row(for: node)?.event.flow.remoteEndpoint?.address else { return nil }
         let code: String?
 #if DEBUG
         code = feed.session.isUIFixture

@@ -1,7 +1,7 @@
 import Foundation
 import RiftCore
 
-/// Connections grouped by the country that routes their destination address.
+/// Connections grouped by the country of the address at the other end.
 public struct CountryActivity: Sendable, Hashable, Identifiable {
     public let countryCode: String
     public let connections: Int
@@ -12,8 +12,8 @@ public struct CountryActivity: Sendable, Hashable, Identifiable {
 }
 
 public enum CountryActivityBuilder {
-    /// Groups public destinations by country, most active first. Local, private,
-    /// and unknown destinations are left out because they have no country.
+    /// Groups public peers by country, most active first. Local, private,
+    /// and unknown peers are left out because they have no country.
     public static func build(
         _ rows: [MonitorDisplayRow],
         limit: Int = 12,
@@ -22,7 +22,8 @@ public enum CountryActivityBuilder {
         var totals: [String: (connections: Int, blocked: Int, ids: [String])] = [:]
         var cache: [IPAddress: String?] = [:]
         for row in rows {
-            guard let endpoint = row.source.event.flow.destinationEndpoint,
+            // The peer, so an incoming connection shows where it came from.
+            guard let endpoint = row.source.event.flow.remoteEndpoint,
                   endpoint.classes.isEmpty else { continue }
             let code: String?
             if let cached = cache[endpoint.address] {

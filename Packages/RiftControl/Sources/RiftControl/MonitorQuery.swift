@@ -5,6 +5,7 @@ import Foundation
 public enum MonitorLens: String, CaseIterable, Sendable, Identifiable {
     case application = "App"
     case hostname = "Hostname"
+    case country = "Country"
     public var id: String { rawValue }
 }
 
@@ -205,6 +206,8 @@ public enum MonitorQuery {
                 if endpointLabels.count < 4_096 { endpointLabels[endpoint] = label }
                 rawLabels = (applicationLabel(row), label)
             case .hostname: rawLabels = (hostnameLabel(row), applicationLabel(row))
+            case .country:
+                rawLabels = (MonitorCountryGroup(row.event.flow, context: context).title, applicationLabel(row))
             }
             values.append(MonitorDisplayRow(
                 source: row,
@@ -292,7 +295,7 @@ public enum MonitorQuery {
         context: MonitorSearchContext
     ) -> Bool {
         guard let country else { return true }
-        guard let address = row.event.flow.destinationEndpoint?.address else { return false }
+        guard let address = row.event.flow.remoteEndpoint?.address else { return false }
         return context.countryCode?(address) == country
     }
 
@@ -324,7 +327,8 @@ public enum MonitorQuery {
         locality: MonitorLocalityFilter
     ) -> Bool {
         guard locality != .all else { return true }
-        guard let endpoint = row.event.flow.destinationEndpoint else { return false }
+        // An incoming connection is local when the peer is, not this Mac.
+        guard let endpoint = row.event.flow.remoteEndpoint else { return false }
         let localClasses: Set<EndpointClass> = [
             .loopback, .linkLocal, .broadcast, .multicast, .bonjour, .localNetwork,
         ]

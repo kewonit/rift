@@ -21,6 +21,10 @@ final class MonitorFeed {
     var wantsDecisionBuckets = false {
         didSet { if wantsDecisionBuckets, !oldValue { scheduleQueryUpdate() } }
     }
+    /// The summary also costs a pass over every row; build it only while it shows.
+    var wantsSummary = false {
+        didSet { if wantsSummary, !oldValue { scheduleQueryUpdate() } }
+    }
 
     // MARK: Presentation
     private(set) var now: Date
@@ -33,6 +37,7 @@ final class MonitorFeed {
     private(set) var rowLookup: [String: MonitorEventRow] = [:]
     private(set) var traffic = LiveTrafficSnapshot.empty
     private(set) var decisions = DecisionBucketSnapshot(buckets: [], coverage: .gap)
+    private(set) var summary = MonitorSummary.empty
     private(set) var loading = false
     private(set) var hasMore = false
     private(set) var windowIsVisible = false
@@ -55,7 +60,12 @@ final class MonitorFeed {
     private(set) var orderIsPaused = false
 
     var selectedRow: MonitorEventRow? {
-        guard let id = selectedNode?.eventID ?? selectedNode?.ruleSeedEventID else { return nil }
+        selectedNode.flatMap(representativeRow(for:))
+    }
+
+    /// The connection a row stands for: its own, or the one a rule would be made from.
+    func representativeRow(for node: MonitorHierarchyNode) -> MonitorEventRow? {
+        guard let id = node.eventID ?? node.ruleSeedEventID else { return nil }
         return rowLookup[id]
     }
 
@@ -193,6 +203,7 @@ final class MonitorFeed {
         let state = query
         let sort = sort
         let includeDecisions = wantsDecisionBuckets
+        let includeSummary = wantsSummary
         let revision = session.controlPlane.activityRevision
         let sameRange = source?.time == state.time && source?.anchor == state.timeAnchor
         loading = source == nil
@@ -236,7 +247,8 @@ final class MonitorFeed {
                 evaluation: evaluation, rows: snapshot.rows, query: state, now: refreshedNow,
                 coverage: snapshot.coverage, isComplete: snapshot.isComplete,
                 coverages: coverages, visibleLimit: limit, pinnedID: pinnedID,
-                sort: sort, includeDecisions: includeDecisions, context: context
+                sort: sort, includeDecisions: includeDecisions, includeSummary: includeSummary,
+                context: context
             )
             guard windowIsVisible, MonitorQueryPublication.permits(
                 requestID, active: activeQueryRequestID, taskIsCancelled: Task.isCancelled
@@ -313,6 +325,7 @@ final class MonitorFeed {
         if presentation.includesDecisions, decisions != presentation.decisions {
             decisions = presentation.decisions
         }
+        if let next = presentation.summary, summary != next { summary = next }
     }
 
     private func signalFixtureReadiness() {

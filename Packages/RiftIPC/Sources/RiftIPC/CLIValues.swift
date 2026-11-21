@@ -12,6 +12,16 @@ public enum CLICommandKind: String, Sendable, Hashable, Codable {
     case profilesActivate
 }
 
+/// A refusal the app relay returns to `riftctl`. Only the type name crosses
+/// the connection, as the reply's redacted error code.
+public enum CLIRelayRefusal: Error, Sendable, Hashable {
+    /// The profile switch would weaken protection or needs a confirmation
+    /// that only Rift can show.
+    case profileSwitchNeedsConfirmation
+
+    public static let code = String(describing: CLIRelayRefusal.self)
+}
+
 public struct CLIRelayRequest: Sendable, Hashable, Codable {
     public let command: CLICommandKind
     public let argument: String?

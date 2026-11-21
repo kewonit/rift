@@ -11,6 +11,7 @@ struct SettingsView: View {
     @AppStorage("statusRecentLimit") private var recentLimit = 5
     @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = "Once"
     @AppStorage("alertDefaultScope") private var alertDefaultScope = "Current profile"
+    @AppStorage("alertDefaultDestination") private var alertDefaultDestination = "This destination"
     @AppStorage("settingsSection") private var section: SettingsSection = .general
     @State private var launchAtLogin = false
     @State private var loginItemLoaded = false
@@ -78,7 +79,7 @@ struct SettingsView: View {
             }
             recentLimit = min(max(recentLimit, 0), 25)
             if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
-            if !["Once", "One hour", "Always"].contains(alertDefaultLifetime) {
+            if !["Once", "Five minutes", "One hour", "Always"].contains(alertDefaultLifetime) {
                 alertDefaultLifetime = "Once"
             }
             if !["Current profile", "All profiles"].contains(alertDefaultScope) {
@@ -161,6 +162,7 @@ struct SettingsView: View {
                 sensitiveDetails: $sensitiveDetails,
                 alertDefaultLifetime: $alertDefaultLifetime,
                 alertDefaultScope: $alertDefaultScope,
+                alertDefaultDestination: $alertDefaultDestination,
                 recentLimit: $recentLimit,
                 permissionRequested: requestNotificationPermission
             )

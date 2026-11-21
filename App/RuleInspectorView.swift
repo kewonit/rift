@@ -5,6 +5,7 @@ import SwiftUI
 struct RuleInspectorActions {
     let edit: () -> Void
     let setEnabled: (Bool) -> Void
+    let makePermanent: () -> Void
     let delete: () -> Void
 }
 
@@ -87,7 +88,12 @@ struct RuleInspectorView: View {
         RiftInspectorSection("Source & Expiration") {
             LabeledContent("Source", value: sourceLabel)
             if let expiresAt = row.rule.expiresAt {
-                LabeledContent("Expires", value: expiresAt.formatted())
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    LabeledContent("Expires", value: Self.expiryLabel(expiresAt, now: context.date))
+                }
+                if let actions {
+                    Button("Make Permanent", action: actions.makePermanent)
+                }
             } else {
                 LabeledContent("Expires", value: "Never")
             }
@@ -118,6 +124,14 @@ struct RuleInspectorView: View {
                 LabeledContent("Profile ID", value: profileID.uuidString.lowercased())
             }
         }
+    }
+
+    /// A countdown for the last hour, then the time it ends.
+    static func expiryLabel(_ expiresAt: Date, now: Date) -> String {
+        let remaining = Int(expiresAt.timeIntervalSince(now).rounded(.up))
+        guard remaining > 0 else { return "Ended \(expiresAt.formatted(date: .abbreviated, time: .shortened))" }
+        guard remaining <= 3_600 else { return expiresAt.formatted() }
+        return "In \(remaining / 60):\(String(format: "%02d", remaining % 60))"
     }
 
     private var priority: String {
@@ -165,7 +179,9 @@ struct RuleInspectorView: View {
     }
 
     private var ownerLabel: String {
-        switch row.rule.owner {
+        // Blocklists apply to every account; see RuleApplicability.
+        if row.rule.priority == .blocklistDeny { return "Every account" }
+        return switch row.rule.owner {
         case .authorizedUser: "Your account"
         case .specificUser(let uid): "User ID \(uid)"
         case .system: "System"

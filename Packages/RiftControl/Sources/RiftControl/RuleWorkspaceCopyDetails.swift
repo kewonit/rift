@@ -20,7 +20,7 @@ public enum RuleWorkspaceCopyDetails {
             "Protocol: \(transport(rule.transportProtocol))",
             "Port: \(port(rule.port))",
             "Direction: \(direction(rule.direction))",
-            "Owner: \(owner(rule.owner))",
+            "Owner: \(rule.priority == .blocklistDeny ? "Every account" : owner(rule.owner))",
         ])
         appendAssignment(
             label: "Profile",

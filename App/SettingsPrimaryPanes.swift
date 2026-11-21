@@ -84,8 +84,14 @@ struct AlertSettingsPane: View {
     @Binding var sensitiveDetails: Bool
     @Binding var alertDefaultLifetime: String
     @Binding var alertDefaultScope: String
+    @Binding var alertDefaultDestination: String
     @Binding var recentLimit: Int
     let permissionRequested: (Bool) -> Void
+    @AppStorage(NotificationKinds.blocked.rawValue) private var notifyBlocked = true
+    @AppStorage(NotificationKinds.undecided.rawValue) private var notifyUndecided = true
+    @AppStorage(NotificationKinds.ruleMatches.rawValue) private var notifyRuleMatches = true
+    @AppStorage(NotificationKinds.ruleSound.rawValue) private var notifyRuleSound = false
+    @AppStorage(PromptPanelController.keepMinimizedKey) private var keepAlertsMinimized = false
 
     var body: some View {
         Form {
@@ -94,27 +100,44 @@ struct AlertSettingsPane: View {
                     .onChange(of: notificationsEnabled) { _, value in
                         permissionRequested(value)
                     }
+                Group {
+                    Toggle("Blocked connections", isOn: $notifyBlocked)
+                    Toggle("Connections no rule decided", isOn: $notifyUndecided)
+                    Toggle("Matches of Notify rules", isOn: $notifyRuleMatches)
+                    Toggle("Play a sound for Notify rules", isOn: $notifyRuleSound)
+                        .disabled(!notifyRuleMatches)
+                        .onChange(of: notifyRuleSound) { _, value in
+                            if value { permissionRequested(true) }
+                        }
+                }
+                .disabled(!notificationsEnabled)
                 Toggle("Show destination details", isOn: $sensitiveDetails)
             } header: {
                 Text("Notifications")
             } footer: {
-                Text("Destination details can appear on the Lock Screen. Notifications don’t change how connections are filtered.")
+                Text("Destination details can appear on the Lock Screen. Notifications don’t change how connections are filtered. If a sound doesn’t play, turn on sounds for Rift in System Settings › Notifications.")
             }
             Section {
                 Picker("Remember decisions", selection: $alertDefaultLifetime) {
                     Text("Once").tag("Once")
+                    Text("Five minutes").tag("Five minutes")
                     Text("One hour").tag("One hour")
                     Text("Always").tag("Always")
+                }
+                Picker("New rules cover", selection: $alertDefaultDestination) {
+                    Text("This destination and port").tag("This destination")
+                    Text("This destination, any port").tag("This destination, any port")
                 }
                 Picker("Apply new rules to", selection: $alertDefaultScope) {
                     Text("Current profile").tag("Current profile")
                     Text("All profiles").tag("All profiles")
                 }
+                Toggle("Show alerts minimized", isOn: $keepAlertsMinimized)
                 Stepper("Recent apps in menu: \(recentLimit)", value: $recentLimit, in: 0...10)
             } header: {
                 Text("Alert Defaults")
             } footer: {
-                Text("If you don’t answer an alert in time, Rift lets the connection through.")
+                Text("In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift lets the connection through.")
             }
         }
         .formStyle(.grouped)

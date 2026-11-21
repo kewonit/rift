@@ -16,14 +16,16 @@ actor NotificationRouter {
     }
 
     func requestPermission() async throws -> Bool {
-        try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge])
+        try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
     }
 
     func route(_ events: [RuntimeEvent]) async {
         guard notificationsEnabled else { cancelSummary(); return }
+        let blocked = NotificationKinds.isOn(.blocked)
+        let undecided = NotificationKinds.isOn(.undecided)
         for event in events where event.kind == .decision
             && !event.notificationRequested
-            && (event.action == .deny || event.reason != .concreteDecision) {
+            && ((event.action == .deny && blocked) || (event.reason != .concreteDecision && undecided)) {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
             content.title = NotificationCopy.title(action: event.action)
@@ -38,11 +40,14 @@ actor NotificationRouter {
 
     func route(_ events: [EphemeralNotificationEvent]) async {
         guard notificationsEnabled else { cancelSummary(); return }
+        guard NotificationKinds.isOn(.ruleMatches) else { return }
+        let sound = NotificationKinds.isOn(.ruleSound)
         for event in events {
             guard limiter.admit(at: monotonicTime) else { continue }
             let content = UNMutableNotificationContent()
             content.title = NotificationCopy.title(action: event.action)
             content.body = NotificationCopy.body(destination: destination(event.flow))
+            if sound { content.sound = .default }
             await deliver(
                 UNNotificationRequest(
                     identifier: "rift-notify-\(event.id.uuidString.lowercased())",
@@ -118,4 +123,17 @@ actor NotificationRouter {
 
 private extension RuntimeEvent {
     var id: String { "rift-\(providerEpoch.uuidString)-\(sequence)" }
+}
+
+/// Which connections notify, each with its own switch in Settings › Alerts.
+/// A switch nobody has touched is on, except the sound.
+enum NotificationKinds: String, CaseIterable {
+    case blocked = "notifyBlockedConnections"
+    case undecided = "notifyUndecidedConnections"
+    case ruleMatches = "notifyRuleMatches"
+    case ruleSound = "notifyRuleMatchesSound"
+
+    static func isOn(_ kind: NotificationKinds) -> Bool {
+        UserDefaults.standard.object(forKey: kind.rawValue) as? Bool ?? (kind != .ruleSound)
+    }
 }

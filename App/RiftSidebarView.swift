@@ -341,9 +341,9 @@ struct RiftSidebarView: View {
             }
             let kept: String
             if case .profile = removal {
-                kept = "Kept rules will apply to all profiles."
+                kept = "Kept rules will apply to all profiles. If this profile isn’t active, they’re turned off."
             } else {
-                kept = "Kept rules won’t belong to any group."
+                kept = "Kept rules won’t belong to any group. If this group is off, they’re turned off."
             }
             return "Choose whether to keep or delete its \(ruleCount(impact.totalRules)). \(kept) Open connections aren’t affected."
         case .blocklist(let source, let impact):
@@ -373,6 +373,10 @@ struct RiftSidebarView: View {
         case .recentlyModified: "pencil"
         case .recentlyUsed: "clock"
         case .temporary: "hourglass"
+        case .expired: "hourglass.bottomhalf.filled"
+        case .incoming: "arrow.down.left"
+        case .unused: "moon.zzz"
+        case .redundant: "square.on.square"
         case .unreviewed: "tray"
         }
     }

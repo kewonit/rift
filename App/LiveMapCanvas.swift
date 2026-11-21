@@ -199,7 +199,7 @@ struct LiveMapCanvas: View {
                 selectCountry(nil)
             }
             localConnections = rows.filter {
-                !($0.source.event.flow.destinationEndpoint?.classes.isEmpty ?? true)
+                !($0.source.event.flow.remoteEndpoint?.classes.isEmpty ?? true)
             }.count
         }
     }

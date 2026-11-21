@@ -8,6 +8,10 @@ public enum RuleListFilter: String, CaseIterable, Sendable, Identifiable {
     case recentlyModified = "Recently Modified"
     case recentlyUsed = "Recently Used"
     case temporary = "Temporary"
+    case expired = "Expired"
+    case incoming = "Incoming"
+    case unused = "Unused"
+    case redundant = "Redundant"
     case unreviewed = "Unreviewed"
 
     public var id: String { rawValue }
@@ -107,6 +111,18 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
         enforcementState = state
         self.generation = generation
         self.usage = usage
+    }
+
+    /// One line for a rule, such as "Block Safari • example.com • 443". A
+    /// blocklist rule holds hundreds of names, so it says only where it's from.
+    /// The app and condition are sanitized already, so they aren't again.
+    public static func oneLineSummary(_ rule: Rule, blocklistName: String? = nil) -> String {
+        if case .blocklist = rule.source {
+            guard let blocklistName else { return "Block • from a blocklist" }
+            return "Block • from the blocklist “\(DisplaySanitizer.plainText(blocklistName))”"
+        }
+        let application = RuleWorkspacePresentation.process(rule.process)
+        return "\(action(rule.action)) \(application) • \(condition(rule))"
     }
 
     private static func action(_ action: RuleAction) -> String {
@@ -249,6 +265,17 @@ public enum RuleMutation {
         )
     }
 
+    /// Keeps a temporary rule for good. An expired one starts applying again.
+    public static func permanent(_ rule: Rule, now: Date) throws -> Rule {
+        try edited(
+            rule, action: rule.action, priority: rule.priority, process: rule.process,
+            destination: rule.destination, transport: rule.transportProtocol, port: rule.port,
+            direction: rule.direction, owner: rule.owner, profileID: rule.profileID,
+            localGroupID: rule.localGroupID, expiresAt: nil, isEnabled: rule.isEnabled,
+            reviewState: rule.reviewState, note: rule.notes, now: now
+        )
+    }
+
     public static func duplicate(_ rule: Rule, now: Date) throws -> Rule {
         try duplicate(
             rule,
@@ -297,18 +324,29 @@ public enum RuleMutation {
         )
     }
 
-    public static func removingGroup(_ rule: Rule, now: Date) throws -> Rule {
-        try copyAssignment(rule, profileID: rule.profileID, localGroupID: nil, now: now)
+    /// Keeps a rule whose group is removed. A rule from a turned-off group is
+    /// turned off, so removing the group doesn't start applying it.
+    public static func removingGroup(_ rule: Rule, groupWasOn: Bool, now: Date) throws -> Rule {
+        try copyAssignment(
+            rule, profileID: rule.profileID, localGroupID: nil,
+            isEnabled: rule.isEnabled && groupWasOn, now: now
+        )
     }
 
-    public static func removingProfile(_ rule: Rule, now: Date) throws -> Rule {
-        try copyAssignment(rule, profileID: nil, localGroupID: rule.localGroupID, now: now)
+    /// Keeps a rule whose profile is removed. It then applies in every
+    /// profile, so a rule from a profile that wasn't active is turned off.
+    public static func removingProfile(_ rule: Rule, profileWasActive: Bool, now: Date) throws -> Rule {
+        try copyAssignment(
+            rule, profileID: nil, localGroupID: rule.localGroupID,
+            isEnabled: rule.isEnabled && profileWasActive, now: now
+        )
     }
 
     private static func copyAssignment(
         _ rule: Rule,
         profileID: UUID?,
         localGroupID: UUID?,
+        isEnabled: Bool,
         now: Date
     ) throws -> Rule {
         try Rule(
@@ -317,7 +355,7 @@ public enum RuleMutation {
             destination: rule.destination, transportProtocol: rule.transportProtocol,
             port: rule.port, direction: rule.direction, owner: rule.owner,
             profileID: profileID, localGroupID: localGroupID,
-            expiresAt: rule.expiresAt, isEnabled: rule.isEnabled,
+            expiresAt: rule.expiresAt, isEnabled: isEnabled,
             flags: rule.flags, reviewState: rule.reviewState, source: rule.source,
             notes: rule.notes, createdAt: rule.createdAt, modifiedAt: now
         )

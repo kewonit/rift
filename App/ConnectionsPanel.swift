@@ -1,3 +1,4 @@
+import AppKit
 import RiftControl
 import RiftCore
 import SwiftUI
@@ -9,13 +10,18 @@ struct ConnectionsPanel: View {
     let mapHidden: Bool
     let toggleMap: () -> Void
     var searchFocus: FocusState<Bool>.Binding
+    @AppStorage("connectionsLogShown") private var showsLog = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
-            ConnectionsTable(feed: feed, artworkStore: artworkStore)
-                .overlay(alignment: .bottom) { orderPausedNote }
+            if showsLog {
+                ConnectionLogView(feed: feed, artworkStore: artworkStore)
+            } else {
+                ConnectionsTable(feed: feed, artworkStore: artworkStore)
+                    .overlay(alignment: .bottom) { orderPausedNote }
+            }
             if feed.hasMore {
                 Divider()
                 Button("Show More Connections") { feed.loadMore() }
@@ -37,9 +43,19 @@ struct ConnectionsPanel: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                ConnectionFilterBar(feed: feed)
+                ConnectionFilterBar(feed: feed, showsLog: showsLog)
                 if feed.loading { ProgressView().controlSize(.small) }
                 RiftSearchField(prompt: "Search apps and destinations", text: $feed.query.search, focus: searchFocus)
+                    .help("Narrow with app:, host:, domain:, ip:, port:, proto:, country:, decision: (allowed, blocked, timedout), or direction:")
+                Button { showsLog.toggle() } label: {
+                    Label(
+                        showsLog ? "Show Groups" : "Show Log",
+                        systemImage: showsLog ? "list.bullet.indent" : "list.bullet.rectangle"
+                    )
+                    .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .help(showsLog ? "Group connections by app, destination or country" : "List every connection in order, newest first")
                 Button(action: toggleMap) {
                     Label(
                         mapHidden ? "Show Map" : "Hide Map",
@@ -88,7 +104,8 @@ struct ConnectionsEmptyState: View {
     @Bindable var feed: MonitorFeed
 
     private var isFiltered: Bool {
-        !feed.query.search.isEmpty || feed.query.country != nil || feed.query.decision != .all
+        !feed.query.search.isEmpty || feed.query.country != nil || feed.query.startsAt != nil
+            || feed.query.decision != .all
             || feed.query.direction != .all || feed.query.locality != .all || feed.query.owner != .all
     }
 
@@ -128,6 +145,7 @@ struct ConnectionsEmptyState: View {
 /// Group, filter and sort, as labeled menus.
 struct ConnectionFilterBar: View {
     @Bindable var feed: MonitorFeed
+    var showsLog = false
 
     private var activeFilterCount: Int {
         [feed.query.decision != .all, feed.query.direction != .all,
@@ -145,6 +163,7 @@ struct ConnectionFilterBar: View {
                 Text("By \(feed.query.lens.groupTitle)")
             }
             .help("Group connections")
+            .disabled(showsLog)
             Menu {
                 Picker("Decision", selection: $feed.query.decision) {
                     ForEach(MonitorDecisionFilter.allCases) { Text($0.rawValue).tag($0) }
@@ -170,6 +189,19 @@ struct ConnectionFilterBar: View {
                 Text(activeFilterCount == 0 ? "Filter" : "Filter (\(activeFilterCount))")
             }
             .help("Filter connections")
+            if let startsAt = feed.query.startsAt {
+                Button {
+                    feed.query.startsAt = nil
+                } label: {
+                    Label(
+                        "Since \(startsAt.formatted(date: .omitted, time: .shortened))",
+                        systemImage: "xmark.circle.fill"
+                    )
+                    .lineLimit(1)
+                }
+                .buttonStyle(.borderless)
+                .help("Show earlier connections again")
+            }
             if let country = feed.query.country {
                 Button {
                     feed.query.country = nil
@@ -191,7 +223,8 @@ struct ConnectionFilterBar: View {
             } label: {
                 Text(feed.sort.rawValue)
             }
-            .help("Sort connections")
+            .help(showsLog ? "The log is always newest first" : "Sort connections")
+            .disabled(showsLog)
             Spacer(minLength: 0)
         }
         .menuStyle(.borderlessButton)
@@ -206,6 +239,7 @@ extension MonitorLens {
         switch self {
         case .application: "App"
         case .hostname: "Destination"
+        case .country: "Country"
         }
     }
 }
@@ -242,10 +276,19 @@ struct ConnectionIdentityIcon: View {
         } else if node.kind == .flow, let row {
             RiftDecisionBadge(decision: row.decision).frame(width: size)
         } else {
-            Image(systemName: node.kind == .route ? "arrow.left.arrow.right" : node.kind == .hostname ? "globe" : "network")
+            Image(systemName: symbol(for: node.kind))
                 .foregroundStyle(.secondary)
                 .frame(width: size)
                 .accessibilityHidden(true)
+        }
+    }
+
+    private func symbol(for kind: MonitorHierarchyKind) -> String {
+        switch kind {
+        case .route: "arrow.left.arrow.right"
+        case .hostname: "globe"
+        case .country: "flag"
+        default: "network"
         }
     }
 }
@@ -256,6 +299,8 @@ struct ConnectionContextMenu: View {
     let hasRules: Bool
     let apply: (FilterAction) -> Void
     let showRules: () -> Void
+    var copyText: String?
+    var hostname: String?
 
     var body: some View {
         if canDecide() {
@@ -264,6 +309,33 @@ struct ConnectionContextMenu: View {
             Divider()
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)
+        Divider()
+        Button("Copy") { copy(copyText) }.disabled(copyText == nil)
+        if let hostname {
+            Button("Copy Hostname") { copy(hostname) }
+        }
+    }
+
+    private func copy(_ text: String?) {
+        guard let text else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+}
+
+extension MonitorEventRow {
+    /// One line describing the connection, for pasting into a note or report.
+    var copyDescription: String {
+        let flow = event.flow
+        let result = event.outcome == .blocked ? "blocked" : "allowed"
+        let protocolLabel = MonitorQuery.protocolLabel(self)
+        let parts = [
+            MonitorQuery.applicationLabel(self),
+            flow.direction == .incoming ? "←" : "→",
+            MonitorQuery.endpointLabel(self),
+            "(\(protocolLabel), \(result), \(event.occurredAt.formatted(date: .abbreviated, time: .standard)))",
+        ]
+        return DisplaySanitizer.plainText(parts.joined(separator: " "))
     }
 }
 

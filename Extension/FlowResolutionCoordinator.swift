@@ -5,7 +5,7 @@ import Foundation
 @preconcurrency import NetworkExtension
 
 final class FlowResolutionCoordinator: @unchecked Sendable {
-    private struct Pending {
+    struct Pending {
         let flow: NEFilterFlow
         var metadata: CapturedFlowMetadata
         let deadline: Date
@@ -24,14 +24,14 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
     private static let tcpDeadline: TimeInterval = 30
     private static let udpDeadline: TimeInterval = 8
     private let lock = NSLock()
-    private let resolver = IdentityResolver()
-    private let activePolicy: ActivePolicyReference
+    let resolver = IdentityResolver()
+    let activePolicy: ActivePolicyReference
     private let prompts: PromptQueue
     let events: RuntimeEventRing
     let notifications: EphemeralNotificationQueue
     private let reloads: PolicyReloadSignal
     let liveFlows: LiveFlowTracker
-    private weak var provider: NEFilterDataProvider?
+    weak var provider: NEFilterDataProvider?
     private var pending: [UUID: Pending] = [:]
     private var cohorts: [UUID: Cohort] = [:]
     private var cohortIDsByKey: [PromptCohortKey: UUID] = [:]
@@ -328,7 +328,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         }
     }
 
-    private func scheduleDeadline(flowID: UUID, deadline: Date) {
+    func scheduleDeadline(flowID: UUID, deadline: Date) {
         let interval = max(0, deadline.timeIntervalSinceNow)
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + interval) { [weak self] in
             self?.deadlineReached(flowID: flowID, deadline: deadline)
@@ -384,7 +384,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         )
     }
 
-    private func register(
+    func register(
         flow: NEFilterFlow,
         metadata: CapturedFlowMetadata,
         deadline: Date,
@@ -421,7 +421,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         }
     }
 
-    private func take(flowID: UUID) -> Pending? {
+    func take(flowID: UUID) -> Pending? {
         let result = lock.withLock { () -> (Pending?, UUID?) in
             guard let value = pending.removeValue(forKey: flowID) else { return (nil, nil) }
             guard let cohortID = value.cohortID, var cohort = cohorts[cohortID] else {
@@ -490,7 +490,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         }
     }
 
-    private func deadline(for flow: FlowDescriptor) -> Date {
+    func deadline(for flow: FlowDescriptor) -> Date {
         flow.observedAt.addingTimeInterval(
             flow.transportProtocol == .udp ? Self.udpDeadline : Self.tcpDeadline
         )

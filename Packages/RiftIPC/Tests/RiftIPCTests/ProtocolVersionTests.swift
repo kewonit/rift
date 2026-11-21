@@ -1,9 +1,10 @@
 import Foundation
+import RiftCore
 import Testing
 @testable import RiftIPC
 
 @Test func compatibilityRequiresMatchingMajorVersion() {
-    #expect(ProtocolVersion.current == .activitySubscriptions)
+    #expect(ProtocolVersion.current == .internationalNames)
     #expect(ProtocolVersion.current.supports(minimum: .baseline))
     #expect(ProtocolVersion.current.isCompatible(with: .init(major: 1, minor: 99)))
     #expect(!ProtocolVersion.current.isCompatible(with: .init(major: 2, minor: 0)))
@@ -42,4 +43,25 @@ import Testing
     #expect(decoded.boundLineageID == nil)
     #expect(decoded.configurationResetLineageID == nil)
     #expect(decoded.runtimeInstanceID == state.runtimeInstanceID)
+}
+
+@Test func onlyPoliciesWithInternationalNamesNeedTheNewerExtension() throws {
+    let now = Date(timeIntervalSince1970: 1_700_000_000)
+    func payload(_ host: String) throws -> CompiledPolicyPayload {
+        let lineage = UUID()
+        let rule = try Rule(
+            id: UUID(), lineageID: lineage, revision: 1, action: .filter(.deny), priority: .normal,
+            process: .anyProcess, destination: .normalizedExactHostnameSet([DomainName(host)]),
+            transportProtocol: .anySupportedProtocol, port: nil, direction: .outgoing,
+            owner: .authorizedUser, createdAt: now, modifiedAt: now
+        )
+        return try CompiledPolicyPayload(
+            lineageID: lineage, generation: 1, authorizedUID: 501, createdAt: now,
+            operationMode: .alert, activeProfileID: nil, enabledLocalGroupIDs: [], rules: [rule]
+        )
+    }
+    #expect(try payload("example.test").compatibility.minimumExtensionProtocol == .baseline)
+    #expect(try payload("xn--bcher-kva.example").compatibility.minimumExtensionProtocol
+        == .internationalNames)
+    #expect(!ProtocolVersion.activitySubscriptions.supports(minimum: .internationalNames))
 }

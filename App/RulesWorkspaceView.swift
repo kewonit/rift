@@ -91,6 +91,7 @@ struct RulesWorkspaceView: View {
                             : RuleInspectorActions(
                                 edit: { editingRow = row },
                                 setEnabled: { value in Task { await model.setSelectedEnabled(value) } },
+                                makePermanent: { Task { await model.makeSelectedPermanent() } },
                                 delete: { showingDeleteConfirmation = true }
                             )
                     )
@@ -130,6 +131,15 @@ struct RulesWorkspaceView: View {
                         : "line.3.horizontal.decrease.circle.fill")
                 }
                 .help("Filter and sort rules")
+                Menu {
+                    Button("Import Rules…") { Task { await model.chooseRulesToImport() } }
+                    Button("Export Selected Rules…") { Task { await model.exportSelected() } }
+                        .disabled(model.exportableSelectionCount == 0)
+                } label: {
+                    Label("Import or Export", systemImage: "square.and.arrow.up.on.square")
+                }
+                .disabled(isPreview || model.historyCommandIsRunning)
+                .help("Import rules from a file, or export the selected rules to share them")
                 Button { showingEditor = true } label: { Label("Add Rule", systemImage: "plus") }
                     .disabled(isPreview || model.historyCommandIsRunning)
                     .help("Add a rule")
@@ -147,6 +157,11 @@ struct RulesWorkspaceView: View {
                 previewEnvironment: model.previewEnvironment,
                 artworkStore: artworkStore
             ) { draft in await model.create(draft) }
+        }
+        .sheet(isPresented: $model.bulkEditing) {
+            RuleBulkEditSheet(rules: model.bulkEditableRules) { edit in
+                await model.editSelected(edit)
+            }
         }
         .sheet(item: $editingRow) { row in
             ManualRuleEditorView(
@@ -195,6 +210,24 @@ struct RulesWorkspaceView: View {
         } message: {
             Text(deleteMessage)
         }
+        .confirmationDialog(
+            importTitle,
+            isPresented: Binding(
+                get: { model.pendingImport != nil },
+                set: { if !$0 { model.cancelImport() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Import") { Task { await model.confirmImport() } }
+            Button("Cancel", role: .cancel) { model.cancelImport() }
+        } message: {
+            Text(model.pendingImport?.plan.summary ?? "")
+        }
+    }
+
+    private var importTitle: String {
+        let count = model.pendingImport?.plan.rules.count ?? 0
+        return count == 1 ? "Import 1 rule?" : "Import \(count) rules?"
     }
 
     private var bar: some View {

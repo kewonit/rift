@@ -10,6 +10,8 @@ struct LiveMapView: View {
     @AppStorage("liveMapTrafficChartVisible") private var showingTimeline = true
     @AppStorage("liveMapStyle") private var mapStyle = NetworkMapStyle.standard
     @AppStorage("liveMapTimelineMode") private var timelineMode = RiftTimelineMode.traffic
+    /// Keeps the inspector open with a summary when nothing is selected.
+    @AppStorage("liveMapSummaryShown") private var summaryShown = false
     @State private var feed: MonitorFeed
     @State private var originController: MapOriginController
     @State private var mapHidden = false
@@ -92,6 +94,7 @@ struct LiveMapView: View {
             session.showsConnectionTable = false
         }
         .onChange(of: timelineMode, initial: true) { _, mode in feed.wantsDecisionBuckets = mode == .decisions }
+        .onChange(of: summaryShown, initial: true) { _, shown in feed.wantsSummary = shown }
         .onExitCommand(perform: escape)
         .onDisappear {
             feed.stop()
@@ -148,12 +151,22 @@ struct LiveMapView: View {
         }
     }
 
-    /// The inspector is for one connection, so it comes and goes with the selection.
+    /// The inspector shows the selected connection, or a summary when
+    /// nothing is selected and the summary is on.
     private var inspectorShown: Binding<Bool> {
         Binding(
-            get: { feed.selectedNode != nil },
-            set: { if !$0 { feed.selectionID = nil } }
+            get: { feed.selectedNode != nil || summaryShown },
+            set: { if !$0 { hideInspector() } }
         )
+    }
+
+    private func hideInspector() {
+        feed.selectionID = nil
+        summaryShown = false
+    }
+
+    private func toggleInspector() {
+        if inspectorShown.wrappedValue { hideInspector() } else { summaryShown = true }
     }
 
     @ViewBuilder
@@ -166,7 +179,13 @@ struct LiveMapView: View {
                 artworkStore: session.applicationArtwork,
                 apply: { feed.requestRule($0, for: node) },
                 showRules: { feed.showRules(for: node) },
+                ruleSummaries: { await session.controlPlane.ruleSummaries($0) },
                 canDecide: feed.canDecide(node)
+            )
+        } else {
+            MonitorSummaryView(
+                summary: feed.summary,
+                isViewingPast: feed.query.isViewingPast
             )
         }
     }
@@ -196,12 +215,13 @@ struct LiveMapView: View {
         let selected = feed.selectedNode
         return MapCommandActions(
             mapHidden: mapHidden,
-            inspectorShown: feed.selectedNode != nil,
+            inspectorShown: inspectorShown.wrappedValue,
             timelineShown: showingTimeline,
             toggleMap: { mapHidden.toggle() },
-            hideInspector: { feed.selectionID = nil },
+            toggleInspector: toggleInspector,
             toggleTimeline: { showingTimeline.toggle() },
             find: { searchFocused = true },
+            startFromNow: { feed.query.startFromNow(Date()) },
             decide: selected.flatMap { node in
                 feed.canDecide(node) ? { feed.requestRule($0, for: node) } : nil
             },
@@ -250,6 +270,12 @@ struct LiveMapView: View {
                 Label(showingTimeline ? "Hide Timeline" : "Show Timeline", systemImage: "chart.bar")
             }
             .help(showingTimeline ? "Hide the timeline" : "Show the timeline")
+            Button(action: toggleInspector) {
+                Label(inspectorShown.wrappedValue ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
+            }
+            .help(inspectorShown.wrappedValue
+                ? "Hide the inspector"
+                : "Show the inspector, with a summary when no connection is selected")
         }
     }
 

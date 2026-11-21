@@ -109,7 +109,7 @@ struct RulesWorkspaceTable: View {
                 ContentUnavailableView {
                     Label("No Matching Rules", systemImage: "magnifyingglass")
                 } description: {
-                    Text("Nothing matches your search and filters.")
+                    Text(emptyFilterMessage)
                 } actions: {
                     Button("Clear Filters") { model.clearFilters() }
                 }
@@ -231,6 +231,17 @@ struct RulesWorkspaceTable: View {
 
     func selectedRuleIDs(_ ids: Set<RuleWorkspaceNodeID>) -> Set<UUID> {
         RuleWorkspaceHierarchy.ruleIDs(for: ids, in: displayedHierarchy)
+    }
+
+    private var emptyFilterMessage: String {
+        switch model.sidebarSelection.listFilter {
+        case .unused:
+            "Rift counts how often rules are used only while connection history is on, so it can only call a rule unused after that."
+        case .redundant:
+            "No rule is redundant. A rule is redundant when another rule already does the same for everything it covers, so deleting it changes nothing."
+        default:
+            "Nothing matches your search and filters."
+        }
     }
 
     func selectedRows(_ ids: Set<RuleWorkspaceNodeID>) -> [RuleRowViewValue] {

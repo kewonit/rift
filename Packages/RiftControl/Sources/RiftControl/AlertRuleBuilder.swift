@@ -11,7 +11,10 @@ public enum AlertRuleBuilderError: Error, Sendable, Equatable {
 }
 
 public enum AlertDestinationScope: Sendable, Equatable {
+    /// The observed host or address, on the observed port.
     case exactObservedEndpoint
+    /// The observed host or address, on any port.
+    case observedDestinationAnyPort
     case anyEndpoint
 }
 
@@ -41,7 +44,7 @@ public enum AlertRuleBuilder {
         }
         let destination: DestinationCondition
         switch destinationScope {
-        case .exactObservedEndpoint:
+        case .exactObservedEndpoint, .observedDestinationAnyPort:
             if let hostname = endpoint.hostname {
                 destination = try .normalizedExactHostnameSet([hostname])
             } else {

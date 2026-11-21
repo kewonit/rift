@@ -2,6 +2,81 @@
 
 The changelog records notable user-visible changes.
 
+## Unreleased
+
+- Blocklists now block listed destinations for every account on the Mac,
+  including processes running as root. Before, they covered only your account.
+- While you aren't at the console, such as before login, app rules for your
+  account and root now apply, and Block Unless Allowed keeps blocking
+  connections with no rule. Before, Rift couldn't identify the app, so these
+  connections were allowed.
+- IP blocklists block incoming connections from listed addresses, and "Local
+  network" matches an incoming connection only when the peer is on your local
+  network. Before, both checked this Mac's own address. To let one listed
+  address in, turn off its blocklist entry; an Allow rule would open the
+  service to every listed address, so Rift won't make one.
+- Choosing One hour on the Map no longer turns a permanent rule into a
+  temporary one. Rift says when a permanent rule does the opposite.
+- Removing a group or profile and keeping its rules no longer turns on rules
+  that were off: rules from a turned-off group or an inactive profile stay off.
+- `riftctl profiles activate` refuses a switch that weakens protection or that
+  Rift would ask you to confirm, including one that turns off a profile's
+  blocking rules. Make those switches in Rift.
+- Internationalized names, shown in their `xn--` form, can be blocked by name
+  and imported from blocklists. Before, Rift ignored them.
+- Settings and the Block Unless Allowed confirmation now say that Rift filters
+  TCP and UDP only, and that blocklist names match exact hosts.
+- In a connection alert, Return allows and Esc blocks. Keys pressed in the
+  first second after an alert appears are ignored. ⌘A and ⌘B still work.
+- Alerts offer Five minutes, and a rule can cover this destination on any port.
+  Settings › Alerts can preselect either.
+- Alerts warn when the app or its helper isn't signed, is signed only by
+  itself, uses a certificate Apple didn't issue, or runs from a temporary copy
+  macOS made, and when a name uses international letters.
+- Alert Details and the Map inspector say who signed the app and list the rules
+  that apply to the connection.
+- Allow and Block on the Map offer Five minutes.
+- Temporary rules count down in the inspector and can be made permanent, even
+  after they've expired.
+- The Rules page has Expired, Incoming, Unused and Redundant lists. Redundant
+  shows rules another rule already covers, so deleting them changes nothing.
+  Rules can also be sorted by precedence, the order the filter ranks them in.
+- Map search understands `domain:`, `proto:`, `country:` and
+  `decision:timedout`. The search field's tooltip lists every filter.
+- From Now (⌘K) hides earlier connections. A chip shows them again.
+- Connection rows have Copy and Copy Hostname.
+- Window › Float on Top keeps Rift above other windows.
+- Notifications have separate switches for blocked connections, connections no
+  rule decided, and Notify rules, with an optional sound for Notify rules.
+- Blocklists read Adblock-style `||name^` lines, which block that exact host
+  like other names, and `;` comments. Adblock rules Rift can't apply are
+  skipped. Before, an element-hiding line such as `example.com##.ad` blocked
+  example.com, and other Adblock rules stopped the import.
+- For incoming connections, the map, the Country column, the Network filter and
+  `country:` search use the remote peer. Before, they used this Mac's own
+  address, so incoming connections from the internet showed as local and had
+  no country. `ip:` also finds an incoming connection by its peer's address.
+- The connections list can be grouped by country.
+- The connections list can show a log instead: one line per connection,
+  newest first, under day headings, with the same search and filters.
+- With nothing selected, the Map inspector can show a summary of the
+  connections in the list: counts, data sent and received, and the most active
+  apps, hostnames and countries. View › Show Inspector (⌥⌘I) turns it on.
+- The Rules page can export the selected rules to a file and import rules from
+  one. Importing adds rules without replacing any; rules you already have are
+  skipped, and imported rules are marked unreviewed. Blocklist exceptions and
+  rules for system processes arrive turned off until you check them. Restore
+  in Settings won't open a file of selected rules, so it can't replace your
+  configuration with them. Older versions of Rift can't read these files.
+- Edit Rules… changes the action, protocol, port or notes of several rules at
+  once, and can be undone.
+- The menu bar panel lists recently blocked connections, with Allow for 5
+  Minutes, and temporary rules that are still running, with the time left,
+  Make Permanent and Remove.
+- A connection alert can be minimized to a small bar that keeps counting down,
+  and another waiting connection can be answered first. Settings › Alerts can
+  show alerts minimized.
+
 ## 0.4.0
 
 The first signed and notarized download of Rift. These notes list the changes

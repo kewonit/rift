@@ -11,10 +11,14 @@ struct StatusMenuSnapshot: Equatable {
     let applications: [StatusApplicationActivity]
     let deniedCount: Int
     let latestDeniedID: String?
+    /// The latest blocked connections, newest first, to allow for a while.
+    let recentlyBlocked: [StatusApplicationActivity]
 
     static let empty = StatusMenuSnapshot(
-        traffic: .empty, applications: [], deniedCount: 0, latestDeniedID: nil
+        traffic: .empty, applications: [], deniedCount: 0, latestDeniedID: nil, recentlyBlocked: []
     )
+
+    static let recentlyBlockedLimit = 3
 
     /// `rows` are newest first and already limited to the last five minutes.
     static func make(rows: [MonitorEventRow], now: Date, recentLimit: Int) -> StatusMenuSnapshot {
@@ -25,30 +29,28 @@ struct StatusMenuSnapshot: Equatable {
         var applications: [StatusApplicationActivity] = []
         var deniedCount = 0
         var latestDeniedID: String?
+        var recentlyBlocked: [StatusApplicationActivity] = []
         for row in recentRows {
             if row.decision == .denied {
                 deniedCount += 1
                 if latestDeniedID == nil { latestDeniedID = row.id }
+                if recentlyBlocked.count < recentlyBlockedLimit {
+                    recentlyBlocked.append(StatusApplicationActivity(row: row))
+                }
             }
             guard applications.count < recentLimit else { continue }
             let identity = row.event.flow.sourceAppIdentity ?? row.event.flow.sourceProcessIdentity
             let name = MonitorQuery.applicationLabel(row)
             let isNew = identity.map { seen.insert($0).inserted } ?? seenNames.insert(name).inserted
             guard isNew else { continue }
-            applications.append(StatusApplicationActivity(
-                eventID: row.id,
-                identity: identity,
-                name: name,
-                destination: MonitorQuery.endpointLabel(row),
-                decision: row.decision,
-                occurredAt: row.event.occurredAt
-            ))
+            applications.append(StatusApplicationActivity(row: row))
         }
         return StatusMenuSnapshot(
             traffic: LiveTrafficSnapshot.make(rows: recentRows, bounds: (start, now)),
             applications: applications,
             deniedCount: deniedCount,
-            latestDeniedID: latestDeniedID
+            latestDeniedID: latestDeniedID,
+            recentlyBlocked: recentlyBlocked
         )
     }
 }
@@ -67,4 +69,13 @@ struct StatusApplicationActivity: Identifiable, Equatable {
     let destination: String
     let decision: RiftDecision
     let occurredAt: Date
+
+    init(row: MonitorEventRow) {
+        eventID = row.id
+        identity = row.event.flow.sourceAppIdentity ?? row.event.flow.sourceProcessIdentity
+        name = MonitorQuery.applicationLabel(row)
+        destination = MonitorQuery.endpointLabel(row)
+        decision = row.decision
+        occurredAt = row.event.occurredAt
+    }
 }

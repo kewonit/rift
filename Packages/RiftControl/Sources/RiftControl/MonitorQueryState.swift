@@ -14,6 +14,9 @@ public struct MonitorQueryState: Sendable, Hashable {
     public var sort: MonitorSort
     /// Narrows to one country, from a click on the map.
     public var country: String?
+    /// Hides connections from before this moment, to watch only what happens
+    /// next. Set with From Now.
+    public var startsAt: Date?
 
     public init(
         search: String = "",
@@ -56,9 +59,21 @@ public struct MonitorQueryState: Sendable, Hashable {
         now: Date,
         calendar: Calendar = .autoupdatingCurrent
     ) -> MonitorTimeWindow? {
-        guard let base = baseTimeWindow(now: now, calendar: calendar) else { return nil }
+        guard var base = baseTimeWindow(now: now, calendar: calendar) else { return nil }
+        if let startsAt, !isViewingPast {
+            let start = max(base.start ?? startsAt, startsAt)
+            guard let narrowed = MonitorTimeWindow(start: start, end: base.end) else { return nil }
+            base = narrowed
+        }
         guard let selectedTimeRange else { return base }
         return base.intersecting(selectedTimeRange)
+    }
+
+    /// Starts the list over: back to live, showing only what happens from now.
+    public mutating func startFromNow(_ now: Date) {
+        timeAnchor = nil
+        selectedTimeRange = nil
+        startsAt = now
     }
 
     public mutating func selectTimeFilter(_ value: MonitorTimeFilter) {
@@ -85,6 +100,7 @@ public struct MonitorQueryState: Sendable, Hashable {
         selectedTimeRange = start...Date(
             timeIntervalSinceReferenceDate: end.timeIntervalSinceReferenceDate.nextDown
         )
+        startsAt = nil
     }
 
     public mutating func navigateTime(
@@ -105,6 +121,7 @@ public struct MonitorQueryState: Sendable, Hashable {
               let current = time.interval(containing: now, calendar: calendar) else { return }
         timeAnchor = target.start >= current.start ? nil : target.start
         selectedTimeRange = nil
+        if timeAnchor != nil { startsAt = nil }
     }
 
     public mutating func showNow() {
@@ -174,5 +191,6 @@ public struct MonitorQueryState: Sendable, Hashable {
         time = .all
         timeAnchor = nil
         selectedTimeRange = nil
+        startsAt = nil
     }
 }

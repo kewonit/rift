@@ -84,6 +84,8 @@ struct ActivityPresentation: Sendable {
     let decisions: DecisionBucketSnapshot
     /// False when the caller skipped decision buckets; `decisions` is then empty.
     let includesDecisions: Bool
+    /// Nil when the caller didn't ask for it.
+    let summary: MonitorSummary?
 
     static func build(
         evaluation: MonitorQueryEvaluation,
@@ -97,6 +99,7 @@ struct ActivityPresentation: Sendable {
         pinnedID: String? = nil,
         sort: MonitorHierarchySort? = nil,
         includeDecisions: Bool = true,
+        includeSummary: Bool = false,
         context: MonitorSearchContext = .none
     ) async throws -> ActivityPresentation {
         try await MonitorQueryWorker.run(priority: .utility) {
@@ -107,7 +110,7 @@ struct ActivityPresentation: Sendable {
                 visible.append(pinned)
             }
             var hierarchy = MonitorHierarchyBuilder.build(
-                visible, lens: query.lens, coverages: coverages, displayNames: context.displayNames
+                visible, lens: query.lens, coverages: coverages, context: context
             )
             if let sort { hierarchy.sort(by: sort.comparator) }
             try Task.checkCancellation()
@@ -132,7 +135,8 @@ struct ActivityPresentation: Sendable {
                         query: query, now: now, coverage: coverage, isComplete: isComplete
                     )
                     : DecisionBucketSnapshot(buckets: [], coverage: .gap),
-                includesDecisions: includeDecisions
+                includesDecisions: includeDecisions,
+                summary: includeSummary ? MonitorSummary.make(evaluation.displayed, context: context) : nil
             )
         }
     }

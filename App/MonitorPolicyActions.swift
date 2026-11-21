@@ -76,6 +76,11 @@ extension ControlPlaneController {
         let overrideBlocklist = coverage.ruleIDs.contains { id in
             configuration.rules.first { $0.id == id }?.priority == .blocklistDeny
         }
+        if action == .allow, overrideBlocklist, row.event.flow.direction == .incoming {
+            throw RuleCommandError.incomingBlocklistOverride(coverage.ruleIDs.filter { id in
+                configuration.rules.first { $0.id == id }?.priority == .blocklistDeny
+            })
+        }
         if action == .allow, overrideBlocklist, !elevatedOverrideConfirmed {
             throw RuleCommandError.elevatedOverrideRequiresConfirmation
         }
@@ -135,6 +140,8 @@ extension ControlPlaneController {
             return MonitorRuleChange(ruleIDs: ruleID.map { [$0] } ?? [], result: nil)
         case .overridden(let ruleID):
             throw RuleCommandError.overriddenByRule(ruleID)
+        case .permanentRuleConflict(let ruleID):
+            throw RuleCommandError.permanentRuleConflict(ruleID)
         case .changed(let rules, let affected):
             ruleChanges.nextChangeName = action == .deny ? "Block" : "Allow"
             let result = try await mutateRules(

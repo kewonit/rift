@@ -24,6 +24,36 @@ extension ControlPlaneController {
         return try ConfigurationArchiveCodec.export(draft: draft, appVersion: version, now: Date())
     }
 
+    /// Some rules, to share or move to another Mac.
+    func ruleSetArchiveData(_ ids: Set<UUID>) async throws -> Data {
+        guard let draft = try await repository?.currentConfiguration() else {
+            throw ArchiveControllerError.missingConfiguration
+        }
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "unknown"
+        return try ConfigurationArchiveCodec.exportRules(ids, from: draft, appVersion: version, now: Date())
+    }
+
+    func previewRuleImport(_ data: Data) async throws -> RuleImportPlan {
+        let payload = try ConfigurationArchiveCodec.decodeRules(data)
+        guard let draft = try await repository?.currentConfiguration() else {
+            throw ArchiveControllerError.missingConfiguration
+        }
+        return try RuleImportPlan.make(payload, into: draft, now: Date())
+    }
+
+    /// Adds the file's rules to the current ones. Returns the new rules' IDs.
+    func importRules(_ data: Data) async throws -> (ConfigurationMutationResult, Set<UUID>) {
+        let payload = try ConfigurationArchiveCodec.decodeRules(data)
+        var added: Set<UUID> = []
+        let result = try await mutateConfiguration(kind: "importRules") { draft in
+            let plan = try RuleImportPlan.make(payload, into: draft, now: Date())
+            added = Set(plan.rules.map(\.id))
+            return plan.applied(to: draft)
+        }
+        return (result, added)
+    }
+
     func previewConfigurationArchive(_ data: Data) async throws -> String {
         let payload = try ConfigurationArchiveCodec.decode(data)
         guard let current = try await repository?.currentConfiguration() else {
@@ -333,7 +363,7 @@ extension ControlPlaneController {
                     || $0.name.caseInsensitiveCompare(value) == .orderedSame
             }
             guard value == "none" || profile != nil else { throw ArchiveControllerError.unknownProfile }
-            let result = try await activateProfile(profile?.id)
+            let result = try await activateProfile(profile?.id, unattended: true)
             let selection = profile.map { "Profile selection saved: \($0.name)." }
                 ?? "Profile selection saved: none."
             return try CLIRelayResponse(summary: selection + " " + result.message)

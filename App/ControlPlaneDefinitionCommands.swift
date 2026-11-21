@@ -58,14 +58,22 @@ extension ControlPlaneController {
         }
     }
 
+    /// `unattended` is for `riftctl`, which any process running as the user
+    /// can call. It refuses a switch that weakens protection; the user has to
+    /// make that switch in Rift.
     @discardableResult
-    func activateProfile(_ id: UUID?) async throws -> ConfigurationMutationResult {
+    func activateProfile(
+        _ id: UUID?,
+        unattended: Bool = false
+    ) async throws -> ConfigurationMutationResult {
         return try await mutateConfiguration(kind: "activateProfile") { draft in
             guard id == nil || draft.profiles.contains(where: { $0.id == id }) else {
                 throw RuleCommandError.unknownDefinition
             }
-            let mode = draft.profiles.first(where: { $0.id == id })?.operationModeOverride
-                ?? draft.baseOperationMode
+            if unattended, !draft.permitsUnattendedProfileSwitch(to: id) {
+                throw CLIRelayRefusal.profileSwitchNeedsConfirmation
+            }
+            let mode = draft.operationMode(activatingProfile: id)
             return Self.copy(draft, operationMode: mode, activeProfileID: id)
         }
     }
@@ -154,7 +162,9 @@ extension ControlPlaneController {
             let now = Date()
             let rules = try draft.rules.compactMap { rule -> Rule? in
                 guard rule.localGroupID == id else { return rule }
-                return deletingRules ? nil : try RuleMutation.removingGroup(rule, now: now)
+                return deletingRules ? nil : try RuleMutation.removingGroup(
+                    rule, groupWasOn: draft.enabledLocalGroupIDs.contains(id), now: now
+                )
             }
             return Self.copy(
                 draft,
@@ -181,7 +191,9 @@ extension ControlPlaneController {
             let now = Date()
             let rules = try draft.rules.compactMap { rule -> Rule? in
                 guard rule.profileID == id else { return rule }
-                return deletingRules ? nil : try RuleMutation.removingProfile(rule, now: now)
+                return deletingRules ? nil : try RuleMutation.removingProfile(
+                    rule, profileWasActive: draft.activeProfileID == id, now: now
+                )
             }
             let removingActive = draft.activeProfileID == id
             return Self.copy(

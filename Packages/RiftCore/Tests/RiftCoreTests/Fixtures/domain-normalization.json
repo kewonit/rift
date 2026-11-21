@@ -1,6 +1,8 @@
 [
   {"input":"Example.COM.","canonical":"example.com"},
-  {"input":"xn--bcher-kva.de","error":"malformedALabel"},
+  {"input":"xn--bcher-kva.de","canonical":"xn--bcher-kva.de"},
+  {"input":"XN--Mnchen-3YA.DE","canonical":"xn--mnchen-3ya.de"},
+  {"input":"xn--example-.de","error":"malformedALabel"},
   {"input":"api.sub.example.com","canonical":"api.sub.example.com"},
   {"input":"","error":"empty"},
   {"input":"bad_domain.example","error":"invalidCharacter"},

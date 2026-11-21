@@ -37,8 +37,14 @@ public struct MonitorSearchQuery: Sendable, Hashable {
                 document.process?.contains(value) == true
             case .host(let value):
                 document.host == value
+            case .domain(let value):
+                document.host.map { $0 == value || $0.hasSuffix("." + value) } == true
+            case .transport(let value):
+                document.transport == value
+            case .country(let value):
+                document.countryCode == value || document.countryName == value
             case .ip(let value):
-                document.ip == value
+                document.ip == value || document.peerIP == value
             case .port(let value):
                 document.port == value
             case .decision(let value):
@@ -58,12 +64,16 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         case allowed
         case denied
         case unresolved
+        case timedOut
     }
 
     private enum Term: Sendable, Hashable {
         case unqualified(String)
         case text(TextField, String)
         case host(String)
+        case domain(String)
+        case transport(TransportProtocol)
+        case country(String)
         case ip(IPAddress)
         case port(UInt16)
         case decision(Decision)
@@ -78,7 +88,12 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         let application: String
         let process: String?
         let host: String?
+        let transport: TransportProtocol
+        let countryCode: String?
+        let countryName: String?
         let ip: IPAddress?
+        /// Where an incoming connection came from, so `ip:` finds it too.
+        let peerIP: IPAddress?
         let port: UInt16?
         let decisions: Set<Decision>
         let direction: TrafficDirection
@@ -99,13 +114,16 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             }
             let endpoint = flow.destinationEndpoint
             ip = endpoint?.address
+            peerIP = flow.direction == .incoming ? flow.remoteEndpoint?.address : nil
             port = endpoint?.port
             var matchedDecisions: Set<Decision> = [
                 row.event.outcome == .blocked ? .denied : .allowed,
             ]
             if row.event.reason != .concreteDecision { matchedDecisions.insert(.unresolved) }
+            if row.event.cause == .alertTimedOut { matchedDecisions.insert(.timedOut) }
             decisions = matchedDecisions
             direction = flow.direction
+            transport = flow.transportProtocol
 
             let protocolValue: String = switch flow.transportProtocol {
             case .tcp: "tcp"
@@ -117,15 +135,18 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             if decisions.contains(.unresolved) { decisionValue += " fallback unresolved by default no rule" }
             if row.event.cause == .alertTimedOut { decisionValue += " timed out" }
             let identity = flow.sourceAppIdentity ?? flow.sourceProcessIdentity
-            let country = endpoint.flatMap { context.countryCode?($0.address) }
+            let country = flow.remoteEndpoint.flatMap { context.countryCode?($0.address) }
+            countryCode = country.map(normalizedMonitorSearchText)
+            countryName = country.flatMap { context.countryName?($0) }.map(normalizedMonitorSearchText)
             unqualified = [
                 identity.flatMap { context.displayNames[$0] } ?? "",
-                country.flatMap { context.countryName?($0) } ?? "",
+                countryName ?? "",
                 MonitorQuery.applicationLabel(row),
                 flow.sourceProcessIdentity.map { MonitorQuery.identityLabel($0) } ?? "",
                 MonitorQuery.endpointLabel(row),
                 MonitorQuery.hostnameLabel(row),
                 endpoint?.address.description ?? "",
+                peerIP?.description ?? "",
                 endpoint?.port.map(String.init) ?? "",
                 decisionValue,
                 protocolValue,
@@ -153,6 +174,17 @@ public struct MonitorSearchQuery: Sendable, Hashable {
         case "host":
             let canonical = (try? DomainName(rawValue))?.ascii ?? rawValue
             return .host(normalizedMonitorSearchText(canonical))
+        case "domain":
+            let canonical = (try? DomainName(rawValue))?.ascii ?? rawValue
+            return .domain(normalizedMonitorSearchText(canonical))
+        case "proto", "protocol":
+            switch normalizedMonitorSearchText(rawValue) {
+            case "tcp": return .transport(.tcp)
+            case "udp": return .transport(.udp)
+            default: return .unqualified(normalizedMonitorSearchText(value))
+            }
+        case "country":
+            return .country(normalizedMonitorSearchText(rawValue))
         case "ip":
             guard let address = try? IPAddress(rawValue) else {
                 return .unqualified(normalizedMonitorSearchText(value))
@@ -168,6 +200,7 @@ public struct MonitorSearchQuery: Sendable, Hashable {
             case "allow", "allowed": return .decision(.allowed)
             case "deny", "denied", "block", "blocked": return .decision(.denied)
             case "fallback", "unresolved", "default": return .decision(.unresolved)
+            case "timeout", "timedout", "timed-out": return .decision(.timedOut)
             default: return .unqualified(normalizedMonitorSearchText(value))
             }
         case "direction":

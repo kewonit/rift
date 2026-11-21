@@ -129,10 +129,17 @@ struct RiftCTL: AsyncParsableCommand {
             @Argument(help: "Profile UUID, exact name, or 'none'.") var profile: String
 
             mutating func run() async throws {
-                let response = try await CLIServiceClient.withConnected { client in
-                    try await client.relay(
-                        try CLIRelayRequest(command: .profilesActivate, argument: profile),
-                        launchingAppIfNeeded: true
+                let response: CLIRelayResponse
+                do {
+                    response = try await CLIServiceClient.withConnected { client in
+                        try await client.relay(
+                            try CLIRelayRequest(command: .profilesActivate, argument: profile),
+                            launchingAppIfNeeded: true
+                        )
+                    }
+                } catch CLIServiceError.rejected(let code?) where code == CLIRelayRefusal.code {
+                    throw CLIMessageError(
+                        "This profile would weaken protection or needs confirmation. Switch to it in Rift."
                     )
                 }
                 try CLIOutput.write(response.summary)
@@ -171,6 +178,15 @@ struct RiftCTL: AsyncParsableCommand {
             }
         }
     }
+}
+
+/// A plain message for a refusal that isn't a usage mistake.
+struct CLIMessageError: LocalizedError, CustomStringConvertible {
+    let description: String
+
+    init(_ description: String) { self.description = description }
+
+    var errorDescription: String? { description }
 }
 
 enum CLIOutput {

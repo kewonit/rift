@@ -31,6 +31,7 @@ struct ConnectionAlertView: View {
 
     enum Lifetime: String, CaseIterable, Identifiable {
         case once = "Once"
+        case fiveMinutes = "Five minutes"
         case oneHour = "One hour"
         case permanent = "Always"
 
@@ -38,24 +39,38 @@ struct ConnectionAlertView: View {
         var duration: TimeInterval? {
             switch self {
             case .once, .permanent: nil
+            case .fiveMinutes: 300
             case .oneHour: 3_600
             }
         }
     }
 
-    private enum DestinationScope: String, CaseIterable, Identifiable {
+    enum DestinationScope: String, CaseIterable, Identifiable {
         case exact = "This destination"
+        case anyPort = "This destination, any port"
         case any = "Any destination"
         var id: String { rawValue }
+
+        var ruleScope: AlertDestinationScope {
+            switch self {
+            case .exact: .exactObservedEndpoint
+            case .anyPort: .observedDestinationAnyPort
+            case .any: .anyEndpoint
+            }
+        }
     }
 
     let prompt: PromptRequest
     var moreWaiting = 0
+    var others: [PromptRequest] = []
+    var choose: (UUID) -> Void = { _ in }
+    var minimize: (() -> Void)?
     @Bindable var controller: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
     @Environment(\.controlActiveState) private var controlActiveState
     @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = Lifetime.once.rawValue
     @AppStorage("alertDefaultScope") private var alertDefaultScope = RuleScope.currentProfile.rawValue
+    @AppStorage("alertDefaultDestination") private var alertDefaultDestination = DestinationScope.exact.rawValue
     @State private var lifetime: Lifetime = .once
     @State private var destinationScope: DestinationScope = .exact
     @State private var showingDetails = false
@@ -70,6 +85,8 @@ struct ConnectionAlertView: View {
     @State private var durableRuleSaved = false
     @State private var decisionNeedsAttention = false
     @State private var initialDeadlineInterval: TimeInterval = 30
+    @State private var presentedAt = Date()
+    @FocusState private var noteFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: RiftDesign.Spacing.l) {
@@ -97,16 +114,25 @@ struct ConnectionAlertView: View {
                         .padding(.top, 2)
                 }
                 Spacer()
-                if let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
-                    Text(waiting)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                VStack(alignment: .trailing, spacing: RiftDesign.Spacing.xs) {
+                    // Once answered, the alert stays put, so it can't be answered again.
+                    if let minimize, !decisionInProgress, !durableRuleSaved {
+                        Button("Minimize", systemImage: "arrow.down.right.and.arrow.up.left", action: minimize)
+                            .labelStyle(.iconOnly).buttonStyle(.borderless)
+                            .help("Minimize. The connection keeps waiting and is allowed when time runs out.")
+                    }
+                    if others.isEmpty, let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
+                        Text(waiting).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                    ConnectionAlertWaitingMenu(others: others, choose: choose)
+                        .disabled(decisionInProgress || durableRuleSaved)
                 }
             }
 
+            ConnectionAlertWarningList(warnings: ConnectionAlertWarnings.warnings(for: prompt))
+
             DisclosureGroup("Details", isExpanded: $showingDetails) {
-                ConnectionAlertDetails(prompt: prompt)
+                ConnectionAlertDetails(prompt: prompt, controller: controller)
             }
 
             if prompt.endpoint?.hostname == nil {
@@ -167,6 +193,11 @@ struct ConnectionAlertView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                if destinationScope == .anyPort {
+                    Text("Applies to this destination on any port, for the same protocol and direction.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if destinationScope == .any {
                     Label(
                         "This rule will apply to all destinations for this app with the same protocol, direction, and owner.",
@@ -182,6 +213,7 @@ struct ConnectionAlertView: View {
                 }
                 TextField("Note (optional)", text: $note, axis: .vertical)
                     .lineLimit(2...4)
+                    .focused($noteFocused)
                 if !noteValid {
                     Text("This note is too long.").font(.caption).foregroundStyle(.red)
                 }
@@ -225,6 +257,14 @@ struct ConnectionAlertView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
+                    .background {
+                        ConnectionAlertKeys(
+                            allow: { decideFromKeyboard(.allow) },
+                            block: { decideFromKeyboard(.deny) }
+                        )
+                        // Return and Esc belong to the note while it's being typed.
+                        .disabled(decisionDisabled(at: context.date) || noteFocused)
+                    }
                     VStack(spacing: RiftDesign.Spacing.xs + 2) {
                         ProgressView(
                             value: max(0, prompt.deadline.timeIntervalSince(context.date)),
@@ -234,7 +274,9 @@ struct ConnectionAlertView: View {
                         .controlSize(.mini)
                         .tint(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                         HStack {
-                            if controlActiveState == .key { Text("⌘B Block · ⌘A Allow") }
+                            if controlActiveState == .key {
+                                Text(noteFocused ? "⌘B Block · ⌘A Allow" : "Esc Block · Return Allow")
+                            }
                             Spacer()
                             Text(deadlineLabel(at: context.date))
                                 .monospacedDigit()
@@ -250,7 +292,10 @@ struct ConnectionAlertView: View {
         .task {
             if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
             initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
+            presentedAt = Date()
             scope = RuleScope(rawValue: alertDefaultScope) ?? .currentProfile
+            destinationScope = DestinationScope(rawValue: alertDefaultDestination) ?? .exact
+            if destinationScope == .any { destinationScope = .exact }
             await resolveActiveProfile()
         }
         .task(id: presentationIdentity) {
@@ -275,6 +320,13 @@ struct ConnectionAlertView: View {
             guard !Task.isCancelled else { return }
             controller.removePendingPrompt(prompt.nonce)
         }
+    }
+
+    /// Keys pressed in the first second are ignored, so typing that was meant
+    /// for another window can't answer an alert that just appeared.
+    private func decideFromKeyboard(_ action: FilterAction) {
+        guard Date().timeIntervalSince(presentedAt) >= 1 else { return }
+        decide(action)
     }
 
     private func decide(_ action: FilterAction) {
@@ -318,8 +370,7 @@ struct ConnectionAlertView: View {
                         action: action,
                         duration: selected.duration,
                         profileID: selectedProfileID,
-                        destinationScope: destinationScope == .exact
-                            ? .exactObservedEndpoint : .anyEndpoint,
+                        destinationScope: destinationScope.ruleScope,
                         allowSystemOwner: systemScopeConfirmed,
                         note: note
                     )
@@ -338,7 +389,8 @@ struct ConnectionAlertView: View {
                         destination: destinationScope == .any
                             ? "any destination" : DisplaySanitizer.plainText(destination),
                         port: nil,
-                        incoming: prompt.direction == .incoming
+                        incoming: prompt.direction == .incoming,
+                        lasting: selected.duration.map { _ in selected.rawValue.lowercased() }
                     )
                     controller.actionResults.post(
                         result.requiresAttention ? "\(sentence) \(result.message)" : sentence,
@@ -363,13 +415,7 @@ struct ConnectionAlertView: View {
     }
 
     private func deadlineLabel(at date: Date) -> String {
-        let remaining = max(0, Int(prompt.deadline.timeIntervalSince(date).rounded(.up)))
-        guard remaining > 0 else { return "Timed out — connection allowed" }
-        let minutes = remaining / 60
-        let seconds = remaining % 60
-        return minutes > 0
-            ? "Allowing in \(minutes):\(String(format: "%02d", seconds))"
-            : "Allowing in \(seconds)s"
+        ConnectionAlertCountdown.label(deadline: prompt.deadline, now: date)
     }
 
     private var canCreateRule: Bool {

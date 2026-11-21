@@ -11,7 +11,9 @@ struct ConnectionInspectorView: View {
     let artworkStore: ApplicationArtworkStore
     let apply: (FilterAction) -> Void
     let showRules: () -> Void
+    var ruleSummaries: ([UUID]) async -> [(id: UUID, text: String)] = { _ in [] }
     var canDecide = false
+    @State private var appliedRules: [(id: UUID, text: String)] = []
 
     var body: some View {
         ScrollView {
@@ -73,10 +75,29 @@ struct ConnectionInspectorView: View {
                     }
                 }
             }
+            if let identity = row.flatMap({ $0.event.flow.sourceProcessIdentity ?? $0.event.flow.sourceAppIdentity }) {
+                RiftPropertyRow(title: "Signed by") {
+                    Text(ConnectionAlertFacts.signerLabel(for: identity)).multilineTextAlignment(.trailing)
+                }
+            }
+            if !appliedRules.isEmpty {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Rules that apply").font(.caption).foregroundStyle(.secondary)
+                    ForEach(appliedRules, id: \.id) { rule in
+                        Text(rule.text).font(.callout).lineLimit(2).textSelection(.enabled)
+                    }
+                }
+            }
             Button(node.ruleCoverage.winningRuleID == nil ? "Show Matching Rules" : "Show This Rule", action: showRules)
                 .buttonStyle(.link)
                 .disabled(node.ruleCoverage.ruleIDs.isEmpty)
                 .help(node.ruleCoverage.ruleIDs.isEmpty ? "No rules match this connection" : "")
+        }
+        .task(id: node.ruleCoverage.ruleIDs) {
+            // The deciding rule comes first.
+            let winner = node.ruleCoverage.winningRuleID
+            let others = node.ruleCoverage.ruleIDs.subtracting(winner.map { [$0] } ?? []).sorted { $0.uuidString < $1.uuidString }
+            appliedRules = await ruleSummaries((winner.map { [$0] } ?? []) + others.prefix(9))
         }
     }
 

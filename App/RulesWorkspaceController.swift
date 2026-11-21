@@ -3,6 +3,11 @@ import RiftCore
 import Foundation
 import Observation
 
+struct PendingRuleImport: Equatable {
+    let data: Data
+    let plan: RuleImportPlan
+}
+
 @MainActor
 @Observable
 final class RulesWorkspaceController {
@@ -35,6 +40,10 @@ final class RulesWorkspaceController {
     /// Something worth saying that doesn't stop rules from being shown.
     private(set) var notice: String?
     private(set) var hasLoaded = false
+    /// Edit Rules… is open for the selected rules.
+    var bulkEditing = false
+    /// A file chosen in Import Rules, waiting for the person to confirm.
+    private(set) var pendingImport: PendingRuleImport?
     let controlPlane: ControlPlaneController
     var allRules: [Rule] = []
     private var reloadTask: Task<Void, Never>?
@@ -178,6 +187,29 @@ final class RulesWorkspaceController {
     func markSelectedReviewed(_ reviewed: Bool) async {
         await ruleCommand(reviewed ? "Mark Rules Reviewed" : "Mark Rules Unreviewed") {
             try await controlPlane.markRulesReviewed(selection, reviewed: reviewed, expectedGeneration: generation)
+        }
+    }
+
+    func makeSelectedPermanent() async {
+        await ruleCommand("Make Rules Permanent") {
+            try await controlPlane.makeRulesPermanent(selection, expectedGeneration: generation)
+        }
+    }
+
+    /// The selected rules that Edit Rules… changes.
+    var bulkEditableRules: [Rule] {
+        allRules.filter {
+            selection.contains($0.id)
+                && !$0.flags.contains(.protected) && !$0.flags.contains(.sourceManaged)
+        }
+    }
+
+    func editSelected(_ edit: RuleBulkEdit) async -> Bool {
+        let ids = selection
+        return await ruleCommand("Edit Rules") {
+            try await controlPlane.mutateRules(expectedGeneration: generation, kind: "editRules") { rules in
+                try edit.applied(to: rules, ids: ids, now: Date())
+            }
         }
     }
 
@@ -345,6 +377,58 @@ final class RulesWorkspaceController {
     }
 
     func dismissNotice() { notice = nil }
+
+    // MARK: Sharing rules
+
+    /// Selected rules that can go in a file. Rift manages the others.
+    var exportableSelectionCount: Int {
+        allRules.filter { selection.contains($0.id) && ConfigurationArchiveCodec.isShareable($0) }.count
+    }
+
+    func exportSelected() async {
+        let count = exportableSelectionCount
+        guard count > 0 else { return }
+        do {
+            let data = try await controlPlane.ruleSetArchiveData(selection)
+            try await ArchiveFileAccess.save(
+                data: data, suggestedName: count == 1 ? "Rift Rule.json" : "Rift Rules.json"
+            )
+        } catch {
+            reportNotSaved(ArchiveFileAccess.message(for: error, fallback: "The rules couldn’t be exported."))
+        }
+    }
+
+    func chooseRulesToImport() async {
+        do {
+            guard let data = try await ArchiveFileAccess.open() else { return }
+            let plan = try await controlPlane.previewRuleImport(data)
+            guard !plan.rules.isEmpty else {
+                reportNotSaved("Nothing to import. " + plan.summary)
+                return
+            }
+            pendingImport = PendingRuleImport(data: data, plan: plan)
+        } catch {
+            reportNotSaved(ArchiveFileAccess.message(
+                for: error,
+                fallback: "Rift couldn’t read this file. Choose rules or a configuration exported from Rift."
+            ))
+        }
+    }
+
+    func confirmImport() async {
+        guard let pending = pendingImport else { return }
+        pendingImport = nil
+        do {
+            let (result, added) = try await controlPlane.importRules(pending.data)
+            if await focusRuleIDsAfterReload(added) == .loadFailed { await reload() }
+            present(result)
+        } catch {
+            await reload()
+            reportNotSaved("The rules weren’t imported. Your rules may have changed, so check them and try again.")
+        }
+    }
+
+    func cancelImport() { pendingImport = nil }
 
     func clearFilters() {
         search = ""

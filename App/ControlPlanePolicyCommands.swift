@@ -65,6 +65,45 @@ extension ControlPlaneController {
         )
     }
 
+    /// One line for each rule in `ids` that still exists, in the given order.
+    func ruleSummaries(_ ids: [UUID]) async -> [(id: UUID, text: String)] {
+        guard !ids.isEmpty,
+              let draft = try? await repository?.currentConfiguration() else { return [] }
+        let rules = Dictionary(draft.rules.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let lists = Dictionary(draft.blocklists.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        return ids.compactMap { id in
+            guard let rule = rules[id] else { return nil }
+            var listName: String?
+            if case .blocklist(let source) = rule.source { listName = lists[source] }
+            return (id, RuleRowViewValue.oneLineSummary(rule, blocklistName: listName))
+        }
+    }
+
+    /// Temporary rules that are still running, soonest to end first, for the
+    /// menu-bar panel.
+    func runningTemporaryRules(now: Date, limit: Int) async -> [StatusTemporaryRule] {
+        guard let draft = try? await repository?.currentConfiguration() else { return [] }
+        return draft.rules
+            .filter { rule in
+                rule.isEnabled && !rule.flags.contains(.sourceManaged)
+                    && rule.expiresAt.map { $0 > now } == true
+                    // Only rules in effect: in the active profile and an enabled group.
+                    && (rule.profileID == nil || rule.profileID == draft.activeProfileID)
+                    && (rule.localGroupID.map(draft.enabledLocalGroupIDs.contains) ?? true)
+            }
+            .sorted { ($0.expiresAt ?? .distantFuture, $0.id.uuidString) < ($1.expiresAt ?? .distantFuture, $1.id.uuidString) }
+            .prefix(limit)
+            .compactMap { rule in
+                guard let expiresAt = rule.expiresAt else { return nil }
+                return StatusTemporaryRule(
+                    id: rule.id,
+                    action: rule.action,
+                    summary: RuleRowViewValue.oneLineSummary(rule, blocklistName: nil),
+                    expiresAt: expiresAt
+                )
+            }
+    }
+
     /// How many of the person's own rules and blocklists exist.
     func ruleCounts() async -> (rules: Int, blocklists: Int)? {
         guard let draft = try? await repository?.currentConfiguration() else { return nil }

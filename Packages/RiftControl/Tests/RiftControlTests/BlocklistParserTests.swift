@@ -14,7 +14,7 @@ import Testing
     let entries = try BlocklistParser.parse(input)
     #expect(entries.count == 4)
     #expect(throws: BlocklistParserError.malformedLine(1)) {
-        try BlocklistParser.parse(Data("@@bad".utf8))
+        try BlocklistParser.parse(Data("bad%name".utf8))
     }
 }
 
@@ -206,4 +206,47 @@ private func blocklistFlow(hostname: String) throws -> FlowDescriptor {
         observedHostname: domain,
         metadataConfidence: [.endpoint, .observedHostname, .owner]
     )
+}
+
+@Test func blocklistParserReadsTheAdblockNameSubset() throws {
+    let input = """
+    [Adblock Plus 2.0]
+    ! Title: Example list
+    ||ads.example.test^
+    ||tracker.example.test^$third-party
+    ||cdn.example.test/banner.js
+    @@||allowed.example.test^
+    example.test##.banner
+    ~shop.example.test#@#.ad
+    """.data(using: .utf8)!
+    #expect(try BlocklistParser.parse(input) == [.domain(try DomainName("ads.example.test"))])
+}
+
+@Test func blocklistParserTreatsSemicolonsAsComments() throws {
+    let input = """
+    ; a comment
+    ads.example.test ; trailing note
+    0.0.0.0 tracker.example.test ## section note
+    """.data(using: .utf8)!
+    #expect(try BlocklistParser.parse(input) == [
+        .domain(try DomainName("ads.example.test")),
+        .domain(try DomainName("tracker.example.test")),
+    ])
+}
+
+@Test func blocklistParserSkipsAdblockRulesItCantApplyWithoutFailing() throws {
+    let input = """
+    ||ads.example.test^
+    /adserver/*
+    -ad-banner.
+    |https://tracker.example.test/
+    &ad_type=
+    .com/banner
+    example.test/ads.js
+    203.0.113.0/24
+    """.data(using: .utf8)!
+    #expect(try BlocklistParser.parse(input) == [
+        .domain(try DomainName("ads.example.test")),
+        .address(try IPInterval(cidr: IPAddress("203.0.113.0"), prefixLength: 24)),
+    ])
 }

@@ -34,7 +34,10 @@ public struct DomainName: Sendable, Hashable, Comparable, Codable, CustomStringC
         for label in labels {
             guard !label.isEmpty else { throw DomainNameError.emptyLabel }
             guard label.utf8.count <= 63 else { throw DomainNameError.labelTooLong }
-            if label.hasPrefix("xn--") {
+            // Internationalized names stay in their ASCII form, so the UI
+            // never shows a look-alike Unicode name. Only canonical A-labels
+            // are accepted.
+            if label.hasPrefix("xn--"), !Punycode.isValidALabel(label) {
                 throw DomainNameError.malformedALabel
             }
             guard label.first != "-", label.last != "-" else {
