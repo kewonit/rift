@@ -218,3 +218,23 @@ private func connection(host: String?, direction: TrafficDirection = .outgoing) 
     #expect(try JSONDecoder().decode(BlocklistEntry.self, from: data) == entry)
     #expect(entry.description == "*.example.com")
 }
+
+@Test func onlyApplesOwnCodeGetsAServiceNote() throws {
+    let root = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent()
+    let notes = ProcessNotes(try Data(contentsOf: root.appendingPathComponent("Resources/Explanations/process-notes.json")))
+    let trustd = try SignedCodeIdentity(teamIdentifier: nil, signingIdentifier: "com.apple.trustd")
+    #expect(notes.note(for: .applePlatform(trustd))?.contains("certificate") == true)
+    // A Developer ID app named like an Apple service gets nothing.
+    let impostor = try SignedCodeIdentity(teamIdentifier: "TEAM", signingIdentifier: "com.apple.trustd")
+    #expect(notes.note(for: .developerID(impostor)) == nil)
+
+    let search = try #require(ConnectionWebSearch.url(
+        identity: .applePlatform(trustd), fallbackName: "trustd", host: "ocsp.apple.com"
+    ))
+    #expect(search.host == "duckduckgo.com")
+    #expect(URLComponents(url: search, resolvingAgainstBaseURL: false)?.queryItems?.first?.value
+        == "macOS trustd ocsp.apple.com")
+}

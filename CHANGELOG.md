@@ -103,6 +103,9 @@ The changelog records notable user-visible changes.
   downloads it over HTTPS, checks for a new version once a day while it's
   running, and keeps the list's on or off state and the entries you turned
   off. Update Now checks right away. Rift adds no list by itself.
+- Alert details and the Map inspector say what common macOS services do, from
+  notes that ship with Rift, and offer Search the Web, which opens your
+  browser with a search for the app and destination.
 
 ## 0.4.0
 

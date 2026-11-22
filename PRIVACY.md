@@ -64,6 +64,13 @@ itself only as "Rift". The list's server sees your IP address and when Rift
 checks, as with any download. Removing the blocklist stops the checks. Rift
 suggests no lists and never adds a subscription by itself.
 
+## Explaining a connection
+
+Alert details and the Map inspector describe common macOS services from notes
+that ship inside Rift, so nothing is looked up. **Search the Web** opens your
+browser with a DuckDuckGo search for the app's identifier and the destination.
+Rift sends nothing itself, and the search happens only when you click it.
+
 ## Update checks
 
 Rift checks for a new version once a day by downloading a small feed from

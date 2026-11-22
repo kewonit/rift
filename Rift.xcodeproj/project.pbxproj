@@ -74,6 +74,7 @@
 		10000000000000000000003B /* LiveMapOrigin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003D /* LiveMapOrigin.swift */; };
 		10000000000000000000003F /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000041 /* AppSession.swift */; };
 		100000000000000000000041 /* ConnectionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000043 /* ConnectionInspectorView.swift */; };
+		100000000000000000000106 /* ConnectionExplanationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000106 /* ConnectionExplanationView.swift */; };
 		1000000000000000000000FC /* MonitorSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000FC /* MonitorSummaryView.swift */; };
 		100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000044 /* SettingsPrimaryPanes.swift */; };
 		100000000000000000000043 /* PolicySettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000045 /* PolicySettingsPane.swift */; };
@@ -113,6 +114,7 @@
 		1000000000000000000000C6 /* country-grid.bin in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C6 /* country-grid.bin */; };
 		1000000000000000000000C5 /* network-map.json in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C5 /* network-map.json */; };
 		100000000000000000000102 /* public_suffix_list.dat in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000102 /* public_suffix_list.dat */; };
+		100000000000000000000107 /* process-notes.json in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000107 /* process-notes.json */; };
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
 		1000000000000000000000C9 /* RiftComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C9 /* RiftComponents.swift */; };
 		1000000000000000000000CA /* MonitorFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CA /* MonitorFeed.swift */; };
@@ -265,6 +267,7 @@
 		20000000000000000000003D /* LiveMapOrigin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapOrigin.swift; sourceTree = "<group>"; };
 		200000000000000000000041 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		200000000000000000000043 /* ConnectionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionInspectorView.swift; sourceTree = "<group>"; };
+		200000000000000000000106 /* ConnectionExplanationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionExplanationView.swift; sourceTree = "<group>"; };
 		2000000000000000000000FC /* MonitorSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorSummaryView.swift; sourceTree = "<group>"; };
 		200000000000000000000044 /* SettingsPrimaryPanes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPrimaryPanes.swift; sourceTree = "<group>"; };
 		200000000000000000000045 /* PolicySettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolicySettingsPane.swift; sourceTree = "<group>"; };
@@ -304,6 +307,7 @@
 		2000000000000000000000C6 /* country-grid.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NetworkData/country-grid.bin"; sourceTree = "<group>"; };
 		2000000000000000000000C5 /* network-map.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "NetworkData/network-map.json"; sourceTree = "<group>"; };
 		200000000000000000000102 /* public_suffix_list.dat */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DomainData/public_suffix_list.dat"; sourceTree = "<group>"; };
+		200000000000000000000107 /* process-notes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Explanations/process-notes.json"; sourceTree = "<group>"; };
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
 		2000000000000000000000C9 /* RiftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftComponents.swift; sourceTree = "<group>"; };
 		2000000000000000000000CA /* MonitorFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeed.swift; sourceTree = "<group>"; };
@@ -439,6 +443,7 @@
 				200000000000000000000025 /* RulesWorkspaceView.swift */,
 				2000000000000000000000FD /* RuleBulkEditSheet.swift */,
 				200000000000000000000043 /* ConnectionInspectorView.swift */,
+				200000000000000000000106 /* ConnectionExplanationView.swift */,
 				2000000000000000000000FC /* MonitorSummaryView.swift */,
 				200000000000000000000029 /* NotificationRouter.swift */,
 				20000000000000000000002A /* SettingsView.swift */,
@@ -589,6 +594,7 @@
 				2000000000000000000000C6 /* country-grid.bin */,
 				2000000000000000000000C5 /* network-map.json */,
 				200000000000000000000102 /* public_suffix_list.dat */,
+				200000000000000000000107 /* process-notes.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -716,6 +722,7 @@
 				1000000000000000000000C6 /* country-grid.bin in Resources */,
 				1000000000000000000000C5 /* network-map.json in Resources */,
 				100000000000000000000102 /* public_suffix_list.dat in Resources */,
+				100000000000000000000107 /* process-notes.json in Resources */,
 				1000000000000000000000CD /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -766,6 +773,7 @@
 				100000000000000000000021 /* RulesWorkspaceView.swift in Sources */,
 				1000000000000000000000FD /* RuleBulkEditSheet.swift in Sources */,
 				100000000000000000000041 /* ConnectionInspectorView.swift in Sources */,
+				100000000000000000000106 /* ConnectionExplanationView.swift in Sources */,
 				1000000000000000000000FC /* MonitorSummaryView.swift in Sources */,
 				100000000000000000000025 /* NotificationRouter.swift in Sources */,
 				100000000000000000000026 /* SettingsView.swift in Sources */,
