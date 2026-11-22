@@ -143,6 +143,14 @@ The changelog records notable user-visible changes.
 - Settings › History can keep history for up to a year and 200,000
   connections; defaults are unchanged. Exports now include every saved
   connection, not just the newest 50,000.
+- Rift is now available in German, French and Spanish, following the Mac's
+  language: alerts, notifications, the menu bar, the Map, Rules, Review,
+  Settings and the Location Services prompt, with correct singular and plural
+  wording. The translations are machine-made and not yet reviewed by native
+  speakers. `riftctl` keeps printing English in every language, so scripts
+  that read it don't change.
+- The menu-bar panel and the minimized alert let longer text wrap instead of
+  cutting it off.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
