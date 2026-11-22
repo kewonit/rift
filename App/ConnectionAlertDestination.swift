@@ -16,6 +16,13 @@ extension ConnectionAlertView {
         DestinationScope.allCases.filter { $0 != .domain || registeredDomain != nil }
     }
 
+    /// The last moment to answer: the filter's deadline, or a little before
+    /// it when Rift answers Block for unanswered connections.
+    var answerDeadline: Date {
+        ConnectionAlertCountdown.blocksUnanswered
+            ? prompt.deadline.addingTimeInterval(-ConnectionAlertCountdown.blockLead) : prompt.deadline
+    }
+
     /// The destination as it reads in a sentence about the new rule.
     func destinationPhrase(for scope: DestinationScope) -> String {
         switch scope {

@@ -55,9 +55,9 @@ final class BlocklistSubscriptions {
     /// Checks one list now. Returns what happened, in a sentence.
     @discardableResult
     func refresh(_ id: UUID) async -> String {
-        guard var item = items[id], let controlPlane, !refreshing.contains(id) else {
-            return "This blocklist is already being checked."
-        }
+        guard var item = items[id] else { return "This blocklist isn’t a subscription." }
+        guard let controlPlane else { return "Rift isn’t ready to check blocklists yet." }
+        guard !refreshing.contains(id) else { return "This blocklist is already being checked." }
         refreshing.insert(id)
         defer { refreshing.remove(id) }
         let now = Date()
@@ -68,8 +68,7 @@ final class BlocklistSubscriptions {
             case .notModified:
                 item.lastFailure = nil
                 item.lastCheckedAt = now
-                items[id] = item
-                save()
+                keep(item)
                 return "The blocklist is up to date."
             case .changed(let data, let tag, let modified):
                 let result = try await controlPlane.replaceBlocklist(id, data: data)
@@ -78,17 +77,22 @@ final class BlocklistSubscriptions {
                 item.entityTag = tag
                 item.lastModified = modified
                 if result != nil { item.lastChangedAt = now }
-                items[id] = item
-                save()
+                keep(item)
                 return result.map { $0.message } ?? "The blocklist is up to date."
             }
         } catch {
             item.lastFailure = Self.message(for: error)
             item.lastCheckedAt = now
-            items[id] = item
-            save()
+            keep(item)
             return item.lastFailure ?? "The blocklist couldn’t be checked."
         }
+    }
+
+    /// Saves a check's result, unless the list was removed meanwhile.
+    private func keep(_ item: BlocklistSubscription) {
+        guard items[item.id] != nil else { return }
+        items[item.id] = item
+        save()
     }
 
     /// Stops updating a list, as when it's removed.
@@ -122,6 +126,8 @@ final class BlocklistSubscriptions {
             "The server answered with error \(status)."
         case BlocklistSubscriptionError.notAList:
             "The server didn’t send a list."
+        case PolicyDefinitionError.duplicateName:
+            "You already have a blocklist with that name. Choose another name."
         case is BlocklistParserError, is LSRulesFileError:
             "The download isn’t a list Rift can read."
         case let error as URLError where error.code == .notConnectedToInternet:

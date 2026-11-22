@@ -79,7 +79,7 @@ struct ConnectionsTable: View {
                     hostname: feed.representativeRow(for: node).flatMap { row in
                         row.event.flow.observedHostname?.ascii
                     },
-                    hide: { feed.hideConnections(like: node) }
+                    hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil
                 )
             }
         }

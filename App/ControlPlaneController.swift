@@ -195,6 +195,12 @@ final class ControlPlaneController {
             state = .databaseReady
             await installConnectionHooks()
             requestReconnect()
+            // Read the bundled suffix list and service notes off the main
+            // thread, before an alert or the rule editor first needs them.
+            Task.detached(priority: .utility) {
+                _ = PublicSuffixList.shared.isAvailable
+                _ = ProcessNotes.shared
+            }
             BlocklistSubscriptions.shared.start(controlPlane: self)
             NetworkProfileSwitcher.shared.start(controlPlane: self)
         } catch {

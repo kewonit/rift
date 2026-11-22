@@ -426,3 +426,27 @@ import Testing
     )
     #expect(decision.filter.winningRuleID == RuleTestSupport.uuid(150))
 }
+
+@Test func aMoreSpecificDomainWinsEvenInALargerSet() throws {
+    let host = try DomainName("a.example.com")
+    let broad = try RuleTestSupport.rule(
+        id: 114,
+        action: .filter(.deny),
+        destination: .normalizedDomainSet([try DomainName("example.com")])
+    )
+    let narrowInLargerSet = try RuleTestSupport.rule(
+        id: 115,
+        action: .filter(.allow),
+        destination: .normalizedDomainSet([host, try DomainName("b.example.com")])
+    )
+    let decision = ReferenceRuleMatcher(rules: [broad, narrowInLargerSet]).decision(
+        for: try RuleTestSupport.flow(
+            remote: RuleTestSupport.endpoint(hostname: host.ascii),
+            observedHostname: .some(host)
+        ),
+        context: RuleTestSupport.context(),
+        mode: .alert
+    )
+    #expect(decision.filter.action == .allow)
+    #expect(decision.filter.winningRuleID == RuleTestSupport.uuid(115))
+}

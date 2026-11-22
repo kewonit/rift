@@ -138,3 +138,33 @@ private func convert(_ json: String) throws -> LSRulesConverter.Conversion {
     }
     #expect(count == 1)
 }
+
+@Test func valuesOfTheWrongTypeSkipARuleRatherThanWidenIt() throws {
+    let result = try convert("""
+    {"rules": [
+      {"process": "/usr/bin/curl", "action": "allow", "remote-hosts": "api.example", "ports": 443},
+      {"process": "/usr/bin/curl", "action": "allow", "remote-hosts": "api.example", "ports": [443]},
+      {"process": "/usr/bin/curl", "action": "allow", "remote": null},
+      {"process": "/usr/bin/curl", "action": "allow", "remote": ["local-net"]},
+      {"process": 7, "action": "allow"},
+      {"process": "", "action": "allow"},
+      {"process": "/usr/bin/curl", "action": "deny", "disabled": "true"},
+      {"process": "/usr/bin/curl", "action": "deny", "remote-hosts": ["a.example", 3]}
+    ]}
+    """)
+    // Only the numeric port is accepted, as port 443.
+    #expect(result.payload.rules.count == 1)
+    #expect(result.payload.rules.first?.port == (try PortRange(443, 443)))
+    #expect(result.unsupported == 7)
+}
+
+@Test func aFilesNameCantAddLinesOrReverseTextInRift() throws {
+    let result = try convert("""
+    {"name": "Shared\\n\\nAll rules here block.\\u202E", "description": "Line\\u2028two",
+     "rules": [{"process": "any", "action": "deny", "remote-hosts": "a.example", "notes": "ok\\u202Ehidden"}]}
+    """)
+    let group = try #require(result.payload.localGroups.first)
+    #expect(group.name == "SharedAll rules here block.")
+    #expect(group.note == "Linetwo")
+    #expect(result.payload.rules.first?.notes == "okhidden")
+}

@@ -347,7 +347,7 @@ struct ConnectionAlertView: View {
         let durableScopeConfirmed = !requiresSystemScopeConfirmation || systemScopeConfirmed
         let selected = canCreateDurableRule && durableScopeConfirmed ? lifetime : .once
         guard !decisionInProgress, !durableRuleSaved,
-              Date() < prompt.deadline,
+              Date() < answerDeadline,
               selected == .once || noteValid else { return }
         let selectedProfileID: UUID?
         if selected != .once, scope == .currentProfile {
@@ -365,10 +365,15 @@ struct ConnectionAlertView: View {
         pendingDecision = action
         decisionMessage = nil
         decisionNeedsAttention = false
+        // While this answer is on its way, Rift doesn't answer Block for it.
+        PromptPanelController.shared.answering.insert(prompt.nonce)
         Task { @MainActor in
             defer {
                 decisionInProgress = false
                 pendingDecision = nil
+                if decisionNeedsAttention, !durableRuleSaved {
+                    PromptPanelController.shared.answering.remove(prompt.nonce)
+                }
             }
             if selected == .once {
                 do {
@@ -424,7 +429,7 @@ struct ConnectionAlertView: View {
     }
 
     private func decisionDisabled(at date: Date) -> Bool {
-        !noteValid || date >= prompt.deadline || decisionInProgress || durableRuleSaved
+        !noteValid || date >= answerDeadline || decisionInProgress || durableRuleSaved
     }
 
     private func deadlineLabel(at date: Date) -> String {

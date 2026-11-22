@@ -56,10 +56,12 @@ public enum LSRulesConverter {
         suffixes: PublicSuffixList = .shared,
         now: Date
     ) -> Conversion {
-        let groupName = (try? PolicyDefinitionValidator.name(file.name ?? fileName))
+        // The file's own name and description come from whoever wrote it, so
+        // they can't carry line breaks or direction changes into Rift's text.
+        let groupName = (try? PolicyDefinitionValidator.name(file.name?.withoutControlCharacters ?? fileName))
             ?? (try? PolicyDefinitionValidator.name(fileName)) ?? "Imported rules"
         let group = LocalRuleGroup(
-            id: UUID(), name: groupName, note: file.description ?? "",
+            id: UUID(), name: groupName, note: file.description?.withoutControlCharacters ?? "",
             isEnabled: true, createdAt: now, modifiedAt: now
         )
         var rules: [Rule] = []
@@ -223,7 +225,11 @@ public enum LSRulesConverter {
             port = try PortRange(lower, upper)
         }
         let destinations = try destinations(source.remote, direction: direction, suffixes: suffixes)
-        let notes = String(source.notes.unicodeScalars.prefix(PolicyLimits.maximumNotesScalars))
+        // Notes keep their line breaks but not direction changes.
+        let notes = String(String.UnicodeScalarView(
+            source.notes.unicodeScalars.filter { !$0.properties.isBidiControl }
+                .prefix(PolicyLimits.maximumNotesScalars)
+        ))
         var lowered = false
         let rules = try destinations.map { destination -> Rule in
             func rule(_ priority: RulePriority) throws -> Rule {

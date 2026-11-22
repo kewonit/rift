@@ -409,6 +409,8 @@ public enum DestinationEditorError: Error, Sendable, Equatable {
     case childDomainsNeedNames
     /// A name like `co.uk` that anyone can register under.
     case wholeRegistry(String)
+    /// Some names have `*.` and others don't, with Include subdomains off.
+    case someSubdomains
 }
 
 public enum DestinationEditorParser {
@@ -430,6 +432,12 @@ public enum DestinationEditorParser {
         var intervals: [IPInterval] = []
         var domains: [DomainName] = []
         var includeChildren = domainsIncludeChildren
+        // `*.` asks for subdomains only when every name has it, so one entry
+        // can't quietly widen the others.
+        let starred = tokens.filter { $0.hasPrefix("*.") }.count
+        if !domainsIncludeChildren, starred > 0, starred < tokens.count {
+            throw DestinationEditorError.someSubdomains
+        }
         for token in tokens {
             if let interval = try? parseIP(token) {
                 guard domains.isEmpty else { throw DestinationEditorError.mixedTypes }

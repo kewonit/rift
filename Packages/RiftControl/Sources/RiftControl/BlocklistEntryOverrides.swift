@@ -59,7 +59,7 @@ public enum BlocklistEntryOverrides {
 
     /// The entries that block what was typed, most specific first: for a
     /// name, the exact entry and every entry covering it with its subdomains;
-    /// for an address or range, that exact entry.
+    /// for an address or range, every entry whose range covers all of it.
     public static func coveringEntries(
         for value: String,
         configuration: PolicyConfigurationDraft
@@ -75,8 +75,19 @@ public enum BlocklistEntryOverrides {
                 if left != right { return left > right }
                 return lhs < rhs
             }
+        } else if case .address(let typedRange) = typed {
+            matches = known.filter { entry in
+                guard case .address(let range) = entry else { return false }
+                return range.contains(typedRange.lowerBound) && range.contains(typedRange.upperBound)
+            }.sorted { lhs, rhs in
+                guard case .address(let left) = lhs, case .address(let right) = rhs else { return lhs < rhs }
+                // Every match covers the typed range, so the one starting
+                // later, or ending sooner, is the narrower one.
+                if left.lowerBound != right.lowerBound { return left.lowerBound > right.lowerBound }
+                return left.upperBound < right.upperBound
+            }
         } else {
-            matches = known.contains(typed) ? [typed] : []
+            matches = []
         }
         return try matches.compactMap { entry in
             try? impact(for: entry, configuration: configuration)

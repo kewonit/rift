@@ -43,8 +43,8 @@ public struct LSRulesFile: Sendable, Equatable {
         public let ports: String
         public let transport: String
         public let notes: String
-        /// Keys this rule has that Rift doesn't know, which may change what
-        /// it means.
+        /// Keys this rule has that Rift doesn't know, or whose values have the
+        /// wrong type, either of which may change what it means.
         public let unknownKeys: [String]
     }
 
@@ -94,14 +94,42 @@ public struct LSRulesFile: Sendable, Equatable {
     ]
 
     private static func rule(_ value: [String: Any]) -> Rule {
+        // A known key with a value of the wrong type, such as a number for
+        // a name, would otherwise fall back to a wider default, so the rule
+        // is skipped instead.
+        var invalid: [String] = []
+        func text(_ key: String) -> String? {
+            guard let raw = value[key] else { return nil }
+            guard let string = raw as? String else {
+                invalid.append(key)
+                return nil
+            }
+            return string
+        }
+        func textOrNumber(_ key: String) -> String? {
+            guard let raw = value[key] else { return nil }
+            if let string = raw as? String { return string.trimmingCharacters(in: .whitespaces) }
+            if let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() {
+                return number.stringValue
+            }
+            invalid.append(key)
+            return nil
+        }
+        func names(_ key: String) -> [String] {
+            let raw = value[key]
+            if raw is String { return strings(raw) }
+            if let list = raw as? [Any], list.allSatisfy({ $0 is String }) { return strings(raw) }
+            invalid.append(key)
+            return []
+        }
         let remote: Remote
-        if let hosts = value["remote-hosts"] {
-            remote = .hosts(strings(hosts))
-        } else if let domains = value["remote-domains"] {
-            remote = .domains(strings(domains))
-        } else if let addresses = value["remote-addresses"] {
-            remote = .addresses(strings(addresses).joined(separator: ","))
-        } else if let named = value["remote"] as? String, named != "any" {
+        if value["remote-hosts"] != nil {
+            remote = .hosts(names("remote-hosts"))
+        } else if value["remote-domains"] != nil {
+            remote = .domains(names("remote-domains"))
+        } else if value["remote-addresses"] != nil {
+            remote = .addresses(names("remote-addresses").joined(separator: ","))
+        } else if let named = text("remote"), named != "any" {
             remote = .named(named)
         } else {
             remote = .any
@@ -113,19 +141,38 @@ public struct LSRulesFile: Sendable, Equatable {
         if remoteKeys.count > 1 { unknown.append(contentsOf: remoteKeys.dropFirst()) }
         // An owner other than this account can't be matched the same way.
         if let owner = value["owner"] as? String, owner != "me" { unknown.append("owner") }
+        let processText = text("process")
+        let processValue = Self.process(processText)
+        if processText != nil, processValue == nil { invalid.append("process") }
+        let viaText = text("via")
+        let viaValue = Self.process(viaText)
+        if viaText != nil, viaValue == nil { invalid.append("via") }
+        var disabled = false
+        if let raw = value["disabled"] {
+            if let number = raw as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
+                disabled = number.boolValue
+            } else {
+                invalid.append("disabled")
+            }
+        }
+        let action = text("action") ?? "ask"
+        let direction = text("direction") ?? "outgoing"
+        let priority = text("priority") ?? "regular"
+        let ports = textOrNumber("ports") ?? "any"
+        let transport = textOrNumber("protocol")?.lowercased() ?? "any"
+        let notes = text("notes") ?? ""
         return Rule(
-            process: process(value["process"] as? String) ?? .any,
-            via: process(value["via"] as? String),
-            action: (value["action"] as? String) ?? "ask",
+            process: processValue ?? .any,
+            via: viaValue,
+            action: action,
             remote: remote,
-            direction: (value["direction"] as? String) ?? "outgoing",
-            priority: (value["priority"] as? String) ?? "regular",
-            disabled: (value["disabled"] as? Bool) ?? false,
-            ports: (value["ports"] as? String).map { $0.trimmingCharacters(in: .whitespaces) } ?? "any",
-            transport: (value["protocol"] as? String)?.lowercased()
-                ?? (value["protocol"] as? NSNumber).map { $0.stringValue } ?? "any",
-            notes: (value["notes"] as? String) ?? "",
-            unknownKeys: unknown
+            direction: direction,
+            priority: priority,
+            disabled: disabled,
+            ports: ports,
+            transport: transport,
+            notes: notes,
+            unknownKeys: unknown + invalid
         )
     }
 

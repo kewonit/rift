@@ -247,6 +247,8 @@ struct ManualRuleEditorView: View {
             validation = "Use either hostnames or IP addresses in one rule, not both."
         } catch DestinationEditorError.overLimit {
             validation = "There are too many entries. Split them into more than one rule."
+        } catch DestinationEditorError.someSubdomains {
+            validation = "Turn on Include subdomains, or remove *. so every site matches exactly."
         } catch DestinationEditorError.childDomainsNeedNames {
             validation = "Subdomains apply to names. Turn off Include subdomains to enter IP addresses."
         } catch DestinationEditorError.childDomainsUnavailable {
@@ -401,6 +403,12 @@ struct ManualRuleEditorView: View {
     private func destinationCondition() throws -> DestinationCondition {
         switch destinationKind {
         case .hostOrAddress:
+            // An unchanged domain rule keeps its destination, so it can still
+            // be edited if the suffix list can't be read.
+            if includesChildren, let initial, case .domainSet = initial.destination,
+               destinationText == Self.destinationText(initial.destination) {
+                return initial.destination
+            }
             return try DestinationEditorParser.parse(
                 destinationText,
                 domainsIncludeChildren: includesChildren

@@ -34,7 +34,7 @@ struct ConnectionLogView: View {
                         showRules: { feed.showRules(for: node) },
                         copyText: feed.rowLookup[id]?.copyDescription,
                         hostname: feed.rowLookup[id]?.event.flow.observedHostname?.ascii,
-                        hide: { feed.hideConnections(like: node) }
+                        hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil
                     )
                 }
             }

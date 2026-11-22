@@ -238,3 +238,35 @@ private func connection(host: String?, direction: TrafficDirection = .outgoing) 
     #expect(URLComponents(url: search, resolvingAgainstBaseURL: false)?.queryItems?.first?.value
         == "macOS trustd ocsp.apple.com")
 }
+
+@Test func oneStarredNameDoesntWidenTheOthers() throws {
+    #expect(throws: DestinationEditorError.someSubdomains) {
+        try DestinationEditorParser.parse("foo.com, *.bar.com", domainsIncludeChildren: false, suffixes: bundledSuffixes)
+    }
+    // With the switch on, `*.` changes nothing.
+    let both = try DestinationEditorParser.parse("foo.com, *.bar.com", domainsIncludeChildren: true, suffixes: bundledSuffixes)
+    #expect(both == (try .normalizedDomainSet([name("foo.com"), name("bar.com")])))
+}
+
+@Test func checkEntryFindsTheRangeThatBlocksAnAddress() throws {
+    let lineage = UUID()
+    let result = try BlocklistImportBuilder.build(
+        entries: [.address(try IPInterval(cidr: IPAddress("203.0.113.0"), prefixLength: 24))],
+        name: "Ranges", contentHash: Data(SHA256.hash(data: Data("r".utf8))),
+        lineageID: lineage, now: Date(timeIntervalSince1970: 1), suffixes: bundledSuffixes
+    )
+    let draft = PolicyConfigurationDraft(
+        lineageID: lineage, authorizedUID: 501, operationMode: .silentAllow, baseOperationMode: .silentAllow,
+        activeProfileID: nil, enabledLocalGroupIDs: [], rules: result.rules, localGroups: [], profiles: [],
+        blocklists: [result.source]
+    )
+    let covering = try BlocklistEntryOverrides.coveringEntries(for: "203.0.113.8", configuration: draft)
+    #expect(covering.map(\.entry) == [.address(try IPInterval(cidr: IPAddress("203.0.113.0"), prefixLength: 24))])
+    #expect(try BlocklistEntryOverrides.coveringEntries(for: "198.51.100.1", configuration: draft).isEmpty)
+}
+
+@Test func fullWidthAndOtherCompatibilityFormsFoldLikeBrowsers() throws {
+    #expect(try DomainName.converting("ｅｘａｍｐｌｅ。com").ascii == "example.com")
+    #expect(try DomainName.converting("𝐚pple.com").ascii == "apple.com")
+    #expect(try DomainName.converting("Bücher.de.").ascii == "xn--bcher-kva.de")
+}

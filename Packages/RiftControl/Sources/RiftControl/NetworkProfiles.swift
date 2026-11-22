@@ -19,11 +19,8 @@ public struct NetworkIdentity: Sendable, Hashable, Codable {
         self.kind = kind
         // Control and direction characters are dropped, so a network's name
         // can't rearrange the text around it.
-        let name = wifiName.map { value in
-            String(String.UnicodeScalarView(value.unicodeScalars.filter {
-                !$0.properties.isBidiControl && $0.value >= 0x20 && $0.value != 0x7F
-            }).prefix(64))
-        }.flatMap { $0.isEmpty ? nil : $0 }
+        let name = wifiName.map { String($0.withoutControlCharacters.prefix(64)) }
+            .flatMap { $0.isEmpty ? nil : $0 }
         self.wifiName = kind == .wifi ? name : nil
         self.router = router.flatMap { $0.isEmpty ? nil : String($0.prefix(64)) }
     }
@@ -95,5 +92,16 @@ public enum NetworkProfileDecision {
         guard let target = choice.target else { return nil }
         if let id = target, !profiles.contains(id) { return nil }
         return target
+    }
+}
+
+extension String {
+    /// Without line breaks, other control characters, or characters that
+    /// change text direction, for names that come from outside Rift.
+    var withoutControlCharacters: String {
+        String(String.UnicodeScalarView(unicodeScalars.filter {
+            !$0.properties.isBidiControl && $0.value >= 0x20 && !(0x7F...0x9F).contains($0.value)
+                && $0.value != 0x2028 && $0.value != 0x2029
+        }))
     }
 }

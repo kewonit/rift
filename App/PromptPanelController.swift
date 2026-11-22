@@ -23,6 +23,9 @@ final class PromptPanelController {
     /// Answers Block for a connection nobody answered, when Settings › Alerts
     /// says to.
     private var timeoutAnswers: [UUID: Task<Void, Never>] = [:]
+    /// Connections the person is answering right now, which Rift leaves to
+    /// them.
+    var answering: Set<UUID> = []
 
     func update(
         prompts: [PromptRequest],
@@ -130,13 +133,25 @@ final class PromptPanelController {
             task.cancel()
             timeoutAnswers.removeValue(forKey: nonce)
         }
+        answering.formIntersection(waiting)
         for prompt in prompts where timeoutAnswers[prompt.nonce] == nil {
-            timeoutAnswers[prompt.nonce] = Task { [weak controller] in
+            timeoutAnswers[prompt.nonce] = Task { [weak self, weak controller] in
                 let wait = prompt.deadline.timeIntervalSinceNow - ConnectionAlertCountdown.blockLead
                 if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
                 guard !Task.isCancelled, ConnectionAlertCountdown.blocksUnanswered,
-                      prompt.deadline > Date(), let controller else { return }
-                try? await controller.answerOnce(prompt, action: .deny)
+                      prompt.deadline > Date(), let controller,
+                      self?.answering.contains(prompt.nonce) != true else { return }
+                do {
+                    try await controller.answerOnce(prompt, action: .deny)
+                } catch {
+                    // Unless the connection was answered meanwhile, say that
+                    // it's going to be allowed after all.
+                    guard controller.pendingPrompts.contains(where: { $0.nonce == prompt.nonce }) else { return }
+                    controller.actionResults.post(
+                        "Rift couldn’t block a connection you didn’t answer, so it will be allowed.",
+                        tone: .failure
+                    )
+                }
             }
         }
     }

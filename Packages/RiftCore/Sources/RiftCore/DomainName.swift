@@ -58,11 +58,17 @@ public struct DomainName: Sendable, Hashable, Comparable, Codable, CustomStringC
     /// (A static function rather than an initializer, so `DomainName.init`
     /// stays unambiguous.)
     public static func converting(_ input: String) throws -> DomainName {
-        let trimmed = input.hasSuffix(".") ? String(input.dropLast()) : input
-        guard !trimmed.unicodeScalars.allSatisfy(\.isASCII) else {
-            return try DomainName(trimmed)
+        guard !input.unicodeScalars.allSatisfy(\.isASCII) else {
+            return try DomainName(input)
         }
-        let folded = trimmed.precomposedStringWithCanonicalMapping
+        let trimmed = input
+        // Like browsers, fold full-width and other compatibility forms (NFKC)
+        // and treat the other full stops as dots, so ｅｘａｍｐｌｅ。com names
+        // the same host as example.com.
+        let dots = trimmed.replacingOccurrences(of: "\u{3002}", with: ".")
+            .replacingOccurrences(of: "\u{FF0E}", with: ".")
+            .replacingOccurrences(of: "\u{FF61}", with: ".")
+        let folded = dots.precomposedStringWithCompatibilityMapping
             .lowercased(with: Locale(identifier: "en_US_POSIX"))
         var labels: [String] = []
         for label in folded.split(separator: ".", omittingEmptySubsequences: false) {
@@ -76,7 +82,8 @@ public struct DomainName: Sendable, Hashable, Comparable, Codable, CustomStringC
                 labels.append("xn--" + text)
             }
         }
-        return try DomainName(labels.joined(separator: "."))
+        let joined = labels.joined(separator: ".")
+        return try DomainName(joined.hasSuffix(".") ? String(joined.dropLast()) : joined)
     }
 
     public var description: String { ascii }

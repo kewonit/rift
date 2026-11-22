@@ -27,7 +27,7 @@ final class NetworkProfileSwitcher {
     }
 
     var enabled: Bool {
-        didSet { save(); if enabled { Task { await apply(force: true) } } }
+        didSet { save(); if enabled { refresh() } }
     }
     var notifies: Bool { didSet { save() } }
     /// Reading Wi-Fi names needs Location Services permission on macOS.
@@ -96,6 +96,8 @@ final class NetworkProfileSwitcher {
         let identity = Self.identity(for: path, readWiFiName: usesWiFiNames && location.isAuthorized)
         guard force || identity != current else { return }
         current = identity
+        // Nothing is remembered while switching is off.
+        guard enabled else { return }
         if let key = identity?.key, let identity {
             var network = remembered[key]
                 ?? RememberedNetwork(key: key, name: identity.displayName, choice: otherNetworks, lastSeenAt: Date())
@@ -103,7 +105,7 @@ final class NetworkProfileSwitcher {
             network.lastSeenAt = Date()
             remembered[key] = network
             save()
-            if isNew, enabled, notifies, notifiedNew.insert(key).inserted {
+            if isNew, notifies, notifiedNew.insert(key).inserted {
                 notify("New network: \(identity.displayName)", "Choose a profile for it in Settings › Networks.")
             }
         }

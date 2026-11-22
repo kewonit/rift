@@ -177,6 +177,12 @@ extension MonitorFeed {
     /// Adds a Hide rule for connections like this one: the same app to the
     /// same host. They're still filtered, just left out of the Map and
     /// history.
+    /// Whether the node stands for one app and one destination, which a Hide
+    /// rule can name.
+    func canHide(_ node: MonitorHierarchyNode) -> Bool {
+        representativeRow(for: node).flatMap(MonitorExactRuleSeed.make(from:)) != nil
+    }
+
     func hideConnections(like node: MonitorHierarchyNode) {
         guard let row = representativeRow(for: node),
               let seed = MonitorExactRuleSeed.make(from: row) else { return }

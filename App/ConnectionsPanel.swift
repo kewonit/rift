@@ -311,7 +311,7 @@ struct ConnectionContextMenu: View {
             Divider()
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)
-        if let hide, canDecide() {
+        if let hide {
             Button("Hide Connections Like This", action: hide)
                 .disabled(disabled)
                 .help("Leaves this app’s connections to this host out of the Map and history. They’re still filtered.")
