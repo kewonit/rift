@@ -4,11 +4,13 @@ import Foundation
 
 @MainActor
 enum ArchiveFileAccess {
-    static func save(data: Data, suggestedName: String) async throws {
+    /// Returns false when the person cancels.
+    @discardableResult
+    static func save(data: Data, suggestedName: String) async throws -> Bool {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = suggestedName
         panel.canCreateDirectories = true
-        guard await panel.begin() == .OK, let url = panel.url else { return }
+        guard await panel.begin() == .OK, let url = panel.url else { return false }
         defer { url.stopAccessingSecurityScopedResource() }
         var coordinationError: NSError?
         var writeError: Error?
@@ -23,6 +25,7 @@ enum ArchiveFileAccess {
         }
         if let coordinationError { throw coordinationError }
         if let writeError { throw writeError }
+        return true
     }
 
     static func open(maximumBytes: Int = 16 * 1_024 * 1_024) async throws -> Data? {

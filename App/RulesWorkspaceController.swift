@@ -410,6 +410,20 @@ final class RulesWorkspaceController {
         }
     }
 
+    /// Writes the selected rules as a `.lsrules` file other firewalls read,
+    /// and says how many the format couldn't hold.
+    func exportSelectedAsLSRules() async {
+        do {
+            let export = try await controlPlane.lsrulesExport(selection)
+            let name = export.exported == 1 ? "Rift Rule.lsrules" : "Rift Rules.lsrules"
+            if try await ArchiveFileAccess.save(data: export.data, suggestedName: name) { notice = export.summary }
+        } catch LSRulesWriter.ExportError.nothingToExport {
+            reportNotSaved("Nothing to export. The .lsrules format can’t express the selected rules, such as temporary rules, rules for one profile, or rules for system processes.")
+        } catch {
+            reportNotSaved(ArchiveFileAccess.message(for: error, fallback: "The rules couldn’t be exported."))
+        }
+    }
+
     func chooseRulesToImport() async {
         do {
             guard let data = try await ArchiveFileAccess.open() else { return }

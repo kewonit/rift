@@ -92,6 +92,12 @@ extension RulesWorkspaceTable {
             Task { await model.exportSelected() }
         }
         .disabled(isPreview || !selectedRows(ids).contains { ConfigurationArchiveCodec.isShareable($0.rule) })
+        Button("Export as .lsrules…") {
+            applySelection(ids)
+            Task { await model.exportSelectedAsLSRules() }
+        }
+        .disabled(isPreview || !selectedRows(ids).contains { ConfigurationArchiveCodec.isShareable($0.rule) })
+        .help("Saves the rules in the format other Mac firewalls import. Rules the format can’t express are left out.")
         Divider()
         Button("Delete…", role: .destructive) {
             applySelection(ids)

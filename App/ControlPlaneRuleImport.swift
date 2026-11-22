@@ -55,6 +55,23 @@ extension ControlPlaneController {
         }
         return (result, added)
     }
+
+    /// The rules in `ids` as a `.lsrules` file, named for their group when
+    /// they all share one.
+    func lsrulesExport(_ ids: Set<UUID>) async throws -> LSRulesWriter.Export {
+        guard let draft = try await repository?.currentConfiguration() else {
+            throw ArchiveControllerError.missingConfiguration
+        }
+        let rules = draft.rules.filter { ids.contains($0.id) }
+        let groups = Set(rules.map(\.localGroupID))
+        let group = groups.count == 1 ? groups.first.flatMap { id in draft.localGroups.first { $0.id == id } } : nil
+        return try await Task.detached(priority: .userInitiated) {
+            try LSRulesWriter.export(
+                rules, name: group?.name ?? "Rift Rules", description: group?.note,
+                path: LSRulesIdentityResolver.executablePath
+            )
+        }.value
+    }
 }
 
 /// Finds the code identity of a process a `.lsrules` file names, on this Mac.
@@ -83,5 +100,16 @@ enum LSRulesIdentityResolver {
             }
             return .developerID(code)
         }
+    }
+
+    /// Where an app that comes with macOS keeps its executable, for a
+    /// `.lsrules` file, which names such apps by path. Only an installed app
+    /// whose signature matches is used, so the path names the same code.
+    @Sendable static func executablePath(_ identity: ProcessIdentity) -> String? {
+        guard case .applePlatform(let code) = identity,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: code.signingIdentifier),
+              let executable = Bundle(url: url)?.executableURL,
+              (try? StaticCodeIdentityResolver.identity(at: url)) == identity else { return nil }
+        return executable.standardizedFileURL.path
     }
 }

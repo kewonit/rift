@@ -15,7 +15,7 @@ undersea cables, and lets you allow or block apps and sites.
 - **Modes:** Ask Me, Allow and Watch, Block Unless Allowed, and Pause Rules.
 - **Rules** for apps, sites and whole domains, organized with profiles that can
   switch by network, groups, and blocklists you import or subscribe to. Rift
-  also imports `.lsrules` rule files.
+  also imports `.lsrules` rule files and exports selected rules as one.
 - **Connection alerts** in Ask Me mode, so you decide when an app connects
   somewhere new. Answers default to a lasting rule for the domain, and alerts
   with a warning need a deliberate Allow. When an app ships an Internet Access
