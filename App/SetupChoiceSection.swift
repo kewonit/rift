@@ -2,13 +2,20 @@ import RiftControl
 import RiftCore
 import SwiftUI
 
-/// The last step of setup: one plain question about how Rift should behave.
+/// The last step of setup: how Rift should behave, and the two choices that
+/// decide what the first week is like. Allow and Watch keeps a week of
+/// history, so there is something to review; Ask Me starts with Apple's own
+/// services allowed, so there are fewer questions.
 struct SetupChoiceSection: View {
+    /// How long setup keeps history. Settings › History allows 1 to 30 days.
+    static let historyDays = 7
+
     @Bindable var session: AppSession
     let finish: () -> Void
     @State private var choice: OperationMode = .silentAllow
     @State private var opensAtLogin = LoginItem.isEnabled
-    @State private var keepsHistory = false
+    @State private var keepsHistory = true
+    @State private var allowsAppleServices = false
     @State private var saving = false
     @State private var failure: String?
 
@@ -31,7 +38,18 @@ struct SetupChoiceSection: View {
             }
             .padding(.vertical, RiftDesign.Spacing.xs)
             Toggle("Open Rift at login", isOn: $opensAtLogin)
-            Toggle("Keep connection history on this Mac", isOn: $keepsHistory)
+            VStack(alignment: .leading, spacing: 2) {
+                Toggle("Keep \(Self.historyDays) days of connection history on this Mac", isOn: $keepsHistory)
+                Text("So you can review what connected. Older entries delete themselves, and nothing leaves this Mac. You can change this in Settings › History.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Toggle("Allow Apple system services", isOn: $allowsAppleServices)
+                Text("Adds the macOS Services group, which lets Apple’s own services reach Apple’s servers, so Rift asks about them less. You can turn it off in Rules.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack {
                 if let failure {
                     Text(failure).foregroundStyle(Color(nsColor: .systemOrange))
@@ -44,6 +62,8 @@ struct SetupChoiceSection: View {
         }
         .onChange(of: choice) { _, value in
             if value == .alert { opensAtLogin = true }
+            keepsHistory = value == .silentAllow
+            allowsAppleServices = value == .alert
         }
     }
 
@@ -82,13 +102,21 @@ struct SetupChoiceSection: View {
         failure = nil
         let controller = session.controlPlane
         let choice = choice
+        let allowsAppleServices = allowsAppleServices
         Task { @MainActor in
             defer { saving = false }
             do {
+                // The group goes in first, so Ask Me doesn't ask about Apple's services.
+                if allowsAppleServices {
+                    let groups = try await controller.policyDefinitions().groups
+                    if !groups.contains(where: { $0.name == BuiltInRuleGroups.macOSServicesName }) {
+                        try await controller.addMacOSServicesGroup()
+                    }
+                }
                 if choice != .silentAllow { _ = try await controller.setEffectiveMode(choice) }
                 if keepsHistory {
                     try await controller.configureHistory(
-                        enabled: true, retentionDays: 30, maximumFlows: 50_000
+                        enabled: true, retentionDays: Self.historyDays, maximumFlows: 50_000
                     )
                 }
             } catch {

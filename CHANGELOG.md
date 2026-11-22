@@ -28,6 +28,12 @@ The changelog records notable user-visible changes.
 - With history on, Settings › History shows how many outgoing connections in
   the last 7 days reached Rift with only an IP address, which rules for names
   and domain blocklists can't match. Diagnostics include the same two counts.
+- Setup now keeps 7 days of connection history when you choose Allow and
+  Watch, so there is something to review, and says so; you can turn it off
+  there or in Settings › History. Before, setup left history off, which kept
+  only 10 connections for five minutes. Choosing Ask Me offers "Allow Apple
+  system services", which adds the macOS Services group before the first
+  alert.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

@@ -16,12 +16,15 @@ for software updates, as described under [Update checks](#update-checks).
 - The system extension's separate, root-owned container stores only the
   validated compiled current and previous policies, ownership state, bounded
   expiry metadata, and recovery indexes. It does not store connection history.
-- New installations do not save connection history. Optional activity keeps at
+- Setup offers to keep connection history for 7 days, so you can review what
+  connected, and suggests it when you choose Allow and Watch. If you turn it
+  off, Rift saves no connection history. Optional activity then keeps at
   most 10 recent connections in memory for five minutes while the Map page is
   visible, or five when only the menu panel is open. Collection stops and
   these buffers are released when all activity views are hidden, minimized,
   fully obscured, or closed. Rules and prompt handling remain active.
-- Persistent history is opt-in, with default limits of 30 days and 50,000 flows.
+- Persistent history keeps up to 50,000 flows for the number of days you
+  choose in Settings › History, from 1 to 30: 7 when turned on in setup.
   It contains bounded decision metadata and close-reported byte totals when
   macOS supplies them. Existing history preferences are preserved. Turning
   recording off keeps old logs; deleting them requires Clear History.
