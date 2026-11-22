@@ -73,3 +73,18 @@ struct QuickRuleCell: View {
         )
     }
 }
+
+/// The Map search that shows only a row's app or destination.
+enum ConnectionFocus {
+    static func search(for node: MonitorHierarchyNode) -> String? {
+        let value = node.title.replacingOccurrences(of: "\"", with: "")
+        guard !value.isEmpty else { return nil }
+        return switch node.kind {
+        case .application, .helper: "app:\"\(value)\""
+        case .hostname, .route: "host:\(value)"
+        case .domain: "domain:\(value)"
+        case .address: "ip:\(value)"
+        case .country, .flow: nil
+        }
+    }
+}

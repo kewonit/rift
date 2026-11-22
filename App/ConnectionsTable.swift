@@ -92,7 +92,11 @@ struct ConnectionsTable: View {
                     hostname: feed.representativeRow(for: node).flatMap { row in
                         row.event.flow.observedHostname?.ascii
                     },
-                    hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil
+                    hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil,
+                    focus: ConnectionFocus.search(for: node).map { search in
+                        (node.kind == .application || node.kind == .helper ? "Show Only This App" : "Show Only This Destination",
+                         { feed.query.search = search })
+                    }
                 )
             }
         }

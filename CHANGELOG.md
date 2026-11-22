@@ -85,6 +85,8 @@ The changelog records notable user-visible changes.
   doesn't draw (local, without a known country, or beyond the 12 busiest
   countries), and its caption moved to the bottom so banners no longer hide
   it. An alert's "Apply to" names the active profile.
+- A Map row's context menu adds Show Only This App or Show Only This
+  Destination, which fills the search to narrow the list.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

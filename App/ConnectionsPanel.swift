@@ -303,12 +303,17 @@ struct ConnectionContextMenu: View {
     var copyText: String?
     var hostname: String?
     var hide: (() -> Void)?
+    /// Narrows the list to this row's app or destination.
+    var focus: (title: String, run: () -> Void)?
 
     var body: some View {
         if canDecide() {
             Button("Allow…") { apply(.allow) }.disabled(disabled)
             Button("Block…") { apply(.deny) }.disabled(disabled)
             Divider()
+        }
+        if let focus {
+            Button(focus.title, action: focus.run)
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)
         if let hide {
