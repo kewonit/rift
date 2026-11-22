@@ -16,6 +16,9 @@ struct RuleEditorAdvancedSection: View {
     @Binding var isEnabled: Bool
     @Binding var isReviewed: Bool
     @Binding var note: String
+    @Binding var highPriority: Bool
+    /// The rule is a blocklist exception, which already outranks everything.
+    let overridesBlocklists: Bool
     let permitsSystemOwner: Bool
     let profiles: [PolicyProfile]
     let groups: [LocalRuleGroup]
@@ -50,6 +53,9 @@ struct RuleEditorAdvancedSection: View {
                     Text("No group").tag(UUID?.none)
                     ForEach(groups) { Text($0.name).tag(Optional($0.id)) }
                 }
+                Toggle("High priority", isOn: $highPriority)
+                    .disabled(overridesBlocklists)
+                    .help("Wins over every normal rule, however specific. Blocklists still come first.")
                 Toggle("Temporary", isOn: $temporary)
                 if temporary { DatePicker("Expires", selection: $expiry, in: Date()...) }
                 Toggle("On", isOn: $isEnabled)

@@ -62,7 +62,9 @@ public struct RuleImportPlan: Sendable, Equatable {
                     return created.id
                 }
             }
-            let needsLook = source.priority == .elevatedUser || source.owner == .system
+            // A rule that outranks the person's own rules, or covers every
+            // account, comes in turned off until they've looked at it.
+            let needsLook = source.priority != .normal || source.owner == .system
             let rule = try Rule(
                 id: UUID(), lineageID: draft.lineageID, revision: 1,
                 action: source.action, priority: source.priority, process: source.process,
@@ -120,8 +122,8 @@ public struct RuleImportPlan: Sendable, Equatable {
         }
         if turnedOff > 0 {
             parts.append(turnedOff == 1
-                ? "1 blocklist exception or system-process rule is added turned off. Check it, then turn it on in Rules."
-                : "\(turnedOff) blocklist exceptions or system-process rules are added turned off. Check them, then turn them on in Rules.")
+                ? "1 high-priority, blocklist-exception or system-process rule is added turned off. Check it, then turn it on in Rules."
+                : "\(turnedOff) high-priority, blocklist-exception or system-process rules are added turned off. Check them, then turn them on in Rules.")
         }
         if duplicates > 0 {
             parts.append(duplicates == 1

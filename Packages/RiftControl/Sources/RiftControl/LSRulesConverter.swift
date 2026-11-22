@@ -246,9 +246,11 @@ public enum LSRulesConverter {
                 )
             }
             guard source.priority == "high" else { return try rule(.normal) }
-            // Rift raises priority only for an Allow for one app to an exact
-            // destination, so other high-priority rules come in as normal.
+            // Only an Allow for one app to an exact destination overrides a
+            // blocklist. Other high-priority rules keep their place above
+            // normal rules, when the filter can apply that tier.
             if let elevated = try? rule(.elevatedUser) { return elevated }
+            if extendedRules { return try rule(.high) }
             lowered = true
             return try rule(.normal)
         }

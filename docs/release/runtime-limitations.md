@@ -26,7 +26,10 @@ complete URLs. A host in a rule matches that exact host. A domain rule (shown
 as `*.name`, made with Include subdomains or a domain choice in an alert or on
 the Map) also covers every name under it. Rift refuses a domain rule for a
 suffix anyone can register under, such as `co.uk`, using its bundled copy of the
-Public Suffix List. When two domain rules match, the more specific one wins. An
+Public Suffix List. When two domain rules match, the more specific one wins. A
+rule marked High priority wins over every normal rule, however specific, but
+never over a blocklist: only an Allow for one app to exact destinations
+overrides a blocklist. A rule can list up to 16 ports or port ranges. An
 existing connection can remain established until the application
 or operating system opens another flow. A policy change does not promise to
 terminate every already-open connection immediately.

@@ -30,6 +30,7 @@ struct ManualRuleEditorView: View {
     @State private var expiry = Date().addingTimeInterval(3_600)
     @State private var note = ""
     @State private var overrideBlocklists = false
+    @State private var highPriority = false
     @State private var profileID: UUID?
     @State private var localGroupID: UUID?
     @State private var isEnabled = true
@@ -81,6 +82,7 @@ struct ManualRuleEditorView: View {
             _expiry = State(initialValue: initial.expiresAt ?? Date().addingTimeInterval(3_600))
             _note = State(initialValue: initial.notes)
             _overrideBlocklists = State(initialValue: initial.priority == .elevatedUser)
+            _highPriority = State(initialValue: initial.priority == .high)
             _profileID = State(initialValue: initial.profileID)
             _localGroupID = State(initialValue: initial.localGroupID)
             _isEnabled = State(initialValue: initial.isEnabled)
@@ -149,6 +151,8 @@ struct ManualRuleEditorView: View {
                 isEnabled: $isEnabled,
                 isReviewed: $isReviewed,
                 note: $note,
+                highPriority: $highPriority,
+                overridesBlocklists: action == .allow && overrideBlocklists,
                 permitsSystemOwner: selectedIdentityPermitsSystemOwner,
                 profiles: profiles,
                 groups: groups
@@ -287,9 +291,15 @@ struct ManualRuleEditorView: View {
               owner != .system || selectedIdentityPermitsSystemOwner else {
             throw EditorError.unavailableIdentity
         }
+        // A rule that's already high priority keeps it. Making one waits for
+        // a filter that knows the tier, or the whole policy would be refused.
+        guard !highPriority || filterSupportsExtendedRules || initial?.priority == .high else {
+            throw EditorError.highPriorityNeedsNewerFilter
+        }
         let draft = ManualRuleDraft(
             action: action.value,
-            priority: action == .allow && overrideBlocklists ? .elevatedUser : .normal,
+            priority: action == .allow && overrideBlocklists
+                ? .elevatedUser : (highPriority ? .high : .normal),
             process: process,
             destination: destination,
             transport: transport.value,
@@ -458,6 +468,7 @@ struct ManualRuleEditorView: View {
 
     private enum EditorError: Error {
         case incomingDomain, expired, noteTooLong, port, portListNeedsNewerFilter, unavailableIdentity
+        case highPriorityNeedsNewerFilter
 
         var message: String {
             switch self {
@@ -469,6 +480,8 @@ struct ManualRuleEditorView: View {
                 "This note is too long."
             case .port:
                 "Enter a port, like 443, a range, like 8000-8080, or a list, like 20-30, 80, 443, of up to 16."
+            case .highPriorityNeedsNewerFilter:
+                "High priority needs the current network filter. Turn on or update the filter, then try again."
             case .portListNeedsNewerFilter:
                 "A list of ports needs the current network filter. Turn on or update the filter, then try again."
             case .unavailableIdentity:

@@ -177,6 +177,7 @@ public enum RuleWorkspaceCopyDetails {
         switch value {
         case .elevatedUser: "User exception"
         case .blocklistDeny: "Blocklist deny"
+        case .high: "High"
         case .normal: "Normal"
         }
     }

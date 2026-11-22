@@ -64,6 +64,7 @@ extension RulesWorkspaceTable {
         switch row.rule.priority {
         case .elevatedUser: return "Exception"
         case .blocklistDeny: return "Blocklist"
+        case .high: return "High priority"
         case .normal: return "Manual"
         }
     }

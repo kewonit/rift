@@ -138,6 +138,7 @@ struct RuleInspectorView: View {
         switch row.rule.priority {
         case .elevatedUser: "Blocklist exception"
         case .blocklistDeny: "Blocklist"
+        case .high: "High"
         case .normal: "Normal"
         }
     }

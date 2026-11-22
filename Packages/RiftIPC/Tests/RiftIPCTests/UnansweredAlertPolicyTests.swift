@@ -186,3 +186,23 @@ private struct PayloadBeforeExtendedPolicy: Codable {
     #expect(try artifact.decode() == list)
     #expect(try artifact.decode().rules[0].port?.contains(80) == true)
 }
+
+@Test func onlyAPolicyWithAHighPriorityRuleNeedsProtocolOnePointFour() throws {
+    func compiled(_ priority: RulePriority) throws -> CompiledPolicyPayload {
+        let lineage = UUID()
+        let rule = try Rule(
+            id: UUID(), lineageID: lineage, revision: 1, action: .filter(.deny), priority: priority,
+            process: .anyProcess, destination: .anyEndpoint, transportProtocol: .tcp,
+            port: nil, direction: .outgoing, owner: .authorizedUser,
+            createdAt: fixedNow, modifiedAt: fixedNow
+        )
+        return try CompiledPolicyPayload(
+            lineageID: lineage, generation: 1, authorizedUID: 501, createdAt: fixedNow,
+            operationMode: .alert, activeProfileID: nil, enabledLocalGroupIDs: [], rules: [rule]
+        )
+    }
+    #expect(try compiled(.normal).compatibility.minimumExtensionProtocol == .baseline)
+    let high = try compiled(.high)
+    #expect(high.compatibility.minimumExtensionProtocol == .extendedPolicy)
+    #expect(try PolicyArtifact.compile(high).decode() == high)
+}

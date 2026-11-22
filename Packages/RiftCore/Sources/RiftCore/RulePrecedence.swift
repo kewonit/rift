@@ -122,7 +122,8 @@ enum RulePrecedence {
         switch value {
         case .elevatedUser: 0
         case .blocklistDeny: 1
-        case .normal: 2
+        case .high: 2
+        case .normal: 3
         }
     }
 
