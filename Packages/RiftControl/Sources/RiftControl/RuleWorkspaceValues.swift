@@ -118,20 +118,29 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
     /// The app and condition are sanitized already, so they aren't again.
     public static func oneLineSummary(_ rule: Rule, blocklistName: String? = nil) -> String {
         if case .blocklist = rule.source {
-            guard let blocklistName else { return "Block • from a blocklist" }
-            return "Block • from the blocklist “\(DisplaySanitizer.plainText(blocklistName))”"
+            guard let blocklistName else { return String(localized: "Block • from a blocklist", bundle: .module) }
+            return String(localized: "Block • from the blocklist “\(DisplaySanitizer.plainText(blocklistName))”", bundle: .module)
         }
-        let application = RuleWorkspacePresentation.process(rule.process)
-        return "\(action(rule.action)) \(application) • \(condition(rule))"
+        return summary(rule.action, RuleWorkspacePresentation.process(rule.process), condition(rule))
     }
 
     private static func action(_ action: RuleAction) -> String {
         switch action {
-        case .filter(.allow): "Allow"
-        case .filter(.deny): "Block"
-        case .filter(.ask): "Ask"
-        case .notification: "Notify"
-        case .privacy: "Hide"
+        case .filter(.allow): String(localized: "Allow", bundle: .module)
+        case .filter(.deny): String(localized: "Block", bundle: .module)
+        case .filter(.ask): String(localized: "Ask", bundle: .module)
+        case .notification: String(localized: "Notify", bundle: .module)
+        case .privacy: String(localized: "Hide", bundle: .module)
+        }
+    }
+
+    private static func summary(_ action: RuleAction, _ app: String, _ condition: String) -> String {
+        switch action {
+        case .filter(.allow): String(localized: "Allow \(app) • \(condition)", bundle: .module)
+        case .filter(.deny): String(localized: "Block \(app) • \(condition)", bundle: .module)
+        case .filter(.ask): String(localized: "Ask \(app) • \(condition)", bundle: .module)
+        case .notification: String(localized: "Notify \(app) • \(condition)", bundle: .module)
+        case .privacy: String(localized: "Hide \(app) • \(condition)", bundle: .module)
         }
     }
 
@@ -142,10 +151,9 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
         case .exactHostnameSet(let values): destination = values.map(\.ascii).joined(separator: ", ")
         case .domainSet(let values): destination = values.map { "*." + $0.ascii }.joined(separator: ", ")
         case .endpointClass(let value): destination = RuleWorkspacePresentation.endpointClass(value)
-        case .anyEndpoint: destination = "Any destination"
+        case .anyEndpoint: destination = String(localized: "Any destination", bundle: .module)
         }
-        let port = rule.port.map { $0.lowerBound == $0.upperBound
-            ? String($0.lowerBound) : "\($0.lowerBound)–\($0.upperBound)" } ?? "any port"
+        let port = rule.port.map { $0.text(rangeSeparator: "–") } ?? String(localized: "any port", bundle: .module)
         return DisplaySanitizer.plainText("\(destination) • \(port)")
     }
 }

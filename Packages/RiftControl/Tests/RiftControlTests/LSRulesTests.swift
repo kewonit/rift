@@ -20,11 +20,33 @@ private let resolver: LSRulesConverter.Resolver = { process in
     }
 }
 
-private func convert(_ json: String) throws -> LSRulesConverter.Conversion {
+private func convert(_ json: String, extendedRules: Bool = true) throws -> LSRulesConverter.Conversion {
     LSRulesConverter.convert(
         try LSRulesFile.decode(Data(json.utf8)), fileName: "Fallback", lineageID: UUID(),
-        resolve: resolver, suffixes: PublicSuffixList("example\nuk\nco.uk\n"), now: Date(timeIntervalSince1970: 100)
+        resolve: resolver, suffixes: PublicSuffixList("example\nuk\nco.uk\n"),
+        extendedRules: extendedRules, now: Date(timeIntervalSince1970: 100)
     )
+}
+
+@Test func portListsImportWhenTheFilterCanApplyThemAndAreSkippedWhenItCant() throws {
+    let file = """
+    {"rules": [
+      {"process": "any", "action": "deny", "ports": "20-30, 80, 443"},
+      {"process": "any", "action": "deny", "ports": "8000-8080"},
+      {"process": "any", "action": "deny", "ports": "80, 81"}
+    ]}
+    """
+    let current = try convert(file)
+    #expect(current.unsupported == 0)
+    #expect(current.payload.rules.map { $0.port?.text() } == ["20-30, 80, 443", "8000-8080", "80-81"])
+    #expect(current.payload.rules.map(\.usesExtendedPolicy) == [true, false, false])
+
+    // An older filter would refuse the whole policy, so the list is left out
+    // and counted. Nothing is narrowed to its first range.
+    let older = try convert(file, extendedRules: false)
+    #expect(older.unsupported == 1)
+    #expect(older.payload.rules.map { $0.port?.text() } == ["8000-8080", "80-81"])
+    #expect(older.payload.rules.map(\.usesExtendedPolicy) == [false, false])
 }
 
 @Test func ruleFilesAreToldApartFromBlocklistsAndRiftsOwnFiles() {
@@ -87,7 +109,7 @@ private func convert(_ json: String) throws -> LSRulesConverter.Conversion {
       {"process": "/Applications/Missing.app/Contents/MacOS/Missing", "action": "deny"},
       {"process": "any", "action": "deny", "protocol": "icmp"},
       {"process": "any", "action": "deny", "remote": "dns-servers"},
-      {"process": "any", "action": "deny", "ports": "80,443"},
+      {"process": "any", "action": "deny", "ports": "80,,443"},
       {"process": "any", "action": "deny", "owner": "any"},
       {"process": "any", "action": "deny", "remote-hosts": "a.example", "direction": "incoming"},
       {"process": "any", "via": "/usr/bin/curl", "action": "deny"},
@@ -100,11 +122,35 @@ private func convert(_ json: String) throws -> LSRulesConverter.Conversion {
     #expect(result.missingApps == 1)
     // A domain rule for co.uk would cover a whole registry.
     #expect(result.unsupported == 8)
-    #expect(result.lowered == 1)
+    // A high-priority rule that isn't a blocklist exception keeps its place
+    // above normal rules.
+    #expect(result.lowered == 0)
     #expect(result.payload.rules.count == 1)
-    #expect(result.payload.rules[0].priority == .normal)
+    #expect(result.payload.rules[0].priority == .high)
     #expect(result.blockedDestinations == 1)
     #expect(result.notices.contains { $0.contains("Settings › Blocklists") })
+}
+
+@Test func highPriorityRulesKeepATierOnlyWhenTheFilterHasOne() throws {
+    let file = """
+    {"rules": [
+      {"process": "/usr/bin/curl", "action": "deny", "priority": "high"},
+      {"process": "/usr/bin/curl", "action": "allow", "priority": "high", "remote-hosts": "api.example"},
+      {"process": "any", "action": "allow", "priority": "high", "remote-domains": "tracker.example"},
+      {"process": "any", "action": "deny", "priority": "regular"}
+    ]}
+    """
+    let current = try convert(file)
+    // An Allow for one app to exact hosts is still the blocklist exception.
+    #expect(current.payload.rules.map(\.priority) == [.high, .elevatedUser, .high, .normal])
+    #expect(current.lowered == 0)
+
+    // An older filter would refuse the whole policy over the new tier, so
+    // those rules come in at normal priority and the import says so.
+    let older = try convert(file, extendedRules: false)
+    #expect(older.payload.rules.map(\.priority) == [.normal, .elevatedUser, .normal, .normal])
+    #expect(older.lowered == 2)
+    #expect(older.notices.contains { $0.contains("2 high-priority rules are added at normal priority.") })
 }
 
 @Test func blockingOnlyFilesImportAsBlocklists() throws {

@@ -81,6 +81,8 @@ extension RulesWorkspaceTable {
         Divider()
         Button("Show Rules for This App") { focusAffectingRules(ids) }
             .disabled(selectedApplicationIdentity(ids) == nil)
+        Button("Show on Map") { showOnMap(ids) }
+            .disabled(isPreview || selectedApplicationIdentity(ids) == nil)
         Button("Show App in Finder") { revealApplication(ids) }
             .disabled(isPreview || selectedApplicationIdentity(ids) == nil)
         Button("Copy Details") { copyDetails(ids) }
@@ -90,6 +92,12 @@ extension RulesWorkspaceTable {
             Task { await model.exportSelected() }
         }
         .disabled(isPreview || !selectedRows(ids).contains { ConfigurationArchiveCodec.isShareable($0.rule) })
+        Button("Export as .lsrules…") {
+            applySelection(ids)
+            Task { await model.exportSelectedAsLSRules() }
+        }
+        .disabled(isPreview || !selectedRows(ids).contains { ConfigurationArchiveCodec.isShareable($0.rule) })
+        .help("Saves the rules in the format other Mac firewalls import. Rules the format can’t express are left out.")
         Divider()
         Button("Delete…", role: .destructive) {
             applySelection(ids)
@@ -101,6 +109,38 @@ extension RulesWorkspaceTable {
             Text(skipped == 1
                 ? "1 protected or blocklist rule will be skipped."
                 : "\(skipped) protected or blocklist rules will be skipped.")
+        }
+    }
+
+    /// The row's main menu commands as VoiceOver actions, so a row can be
+    /// edited or deleted without selecting it and opening its menu. They're
+    /// worked out from the row alone, because every visible row asks.
+    @ViewBuilder
+    func rowAccessibilityActions(_ node: RuleWorkspaceNode) -> some View {
+        let ids: Set<RuleWorkspaceNodeID> = [node.id]
+        let editable = rows(node).filter {
+            !$0.rule.flags.contains(.protected) && !$0.rule.flags.contains(.sourceManaged)
+        }
+        let apps = Set(rows(node).compactMap { applicationIdentity($0.rule.process) })
+        if !isPreview, editable.count == 1, rows(node).count == 1 {
+            Button("Edit") { editingRow = row(applySelection(ids).first) }
+        } else if !isPreview, editable.count > 1 {
+            Button("Edit Rules…") {
+                applySelection(ids)
+                model.bulkEditing = true
+            }
+        }
+        if !isPreview, !editable.isEmpty {
+            Button("Delete…") {
+                applySelection(ids)
+                showingDeleteConfirmation = true
+            }
+        }
+        if apps.count == 1 {
+            Button("Show Rules for This App") { focusAffectingRules(ids) }
+            if !isPreview {
+                Button("Show on Map") { showOnMap(ids) }
+            }
         }
     }
 }

@@ -62,16 +62,16 @@ extension ControlPlaneController {
                 transientHistory.clear()
             } else {
                 transientHistory.retainForReplay(batch)
-                recordStartupIssue("Rift can’t save activity right now. Recent activity is kept in memory for now.")
+                recordStartupIssue(String(localized: "Rift can’t save activity right now. Recent activity is kept in memory for now."))
             }
         } catch {
             transientHistory.retainForReplay(batch)
-            recordStartupIssue("Rift can’t save activity right now. Recent activity is kept in memory for now.")
+            recordStartupIssue(String(localized: "Rift can’t save activity right now. Recent activity is kept in memory for now."))
         }
         do {
             try await repository?.recordUsage(batch)
         } catch {
-            recordStartupIssue("Rule usage counts may be incomplete because Rift couldn’t save them.")
+            recordStartupIssue(String(localized: "Rule usage counts may be incomplete because Rift couldn’t save them."))
         }
     }
 
@@ -250,6 +250,7 @@ extension ControlPlaneController {
     }
 
     func configureHistory(enabled: Bool, retentionDays: Int, maximumFlows: Int) async throws {
+        try requireUnlocked()
         let history = try await openHistoryForExplicitRequest()
         try await history?.configure(
             enabled: enabled, retentionDays: retentionDays, maximumFlows: maximumFlows
@@ -266,6 +267,7 @@ extension ControlPlaneController {
     }
 
     func clearHistory(clearUsage: Bool = false) async throws {
+        try requireUnlocked()
         try await openHistoryForExplicitRequest()?.clearHistory()
         if clearUsage { try await repository?.clearUsage() }
         transientHistory.clear()

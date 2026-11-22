@@ -60,3 +60,11 @@ private let hash20 = try! CodeDigest(hex: String(repeating: "cd", count: 20), ex
         == [.internationalName])
     #expect(ConnectionAlertWarnings.warnings(for: try prompt(app: signed, host: nil)).isEmpty)
 }
+
+@Test func anyWarningMakesAllowDeliberate() throws {
+    #expect(!ConnectionAlertWarnings.requiresDeliberateAllow(for: try prompt(app: signed)))
+    let unsigned = ProcessIdentity.unsigned(normalizedPath: "/usr/local/bin/tool", fileHash: hash32)
+    #expect(ConnectionAlertWarnings.requiresDeliberateAllow(for: try prompt(app: unsigned)))
+    #expect(ConnectionAlertWarnings.requiresDeliberateAllow(for: try prompt(app: .adHoc(cdHash: hash20))))
+    #expect(ConnectionAlertWarnings.requiresDeliberateAllow(for: try prompt(app: signed, host: "xn--pple-43d.com")))
+}

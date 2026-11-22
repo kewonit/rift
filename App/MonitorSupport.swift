@@ -8,19 +8,19 @@ func monitorCoveragePending(_ state: MonitorRuleCoverageState) -> Bool {
 
 func monitorCoverageLabel(_ state: MonitorRuleCoverageState) -> String {
     switch state {
-    case .exact: "Matched by an exact rule"
-    case .broader: "Matched by a broader rule"
-    case .narrower: "Partly covered by rules"
-    case .mixed: "Covered by different rules"
-    case .savedPendingEnforcement: "Rule saved, waiting for the filter"
-    case .persistedPendingProvider: "Rule saved, waiting for the filter"
-    case .applyFailed: "Rule couldn’t be applied"
-    case .unresolved: "No rule decided this"
-    case .policyChanged: "Rules changed since this connection"
-    case .historicalRuleMissing: "The rule that decided this was removed"
-    case .identityChanged: "The app’s identity changed"
-    case .hostnameUnavailable: "Hostname unavailable"
-    case .noRule: "No matching rule"
+    case .exact: String(localized: "Matched by an exact rule")
+    case .broader: String(localized: "Matched by a broader rule")
+    case .narrower: String(localized: "Partly covered by rules")
+    case .mixed: String(localized: "Covered by different rules")
+    case .savedPendingEnforcement: String(localized: "Rule saved, waiting for the filter")
+    case .persistedPendingProvider: String(localized: "Rule saved, waiting for the filter")
+    case .applyFailed: String(localized: "Rule couldn’t be applied")
+    case .unresolved: String(localized: "No rule decided this")
+    case .policyChanged: String(localized: "Rules changed since this connection")
+    case .historicalRuleMissing: String(localized: "The rule that decided this was removed")
+    case .identityChanged: String(localized: "The app’s identity changed")
+    case .hostnameUnavailable: String(localized: "Hostname unavailable")
+    case .noRule: String(localized: "No matching rule")
     }
 }
 

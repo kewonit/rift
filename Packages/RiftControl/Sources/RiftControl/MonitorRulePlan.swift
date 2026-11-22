@@ -140,8 +140,9 @@ public enum MonitorRulePlan {
     private static func rank(_ priority: RulePriority) -> Int {
         switch priority {
         case .normal: 0
-        case .blocklistDeny: 1
-        case .elevatedUser: 2
+        case .high: 1
+        case .blocklistDeny: 2
+        case .elevatedUser: 3
         }
     }
 

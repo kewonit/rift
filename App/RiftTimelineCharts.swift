@@ -39,8 +39,9 @@ struct TrafficBars: View {
         .accessibilityElement()
         .accessibilityLabel("Traffic over time")
         .accessibilityValue(
-            "Sent \(RiftFormat.bytes(snapshot.sent)), received \(RiftFormat.bytes(snapshot.received))"
-                + (snapshot.partial ? ", some sizes missing" : "")
+            snapshot.partial
+                ? String(localized: "Sent \(RiftFormat.bytes(snapshot.sent)), received \(RiftFormat.bytes(snapshot.received)), some sizes missing")
+                : String(localized: "Sent \(RiftFormat.bytes(snapshot.sent)), received \(RiftFormat.bytes(snapshot.received))")
         )
     }
 }
@@ -119,8 +120,9 @@ struct DecisionBars: View {
         let allowed = snapshot.buckets.reduce(0) { $0 + $1.allowed }
         let denied = snapshot.buckets.reduce(0) { $0 + $1.denied }
         let unresolved = snapshot.buckets.reduce(0) { $0 + $1.unresolved }
-        let suffix = snapshot.coverage == .complete ? "" : ", some history missing"
-        return "\(allowed) allowed, \(denied) blocked, \(unresolved) with no rule\(suffix)"
+        return snapshot.coverage == .complete
+            ? String(localized: "\(allowed) allowed, \(denied) blocked, \(unresolved) with no rule")
+            : String(localized: "\(allowed) allowed, \(denied) blocked, \(unresolved) with no rule, some history missing")
     }
 
     private func updateHover(_ phase: HoverPhase, proxy: ChartProxy, geometry: GeometryProxy) {

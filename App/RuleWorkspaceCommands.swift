@@ -9,12 +9,12 @@ struct RuleWorkspaceCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .undoRedo) {
             Divider()
-            Button(canUndo ? session.controlPlane.ruleChanges.title : "Undo Rule Change") {
+            Button(canUndo ? session.controlPlane.ruleChanges.title : String(localized: "Undo Rule Change")) {
                 session.undoRuleChange()
             }
             .keyboardShortcut("z", modifiers: [.command, .option])
             .disabled(!canUndo)
-            Button(canRedo ? session.controlPlane.ruleChanges.title : "Redo Rule Change") {
+            Button(canRedo ? session.controlPlane.ruleChanges.title : String(localized: "Redo Rule Change")) {
                 session.undoRuleChange()
             }
             .keyboardShortcut("z", modifiers: [.command, .option, .shift])

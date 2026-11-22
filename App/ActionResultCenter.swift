@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import RiftControl
 import SwiftUI
 
 /// What the last rule action did, shown once wherever the person is working.
@@ -17,6 +18,7 @@ final class ActionResultCenter {
 
     private(set) var current: Result?
     @ObservationIgnored private var clearTask: Task<Void, Never>?
+    @ObservationIgnored private var lockNoticeUntil: Date?
 
     func post(
         _ message: String,
@@ -24,6 +26,13 @@ final class ActionResultCenter {
         ruleIDs: Set<UUID> = [],
         offersUndo: Bool = false
     ) {
+        // When the lock refuses a change, the page that asked often follows
+        // with its own "couldn't change" line. The lock's reason stays.
+        if message == ConfigurationLockCopy.lockedMessage {
+            lockNoticeUntil = Date().addingTimeInterval(2)
+        } else if tone == .failure, let until = lockNoticeUntil, Date() < until {
+            return
+        }
         let result = Result(message: message, tone: tone, ruleIDs: ruleIDs, offersUndo: offersUndo)
         current = result
         AccessibilityNotification.Announcement(message).post()

@@ -20,6 +20,12 @@ public struct PromptRequest: Sendable, Hashable, Codable {
     public let endpoint: Endpoint?
     public let winningRuleID: UUID?
     public let affectingRuleIDs: [UUID]
+    /// What the filter does at the deadline. Nil from a filter older than
+    /// protocol 1.4, which always allows.
+    public let unansweredAction: FilterAction?
+    /// The process ID and path of what's connecting. Nil from a filter older
+    /// than protocol 1.4, and for a connection whose details are hidden.
+    public let processes: FlowProcessDetails?
 
     public init(
         nonce: UUID,
@@ -37,7 +43,9 @@ public struct PromptRequest: Sendable, Hashable, Codable {
         transportProtocol: TransportProtocol,
         endpoint: Endpoint?,
         winningRuleID: UUID?,
-        affectingRuleIDs: [UUID]
+        affectingRuleIDs: [UUID],
+        unansweredAction: FilterAction? = nil,
+        processes: FlowProcessDetails? = nil
     ) {
         self.nonce = nonce
         self.providerEpoch = providerEpoch
@@ -57,12 +65,14 @@ public struct PromptRequest: Sendable, Hashable, Codable {
         self.endpoint = endpoint
         self.winningRuleID = winningRuleID
         self.affectingRuleIDs = affectingRuleIDs
+        self.unansweredAction = unansweredAction
+        self.processes = processes
     }
 
     private enum CodingKeys: String, CodingKey {
         case nonce, providerEpoch, lineageID, generation, flowID, observedAt, deadline, cohortCount
         case owner, appIdentity, processIdentity, direction, transportProtocol, endpoint
-        case winningRuleID, affectingRuleIDs
+        case winningRuleID, affectingRuleIDs, unansweredAction, processes
     }
 
     public init(from decoder: Decoder) throws {
@@ -92,6 +102,46 @@ public struct PromptRequest: Sendable, Hashable, Codable {
         endpoint = try values.decodeIfPresent(Endpoint.self, forKey: .endpoint)
         winningRuleID = try values.decodeIfPresent(UUID.self, forKey: .winningRuleID)
         affectingRuleIDs = try values.decode([UUID].self, forKey: .affectingRuleIDs)
+        unansweredAction = try values.decodeIfPresent(FilterAction.self, forKey: .unansweredAction)
+        processes = try values.decodeIfPresent(FlowProcessDetails.self, forKey: .processes)
+    }
+
+    /// The same prompt with a new deadline and count, for a connection that
+    /// joined the ones already waiting.
+    public func updated(deadline: Date, cohortCount: UInt16) -> PromptRequest {
+        copy(deadline: deadline, cohortCount: cohortCount, extended: true)
+    }
+
+    /// The prompt as a controller speaking `version` can decode it. An app
+    /// older than protocol 1.4 refuses a message with fields it doesn't know,
+    /// so those are left out for it.
+    public func compatible(with version: ProtocolVersion) -> PromptRequest {
+        guard !version.supports(minimum: .extendedPolicy),
+              unansweredAction != nil || processes != nil else { return self }
+        return copy(deadline: deadline, cohortCount: cohortCount, extended: false)
+    }
+
+    private func copy(deadline: Date, cohortCount: UInt16, extended: Bool) -> PromptRequest {
+        PromptRequest(
+            nonce: nonce,
+            providerEpoch: providerEpoch,
+            lineageID: lineageID,
+            generation: generation,
+            flowID: flowID,
+            observedAt: observedAt,
+            deadline: deadline,
+            cohortCount: cohortCount,
+            owner: owner,
+            appIdentity: appIdentity,
+            processIdentity: processIdentity,
+            direction: direction,
+            transportProtocol: transportProtocol,
+            endpoint: endpoint,
+            winningRuleID: winningRuleID,
+            affectingRuleIDs: affectingRuleIDs,
+            unansweredAction: extended ? unansweredAction : nil,
+            processes: extended ? processes : nil
+        )
     }
 }
 

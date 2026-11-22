@@ -1,9 +1,49 @@
 import Foundation
 
+/// How often Rift checks a subscribed list while it's running.
+public enum BlocklistUpdateInterval: String, Sendable, Hashable, Codable, CaseIterable, Identifiable {
+    case hourly
+    case daily
+    case weekly
+    /// Only when the person chooses Update Now or Update All.
+    case manual
+
+    public var id: String { rawValue }
+
+    public var seconds: TimeInterval? {
+        switch self {
+        case .hourly: 60 * 60
+        case .daily: 24 * 60 * 60
+        case .weekly: 7 * 24 * 60 * 60
+        case .manual: nil
+        }
+    }
+
+    public var title: String {
+        switch self {
+        case .hourly: String(localized: "Every hour", bundle: .module)
+        case .daily: String(localized: "Every day", bundle: .module)
+        case .weekly: String(localized: "Every week", bundle: .module)
+        case .manual: String(localized: "Only when I ask", bundle: .module)
+        }
+    }
+
+    /// How it reads in "Updates … from example.com".
+    public var phrase: String {
+        switch self {
+        case .hourly: String(localized: "Updates hourly", bundle: .module)
+        case .daily: String(localized: "Updates daily", bundle: .module)
+        case .weekly: String(localized: "Updates weekly", bundle: .module)
+        case .manual: String(localized: "Updates when you ask", bundle: .module)
+        }
+    }
+}
+
 /// A blocklist Rift keeps up to date from a web address the person entered.
 /// Nothing is subscribed by default, and Rift never suggests a list.
 public struct BlocklistSubscription: Sendable, Hashable, Codable, Identifiable {
-    /// How often Rift checks for a new version while it's running.
+    /// How often Rift checks for a new version while it's running, unless
+    /// the person chose otherwise.
     public static let refreshInterval: TimeInterval = 24 * 60 * 60
 
     /// The blocklist this subscription keeps updated.
@@ -17,20 +57,29 @@ public struct BlocklistSubscription: Sendable, Hashable, Codable, Identifiable {
     /// again.
     public var entityTag: String?
     public var lastModified: String?
+    /// Nil for daily, the default, so lists saved before this read the same.
+    public var interval: BlocklistUpdateInterval?
 
-    public init(id: UUID, url: URL, lastCheckedAt: Date? = nil, lastChangedAt: Date? = nil) {
+    public var effectiveInterval: BlocklistUpdateInterval { interval ?? .daily }
+
+    public init(
+        id: UUID,
+        url: URL,
+        lastCheckedAt: Date? = nil,
+        lastChangedAt: Date? = nil,
+        interval: BlocklistUpdateInterval? = nil
+    ) {
         self.id = id
         self.url = url
         self.lastCheckedAt = lastCheckedAt
         self.lastChangedAt = lastChangedAt
+        self.interval = interval
     }
 
     /// Whether it's time to check again. A failed check is retried after an
-    /// hour rather than a day.
+    /// hour at most. A list checked only on request is never due.
     public func isDue(now: Date) -> Bool {
-        guard let lastCheckedAt else { return true }
-        let wait = lastFailure == nil ? Self.refreshInterval : 60 * 60
-        return now.timeIntervalSince(lastCheckedAt) >= wait
+        effectiveInterval.isDue(lastCheckedAt: lastCheckedAt, failed: lastFailure != nil, now: now)
     }
 }
 

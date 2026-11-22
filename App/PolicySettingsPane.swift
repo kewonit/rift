@@ -37,7 +37,7 @@ struct PolicySettingsPane: View {
             if let pendingModeProfile { updateProfileMode(pendingModeProfile, mode: mode) }
         })
         .confirmationDialog(
-            pendingRemoval.map { "Remove “\($0.name)”?" } ?? "",
+            pendingRemoval.map { String(localized: "Remove “\($0.name)”?") } ?? "",
             isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
             titleVisibility: .visible,
             presenting: pendingRemoval
@@ -69,7 +69,7 @@ struct PolicySettingsPane: View {
                 get: { activeProfileID },
                 set: { value in
                     activeProfileID = value
-                    perform("Couldn’t switch profiles. Try again.") {
+                    perform(String(localized: "Couldn’t switch profiles. Try again.")) {
                         try await controlPlane.activateProfile(value)
                     }
                 }
@@ -91,8 +91,8 @@ struct PolicySettingsPane: View {
                         Button("Remove and Delete Rules…", role: .destructive) {
                             pendingRemoval = PendingRemoval(
                                 name: profile.name,
-                                message: "This deletes the rules in this profile. Open connections aren’t affected.",
-                                action: "Remove and Delete Rules"
+                                message: String(localized: "This deletes the rules in this profile. Open connections aren’t affected."),
+                                action: String(localized: "Remove and Delete Rules")
                             ) { removeProfile(profile, deletingRules: true) }
                         }
                     }
@@ -120,8 +120,8 @@ struct PolicySettingsPane: View {
                         Button("Remove and Delete Rules…", role: .destructive) {
                             pendingRemoval = PendingRemoval(
                                 name: group.name,
-                                message: "This deletes the rules in this group. Open connections aren’t affected.",
-                                action: "Remove and Delete Rules"
+                                message: String(localized: "This deletes the rules in this group. Open connections aren’t affected."),
+                                action: String(localized: "Remove and Delete Rules")
                             ) { removeGroup(group, deletingRules: true) }
                         }
                     }
@@ -150,8 +150,8 @@ struct PolicySettingsPane: View {
                         Button("Remove…", role: .destructive) {
                             pendingRemoval = PendingRemoval(
                                 name: source.name,
-                                message: "This removes the blocklist and its rules. Open connections aren’t affected.",
-                                action: "Remove Blocklist"
+                                message: String(localized: "This removes the blocklist and its rules. Open connections aren’t affected."),
+                                action: String(localized: "Remove Blocklist")
                             ) { removeBlocklist(source) }
                         }
                     }
@@ -163,6 +163,15 @@ struct PolicySettingsPane: View {
                 .disabled(blocklistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .help("Import a hosts file, a list of names or addresses, an Adblock list, or a .lsrules file that only blocks destinations")
             BlocklistSubscribeRow(name: $blocklistName, message: $message, reload: reload)
+            if BlocklistSubscriptions.shared.items.count > 1 {
+                Button("Update All Subscriptions") {
+                    Task { @MainActor in
+                        message = await BlocklistSubscriptions.shared.refreshAll()
+                        await reload()
+                    }
+                }
+                .disabled(!BlocklistSubscriptions.shared.refreshing.isEmpty)
+            }
             Divider()
             TextField("Domain, IP address, or IP range", text: $blocklistEntry)
                 .onChange(of: blocklistEntry) { _, _ in
@@ -214,17 +223,17 @@ struct PolicySettingsPane: View {
     private func addProfile() {
         let name = newProfileName
         newProfileName = ""
-        perform("Couldn’t create the profile.") { try await controlPlane.createProfile(name: name) }
+        perform(String(localized: "Couldn’t create the profile.")) { try await controlPlane.createProfile(name: name) }
     }
 
     private func removeProfile(_ profile: PolicyProfile, deletingRules: Bool) {
-        perform("Couldn’t remove the profile. It may contain protected or blocklist rules.") {
+        perform(String(localized: "Couldn’t remove the profile. It may contain protected or blocklist rules.")) {
             try await controlPlane.removeProfile(profile.id, deletingRules: deletingRules)
         }
     }
 
     private func updateProfileMode(_ profile: PolicyProfile, mode: OperationMode?) {
-        perform("Couldn’t change the profile’s mode.") {
+        perform(String(localized: "Couldn’t change the profile’s mode.")) {
             try await controlPlane.updateProfile(profile.id, operationModeOverride: .some(mode))
         }
     }
@@ -232,29 +241,29 @@ struct PolicySettingsPane: View {
     private func addGroup() {
         let name = newGroupName
         newGroupName = ""
-        perform("Couldn’t create the group.") { try await controlPlane.createLocalGroup(name: name) }
+        perform(String(localized: "Couldn’t create the group.")) { try await controlPlane.createLocalGroup(name: name) }
     }
 
     private func setGroup(_ group: LocalRuleGroup, enabled: Bool) {
-        perform("Couldn’t turn the group on or off.") {
+        perform(String(localized: "Couldn’t turn the group on or off.")) {
             try await controlPlane.setLocalGroup(group.id, enabled: enabled)
         }
     }
 
     private func removeGroup(_ group: LocalRuleGroup, deletingRules: Bool) {
-        perform("Couldn’t remove the group. It may contain protected or blocklist rules.") {
+        perform(String(localized: "Couldn’t remove the group. It may contain protected or blocklist rules.")) {
             try await controlPlane.removeLocalGroup(group.id, deletingRules: deletingRules)
         }
     }
 
     private func setBlocklist(_ source: BlocklistSource, enabled: Bool) {
-        perform("Couldn’t turn the blocklist on or off.") {
+        perform(String(localized: "Couldn’t turn the blocklist on or off.")) {
             try await controlPlane.setBlocklist(source.id, enabled: enabled)
         }
     }
 
     private func removeBlocklist(_ source: BlocklistSource) {
-        perform("Couldn’t remove the blocklist.") {
+        perform(String(localized: "Couldn’t remove the blocklist.")) {
             let result = try await controlPlane.removeBlocklist(source.id)
             BlocklistSubscriptions.shared.forget(source.id)
             return result
@@ -274,13 +283,11 @@ struct PolicySettingsPane: View {
                 message = result.message
                 await reload()
             } catch LSRulesFileError.hasOtherRules(let count) {
-                message = count == 1
-                    ? "This rules file has a rule that does more than block destinations. Import it with Import Rules on the Rules page."
-                    : "This rules file has \(count) rules that do more than block destinations. Import it with Import Rules on the Rules page."
+                message = String(localized: "This rules file has \(count) rules that do more than block destinations. Import it with Import Rules on the Rules page.")
             } catch LSRulesFileError.malformedEntry(let entry) {
-                message = "Couldn’t import the blocklist: “\(DisplaySanitizer.plainText(entry))” isn’t a valid name or address. Your rules haven’t changed."
+                message = String(localized: "Couldn’t import the blocklist: “\(DisplaySanitizer.plainText(entry))” isn’t a valid name or address. Your rules haven’t changed.")
             } catch {
-                message = "Couldn’t import the blocklist. Your rules haven’t changed."
+                message = String(localized: "Couldn’t import the blocklist. Your rules haven’t changed.")
                 await reload()
             }
         }
@@ -290,11 +297,11 @@ struct PolicySettingsPane: View {
         Task { @MainActor in
             do {
                 try await loadEntryImpacts()
-                if entryImpact == nil { message = "None of your blocklists block that." }
+                if entryImpact == nil { message = String(localized: "None of your blocklists block that.") }
             } catch {
                 entryImpact = nil
                 otherCoveringEntries = []
-                message = "Enter one name, IP address, or IP range to check."
+                message = String(localized: "Enter one name, IP address, or IP range to check.")
             }
         }
     }
@@ -309,7 +316,7 @@ struct PolicySettingsPane: View {
                 await reload()
                 try await loadEntryImpacts()
             } catch {
-                message = "Couldn’t change that entry."
+                message = String(localized: "Couldn’t change that entry.")
                 await reload()
             }
         }
@@ -323,20 +330,20 @@ struct PolicySettingsPane: View {
 
     private func entryImpactSummary(_ impact: BlocklistEntryImpact) -> String {
         let others = otherCoveringEntries.prefix(2).map(\.description).joined(separator: ", ")
-        let also = otherCoveringEntries.isEmpty ? "" : " • Also blocked by \(others)"
+        let also = otherCoveringEntries.isEmpty ? "" : String(localized: " • Also blocked by \(others)")
             + (otherCoveringEntries.count > 2 ? " +\(otherCoveringEntries.count - 2)" : "")
         return "\(impact.entry) • " + entrySummary(impact) + also
     }
 
     private func entrySummary(_ impact: BlocklistEntryImpact) -> String {
-        let state = impact.isDisabled ? "Off" : "On"
+        let state = impact.isDisabled ? String(localized: "Off") : String(localized: "On")
         let activeCount = impact.activeSourceNames.count
         let totalCount = impact.sourceNames.count
         let shownNames = impact.sourceNames.prefix(3).joined(separator: ", ")
         let remaining = max(0, totalCount - 3)
         let suffix = remaining == 0 ? shownNames : "\(shownNames) +\(remaining)"
-        let lists = totalCount == 1 ? "1 blocklist" : "\(totalCount) blocklists"
-        return "\(state) • In \(lists) (\(activeCount) active) • \(suffix)"
+        let lists = String(localized: "\(totalCount) blocklists")
+        return String(localized: "\(state) • In \(lists) (\(activeCount) active) • \(suffix)")
     }
 
     private func perform(

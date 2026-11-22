@@ -12,7 +12,7 @@ public enum LSRulesFileError: Error, Sendable, Equatable {
 }
 
 /// A rule group file in the `.lsrules` JSON format, which other Mac firewalls
-/// export and publish. Rift only reads these files; it never writes them.
+/// export and publish. `LSRulesWriter` writes them.
 public struct LSRulesFile: Sendable, Equatable {
     public enum Process: Sendable, Hashable {
         case any

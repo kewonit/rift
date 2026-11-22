@@ -16,6 +16,9 @@ struct RuleEditorAdvancedSection: View {
     @Binding var isEnabled: Bool
     @Binding var isReviewed: Bool
     @Binding var note: String
+    @Binding var highPriority: Bool
+    /// The rule is a blocklist exception, which already outranks everything.
+    let overridesBlocklists: Bool
     let permitsSystemOwner: Bool
     let profiles: [PolicyProfile]
     let groups: [LocalRuleGroup]
@@ -33,14 +36,15 @@ struct RuleEditorAdvancedSection: View {
                         .foregroundStyle(.orange)
                 }
                 Picker("Protocol", selection: $transport) {
-                    ForEach(ManualRuleEditorView.ProtocolChoice.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(ManualRuleEditorView.ProtocolChoice.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Direction", selection: $direction) {
                     Text("Outgoing").tag(DirectionCondition.outgoing)
                     Text("Incoming").tag(DirectionCondition.incoming)
                     Text("Both").tag(DirectionCondition.bidirectional)
                 }
-                TextField("Port or range", text: $portText, prompt: Text("Any"))
+                TextField("Ports", text: $portText, prompt: Text("Any"))
+                    .help("One port, a range like 8000-8080, or a list like 20-30, 80, 443")
                 Picker("Profile", selection: $profileID) {
                     Text("All profiles").tag(UUID?.none)
                     ForEach(profiles) { Text($0.name).tag(Optional($0.id)) }
@@ -49,6 +53,9 @@ struct RuleEditorAdvancedSection: View {
                     Text("No group").tag(UUID?.none)
                     ForEach(groups) { Text($0.name).tag(Optional($0.id)) }
                 }
+                Toggle("High priority", isOn: $highPriority)
+                    .disabled(overridesBlocklists)
+                    .help("Wins over every normal rule, however specific. Blocklists still come first.")
                 Toggle("Temporary", isOn: $temporary)
                 if temporary { DatePicker("Expires", selection: $expiry, in: Date()...) }
                 Toggle("On", isOn: $isEnabled)
@@ -96,5 +103,19 @@ extension ManualRuleEditorView {
             case .hide: .privacy(.hide)
             }
         }
+    }
+}
+
+/// Whether the running filter speaks protocol 1.4, so the rule editors can
+/// offer what only it applies, such as port lists. True where there's no
+/// filter to ask, as in previews.
+private struct FilterSupportsExtendedRulesKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var filterSupportsExtendedRules: Bool {
+        get { self[FilterSupportsExtendedRulesKey.self] }
+        set { self[FilterSupportsExtendedRulesKey.self] = newValue }
     }
 }

@@ -86,6 +86,23 @@ public struct DecisionBucketSnapshot: Sendable, Hashable {
     }
 }
 
+/// How many outgoing connections in history arrived with only an IP
+/// address. Hostname rules and domain blocklists can't match those.
+public struct HistoryHostnameCoverage: Sendable, Hashable {
+    public let outgoing: Int
+    public let withoutHostname: Int
+
+    public init(outgoing: Int, withoutHostname: Int) {
+        self.outgoing = outgoing
+        self.withoutHostname = withoutHostname
+    }
+
+    /// The share without a name, from 0 to 1, or nil with nothing to count.
+    public var shareWithoutHostname: Double? {
+        outgoing == 0 ? nil : Double(withoutHostname) / Double(outgoing)
+    }
+}
+
 public struct HistoryDiagnosticCounts: Sendable, Hashable {
     public let visibleFlows: Int
     public let coverageGaps: Int
@@ -97,7 +114,7 @@ public struct HistoryDiagnosticCounts: Sendable, Hashable {
 }
 
 public actor HistoryRepository {
-    private let database: DatabasePool
+    let database: DatabasePool
     private var changes = HistoryChangeJournal()
 
     public init(database: DatabasePool) {
@@ -110,7 +127,10 @@ public actor HistoryRepository {
                 database,
                 sql: "SELECT * FROM history_settings WHERE singleton_id = 1"
             ) else {
-                return HistorySettings(enabled: true, retentionDays: 30, maximumFlows: 50_000)
+                return HistorySettings(
+                    enabled: true, retentionDays: HistoryLimits.defaultRetentionDays,
+                    maximumFlows: HistoryLimits.defaultMaximumFlows
+                )
             }
             return HistorySettings(
                 enabled: row["enabled"],
@@ -126,8 +146,8 @@ public actor HistoryRepository {
         maximumFlows: Int,
         now: Date = Date()
     ) throws {
-        let days = min(max(1, retentionDays), 30)
-        let flows = min(max(100, maximumFlows), 50_000)
+        let days = HistoryLimits.clampedDays(retentionDays)
+        let flows = HistoryLimits.clampedFlows(maximumFlows)
         let next = HistorySettings(enabled: enabled, retentionDays: days, maximumFlows: flows)
         try database.write { database in
             let wasEnabled = try Bool.fetchOne(
@@ -227,10 +247,10 @@ public actor HistoryRepository {
     }
 
     public func monitorSnapshot(
-        maximum: Int = 50_000,
+        maximum: Int = HistoryLimits.maximumLoadedFlows,
         window: MonitorTimeWindow? = nil
     ) throws -> HistoryMonitorSnapshot {
-        let boundedMaximum = min(max(1, maximum), 50_000)
+        let boundedMaximum = min(max(1, maximum), HistoryLimits.maximumLoadedFlows)
         let cursor = changes.cursor
         return try database.read { database in
             let coverage = try HistoryCoverageStore.snapshot(in: database)
@@ -350,6 +370,32 @@ public actor HistoryRepository {
         changes.reset()
     }
 
+    /// Counts decided outgoing connections since `start`, and those that
+    /// arrived with no hostname.
+    public func hostnameCoverage(since start: Date) throws -> HistoryHostnameCoverage {
+        try database.read { database in
+            let rows = try Row.fetchCursor(
+                database,
+                sql: """
+                    SELECT decision_event FROM flow_lifecycle
+                    WHERE decision_at >= ? AND decision_event IS NOT NULL
+                    """,
+                arguments: [start.timeIntervalSince1970]
+            )
+            let decoder = CanonicalPolicyJSON.decoder()
+            var outgoing = 0
+            var withoutHostname = 0
+            while let row = try rows.next() {
+                let encoded: Data = row["decision_event"]
+                let flow = try decoder.decode(RuntimeEvent.self, from: encoded).flow
+                guard flow.direction == .outgoing else { continue }
+                outgoing += 1
+                if flow.remoteEndpoint?.hostname == nil, flow.observedHostname == nil { withoutHostname += 1 }
+            }
+            return HistoryHostnameCoverage(outgoing: outgoing, withoutHostname: withoutHostname)
+        }
+    }
+
     public func diagnosticCounts() throws -> HistoryDiagnosticCounts {
         try database.read { database in
             HistoryDiagnosticCounts(
@@ -372,13 +418,16 @@ public actor HistoryRepository {
     ) async throws -> Data {
         let current = try settings()
         try Task.checkCancellation()
-        let snapshot = try monitorSnapshot(maximum: current.maximumFlows)
-        return try HistoryExportCodec.encode(
-            rows: snapshot.rows,
-            format: format,
-            exportedAt: now,
-            maximumBytes: maximumBytes
-        )
+        // History can hold more than a view loads, so the export reads every
+        // saved connection one at a time instead of taking a snapshot.
+        return try await database.read { database in
+            let coverage = try HistoryCoverageStore.snapshot(in: database)
+            var stream = try HistoryExportStream(format: format, maximumBytes: maximumBytes)
+            try HistoryRepositoryStorage.forEachMonitorRow(
+                in: database, coverage: coverage, limit: current.maximumFlows
+            ) { try stream.append($0) }
+            return try stream.finish(exportedAt: now)
+        }
     }
 
     private func persist(

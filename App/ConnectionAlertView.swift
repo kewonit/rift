@@ -23,45 +23,6 @@ struct ConnectionAlertView: View {
         }
     }
 
-    enum RuleScope: String, CaseIterable, Identifiable {
-        case currentProfile = "Current profile"
-        case allProfiles = "All profiles"
-        var id: String { rawValue }
-    }
-
-    enum Lifetime: String, CaseIterable, Identifiable {
-        case once = "Once"
-        case fiveMinutes = "Five minutes"
-        case oneHour = "One hour"
-        case permanent = "Always"
-
-        var id: String { rawValue }
-        var duration: TimeInterval? {
-            switch self {
-            case .once, .permanent: nil
-            case .fiveMinutes: 300
-            case .oneHour: 3_600
-            }
-        }
-    }
-
-    enum DestinationScope: String, CaseIterable, Identifiable {
-        case exact = "This destination"
-        case anyPort = "This destination, any port"
-        case domain = "This domain"
-        case any = "Any destination"
-        var id: String { rawValue }
-
-        var ruleScope: AlertDestinationScope {
-            switch self {
-            case .exact: .exactObservedEndpoint
-            case .anyPort: .observedDestinationAnyPort
-            case .domain: .observedDomain
-            case .any: .anyEndpoint
-            }
-        }
-    }
-
     let prompt: PromptRequest
     var moreWaiting = 0
     var others: [PromptRequest] = []
@@ -70,9 +31,11 @@ struct ConnectionAlertView: View {
     @Bindable var controller: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
     @Environment(\.controlActiveState) private var controlActiveState
-    @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = Lifetime.once.rawValue
-    @AppStorage("alertDefaultScope") private var alertDefaultScope = RuleScope.currentProfile.rawValue
-    @AppStorage("alertDefaultDestination") private var alertDefaultDestination = DestinationScope.exact.rawValue
+    @AppStorage(AlertDefaults.lifetimeKey) private var alertDefaultLifetime = AlertDefaults.lastUsed
+    @AppStorage(AlertDefaults.scopeKey) private var alertDefaultScope = RuleScope.currentProfile.rawValue
+    @AppStorage(AlertDefaults.destinationKey) private var alertDefaultDestination = AlertDefaults.lastUsed
+    @AppStorage(AlertDefaults.lastLifetimeKey) private var alertLastLifetime = ""
+    @AppStorage(AlertDefaults.lastDestinationKey) private var alertLastDestination = ""
     @State private var lifetime: Lifetime = .once
     @State private var destinationScope: DestinationScope = .exact
     @State private var showingDetails = false
@@ -88,6 +51,9 @@ struct ConnectionAlertView: View {
     @State private var decisionNeedsAttention = false
     @State private var initialDeadlineInterval: TimeInterval = 30
     @State private var presentedAt = Date()
+    @State private var answersSameApp = false
+    @State private var developerPolicy: InternetAccessPolicy?
+    @State private var confirmingBlock = false
     @FocusState private var noteFocused: Bool
 
     var body: some View {
@@ -100,7 +66,7 @@ struct ConnectionAlertView: View {
                     artworkStore: artworkStore
                 )
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Connection request")
+                    Text(deliberateAllow ? "Check this connection" : "Connection request")
                         .font(.title2.weight(.semibold))
                     Text(ConnectionAlertPresentation.headline(
                         application: applicationName,
@@ -121,7 +87,7 @@ struct ConnectionAlertView: View {
                     if let minimize, !decisionInProgress, !durableRuleSaved {
                         Button("Minimize", systemImage: "arrow.down.right.and.arrow.up.left", action: minimize)
                             .labelStyle(.iconOnly).buttonStyle(.borderless)
-                            .help(ConnectionAlertCountdown.blocksUnanswered
+                            .help(ConnectionAlertCountdown.outcome(for: prompt).blocks
                                 ? "Minimize. The connection keeps waiting and is blocked when time runs out."
                                 : "Minimize. The connection keeps waiting and is allowed when time runs out.")
                     }
@@ -134,9 +100,10 @@ struct ConnectionAlertView: View {
             }
 
             ConnectionAlertWarningList(warnings: ConnectionAlertWarnings.warnings(for: prompt))
+            ConnectionAlertFirstContact(prompt: prompt, domain: firstContactDomain, controller: controller)
 
             DisclosureGroup("Details", isExpanded: $showingDetails) {
-                ConnectionAlertDetails(prompt: prompt, controller: controller)
+                ConnectionAlertDetails(prompt: prompt, controller: controller, developer: developerExplanation)
             }
 
             if prompt.endpoint?.hostname == nil {
@@ -148,17 +115,23 @@ struct ConnectionAlertView: View {
                 .foregroundStyle(.secondary)
             }
 
-            Picker("Apply this decision", selection: $lifetime) {
-                ForEach(Lifetime.allCases) { Text($0.rawValue).tag($0) }
+            Picker("Remember", selection: $lifetime) {
+                ForEach(Lifetime.allCases) { Text($0.menuTitle).tag($0) }
             }
-            .pickerStyle(.segmented)
+            .fixedSize()
             .disabled(!lastingChoiceAvailable)
+            .help(ConnectionAlertKeys.help)
 
             if let hint = ConnectionAlertPresentation.lastingChoiceHint(
                 hasIdentity: prompt.appIdentity != nil || prompt.processIdentity != nil,
-                hasEndpoint: prompt.endpoint != nil
+                hasEndpoint: prompt.endpoint != nil, configurationLocked: ConfigurationLock.shared.isLocked
             ) {
                 Text(hint).font(.caption).foregroundStyle(.secondary)
+            }
+
+            if lifetime == .once, !sameAppWaiting.isEmpty {
+                let count = sameAppWaiting.count
+                Toggle("Also answer \(count) other waiting connections from this app", isOn: $answersSameApp)
             }
 
             if requiresSystemScopeConfirmation {
@@ -189,46 +162,16 @@ struct ConnectionAlertView: View {
             }
 
             if lifetime != .once {
-                Picker("Destination", selection: $destinationScope) {
-                    ForEach(destinationChoices) { choice in
-                        Text(choice == .domain ? "\(registeredDomain ?? "") and its subdomains" : choice.rawValue)
-                            .tag(choice)
-                    }
-                }
-                if destinationScope == .exact {
-                    Text("Applies to this destination on this port, for the same protocol and direction.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if destinationScope == .anyPort {
-                    Text("Applies to this destination on any port, for the same protocol and direction.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if destinationScope == .domain {
-                    Text("Applies to every name under \(registeredDomain ?? "this domain") on any port, for the same protocol and direction.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if destinationScope == .any {
-                    Label(
-                        "This rule will apply to all destinations for this app with the same protocol, direction, and owner.",
-                        systemImage: "exclamationmark.triangle"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                }
-                if activeProfileResolution.profile != nil {
-                    Picker("Apply to", selection: $scope) {
-                        ForEach(RuleScope.allCases) { Text($0.rawValue).tag($0) }
-                    }
-                }
-                TextField("Note (optional)", text: $note, axis: .vertical)
-                    .lineLimit(2...4)
-                    .focused($noteFocused)
-                if !noteValid {
-                    Text("This note is too long.").font(.caption).foregroundStyle(.red)
-                }
+                ConnectionAlertRuleOptions(
+                    destinationScope: $destinationScope, scope: $scope, note: $note,
+                    noteFocused: $noteFocused, choices: destinationChoices,
+                    registeredDomain: registeredDomain, showsScope: activeProfileResolution.profile != nil,
+                    scopeTitle: scopeTitle, noteValid: noteValid
+                )
+            }
+
+            if confirmingBlock, !blockConsequences.isEmpty {
+                ConnectionAlertBlockConsequences(consequences: blockConsequences)
             }
 
             if let decisionMessage {
@@ -255,16 +198,16 @@ struct ConnectionAlertView: View {
                     // The width goes on the label so each bezel fills its half.
                     HStack(spacing: RiftDesign.Spacing.m) {
                         Button { decide(.deny) } label: {
-                            Label("Block", systemImage: "xmark").frame(maxWidth: .infinity)
+                            Label(confirmingBlock ? "Block Anyway" : blockConsequences.isEmpty ? "Block" : "Block…",
+                                  systemImage: "xmark")
+                                .frame(maxWidth: .infinity)
                         }
                         .tint(Color(nsColor: .systemRed))
-                        .keyboardShortcut("b", modifiers: .command)
                         .disabled(decisionDisabled(at: context.date))
                         Button { decide(.allow) } label: {
                             Label("Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
                         }
                         .tint(Color(nsColor: .systemGreen))
-                        .keyboardShortcut("a", modifiers: .command)
                         .disabled(decisionDisabled(at: context.date))
                     }
                     .buttonStyle(.bordered)
@@ -272,10 +215,13 @@ struct ConnectionAlertView: View {
                     .background {
                         ConnectionAlertKeys(
                             allow: { decideFromKeyboard(.allow) },
-                            block: { decideFromKeyboard(.deny) }
+                            block: { decideFromKeyboard(.deny) },
+                            returnAllows: !deliberateAllow,
+                            noteFocused: noteFocused,
+                            lifetime: lastingChoiceAvailable ? $lifetime : nil,
+                            toggleDetails: { showingDetails.toggle() }
                         )
-                        // Return and Esc belong to the note while it's being typed.
-                        .disabled(decisionDisabled(at: context.date) || noteFocused)
+                        .disabled(decisionDisabled(at: context.date))
                     }
                     VStack(spacing: RiftDesign.Spacing.xs + 2) {
                         ProgressView(
@@ -287,7 +233,7 @@ struct ConnectionAlertView: View {
                         .tint(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                         HStack {
                             if controlActiveState == .key {
-                                Text(noteFocused ? "⌘B Block · ⌘A Allow" : "Esc Block · Return Allow")
+                                Text(keyHint)
                             }
                             Spacer()
                             Text(deadlineLabel(at: context.date))
@@ -296,37 +242,48 @@ struct ConnectionAlertView: View {
                         .font(.caption)
                         .foregroundStyle(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                     }
+                    .modifier(ConnectionAlertCountdownElement(prompt: prompt, now: context.date, keys: controlActiveState == .key ? keyHint : nil))
                 }
             }
         }
         .padding(RiftDesign.Spacing.xl)
         .frame(width: 520)
+        // Its own height, so a taller window can't open gaps between the controls.
+        .fixedSize(horizontal: false, vertical: true)
+        // A warned alert looks different, so it isn't answered from habit.
+        .modifier(ConnectionAlertWarnedTint(warned: deliberateAllow))
+        .modifier(ConnectionAlertAnnouncements(prompt: prompt, answered: decisionInProgress || durableRuleSaved, problem: decisionNeedsAttention && !durableRuleSaved ? decisionMessage : nil))
         .task {
-            if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
             initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
             presentedAt = Date()
             scope = RuleScope(rawValue: alertDefaultScope) ?? .currentProfile
-            destinationScope = DestinationScope(rawValue: alertDefaultDestination) ?? .exact
-            if !destinationChoices.contains(destinationScope) || destinationScope == .any {
-                destinationScope = .exact
-            }
+            destinationScope = AlertDefaults.destination(
+                preset: alertDefaultDestination,
+                lastUsed: alertLastDestination,
+                domainAvailable: registeredDomain != nil
+            )
             await resolveActiveProfile()
         }
         .task(id: presentationIdentity) {
             resolvedApplicationName = nil
+            developerPolicy = nil
             guard let presentationIdentity else { return }
             let name = await artworkStore.artwork(
                 for: presentationIdentity
             )?.displayName
             guard !Task.isCancelled else { return }
             resolvedApplicationName = name
+            let policy = await DeveloperPolicyStore.shared.policy(for: presentationIdentity, artworkStore: artworkStore)
+            guard !Task.isCancelled else { return }
+            developerPolicy = policy
         }
         .task(id: prompt.nonce) {
-            AccessibilityNotification.Announcement(ConnectionAlertPresentation.headline(
+            confirmingBlock = false
+            ConnectionAlertSpeech.announceOpening(ConnectionAlertPresentation.headline(
                 application: applicationName,
                 destination: DisplaySanitizer.plainText(destination),
                 direction: prompt.direction
-            )).post()
+            ), prompt: prompt)
             // The filter resolves the connection at the deadline. If that news
             // never arrives, clear the alert so it can't sit here with no way out.
             let wait = prompt.deadline.timeIntervalSinceNow + 2
@@ -349,11 +306,17 @@ struct ConnectionAlertView: View {
         guard !decisionInProgress, !durableRuleSaved,
               Date() < answerDeadline,
               selected == .once || noteValid else { return }
+        // When the developer says what blocking breaks, the first Block shows
+        // it and the second blocks.
+        if action == .deny, !confirmingBlock, !blockConsequences.isEmpty {
+            confirmingBlock = true
+            return
+        }
         let selectedProfileID: UUID?
         if selected != .once, scope == .currentProfile {
             guard let profile = activeProfileResolution.profile else {
                 lifetime = .once
-                decisionMessage = "The active profile changed. Choose where the rule applies, then try again."
+                decisionMessage = String(localized: "The active profile changed. Choose where the rule applies, then try again.")
                 decisionNeedsAttention = true
                 return
             }
@@ -378,8 +341,13 @@ struct ConnectionAlertView: View {
             if selected == .once {
                 do {
                     try await controller.answerOnce(prompt, action: action)
+                    if answersSameApp {
+                        for other in sameAppWaiting { try? await controller.answerOnce(other, action: action) }
+                    }
+                    // Once counts as a choice only when a lasting one was on offer.
+                    if lifetime == .once, lastingChoiceAvailable { alertLastLifetime = Lifetime.once.rawValue }
                 } catch {
-                    decisionMessage = "Rift couldn’t send your answer. This alert is still open, so you can try again."
+                    decisionMessage = String(localized: "Rift couldn’t send your answer. This alert is still open, so you can try again.")
                     decisionNeedsAttention = true
                 }
             } else {
@@ -394,6 +362,7 @@ struct ConnectionAlertView: View {
                         note: note
                     )
                     durableRuleSaved = true
+                    rememberLastChoice(selected)
                     decisionMessage = result.message
                     decisionNeedsAttention = result.requiresAttention
                     // The rule may not reach the filter before the deadline.
@@ -408,7 +377,7 @@ struct ConnectionAlertView: View {
                         destination: destinationPhrase(for: destinationScope),
                         port: nil,
                         incoming: prompt.direction == .incoming,
-                        lasting: selected.duration.map { _ in selected.rawValue.lowercased() }
+                        lasting: selected.phrase
                     )
                     controller.actionResults.post(
                         result.requiresAttention ? "\(sentence) \(result.message)" : sentence,
@@ -417,11 +386,39 @@ struct ConnectionAlertView: View {
                         offersUndo: true
                     )
                 } catch {
-                    decisionMessage = "The rule wasn’t saved. This alert is still open, so you can try again."
+                    decisionMessage = String(localized: "The rule wasn’t saved. This alert is still open, so you can try again.")
                     decisionNeedsAttention = true
                 }
             }
         }
+    }
+
+    /// Feeds the "Last used" presets. An answer to an alert that couldn't
+    /// offer a domain leaves the destination preference alone.
+    private func rememberLastChoice(_ selected: Lifetime) {
+        alertLastLifetime = selected.rawValue
+        if AlertDefaults.remembersDestination(destinationScope, domainAvailable: registeredDomain != nil) {
+            alertLastDestination = destinationScope.rawValue
+        }
+    }
+
+    /// What the app's developer says about this connection and the choice
+    /// being made, or nil when the app ships no policy.
+    private var developerExplanation: DeveloperExplanation? {
+        developerPolicy?.explanation(for: InternetAccessPolicyQuery(
+            prompt: prompt, choice: policyChoice(lifetime: lifetime, destination: destinationScope)
+        ))
+    }
+
+    private var blockConsequences: [String] { developerExplanation?.denyConsequences ?? [] }
+
+    /// With a warning showing, Return doesn't allow.
+    private var deliberateAllow: Bool { ConnectionAlertWarnings.requiresDeliberateAllow(for: prompt) }
+
+    private var keyHint: String {
+        // Key names stay as they are; only Block and Allow are translated.
+        if noteFocused { return String(localized: "⌘B Block · ⌘A Allow") }
+        return deliberateAllow ? String(localized: "Esc Block · ⌘A Allow") : String(localized: "Esc Block · Return Allow")
     }
 
     private var noteValid: Bool {
@@ -433,15 +430,16 @@ struct ConnectionAlertView: View {
     }
 
     private func deadlineLabel(at date: Date) -> String {
-        ConnectionAlertCountdown.label(deadline: prompt.deadline, now: date)
+        ConnectionAlertCountdown.label(for: prompt, now: date)
     }
 
     private var canCreateRule: Bool {
         prompt.endpoint != nil && (prompt.appIdentity != nil || prompt.processIdentity != nil)
     }
 
+    /// A locked configuration takes no new rules, so only Once is offered.
     private var canCreateDurableRule: Bool {
-        canCreateRule && activeProfileResolution.isResolved
+        canCreateRule && activeProfileResolution.isResolved && !ConfigurationLock.shared.isLocked
     }
 
     private var lastingChoiceAvailable: Bool {
@@ -470,8 +468,8 @@ struct ConnectionAlertView: View {
                 activeProfileResolution = .none
                 scope = .allProfiles
             }
-            lifetime = canCreateRule && !requiresSystemScopeConfirmation
-                ? (Lifetime(rawValue: alertDefaultLifetime) ?? .once)
+            lifetime = canCreateDurableRule && !requiresSystemScopeConfirmation
+                ? AlertDefaults.lifetime(preset: alertDefaultLifetime, lastUsed: alertLastLifetime)
                 : .once
         } catch {
             guard !Task.isCancelled else { return }
@@ -483,13 +481,14 @@ struct ConnectionAlertView: View {
     private var applicationName: String {
         let value = resolvedApplicationName ?? MonitorQuery.identityLabel(presentationIdentity)
         let sanitized = DisplaySanitizer.plainText(value)
-        return prompt.cohortCount > 1 ? "\(sanitized) (\(prompt.cohortCount) connections)" : sanitized
+        return prompt.cohortCount > 1 ? String(localized: "\(sanitized) (\(prompt.cohortCount) connections)") : sanitized
     }
 
     private var presentationIdentity: ProcessIdentity? {
         prompt.appIdentity ?? prompt.processIdentity
     }
 
+    var currentProfileName: String? { activeProfileResolution.profile?.name }
     private var facts: ConnectionAlertFacts { ConnectionAlertFacts(prompt: prompt) }
     private var destination: String { facts.destination }
     private var identityTitle: String { facts.identityTitle }

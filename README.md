@@ -13,13 +13,21 @@ undersea cables, and lets you allow or block apps and sites.
 ## Features
 
 - **Modes:** Ask Me, Allow and Watch, Block Unless Allowed, and Pause Rules.
-- **Rules** for apps and sites, organized with profiles, groups, and local
-  blocklists.
+- **Rules** for apps, sites and whole domains, organized with profiles that can
+  switch by network, groups, and blocklists you import or subscribe to. Rift
+  also imports `.lsrules` rule files, exports selected rules as one, and keeps
+  a rule group up to date from one you subscribe to.
 - **Connection alerts** in Ask Me mode, so you decide when an app connects
-  somewhere new.
+  somewhere new. Answers default to a lasting rule for the domain, and alerts
+  with a warning need a deliberate Allow. When an app ships an Internet Access
+  Policy, alerts and the Map show what its developer says a connection is for
+  and what blocking it breaks, read from the app on disk.
 - **Map** of connections over undersea cables, with a timeline and a searchable
   connection table. Routes are estimates.
-- **Menu-bar panel** with the current mode and recent apps.
+- **Menu-bar panel** with the current mode, recent apps, and five-minute Allow
+  and Block.
+- **Lock Configuration** with ⌘L, so rules, profiles, modes and settings stay
+  as they are until you unlock with Touch ID or your login password.
 - **`riftctl`**, a command-line client inside the app at
   `Rift.app/Contents/Helpers/riftctl`.
 - **Automatic updates**, signed and notarized.

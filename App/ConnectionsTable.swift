@@ -6,10 +6,11 @@ import SwiftUI
 struct ConnectionsTable: View {
     @Bindable var feed: MonitorFeed
     let artworkStore: ApplicationArtworkStore
+    @State private var sortOrder: [ConnectionsTableSorting.Comparator] = []
 
     var body: some View {
-        Table(feed.hierarchy, children: \.children, selection: $feed.selectionID) {
-            TableColumn("App or Destination") { node in
+        Table(feed.hierarchy, children: \.children, selection: $feed.selectionID, sortOrder: $sortOrder) {
+            TableColumn("App or Destination", value: \.title) { node in
                 HStack(spacing: RiftDesign.Spacing.s) {
                     ConnectionIdentityIcon(node: node, row: row(for: node), artworkStore: artworkStore, size: 16)
                     if node.kind == .application {
@@ -23,9 +24,19 @@ struct ConnectionsTable: View {
                     }
                 }
                 .help(monitorCoverageLabel(node.ruleCoverage.state))
-                .accessibilityAction(named: "Allow…") { feed.requestRule(.allow, for: node) }
-                .accessibilityAction(named: "Block…") { feed.requestRule(.deny, for: node) }
-                .accessibilityAction(named: "Show Rule") { feed.showRules(for: node) }
+                // One element per row name, so VoiceOver reads it once and
+                // offers the row menu's main commands as actions.
+                .accessibilityElement(children: .combine)
+                .accessibilityActions {
+                    Button("Allow…") { feed.requestRule(.allow, for: node) }
+                    Button("Block…") { feed.requestRule(.deny, for: node) }
+                    if let search = ConnectionFocus.search(for: node) {
+                        Button(ConnectionFocus.title(for: node)) { feed.query.search = search }
+                    }
+                    if !node.ruleCoverage.ruleIDs.isEmpty {
+                        Button("Show Rule") { feed.showRules(for: node) }
+                    }
+                }
             }
             .width(min: 140, ideal: 170)
             TableColumn("Country") { node in
@@ -33,28 +44,33 @@ struct ConnectionsTable: View {
                 Text(country ?? "—")
                     .foregroundStyle(country == nil ? .tertiary : .primary)
                     .lineLimit(1)
+                    .accessibilityLabel(country ?? String(localized: "Unknown"))
             }
             .width(min: 60, ideal: 76)
-            TableColumn("Decision") { node in
+            TableColumn("Decision", value: \.aggregate.denied) { node in
                 DecisionCell(node: node)
             }
             .width(min: 84, ideal: 100)
-            TableColumn("Sent") { node in
+            TableColumn("Rule") { node in
+                QuickRuleCell(node: node, feed: feed)
+            }
+            .width(min: 44, ideal: 48)
+            TableColumn("Sent", value: \.sortSent) { node in
                 RiftBytesText(bytes: node.aggregate.bytesOutbound, partial: node.aggregate.coverage != .complete)
             }
             .width(min: 52, ideal: 60)
             .alignment(.trailing)
-            TableColumn("Received") { node in
+            TableColumn("Received", value: \.sortReceived) { node in
                 RiftBytesText(bytes: node.aggregate.bytesInbound, partial: node.aggregate.coverage != .complete)
             }
             .width(min: 56, ideal: 64)
             .alignment(.trailing)
-            TableColumn("Count") { node in
+            TableColumn("Count", value: \.aggregate.flowCount) { node in
                 Text(RiftFormat.count(node.aggregate.flowCount)).monospacedDigit()
             }
             .width(min: 44, ideal: 50)
             .alignment(.trailing)
-            TableColumn("Last Seen") { node in
+            TableColumn("Last Seen", value: \.aggregate.lastSeen) { node in
                 // The clock ticks once a second, so a new row can be slightly ahead of it.
                 Text(Self.relativeFormatter.localizedString(
                     for: min(node.aggregate.lastSeen, feed.now), relativeTo: feed.now
@@ -65,6 +81,14 @@ struct ConnectionsTable: View {
             .width(min: 60, ideal: 70)
         }
         .alternatingRowBackgrounds(.disabled)
+        .onAppear { sortOrder = ConnectionsTableSorting.comparators(for: feed.sort) }
+        .onChange(of: feed.sort) { _, sort in sortOrder = ConnectionsTableSorting.comparators(for: sort) }
+        .onChange(of: sortOrder) { _, order in
+            // Each column sorts one way, so a second click keeps the order.
+            if let sort = ConnectionsTableSorting.sort(for: order), sort != feed.sort { feed.sort = sort }
+            let canonical = ConnectionsTableSorting.comparators(for: feed.sort)
+            if order != canonical { sortOrder = canonical }
+        }
         .onHover { feed.pointerIsOverList = $0 }
         .contextMenu(forSelectionType: String.self) { ids in
             if let id = ids.first, ids.count == 1,
@@ -79,7 +103,10 @@ struct ConnectionsTable: View {
                     hostname: feed.representativeRow(for: node).flatMap { row in
                         row.event.flow.observedHostname?.ascii
                     },
-                    hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil
+                    hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil,
+                    focus: ConnectionFocus.search(for: node).map { search in
+                        (ConnectionFocus.title(for: node), { feed.query.search = search })
+                    }
                 )
             }
         }
@@ -105,7 +132,7 @@ struct ConnectionsTable: View {
     private func countryName(for node: MonitorHierarchyNode) -> String? {
         if node.kind == .country { return node.title }
         // Grouped by country, everything under a country shares it.
-        if feed.query.lens != .country, (node.children?.count ?? 0) > 1 { return "Several" }
+        if feed.query.lens != .country, (node.children?.count ?? 0) > 1 { return String(localized: "Several") }
         guard let address = row(for: node)?.event.flow.remoteEndpoint?.address else { return nil }
         let code: String?
 #if DEBUG
@@ -129,18 +156,23 @@ private struct DecisionCell: View {
             RiftDecisionBadge(decision: aggregate.decision)
             Text(label).lineLimit(1)
         }
+        // "Blocked, Blocked" says nothing twice; a changed rule says both.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label.localizedCaseInsensitiveContains(aggregate.decision.label)
+            ? label : "\(aggregate.decision.label), \(label)")
     }
 
     private var label: String {
         if let futureChange { return futureChange }
-        return aggregate.decision == .mixed ? "\(aggregate.denied) blocked" : aggregate.decision.label
+        if aggregate.decision == .denied, node.ruleCoverage.decidedByBlocklist { return String(localized: "Blocked by a list") }
+        return aggregate.decision == .mixed ? String(localized: "\(aggregate.denied) blocked") : aggregate.decision.label
     }
 
     /// Says when today's rules differ from what this row recorded.
     private var futureChange: String? {
         switch node.ruleCoverage.currentAction {
-        case .deny where aggregate.denied == 0: "Blocked from now on"
-        case .allow where aggregate.denied > 0: "Allowed from now on"
+        case .deny where aggregate.denied == 0: String(localized: "Blocked from now on")
+        case .allow where aggregate.denied > 0: String(localized: "Allowed from now on")
         default: nil
         }
     }

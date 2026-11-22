@@ -34,7 +34,7 @@ struct NetworkMapView: NSViewRepresentable {
         mapView.showsBuildings = false
         mapView.register(DestinationMarkerView.self, forAnnotationViewWithReuseIdentifier: DestinationMarkerView.reuseIdentifier)
         mapView.register(OriginMarkerView.self, forAnnotationViewWithReuseIdentifier: OriginMarkerView.reuseIdentifier)
-        mapView.setAccessibilityLabel("Map of undersea cables and where connections go")
+        mapView.setAccessibilityLabel(String(localized: "Map of undersea cables and where connections go"))
         let world = MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 20, longitude: 10),
             span: MKCoordinateSpan(latitudeDelta: 130, longitudeDelta: 300)

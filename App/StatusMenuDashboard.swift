@@ -34,6 +34,8 @@ struct StatusMenuDashboard: View {
             HStack {
                 Text("Notify about blocks and undecided connections")
                     .fixedSize(horizontal: false, vertical: true)
+                    // The switch carries the same words.
+                    .accessibilityHidden(true)
                 Spacer(minLength: RiftDesign.Spacing.s)
                 Toggle("Notify about blocks and undecided connections", isOn: Binding(
                     get: { notificationsEnabled }, set: { _ in toggleNotifications() }
@@ -64,36 +66,42 @@ struct StatusMenuDashboard: View {
                     .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
             } else {
                 ForEach(snapshot.applications) { item in
-                    StatusMenuButton(action: { openConnection(item.eventID) }) {
-                        HStack(spacing: RiftDesign.Spacing.s) {
-                            ApplicationIdentityIcon(
-                                identity: item.identity, fallbackSystemName: "app.dashed",
-                                size: 18, artworkStore: artworkStore
-                            )
-                            VStack(alignment: .leading, spacing: 0) {
-                                ApplicationNameText(identity: item.identity, fallback: item.name, artworkStore: artworkStore)
-                                    .lineLimit(1)
-                                Text(item.destination)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
+                    StatusMenuFiveMinuteRow(
+                        undo: item.decision == .denied ? .allow : .deny,
+                        decide: { decideForFiveMinutes(item.eventID, $0) }
+                    ) {
+                        StatusMenuButton(action: { openConnection(item.eventID) }) {
+                            HStack(spacing: RiftDesign.Spacing.s) {
+                                ApplicationIdentityIcon(
+                                    identity: item.identity, fallbackSystemName: "app.dashed",
+                                    size: 18, artworkStore: artworkStore
+                                )
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ApplicationNameText(identity: item.identity, fallback: item.name, artworkStore: artworkStore)
+                                        .lineLimit(1)
+                                    Text(item.destination)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                                Spacer(minLength: RiftDesign.Spacing.s)
+                                Text(RiftRelativeTime.short(item.occurredAt, now: now))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.tertiary)
+                                    .accessibilityLabel(RiftSpokenTime.ago(item.occurredAt, now: now))
+                                RiftDecisionBadge(decision: item.decision)
                             }
-                            Spacer(minLength: RiftDesign.Spacing.s)
-                            Text(RiftRelativeTime.short(item.occurredAt, now: now))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.tertiary)
-                            RiftDecisionBadge(decision: item.decision)
                         }
-                    }
-                    .accessibilityHint("Shows this connection in Rift")
-                    .contextMenu {
-                        if item.decision == .denied {
-                            Button("Allow for 5 Minutes") { decideForFiveMinutes(item.eventID, .allow) }
-                        } else {
-                            Button("Block for 5 Minutes") { decideForFiveMinutes(item.eventID, .deny) }
+                        .accessibilityHint("Shows this connection in Rift")
+                        .contextMenu {
+                            if item.decision == .denied {
+                                Button("Allow for 5 Minutes") { decideForFiveMinutes(item.eventID, .allow) }
+                            } else {
+                                Button("Block for 5 Minutes") { decideForFiveMinutes(item.eventID, .deny) }
+                            }
+                            Button("Show in Rift") { openConnection(item.eventID) }
                         }
-                        Button("Show in Rift") { openConnection(item.eventID) }
                     }
                 }
             }
@@ -106,6 +114,7 @@ struct StatusMenuDashboard: View {
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
                     }
                 }
                 .accessibilityHint("Shows the most recent blocked connection")
@@ -154,10 +163,11 @@ private struct StatusMenuHeader: View, Equatable {
                     .symbolRenderingMode(.hierarchical)
                     .frame(width: 28)
                     .accessibilityHidden(true)
-                Text(status.title).font(.headline).lineLimit(2)
+                // Three lines, so a longer translation beside the mode menu wraps instead of cutting off.
+                Text(status.title).font(.headline).lineLimit(3)
                 Spacer(minLength: RiftDesign.Spacing.s)
                 Menu {
-                    Section(profile.map { "Mode for \($0)" } ?? "Mode") {
+                    Section(profile.map { String(localized: "Mode for \($0)") } ?? String(localized: "Mode")) {
                         ForEach(OperationMode.choices, id: \.self) { choice in
                             Toggle(isOn: Binding(
                                 get: { choice == mode },
@@ -169,8 +179,10 @@ private struct StatusMenuHeader: View, Equatable {
                         }
                     }
                 } label: {
-                    Text(modeIsUnreadable ? "Unknown" : mode.displayName)
+                    Text(modeIsUnreadable ? String(localized: "Unknown") : mode.displayName)
                 }
+                .accessibilityLabel(profile.map { String(localized: "Mode for \($0)") } ?? String(localized: "Mode"))
+                .accessibilityValue(modeIsUnreadable ? String(localized: "Unknown") : mode.displayName)
                 .fixedSize()
                 .controlSize(.small)
                 .disabled(!canChangeMode || modeIsUnreadable)
@@ -212,11 +224,17 @@ private struct StatusMenuTraffic: View, Equatable {
                 } icon: {
                     Image(systemName: "arrow.up").foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Sent")
+                .accessibilityValue(RiftBytesText.spoken(traffic.sent, partial: traffic.partial))
                 Label {
                     RiftBytesText(bytes: traffic.received, partial: traffic.partial)
                 } icon: {
                     Image(systemName: "arrow.down").foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Received")
+                .accessibilityValue(RiftBytesText.spoken(traffic.received, partial: traffic.partial))
             }
             .font(.caption)
             TrafficBars(snapshot: traffic)
@@ -224,5 +242,6 @@ private struct StatusMenuTraffic: View, Equatable {
         }
         .padding(RiftDesign.Spacing.s + 2)
         .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: RiftDesign.Radius.card, style: .continuous))
+        .riftContrastOutline(RoundedRectangle(cornerRadius: RiftDesign.Radius.card, style: .continuous))
     }
 }

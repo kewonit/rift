@@ -20,9 +20,19 @@ public enum RuleAction: Sendable, Hashable, Codable {
     case privacy(PrivacyAction)
 }
 
+/// Which rules are compared first. A rule in a higher tier wins over every
+/// matching rule in a lower one, however specific the lower one is. Inside
+/// a tier the most specific rule wins, and at a full tie Block beats Allow.
+///
+/// From the top: `elevatedUser` is an Allow for one app to exact
+/// destinations, the only kind that overrides a blocklist. `blocklistDeny`
+/// is the blocklists. `high` is any rule the person marked high priority,
+/// which protocol 1.4 added. It beats every normal rule and never a
+/// blocklist. `normal` is everything else.
 public enum RulePriority: String, Sendable, Hashable, Codable {
     case elevatedUser
     case blocklistDeny
+    case high
     case normal
 }
 
@@ -57,6 +67,7 @@ public enum RuleValidationError: Error, Sendable, Equatable {
     case elevatedPriorityRequiresAllow
     case elevatedPriorityRequiresExactProcess
     case elevatedPriorityRequiresExactDestination
+    case highPriorityOnBlocklistRule
     case unsupportedEndpointClass(EndpointClass)
 }
 
@@ -128,6 +139,9 @@ public struct Rule: Sendable, Hashable, Codable {
             }
             guard action == .filter(.deny) else { throw RuleValidationError.blocklistMustDeny }
         }
+        if priority == .high, case .blocklist(sourceID: _) = source {
+            throw RuleValidationError.highPriorityOnBlocklistRule
+        }
         try Self.validatePriorityScope(
             action: action,
             priority: priority,
@@ -156,6 +170,13 @@ public struct Rule: Sendable, Hashable, Codable {
         self.notes = notes
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
+    }
+
+    /// Whether the rule uses something only a filter that speaks protocol 1.4
+    /// can decode, such as a list of ports. A policy holding such a rule says
+    /// so, and an older filter refuses it instead of applying part of it.
+    public var usesExtendedPolicy: Bool {
+        port?.isList == true || priority == .high
     }
 
     public var expiryKey: ExpiredRuleKey? {
@@ -196,7 +217,7 @@ public struct Rule: Sendable, Hashable, Codable {
             throw RuleValidationError.notesTooLong
         }
         if let port {
-            _ = try PortRange(port.lowerBound, port.upperBound)
+            _ = try port.validated()
         }
         if case .ipSet(let intervals) = destination {
             for interval in intervals {
@@ -230,6 +251,9 @@ public struct Rule: Sendable, Hashable, Codable {
                 throw RuleValidationError.blocklistPriorityRequiresManagedSource
             }
             guard action == .filter(.deny) else { throw RuleValidationError.blocklistMustDeny }
+        }
+        if priority == .high, case .blocklist(sourceID: _) = source {
+            throw RuleValidationError.highPriorityOnBlocklistRule
         }
         try Self.validatePriorityScope(
             action: action,

@@ -46,8 +46,22 @@
 		1000000000000000000000FD /* RuleBulkEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000FD /* RuleBulkEditSheet.swift */; };
 		100000000000000000000022 /* FlowDescriptorRuntimeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000026 /* FlowDescriptorRuntimeExtensions.swift */; };
 		100000000000000000000025 /* NotificationRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000029 /* NotificationRouter.swift */; };
+		100000000000000000000200 /* DeveloperPolicyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000200 /* DeveloperPolicyStore.swift */; };
+		100000000000000000000201 /* ConnectionAlertRuleOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000201 /* ConnectionAlertRuleOptions.swift */; };
+		100000000000000000000202 /* ControlPlaneRuleGroups.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000202 /* ControlPlaneRuleGroups.swift */; };
+		100000000000000000000203 /* RuleGroupSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000203 /* RuleGroupSubscriptions.swift */; };
+		100000000000000000000204 /* RuleGroupSubscriptionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000204 /* RuleGroupSubscriptionViews.swift */; };
+		100000000000000000000205 /* ConfigurationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000205 /* ConfigurationLock.swift */; };
 		100000000000000000000026 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002A /* SettingsView.swift */; };
 		100000000000000000000027 /* FixtureDecisionDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002B /* FixtureDecisionDriver.swift */; };
+		10000000000000000000010A /* ArchivedAppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010A /* ArchivedAppPreferences.swift */; };
+		10000000000000000000010B /* ReviewQueueModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010B /* ReviewQueueModel.swift */; };
+		10000000000000000000010C /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010C /* ReviewView.swift */; };
+		10000000000000000000010D /* NotificationActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010D /* NotificationActions.swift */; };
+		10000000000000000000010E /* FilterLivenessMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010E /* FilterLivenessMonitor.swift */; };
+		10000000000000000000010F /* ConnectionsTableSorting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010F /* ConnectionsTableSorting.swift */; };
+		100000000000000000000110 /* RuleMaintenanceBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000110 /* RuleMaintenanceBar.swift */; };
+		100000000000000000000111 /* QuickAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000111 /* QuickAccess.swift */; };
 		100000000000000000000028 /* ControlPlaneArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002C /* ControlPlaneArchive.swift */; };
 		100000000000000000000104 /* BlocklistSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000104 /* BlocklistSubscriptions.swift */; };
 		100000000000000000000103 /* ControlPlaneRuleImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000103 /* ControlPlaneRuleImport.swift */; };
@@ -86,6 +100,7 @@
 		100000000000000000000046 /* ApplicationIdentityIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000048 /* ApplicationIdentityIcon.swift */; };
 		100000000000000000000047 /* ConsoleSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000049 /* ConsoleSessionTracker.swift */; };
 		100000000000000000000048 /* FlowResolutionOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004A /* FlowResolutionOutput.swift */; };
+		100000000000000000000380 /* FlowResolutionDeadlines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000380 /* FlowResolutionDeadlines.swift */; };
 		1000000000000000000000FB /* FlowResolutionRestricted.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000FB /* FlowResolutionRestricted.swift */; };
 		100000000000000000000049 /* FilterLifecycleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004B /* FilterLifecycleSupport.swift */; };
 		10000000000000000000004A /* InterfaceRouteSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004C /* InterfaceRouteSnapshotStore.swift */; };
@@ -117,7 +132,12 @@
 		1000000000000000000000C5 /* network-map.json in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C5 /* network-map.json */; };
 		100000000000000000000102 /* public_suffix_list.dat in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000102 /* public_suffix_list.dat */; };
 		100000000000000000000107 /* process-notes.json in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000107 /* process-notes.json */; };
+		100000000000000000000581 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000581 /* InfoPlist.xcstrings */; };
+		100000000000000000000580 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000580 /* Localizable.xcstrings */; };
+		100000000000000000000582 /* ProcessNotes.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000582 /* ProcessNotes.xcstrings */; };
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
+		100000000000000000000400 /* RiftAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000400 /* RiftAccessibility.swift */; };
+		100000000000000000000401 /* ConnectionAlertAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000401 /* ConnectionAlertAccessibility.swift */; };
 		1000000000000000000000C9 /* RiftComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C9 /* RiftComponents.swift */; };
 		1000000000000000000000CA /* MonitorFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CA /* MonitorFeed.swift */; };
 		1000000000000000000000EC /* MapCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000EC /* MapCommands.swift */; };
@@ -133,10 +153,13 @@
 		1000000000000000000000E2 /* RuleChangeHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E2 /* RuleChangeHistory.swift */; };
 		1000000000000000000000E1 /* RulesWorkspaceCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E1 /* RulesWorkspaceCells.swift */; };
 		1000000000000000000000E0 /* RulesWorkspaceContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000E0 /* RulesWorkspaceContextMenu.swift */; };
+		100000000000000000000300 /* ControlPlaneUnansweredAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000300 /* ControlPlaneUnansweredAlerts.swift */; };
 		1000000000000000000000DF /* ConnectionAlertDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DF /* ConnectionAlertDetails.swift */; };
 		1000000000000000000000DE /* ControlPlanePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DE /* ControlPlanePrompts.swift */; };
 		1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DD /* FilterConfigurationStore.swift */; };
 		1000000000000000000000DC /* RuleInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DC /* RuleInspectorView.swift */; };
+		100000000000000000000180 /* CLIAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000180 /* CLIAccess.swift */; };
+		100000000000000000000500 /* ChoiceTitles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000500 /* ChoiceTitles.swift */; };
 		1000000000000000000000DB /* RiftStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DB /* RiftStatusView.swift */; };
 		1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */; };
 		1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000D9 /* ConfigurationMutationResult.swift */; };
@@ -244,8 +267,22 @@
 		2000000000000000000000FD /* RuleBulkEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleBulkEditSheet.swift; sourceTree = "<group>"; };
 		200000000000000000000026 /* FlowDescriptorRuntimeExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowDescriptorRuntimeExtensions.swift; sourceTree = "<group>"; };
 		200000000000000000000029 /* NotificationRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRouter.swift; sourceTree = "<group>"; };
+		200000000000000000000200 /* DeveloperPolicyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperPolicyStore.swift; sourceTree = "<group>"; };
+		200000000000000000000201 /* ConnectionAlertRuleOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertRuleOptions.swift; sourceTree = "<group>"; };
+		200000000000000000000202 /* ControlPlaneRuleGroups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRuleGroups.swift; sourceTree = "<group>"; };
+		200000000000000000000203 /* RuleGroupSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleGroupSubscriptions.swift; sourceTree = "<group>"; };
+		200000000000000000000204 /* RuleGroupSubscriptionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleGroupSubscriptionViews.swift; sourceTree = "<group>"; };
+		200000000000000000000205 /* ConfigurationLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationLock.swift; sourceTree = "<group>"; };
 		20000000000000000000002A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		20000000000000000000002B /* FixtureDecisionDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureDecisionDriver.swift; sourceTree = "<group>"; };
+		20000000000000000000010A /* ArchivedAppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedAppPreferences.swift; sourceTree = "<group>"; };
+		20000000000000000000010B /* ReviewQueueModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewQueueModel.swift; sourceTree = "<group>"; };
+		20000000000000000000010C /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
+		20000000000000000000010D /* NotificationActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationActions.swift; sourceTree = "<group>"; };
+		20000000000000000000010E /* FilterLivenessMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLivenessMonitor.swift; sourceTree = "<group>"; };
+		20000000000000000000010F /* ConnectionsTableSorting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsTableSorting.swift; sourceTree = "<group>"; };
+		200000000000000000000110 /* RuleMaintenanceBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleMaintenanceBar.swift; sourceTree = "<group>"; };
+		200000000000000000000111 /* QuickAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAccess.swift; sourceTree = "<group>"; };
 		20000000000000000000002C /* ControlPlaneArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneArchive.swift; sourceTree = "<group>"; };
 		200000000000000000000104 /* BlocklistSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlocklistSubscriptions.swift; sourceTree = "<group>"; };
 		200000000000000000000103 /* ControlPlaneRuleImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRuleImport.swift; sourceTree = "<group>"; };
@@ -281,6 +318,7 @@
 		200000000000000000000048 /* ApplicationIdentityIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationIdentityIcon.swift; sourceTree = "<group>"; };
 		200000000000000000000049 /* ConsoleSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleSessionTracker.swift; sourceTree = "<group>"; };
 		20000000000000000000004A /* FlowResolutionOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowResolutionOutput.swift; sourceTree = "<group>"; };
+		200000000000000000000380 /* FlowResolutionDeadlines.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowResolutionDeadlines.swift; sourceTree = "<group>"; };
 		2000000000000000000000FB /* FlowResolutionRestricted.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowResolutionRestricted.swift; sourceTree = "<group>"; };
 		20000000000000000000004B /* FilterLifecycleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLifecycleSupport.swift; sourceTree = "<group>"; };
 		20000000000000000000004C /* InterfaceRouteSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceRouteSnapshotStore.swift; sourceTree = "<group>"; };
@@ -312,7 +350,12 @@
 		2000000000000000000000C5 /* network-map.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "NetworkData/network-map.json"; sourceTree = "<group>"; };
 		200000000000000000000102 /* public_suffix_list.dat */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DomainData/public_suffix_list.dat"; sourceTree = "<group>"; };
 		200000000000000000000107 /* process-notes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Explanations/process-notes.json"; sourceTree = "<group>"; };
+		200000000000000000000581 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		200000000000000000000580 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		200000000000000000000582 /* ProcessNotes.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Explanations/ProcessNotes.xcstrings"; sourceTree = "<group>"; };
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
+		200000000000000000000400 /* RiftAccessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftAccessibility.swift; sourceTree = "<group>"; };
+		200000000000000000000401 /* ConnectionAlertAccessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertAccessibility.swift; sourceTree = "<group>"; };
 		2000000000000000000000C9 /* RiftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftComponents.swift; sourceTree = "<group>"; };
 		2000000000000000000000CA /* MonitorFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeed.swift; sourceTree = "<group>"; };
 		2000000000000000000000EC /* MapCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCommands.swift; sourceTree = "<group>"; };
@@ -328,10 +371,13 @@
 		2000000000000000000000E2 /* RuleChangeHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleChangeHistory.swift; sourceTree = "<group>"; };
 		2000000000000000000000E1 /* RulesWorkspaceCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesWorkspaceCells.swift; sourceTree = "<group>"; };
 		2000000000000000000000E0 /* RulesWorkspaceContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesWorkspaceContextMenu.swift; sourceTree = "<group>"; };
+		200000000000000000000300 /* ControlPlaneUnansweredAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneUnansweredAlerts.swift; sourceTree = "<group>"; };
 		2000000000000000000000DF /* ConnectionAlertDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertDetails.swift; sourceTree = "<group>"; };
 		2000000000000000000000DE /* ControlPlanePrompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlanePrompts.swift; sourceTree = "<group>"; };
 		2000000000000000000000DD /* FilterConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterConfigurationStore.swift; sourceTree = "<group>"; };
 		2000000000000000000000DC /* RuleInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleInspectorView.swift; sourceTree = "<group>"; };
+		200000000000000000000180 /* CLIAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIAccess.swift; sourceTree = "<group>"; };
+		200000000000000000000500 /* ChoiceTitles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoiceTitles.swift; sourceTree = "<group>"; };
 		2000000000000000000000DB /* RiftStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftStatusView.swift; sourceTree = "<group>"; };
 		2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneDefinitionCommands.swift; sourceTree = "<group>"; };
 		2000000000000000000000D9 /* ConfigurationMutationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationMutationResult.swift; sourceTree = "<group>"; };
@@ -450,6 +496,12 @@
 				200000000000000000000106 /* ConnectionExplanationView.swift */,
 				2000000000000000000000FC /* MonitorSummaryView.swift */,
 				200000000000000000000029 /* NotificationRouter.swift */,
+				200000000000000000000200 /* DeveloperPolicyStore.swift */,
+				200000000000000000000201 /* ConnectionAlertRuleOptions.swift */,
+				200000000000000000000202 /* ControlPlaneRuleGroups.swift */,
+				200000000000000000000203 /* RuleGroupSubscriptions.swift */,
+				200000000000000000000204 /* RuleGroupSubscriptionViews.swift */,
+				200000000000000000000205 /* ConfigurationLock.swift */,
 				20000000000000000000002A /* SettingsView.swift */,
 				200000000000000000000044 /* SettingsPrimaryPanes.swift */,
 				200000000000000000000045 /* PolicySettingsPane.swift */,
@@ -457,6 +509,14 @@
 				200000000000000000000108 /* NetworkSettingsPane.swift */,
 				200000000000000000000105 /* BlocklistSubscriptionViews.swift */,
 				20000000000000000000002B /* FixtureDecisionDriver.swift */,
+				20000000000000000000010A /* ArchivedAppPreferences.swift */,
+				20000000000000000000010B /* ReviewQueueModel.swift */,
+				20000000000000000000010C /* ReviewView.swift */,
+				20000000000000000000010D /* NotificationActions.swift */,
+				20000000000000000000010E /* FilterLivenessMonitor.swift */,
+				20000000000000000000010F /* ConnectionsTableSorting.swift */,
+				200000000000000000000110 /* RuleMaintenanceBar.swift */,
+				200000000000000000000111 /* QuickAccess.swift */,
 				20000000000000000000002C /* ControlPlaneArchive.swift */,
 				200000000000000000000104 /* BlocklistSubscriptions.swift */,
 				200000000000000000000103 /* ControlPlaneRuleImport.swift */,
@@ -477,6 +537,8 @@
 				20000000000000000000003C /* MonitorFixtureData.swift */,
 				20000000000000000000003D /* LiveMapOrigin.swift */,
 				2000000000000000000000C8 /* MonitorFixtureStream.swift */,
+				200000000000000000000400 /* RiftAccessibility.swift */,
+				200000000000000000000401 /* ConnectionAlertAccessibility.swift */,
 				2000000000000000000000C9 /* RiftComponents.swift */,
 				2000000000000000000000CA /* MonitorFeed.swift */,
 				2000000000000000000000EC /* MapCommands.swift */,
@@ -492,10 +554,13 @@
 				2000000000000000000000E2 /* RuleChangeHistory.swift */,
 				2000000000000000000000E1 /* RulesWorkspaceCells.swift */,
 				2000000000000000000000E0 /* RulesWorkspaceContextMenu.swift */,
+				200000000000000000000300 /* ControlPlaneUnansweredAlerts.swift */,
 				2000000000000000000000DF /* ConnectionAlertDetails.swift */,
 				2000000000000000000000DE /* ControlPlanePrompts.swift */,
 				2000000000000000000000DD /* FilterConfigurationStore.swift */,
 				2000000000000000000000DC /* RuleInspectorView.swift */,
+				200000000000000000000180 /* CLIAccess.swift */,
+				200000000000000000000500 /* ChoiceTitles.swift */,
 				2000000000000000000000DB /* RiftStatusView.swift */,
 				2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */,
 				2000000000000000000000D9 /* ConfigurationMutationResult.swift */,
@@ -538,6 +603,7 @@
 				20000000000000000000001D /* IdentityResolver.swift */,
 				20000000000000000000001E /* FlowResolutionCoordinator.swift */,
 				20000000000000000000004A /* FlowResolutionOutput.swift */,
+				200000000000000000000380 /* FlowResolutionDeadlines.swift */,
 				2000000000000000000000FB /* FlowResolutionRestricted.swift */,
 				200000000000000000000026 /* FlowDescriptorRuntimeExtensions.swift */,
 			);
@@ -601,6 +667,9 @@
 				2000000000000000000000C5 /* network-map.json */,
 				200000000000000000000102 /* public_suffix_list.dat */,
 				200000000000000000000107 /* process-notes.json */,
+				200000000000000000000581 /* InfoPlist.xcstrings */,
+				200000000000000000000580 /* Localizable.xcstrings */,
+				200000000000000000000582 /* ProcessNotes.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -695,7 +764,7 @@
 			buildConfigurationList = 900000000000000000000003 /* Build configuration list for PBXProject "Rift" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base, );
+			knownRegions = (en, Base, de, fr, es, );
 			mainGroup = 800000000000000000000001;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
@@ -729,6 +798,9 @@
 				1000000000000000000000C5 /* network-map.json in Resources */,
 				100000000000000000000102 /* public_suffix_list.dat in Resources */,
 				100000000000000000000107 /* process-notes.json in Resources */,
+				100000000000000000000581 /* InfoPlist.xcstrings in Resources */,
+				100000000000000000000580 /* Localizable.xcstrings in Resources */,
+				100000000000000000000582 /* ProcessNotes.xcstrings in Resources */,
 				1000000000000000000000CD /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -782,6 +854,12 @@
 				100000000000000000000106 /* ConnectionExplanationView.swift in Sources */,
 				1000000000000000000000FC /* MonitorSummaryView.swift in Sources */,
 				100000000000000000000025 /* NotificationRouter.swift in Sources */,
+				100000000000000000000200 /* DeveloperPolicyStore.swift in Sources */,
+				100000000000000000000201 /* ConnectionAlertRuleOptions.swift in Sources */,
+				100000000000000000000202 /* ControlPlaneRuleGroups.swift in Sources */,
+				100000000000000000000203 /* RuleGroupSubscriptions.swift in Sources */,
+				100000000000000000000204 /* RuleGroupSubscriptionViews.swift in Sources */,
+				100000000000000000000205 /* ConfigurationLock.swift in Sources */,
 				100000000000000000000026 /* SettingsView.swift in Sources */,
 				100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */,
 				100000000000000000000043 /* PolicySettingsPane.swift in Sources */,
@@ -789,6 +867,14 @@
 				100000000000000000000108 /* NetworkSettingsPane.swift in Sources */,
 				100000000000000000000105 /* BlocklistSubscriptionViews.swift in Sources */,
 				100000000000000000000027 /* FixtureDecisionDriver.swift in Sources */,
+				10000000000000000000010A /* ArchivedAppPreferences.swift in Sources */,
+				10000000000000000000010B /* ReviewQueueModel.swift in Sources */,
+				10000000000000000000010C /* ReviewView.swift in Sources */,
+				10000000000000000000010D /* NotificationActions.swift in Sources */,
+				10000000000000000000010E /* FilterLivenessMonitor.swift in Sources */,
+				10000000000000000000010F /* ConnectionsTableSorting.swift in Sources */,
+				100000000000000000000110 /* RuleMaintenanceBar.swift in Sources */,
+				100000000000000000000111 /* QuickAccess.swift in Sources */,
 				100000000000000000000028 /* ControlPlaneArchive.swift in Sources */,
 				100000000000000000000104 /* BlocklistSubscriptions.swift in Sources */,
 				100000000000000000000103 /* ControlPlaneRuleImport.swift in Sources */,
@@ -809,6 +895,8 @@
 				10000000000000000000003A /* MonitorFixtureData.swift in Sources */,
 				10000000000000000000003B /* LiveMapOrigin.swift in Sources */,
 				1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */,
+				100000000000000000000400 /* RiftAccessibility.swift in Sources */,
+				100000000000000000000401 /* ConnectionAlertAccessibility.swift in Sources */,
 				1000000000000000000000C9 /* RiftComponents.swift in Sources */,
 				1000000000000000000000CA /* MonitorFeed.swift in Sources */,
 				1000000000000000000000EC /* MapCommands.swift in Sources */,
@@ -824,10 +912,13 @@
 				1000000000000000000000E2 /* RuleChangeHistory.swift in Sources */,
 				1000000000000000000000E1 /* RulesWorkspaceCells.swift in Sources */,
 				1000000000000000000000E0 /* RulesWorkspaceContextMenu.swift in Sources */,
+				100000000000000000000300 /* ControlPlaneUnansweredAlerts.swift in Sources */,
 				1000000000000000000000DF /* ConnectionAlertDetails.swift in Sources */,
 				1000000000000000000000DE /* ControlPlanePrompts.swift in Sources */,
 				1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */,
 				1000000000000000000000DC /* RuleInspectorView.swift in Sources */,
+				100000000000000000000180 /* CLIAccess.swift in Sources */,
+				100000000000000000000500 /* ChoiceTitles.swift in Sources */,
 				1000000000000000000000DB /* RiftStatusView.swift in Sources */,
 				1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */,
 				1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */,
@@ -868,6 +959,7 @@
 				100000000000000000000019 /* IdentityResolver.swift in Sources */,
 				10000000000000000000001A /* FlowResolutionCoordinator.swift in Sources */,
 				100000000000000000000048 /* FlowResolutionOutput.swift in Sources */,
+				100000000000000000000380 /* FlowResolutionDeadlines.swift in Sources */,
 				1000000000000000000000FB /* FlowResolutionRestricted.swift in Sources */,
 				100000000000000000000022 /* FlowDescriptorRuntimeExtensions.swift in Sources */,
 			);
@@ -900,6 +992,8 @@
 					"@executable_path/../Frameworks",
 				);
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Configuration/RiftApp-Debug.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -918,6 +1012,8 @@
 					"@executable_path/../Frameworks",
 				);
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Configuration/RiftApp-Release.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;

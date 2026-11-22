@@ -382,6 +382,8 @@ actor PolicyRuntime {
         guard let controller, controller.connectionID == connectionID, controller.leaseID == leaseID else {
             throw PolicyRuntimeError.invalidControllerLease
         }
+        prompts.setControllerProtocol(version, controllerLeaseID: leaseID)
+        events.setControllerProtocol(version)
         if !version.supports(minimum: .activitySubscriptions), controller.access == .full {
             events.configure(ActivitySubscription(mode: .persistent))
         }
@@ -438,6 +440,7 @@ actor PolicyRuntime {
         self.controller = nil
         if events.captureMode == .persistent { events.recordAnonymousLoss() }
         events.configure(ActivitySubscription(mode: .off))
+        events.setControllerProtocol(.baseline)
         reloads.publish(activePolicy.load())
         if let transfer { await transfer.abort() }
     }

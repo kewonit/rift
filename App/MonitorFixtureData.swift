@@ -241,7 +241,14 @@ enum MonitorFixtureData {
                 flow: flow,
                 action: index % 6 == 0 && reason != .promptDeadlineFallback ? .deny : .allow,
                 reason: reason,
-                policy: nil
+                policy: nil,
+                processes: FlowProcessDetails(
+                    process: ObservedProcess(
+                        processID: Int32(400 + index % appNames.count),
+                        executablePath: "/Applications/\(appName).app/Contents/MacOS/\(appName)"
+                    ),
+                    app: nil
+                )
             ),
             coverage: missingBytes ? .partial : .complete,
             closedAt: missingBytes ? nil : occurredAt.addingTimeInterval(75),

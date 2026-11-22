@@ -21,7 +21,9 @@ extension ControlPlaneController {
         }
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
             ?? "unknown"
-        return try ConfigurationArchiveCodec.export(draft: draft, appVersion: version, now: Date())
+        return try ConfigurationArchiveCodec.export(
+            draft: draft, appVersion: version, now: Date(), preferences: ArchivedAppPreferences.current()
+        )
     }
 
     /// Some rules, to share or move to another Mac.
@@ -40,9 +42,12 @@ extension ControlPlaneController {
             guard configurationRecoveryRequired || configurationRecovery != nil else {
                 throw ArchiveControllerError.missingConfiguration
             }
-            return "Recovery import: \(payload.rules.count) rules, "
-                + "\(payload.profiles.count) profiles, \(payload.localGroups.count) groups, "
-                + "and \(payload.blocklists.count) blocklists. Rift keeps a private copy of the damaged configuration."
+            // riftctl prints this preview too, so it's in English while RiftLocale.english is set.
+            let recovery = String(
+                localized: "Recovery import: \(payload.rules.count) rules, \(payload.profiles.count) profiles, \(payload.localGroups.count) groups, and \(payload.blocklists.count) blocklists. Rift keeps a private copy of the damaged configuration.",
+                bundle: RiftLocale.mainBundle
+            )
+            return recovery + preferencesSummary(payload)
         }
         let currentRules = Dictionary(uniqueKeysWithValues: current.rules.map { ($0.id, $0) })
         let incomingRules = Dictionary(uniqueKeysWithValues: payload.rules.map { ($0.id, $0) })
@@ -51,13 +56,20 @@ extension ControlPlaneController {
         let changed = incomingRules.filter { id, rule in
             currentRules[id].map { $0 != rule } ?? false
         }.count
-        return "Rules: +\(added), −\(removed), \(changed) changed. "
-            + "Profiles: \(current.profiles.count) → \(payload.profiles.count); "
-            + "groups: \(current.localGroups.count) → \(payload.localGroups.count); "
-            + "blocklists: \(current.blocklists.count) → \(payload.blocklists.count)."
+        let changes = String(
+            localized: "Rules: +\(added), −\(removed), \(changed) changed. Profiles: \(current.profiles.count) → \(payload.profiles.count); groups: \(current.localGroups.count) → \(payload.localGroups.count); blocklists: \(current.blocklists.count) → \(payload.blocklists.count).",
+            bundle: RiftLocale.mainBundle
+        )
+        return changes + preferencesSummary(payload)
+    }
+
+    private func preferencesSummary(_ payload: ConfigurationArchivePayload) -> String {
+        guard let preferences = payload.preferences else { return "" }
+        return " " + ArchivedAppPreferences.summary(preferences)
     }
 
     func restoreConfigurationArchive(_ data: Data) async throws -> ConfigurationRestoreOutcome {
+        try requireUnlocked()
         var phase = ConfigurationRestorePhase.preparing
         do {
             let payload = try ConfigurationArchiveCodec.decode(data)
@@ -71,7 +83,12 @@ extension ControlPlaneController {
                 guard configurationRecoveryRequired || configurationRecovery != nil else {
                     throw ArchiveControllerError.missingConfiguration
                 }
-                return try await recoverConfigurationArchive(payload)
+                let outcome = try await recoverConfigurationArchive(payload)
+                if let preferences = payload.preferences {
+                    ArchivedAppPreferences.apply(preferences)
+                    syncUnansweredAlerts()
+                }
+                return outcome
             }
             guard let repository,
                   let current = try await repository.currentConfiguration(),
@@ -113,6 +130,13 @@ extension ControlPlaneController {
             )
             phase = .desiredConfigurationSaved
             pendingRestoreBackupURL = backupURL
+            if let preferences = payload.preferences {
+                pendingRestorePreferences = ArchivedAppPreferences.current()
+                ArchivedAppPreferences.apply(preferences)
+                syncUnansweredAlerts()
+            } else {
+                pendingRestorePreferences = nil
+            }
             try await reconcileSavedPolicy(desired, lineageID: current.lineageID)
             let outcome = try await configurationRestoreOutcome(target: desired.tuple)
             if outcome == .enforced { pendingRestoreBackupURL = nil }
@@ -139,6 +163,7 @@ extension ControlPlaneController {
     var canRollbackLastRestore: Bool { pendingRestoreBackupURL != nil }
 
     func rollbackLastRestore() async throws -> ConfigurationRestoreOutcome {
+        try requireUnlocked()
         var phase = ConfigurationRestorePhase.preparing
         do {
             guard let backupURL = pendingRestoreBackupURL,
@@ -173,6 +198,11 @@ extension ControlPlaneController {
                 now: Date()
             )
             phase = .desiredConfigurationSaved
+            if let previous = pendingRestorePreferences {
+                ArchivedAppPreferences.apply(previous)
+                syncUnansweredAlerts()
+                pendingRestorePreferences = nil
+            }
             try await reconcileSavedPolicy(desired, lineageID: current.lineageID)
             let outcome = try await configurationRestoreOutcome(target: desired.tuple)
             if outcome == .enforced { pendingRestoreBackupURL = nil }
@@ -210,6 +240,7 @@ extension ControlPlaneController {
         let handshake = try? await client.handshake()
         let settings = try? await history?.settings()
         let historyCounts = try? await history?.diagnosticCounts()
+        let hostnames = try? await history?.hostnameCoverage(since: Date().addingTimeInterval(-7 * 86_400))
         let activitySnapshot = supportsActivitySubscriptions ? try? await client.recentActivity() : nil
         let configuration = try? await repository?.currentConfiguration()
         let desired = try? await repository?.newestDesiredPolicy()
@@ -274,6 +305,8 @@ extension ControlPlaneController {
             historyMaximumFlows: settings?.maximumFlows,
             visibleHistoryFlowCount: historyCounts?.visibleFlows,
             historyCoverageGapCount: historyCounts?.coverageGaps,
+            outgoingHistoryFlowsLastWeek: hostnames?.outgoing,
+            outgoingWithoutHostnameLastWeek: hostnames?.withoutHostname,
             historyDatabaseStatus: historyStatus,
             quarantinedHistoryItemCount: historyRecovery?.quarantinedItemCount ?? 0,
             ruleCount: configuration?.rules.count,
@@ -366,6 +399,18 @@ extension ControlPlaneController {
             let finish = try SecureIPCCodec.decode(CLITransferFinish.self, from: request.payload)
             await cliTransfers.cancel(finish.transferID)
             return try CLIRelayResponse(summary: "Transfer released")
+        case .historyExportBegin:
+            return try await cliHistoryExport(request)
+        case .statusSummary:
+            let draft = try await repository?.currentConfiguration()
+            let status = protectionStatusProvider?()
+            let value = CLIAppStatus(
+                mode: draft?.operationMode.displayName ?? "Unknown",
+                profile: draft.flatMap { draft in draft.profiles.first { $0.id == draft.activeProfileID }?.name },
+                filter: status?.title ?? "Unknown",
+                filterDetail: status?.detail ?? ""
+            )
+            return try CLIRelayResponse(summary: value.lines, json: try CanonicalPolicyJSON.encoder().encode(value))
         }
     }
 }
@@ -403,6 +448,8 @@ struct RedactedDiagnostics: Codable {
     let historyMaximumFlows: Int?
     let visibleHistoryFlowCount: Int?
     let historyCoverageGapCount: Int?
+    let outgoingHistoryFlowsLastWeek: Int?
+    let outgoingWithoutHostnameLastWeek: Int?
     let historyDatabaseStatus: String
     let quarantinedHistoryItemCount: Int
     let ruleCount: Int?

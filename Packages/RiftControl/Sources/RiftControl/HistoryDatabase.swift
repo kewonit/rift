@@ -258,6 +258,19 @@ public enum HistoryDatabase {
                 index: "flow_events_flow", on: "flow_events", columns: ["provider_epoch", "flow_id"]
             )
         }
+        // Lets an alert say it's an app's first connection to a domain.
+        migrator.registerMigration("history-v7-app-destinations") { database in
+            try database.alter(table: "flow_lifecycle") { table in
+                table.add(column: "app_key", .integer)
+                table.add(column: "destination_name", .text)
+            }
+            try database.create(
+                index: "flow_lifecycle_app_destination",
+                on: "flow_lifecycle",
+                columns: ["app_key", "destination_name"]
+            )
+            try HistoryContactIndex.backfill(in: database)
+        }
         return migrator
     }
 

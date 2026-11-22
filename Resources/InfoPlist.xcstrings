@@ -1,0 +1,96 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSLocationUsageDescription" : {
+      "comment" : "Privacy - Location Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS erlaubt einer App, WLAN-Namen nur mit den Ortungsdiensten zu lesen. Rift liest nur den Netzwerknamen, um Profile je nach Netzwerk zu wechseln, und niemals den Standort des Mac."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS lets an app read Wi-Fi network names only with Location Services. Rift reads only the network name, to switch profiles by network, and never the Mac’s location."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS solo permite que una app lea los nombres de las redes Wi-Fi con Localización. Rift solo lee el nombre de la red, para cambiar de perfil según la red, y nunca la ubicación del Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS ne permet à une app de lire le nom des réseaux Wi-Fi qu’avec le Service de localisation. Rift ne lit que le nom du réseau, pour changer de profil selon le réseau, et jamais la position du Mac."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Privacy - Location When In Use Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS erlaubt einer App, WLAN-Namen nur mit den Ortungsdiensten zu lesen. Rift liest nur den Netzwerknamen, um Profile je nach Netzwerk zu wechseln, und niemals den Standort des Mac."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS lets an app read Wi-Fi network names only with Location Services. Rift reads only the network name, to switch profiles by network, and never the Mac’s location."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS solo permite que una app lea los nombres de las redes Wi-Fi con Localización. Rift solo lee el nombre de la red, para cambiar de perfil según la red, y nunca la ubicación del Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS ne permet à une app de lire le nom des réseaux Wi-Fi qu’avec le Service de localisation. Rift ne lit que le nom du réseau, pour changer de profil selon le réseau, et jamais la position du Mac."
+          }
+        }
+      }
+    },
+    "NSSystemExtensionUsageDescription" : {
+      "comment" : "Privacy - System Extension Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rift verwendet einen Netzwerkfilter, um deine Verbindungsregeln auf diesem Mac anzuwenden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rift uses a network filter to apply your connection rules on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rift usa un filtro de red para aplicar tus reglas de conexión en este Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rift utilise un filtre réseau pour appliquer vos règles de connexion sur ce Mac."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -17,11 +17,11 @@ final class RuleChangeHistory {
     var isRunning = false
     @ObservationIgnored var nextChangeName: String?
 
-    var title: String { "\(isRedo ? "Redo" : "Undo") \(name)" }
+    var title: String { isRedo ? String(localized: "Redo \(name)") : String(localized: "Undo \(name)") }
 
     func record(before: [Rule], after: [Rule], generation: UInt64, isRedo: Bool) {
         revision += 1
-        let changeName = nextChangeName ?? "Rule Change"
+        let changeName = nextChangeName ?? String(localized: "Rule Change")
         nextChangeName = nil
         guard let plan = try? RuleWorkspaceUndoPlan(
             beforeMutation: before,

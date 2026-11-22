@@ -1,59 +1,5 @@
 import Foundation
 
-public struct PortRange: Sendable, Hashable, Comparable, Codable {
-    public let lowerBound: UInt16
-    public let upperBound: UInt16
-
-    public init(_ lowerBound: UInt16, _ upperBound: UInt16) throws {
-        guard lowerBound != 0 else { throw PortRangeError.zeroPort }
-        guard lowerBound <= upperBound else { throw PortRangeError.reversedRange }
-        self.lowerBound = lowerBound
-        self.upperBound = upperBound
-    }
-
-    public func contains(_ port: UInt16) -> Bool {
-        (lowerBound...upperBound).contains(port)
-    }
-
-    public var span: UInt16 { upperBound - lowerBound }
-
-    public static func < (lhs: PortRange, rhs: PortRange) -> Bool {
-        if lhs.span != rhs.span { return lhs.span < rhs.span }
-        return lhs.lowerBound < rhs.lowerBound
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let lowerBound = try container.decode(UInt16.self, forKey: .lowerBound)
-        let upperBound = try container.decode(UInt16.self, forKey: .upperBound)
-        do {
-            try self.init(lowerBound, upperBound)
-        } catch {
-            throw DecodingError.dataCorrupted(DecodingError.Context(
-                codingPath: decoder.codingPath,
-                debugDescription: "Invalid port range: \(error)",
-                underlyingError: error
-            ))
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(lowerBound, forKey: .lowerBound)
-        try container.encode(upperBound, forKey: .upperBound)
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case lowerBound
-        case upperBound
-    }
-}
-
-public enum PortRangeError: Error, Sendable, Equatable {
-    case zeroPort
-    case reversedRange
-}
-
 public enum ProtocolCondition: Sendable, Hashable, Codable {
     case tcp
     case udp

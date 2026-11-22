@@ -90,15 +90,24 @@ struct RuleWorkspaceDropRequest: Identifiable {
         operation == .copy ? Set(newRuleIDs) : ruleIDs
     }
 
-    var title: String { "\(verb) \(countText) to “\(displayName)”?" }
-    var actionTitle: String { "\(verb) \(countLabel)" }
+    var title: String {
+        operation == .copy
+            ? String(localized: "Copy \(affectedCount) rules to “\(displayName)”?")
+            : String(localized: "Move \(affectedCount) rules to “\(displayName)”?")
+    }
+
+    var actionTitle: String {
+        operation == .copy
+            ? String(localized: "Copy \(affectedCount) Rules")
+            : String(localized: "Move \(affectedCount) Rules")
+    }
 
     var message: String {
         let preservedScope = target.isGroup
-            ? "Their profiles won’t change."
-            : "Their groups won’t change."
+            ? String(localized: "Their profiles won’t change.")
+            : String(localized: "Their groups won’t change.")
         var parts = operation == .copy
-            ? ["The copies are saved as new rules.", preservedScope]
+            ? [String(localized: "The copies are saved as new rules."), preservedScope]
             : [preservedScope]
         if unchangedCount > 0 {
             parts.append(unchangedMessage)
@@ -106,30 +115,19 @@ struct RuleWorkspaceDropRequest: Identifiable {
         if skippedCount > 0 {
             parts.append(skippedMessage)
         }
-        parts.append("Open connections aren’t affected.")
+        parts.append(String(localized: "Open connections aren’t affected."))
         return parts.joined(separator: " ")
     }
 
-    private var verb: String { operation == .copy ? "Copy" : "Move" }
-    private var countLabel: String {
-        affectedCount == 1 ? "1 Rule" : "\(affectedCount) Rules"
-    }
-    private var countText: String {
-        affectedCount == 1 ? "1 rule" : "\(affectedCount) rules"
-    }
     private var displayName: String {
         let sanitized = DisplaySanitizer.plainText(targetName)
-        return sanitized.isEmpty ? (target.isGroup ? "Group" : "Profile") : sanitized
+        return sanitized.isEmpty ? (target.isGroup ? String(localized: "Group") : String(localized: "Profile")) : sanitized
     }
     private var unchangedMessage: String {
-        unchangedCount == 1
-            ? "1 rule is already there and won’t change."
-            : "\(unchangedCount) rules are already there and won’t change."
+        String(localized: "\(unchangedCount) rules are already there and won’t change.")
     }
     private var skippedMessage: String {
-        skippedCount == 1
-            ? "1 protected or blocklist rule will be skipped."
-            : "\(skippedCount) protected or blocklist rules will be skipped."
+        String(localized: "\(skippedCount) protected or blocklist rules will be skipped.")
     }
 }
 
@@ -153,6 +151,7 @@ private struct RuleWorkspaceDropTargetModifier: ViewModifier {
     let selection: RulesSidebarSelection
     @Binding var pendingDrop: RuleWorkspaceDropRequest?
     @Binding var activeSelection: RulesSidebarSelection?
+    @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
         let isTargeted = Binding(
@@ -167,7 +166,8 @@ private struct RuleWorkspaceDropTargetModifier: ViewModifier {
         )
         content
             .listRowBackground(
-                activeSelection == selection ? Color.accentColor.opacity(0.14) : Color.clear
+                activeSelection == selection
+                    ? Color.accentColor.opacity(contrast == .increased ? 0.32 : 0.14) : Color.clear
             )
             .help("Drop rules here to move them. Hold Option to copy them instead.")
             .onDrop(

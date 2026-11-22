@@ -221,7 +221,8 @@ public enum MonitorSummaryBuilder {
 
     private static func destinationLabel(_ row: MonitorEventRow) -> String {
         if let hostname = row.event.flow.observedHostname { return hostname.ascii }
-        return row.event.flow.destinationEndpoint?.address.description ?? "Unknown destination"
+        return row.event.flow.destinationEndpoint?.address.description
+            ?? String(localized: "Unknown destination", bundle: .module)
     }
 }
 

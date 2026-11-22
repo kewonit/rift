@@ -34,10 +34,10 @@ extension MonitorFeed {
         }
         if loadedRowsContain(target) {
             query.clearExcludingFilters()
-            session.controlPlane.actionResults.post("Filters were cleared to show this connection.")
+            session.controlPlane.actionResults.post(String(localized: "Filters were cleared to show this connection."))
         } else if rowsAreCompleteForRequest {
             session.controlPlane.actionResults.post(
-                "That connection is no longer available. It may have been removed from history or hidden by a rule.",
+                String(localized: "That connection is no longer available. It may have been removed from history or hidden by a rule."),
                 tone: .failure
             )
             session.requestedMonitorEventID = nil
@@ -55,6 +55,28 @@ extension MonitorFeed {
 
     func canDecide(_ node: MonitorHierarchyNode) -> Bool {
         !MonitorRuleScope.options(for: node.eventIDs.compactMap { rowLookup[$0] }).isEmpty
+    }
+
+    /// The scope a one-click rule from this row would use, or nil when the
+    /// row can't have one.
+    func quickBreadth(for node: MonitorHierarchyNode) -> MonitorRuleBreadth? {
+        guard let row = representativeRow(for: node) else { return nil }
+        return MonitorRuleScope.quickBreadth(for: node.kind, options: MonitorRuleScope.options(for: [row]))
+    }
+
+    /// Allows or blocks a row in one click, with the row's own scope, for
+    /// good. The result banner offers Undo.
+    func applyQuickRule(_ action: FilterAction, for node: MonitorHierarchyNode) {
+        let members = rows(in: node)
+        guard let row = members.first, let breadth = quickBreadth(for: node) else { return }
+        let options = MonitorRuleScope.options(for: members)
+        Task {
+            let request = MonitorRuleRequest(
+                action: action, node: node, row: row, options: options,
+                application: await applicationName(for: row)
+            )
+            applyRule(request, breadth: breadth, duration: .always)
+        }
     }
 
     /// Opens the scope chooser, so the person sees what a rule covers first.
@@ -92,24 +114,24 @@ extension MonitorFeed {
                 pendingManagedListOverride = request.node
             } catch ControlPlaneController.RuleCommandError.overriddenByRule(let ruleID) {
                 results.post(
-                    "Nothing changed, because another rule still decides this connection.",
+                    String(localized: "Nothing changed, because another rule still decides this connection."),
                     tone: .failure,
                     ruleIDs: ruleID.map { [$0] } ?? []
                 )
             } catch ControlPlaneController.RuleCommandError.incomingBlocklistOverride(let ruleIDs) {
                 results.post(
-                    "Nothing changed. A rule would let every address on the blocklist reach this service. To let this one in, turn off its entry in Settings › Blocklists.",
+                    String(localized: "Nothing changed. A rule would let every address on the blocklist reach this service. To let this one in, turn off its entry in Settings › Blocklists."),
                     tone: .failure,
                     ruleIDs: ruleIDs
                 )
             } catch ControlPlaneController.RuleCommandError.permanentRuleConflict(let ruleID) {
                 results.post(
-                    "Nothing changed, because a permanent rule does the opposite. Choose Always to change it.",
+                    String(localized: "Nothing changed, because a permanent rule does the opposite. Choose Always to change it."),
                     tone: .failure,
                     ruleIDs: [ruleID]
                 )
             } catch {
-                results.post("The rule wasn’t added. Try again after Rift reconnects.", tone: .failure)
+                results.post(String(localized: "The rule wasn’t added. Try again after Rift reconnects."), tone: .failure)
             }
         }
     }
@@ -123,7 +145,7 @@ extension MonitorFeed {
         let results = session.controlPlane.actionResults
         guard let result = change.result else {
             results.post(
-                request.action == .deny ? "This is already blocked." : "This is already allowed.",
+                request.action == .deny ? String(localized: "This is already blocked.") : String(localized: "This is already allowed."),
                 ruleIDs: change.ruleIDs
             )
             return
@@ -196,19 +218,19 @@ extension MonitorFeed {
         )
         Task {
             do {
-                controlPlane.ruleChanges.nextChangeName = "Hide Connections"
+                controlPlane.ruleChanges.nextChangeName = String(localized: "Hide Connections")
                 defer { controlPlane.ruleChanges.nextChangeName = nil }
                 _ = try await controlPlane.createManualRule(
                     draft, expectedGeneration: controlPlane.desiredPolicyTuple?.generation ?? 0
                 )
                 results.post(
-                    "Connections like this are hidden from the Map and history. They’re still filtered by your rules.",
+                    String(localized: "Connections like this are hidden from the Map and history. They’re still filtered by your rules."),
                     ruleIDs: controlPlane.ruleChanges.plan?.affectedRuleIDs ?? [],
                     offersUndo: true
                 )
                 requestPresentationRefresh()
             } catch {
-                results.post("Rift couldn’t hide these connections. Try again.", tone: .failure)
+                results.post(String(localized: "Rift couldn’t hide these connections. Try again."), tone: .failure)
             }
         }
     }

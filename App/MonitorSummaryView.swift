@@ -44,12 +44,12 @@ struct MonitorSummaryView: View {
         }
     }
 
-    private func row(_ title: String, _ value: Int) -> some View {
+    private func row(_ title: LocalizedStringKey, _ value: Int) -> some View {
         RiftPropertyRow(title: title) { Text(RiftFormat.count(value)).monospacedDigit() }
     }
 
     @ViewBuilder
-    private func list(_ title: String, _ entries: [MonitorSummary.Entry]) -> some View {
+    private func list(_ title: LocalizedStringKey, _ entries: [MonitorSummary.Entry]) -> some View {
         if !entries.isEmpty {
             VStack(alignment: .leading, spacing: 5) {
                 Text(title).font(.caption).foregroundStyle(.secondary)
@@ -68,6 +68,6 @@ struct MonitorSummaryView: View {
 
     private func detail(_ entry: MonitorSummary.Entry) -> String {
         let count = RiftFormat.count(entry.connections)
-        return entry.blocked == 0 ? count : "\(count), \(RiftFormat.count(entry.blocked)) blocked"
+        return entry.blocked == 0 ? count : String(localized: "\(count), \(RiftFormat.count(entry.blocked)) blocked")
     }
 }

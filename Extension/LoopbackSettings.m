@@ -1,5 +1,6 @@
 #import "LoopbackSettings.h"
 #import <bsm/libbsm.h>
+#import <libproc.h>
 
 NEFilterSettings *RiftAllowAllFilterSettings(void) {
     NWHostEndpoint *loopbackV4Endpoint =
@@ -67,4 +68,27 @@ uint32_t RiftAuditTokenEUID(NSData *token) {
     audit_token_t auditToken;
     [token getBytes:&auditToken length:sizeof(auditToken)];
     return audit_token_to_euid(auditToken);
+}
+
+int32_t RiftAuditTokenPID(NSData *token) {
+    if (token == nil || token.length != sizeof(audit_token_t)) {
+        return 0;
+    }
+    audit_token_t auditToken;
+    [token getBytes:&auditToken length:sizeof(auditToken)];
+    return audit_token_to_pid(auditToken);
+}
+
+NSString *RiftCopyAuditTokenExecutablePath(NSData *token) {
+    if (token == nil || token.length != sizeof(audit_token_t)) {
+        return nil;
+    }
+    audit_token_t auditToken;
+    [token getBytes:&auditToken length:sizeof(auditToken)];
+    char buffer[PROC_PIDPATHINFO_MAXSIZE];
+    int length = proc_pidpath_audittoken(&auditToken, buffer, sizeof(buffer));
+    if (length <= 0 || (size_t)length >= sizeof(buffer)) {
+        return nil;
+    }
+    return [[NSString alloc] initWithBytes:buffer length:(NSUInteger)length encoding:NSUTF8StringEncoding];
 }

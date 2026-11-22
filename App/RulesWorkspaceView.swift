@@ -14,6 +14,7 @@ struct RulesWorkspaceView: View {
     @State private var editingRow: RuleRowViewValue?
     @State private var showingInspector = true
     @State private var showingDeleteConfirmation = false
+    @State private var showingSubscribe = false
     @FocusState private var searchFocused: Bool
 
     // The modifiers are split across several properties so each one
@@ -85,6 +86,13 @@ struct RulesWorkspaceView: View {
             .padding(8)
             .background(.orange.opacity(0.18))
         }
+        ConfigurationLockBanner()
+        if case .group(let id) = model.sidebarSelection {
+            RuleGroupSubscriptionBanner(
+                groupID: id, generation: model.generation,
+                reload: { await model.reload() }, select: { model.selectRulesImmediately($0) }
+            )
+        }
         if let notice = model.notice {
             HStack(spacing: 10) {
                 Label(notice, systemImage: "info.circle")
@@ -155,27 +163,33 @@ struct RulesWorkspaceView: View {
             Menu {
                 Picker("Show", selection: $model.actionFilter) {
                     ForEach(RuleActionFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+                        Text(filter.title).tag(filter)
                     }
                 }
                 Picker("Sort By", selection: $model.sort) {
                     ForEach(RuleWorkspaceSort.allCases) { sort in
-                        Text(sort.rawValue).tag(sort)
+                        Text(sort.title).tag(sort)
                     }
                 }
                 Picker("Search In", selection: $model.searchScope) {
                     ForEach(RuleSearchScope.allCases) { scope in
-                        Text(scope.rawValue).tag(scope)
+                        Text(scope.title).tag(scope)
                     }
                 }
             } label: {
                 Label("Filter and Sort", systemImage: filterSymbol)
             }
             .help("Filter and sort rules")
+            // The filled symbol says a filter is on; VoiceOver says which.
+            .accessibilityValue(model.actionFilter.showingDescription)
             Menu {
                 Button("Import Rules…") { Task { await model.chooseRulesToImport() } }
                 Button("Export Selected Rules…") { Task { await model.exportSelected() } }
                     .disabled(model.exportableSelectionCount == 0)
+                Button("Export Selected as .lsrules…") { Task { await model.exportSelectedAsLSRules() } }
+                    .disabled(model.exportableSelectionCount == 0)
+                Divider()
+                Button("Subscribe to Rule Group…") { showingSubscribe = true }
             } label: {
                 Label("Import or Export", systemImage: "square.and.arrow.up.on.square")
             }
@@ -202,6 +216,13 @@ struct RulesWorkspaceView: View {
                     artworkStore: artworkStore
                 ) { draft in await model.create(draft) }
             }
+            .sheet(isPresented: $showingSubscribe) {
+                RuleGroupSubscribeSheet { message, groupID in
+                    model.sidebarSelection = .group(groupID)
+                    model.showNotice(message)
+                    Task { await model.reload() }
+                }
+            }
             .sheet(isPresented: $model.bulkEditing) {
                 RuleBulkEditSheet(rules: model.bulkEditableRules) { edit in
                     await model.editSelected(edit)
@@ -219,6 +240,7 @@ struct RulesWorkspaceView: View {
                     await model.edit(row.id, draft: draft)
                 }
             }
+            .environment(\.filterSupportsExtendedRules, isPreview || model.controlPlane.filterSupportsExtendedPolicy)
             .task {
                 if requestedSelection.isEmpty {
                     await model.reload()
@@ -260,7 +282,7 @@ struct RulesWorkspaceView: View {
 
     private var importTitle: String {
         let count = model.pendingImport?.plan.rules.count ?? 0
-        return count == 1 ? "Import 1 rule?" : "Import \(count) rules?"
+        return String(localized: "Import \(count) rules?")
     }
 
     private var bar: some View {
@@ -281,12 +303,10 @@ struct RulesWorkspaceView: View {
     }
 
     private var deleteMessage: String {
-        let note = "This only affects new connections and ones waiting for a decision."
-        switch model.skippedSelectionCount {
-        case 0: return note
-        case 1: return "1 protected or blocklist rule will be skipped. " + note
-        case let count: return "\(count) protected or blocklist rules will be skipped. " + note
-        }
+        let note = String(localized: "This only affects new connections and ones waiting for a decision.")
+        let count = model.skippedSelectionCount
+        guard count > 0 else { return note }
+        return String(localized: "\(count) protected or blocklist rules will be skipped. \(note)")
     }
 
     private func acceptRequestedSelection() async {

@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct ManualRuleEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.filterSupportsExtendedRules) private var filterSupportsExtendedRules
     let initial: Rule?
     let identities: [RuleIdentityChoice]
     let groups: [LocalRuleGroup]
@@ -29,6 +30,7 @@ struct ManualRuleEditorView: View {
     @State private var expiry = Date().addingTimeInterval(3_600)
     @State private var note = ""
     @State private var overrideBlocklists = false
+    @State private var highPriority = false
     @State private var profileID: UUID?
     @State private var localGroupID: UUID?
     @State private var isEnabled = true
@@ -75,14 +77,12 @@ struct ManualRuleEditorView: View {
             case .anySupportedProtocol: _transport = State(initialValue: .any)
             }
             _direction = State(initialValue: initial.direction)
-            _portText = State(initialValue: initial.port.map {
-                $0.lowerBound == $0.upperBound
-                    ? String($0.lowerBound) : "\($0.lowerBound)-\($0.upperBound)"
-            } ?? "")
+            _portText = State(initialValue: initial.port?.text() ?? "")
             _temporary = State(initialValue: initial.expiresAt != nil)
             _expiry = State(initialValue: initial.expiresAt ?? Date().addingTimeInterval(3_600))
             _note = State(initialValue: initial.notes)
             _overrideBlocklists = State(initialValue: initial.priority == .elevatedUser)
+            _highPriority = State(initialValue: initial.priority == .high)
             _profileID = State(initialValue: initial.profileID)
             _localGroupID = State(initialValue: initial.localGroupID)
             _isEnabled = State(initialValue: initial.isEnabled)
@@ -94,7 +94,7 @@ struct ManualRuleEditorView: View {
         Form {
             Section {
                 Picker("Action", selection: $action) {
-                    ForEach(EditorAction.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(EditorAction.allCases) { Text($0.title).tag($0) }
                 }
                 if action == .hide {
                     Text("Matching connections won’t appear on the Map or in history. Past records stay.")
@@ -115,10 +115,10 @@ struct ManualRuleEditorView: View {
                             Text(displayName(choice)).tag(choice.process)
                         }
                     }
-                    Button("Choose App…", action: chooseApp)
+                    Button("Choose App or Tool…", action: chooseApp)
                 }
                 Picker("Destination", selection: $destinationKind) {
-                    ForEach(visibleDestinationKinds) { Text($0.rawValue).tag($0) }
+                    ForEach(visibleDestinationKinds) { Text($0.title).tag($0) }
                 }
                 if destinationKind == .hostOrAddress {
                     TextField(
@@ -151,6 +151,8 @@ struct ManualRuleEditorView: View {
                 isEnabled: $isEnabled,
                 isReviewed: $isReviewed,
                 note: $note,
+                highPriority: $highPriority,
+                overridesBlocklists: action == .allow && overrideBlocklists,
                 permitsSystemOwner: selectedIdentityPermitsSystemOwner,
                 profiles: profiles,
                 groups: groups
@@ -213,7 +215,7 @@ struct ManualRuleEditorView: View {
         } message: {
             if let draft = pendingOverrideDraft {
                 let label = availableIdentities.first { $0.process == draft.process }?.label
-                    ?? "Selected app"
+                    ?? String(localized: "Selected app")
                 Text(ManualRuleOverrideConfirmation.message(
                     draft: draft,
                     applicationLabel: label
@@ -237,26 +239,26 @@ struct ManualRuleEditorView: View {
         } catch let error as RuleValidationError {
             switch error {
             case .elevatedPriorityRequiresExactProcess:
-                validation = "Choose a specific app for a blocklist exception."
+                validation = String(localized: "Choose a specific app for a blocklist exception.")
             case .elevatedPriorityRequiresExactDestination:
-                validation = "Enter exact hostnames or IP addresses for a blocklist exception."
+                validation = String(localized: "Enter exact hostnames or IP addresses for a blocklist exception.")
             default:
-                validation = "Make the exception more specific, then save."
+                validation = String(localized: "Make the exception more specific, then save.")
             }
         } catch DestinationEditorError.mixedTypes {
-            validation = "Use either hostnames or IP addresses in one rule, not both."
+            validation = String(localized: "Use either hostnames or IP addresses in one rule, not both.")
         } catch DestinationEditorError.overLimit {
-            validation = "There are too many entries. Split them into more than one rule."
+            validation = String(localized: "There are too many entries. Split them into more than one rule.")
         } catch DestinationEditorError.someSubdomains {
-            validation = "Turn on Include subdomains, or remove *. so every site matches exactly."
+            validation = String(localized: "Turn on Include subdomains, or remove *. so every site matches exactly.")
         } catch DestinationEditorError.childDomainsNeedNames {
-            validation = "Subdomains apply to names. Turn off Include subdomains to enter IP addresses."
+            validation = String(localized: "Subdomains apply to names. Turn off Include subdomains to enter IP addresses.")
         } catch DestinationEditorError.childDomainsUnavailable {
-            validation = "Rift couldn’t read its list of domain suffixes, so it can’t check subdomain rules."
+            validation = String(localized: "Rift couldn’t read its list of domain suffixes, so it can’t check subdomain rules.")
         } catch DestinationEditorError.wholeRegistry(let name) {
-            validation = "Anyone can register names under \(name), so this would cover far too much. Enter a domain someone registered, like example.co.uk."
+            validation = String(localized: "Anyone can register names under \(name), so this would cover far too much. Enter a domain someone registered, like example.co.uk.")
         } catch {
-            validation = "Enter a valid hostname, IP address, or IP range."
+            validation = String(localized: "Enter a valid hostname, IP address, or IP range.")
         }
     }
 
@@ -266,7 +268,7 @@ struct ManualRuleEditorView: View {
             if await save(draft) {
                 dismiss()
             } else {
-                validation = "The rule wasn’t saved. Your rules may have changed, so check it and try again."
+                validation = String(localized: "The rule wasn’t saved. Your rules may have changed, so check it and try again.")
             }
             saving = false
         }
@@ -289,9 +291,15 @@ struct ManualRuleEditorView: View {
               owner != .system || selectedIdentityPermitsSystemOwner else {
             throw EditorError.unavailableIdentity
         }
+        // A rule that's already high priority keeps it. Making one waits for
+        // a filter that knows the tier, or the whole policy would be refused.
+        guard !highPriority || filterSupportsExtendedRules || initial?.priority == .high else {
+            throw EditorError.highPriorityNeedsNewerFilter
+        }
         let draft = ManualRuleDraft(
             action: action.value,
-            priority: action == .allow && overrideBlocklists ? .elevatedUser : .normal,
+            priority: action == .allow && overrideBlocklists
+                ? .elevatedUser : (highPriority ? .high : .normal),
             process: process,
             destination: destination,
             transport: transport.value,
@@ -367,23 +375,26 @@ struct ManualRuleEditorView: View {
 
     private func chooseApp() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.applicationBundle]
+        // Command-line tools too, which otherwise show up only after they connect.
+        panel.allowedContentTypes = [.applicationBundle, .unixExecutable]
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
-        panel.prompt = "Choose"
+        panel.message = String(localized: "Choose an app or a command-line tool.")
+        panel.prompt = String(localized: "Choose")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { @MainActor in
             let identity = try? await Task.detached(priority: .userInitiated) {
                 try StaticCodeIdentityResolver.identity(at: url)
             }.value
             guard let identity else {
-                validation = "Rift couldn’t verify that app, so it can’t make a rule for it."
+                validation = String(localized: "Rift couldn’t verify that app, so it can’t make a rule for it.")
                 return
             }
             let condition = ProcessCondition.exact(identity)
             if !availableIdentities.contains(where: { $0.process == condition }) {
                 chosenApps.append(RuleIdentityChoice(process: condition, permitsSystemOwner: false))
             }
-            chosenNames[condition] = url.deletingPathExtension().lastPathComponent
+            chosenNames[condition] = url.pathExtension == "app"
+                ? url.deletingPathExtension().lastPathComponent : url.lastPathComponent
             process = condition
             validation = nil
         }
@@ -424,13 +435,13 @@ struct ManualRuleEditorView: View {
     private func parsePort(_ input: String) throws -> PortRange? {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return nil }
-        let parts = value.split(separator: "-", omittingEmptySubsequences: false)
-        guard parts.count <= 2,
-              let lower = UInt16(parts[0]),
-              let upper = UInt16(parts.count == 2 ? parts[1] : parts[0]) else {
-            throw EditorError.port
+        guard let ports = try? PortRange.parse(value) else { throw EditorError.port }
+        // A rule that already has a list keeps it. A new list waits for a
+        // filter that can apply one, or the whole policy would be refused.
+        guard !ports.isList || filterSupportsExtendedRules || initial?.port == ports else {
+            throw EditorError.portListNeedsNewerFilter
         }
-        return try PortRange(lower, upper)
+        return ports
     }
 
     private static func destinationText(_ destination: DestinationCondition) -> String {
@@ -456,20 +467,25 @@ struct ManualRuleEditorView: View {
     }
 
     private enum EditorError: Error {
-        case incomingDomain, expired, noteTooLong, port, unavailableIdentity
+        case incomingDomain, expired, noteTooLong, port, portListNeedsNewerFilter, unavailableIdentity
+        case highPriorityNeedsNewerFilter
 
         var message: String {
             switch self {
             case .incomingDomain:
-                "Hostname rules work only for outgoing connections."
+                String(localized: "Hostname rules work only for outgoing connections.")
             case .expired:
-                "Choose an expiration time in the future."
+                String(localized: "Choose an expiration time in the future.")
             case .noteTooLong:
                 "This note is too long."
             case .port:
-                "Enter a port, like 443, or a range, like 8000-8080."
+                String(localized: "Enter a port, like 443, a range, like 8000-8080, or a list, like 20-30, 80, 443, of up to 16.")
+            case .highPriorityNeedsNewerFilter:
+                String(localized: "High priority needs the current network filter. Turn on or update the filter, then try again.")
+            case .portListNeedsNewerFilter:
+                String(localized: "A list of ports needs the current network filter. Turn on or update the filter, then try again.")
             case .unavailableIdentity:
-                "Choose an available app and owner."
+                String(localized: "Choose an available app and owner.")
             }
         }
     }

@@ -161,3 +161,15 @@ private func node(_ id: String, children: [MonitorHierarchyNode]? = nil) throws 
     #expect(kept.map(\.id) == ["a"])
     #expect(kept.first?.children?.map(\.id) == ["x", "y"])
 }
+
+@Test func oneClickRulesUseTheRowsOwnScope() {
+    let all: [MonitorRuleBreadth] = [.exactConnection, .thisHost, .thisDomain, .allDestinations]
+    #expect(MonitorRuleScope.quickBreadth(for: .application, options: all) == .allDestinations)
+    #expect(MonitorRuleScope.quickBreadth(for: .domain, options: all) == .thisDomain)
+    #expect(MonitorRuleScope.quickBreadth(for: .hostname, options: all) == .thisHost)
+    #expect(MonitorRuleScope.quickBreadth(for: .flow, options: all) == .exactConnection)
+    #expect(MonitorRuleScope.quickBreadth(for: .country, options: all) == nil)
+    // A name rule needs a name; an address falls back to the exact connection.
+    #expect(MonitorRuleScope.quickBreadth(for: .address, options: [.exactConnection]) == .exactConnection)
+    #expect(MonitorRuleScope.quickBreadth(for: .application, options: [.thisHost]) == nil)
+}

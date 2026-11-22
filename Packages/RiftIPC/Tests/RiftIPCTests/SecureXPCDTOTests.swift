@@ -174,3 +174,21 @@ import Testing
         try SecureIPCCodec.decode(PromptRequest.self, from: unknownNestedBytes)
     }
 }
+
+@Test func appStatusForTheCLIRoundTripsAndPrintsItsLines() throws {
+    let value = CLIAppStatus(mode: "Ask Me", profile: "Home", filter: "Protected", filterDetail: "Rules apply.")
+    let decoded = try JSONDecoder().decode(CLIAppStatus.self, from: try JSONEncoder().encode(value))
+    #expect(decoded == value)
+    #expect(value.lines == "Mode: Ask Me\nProfile: Home\nFilter: Protected — Rules apply.")
+    let request = try CLIRelayRequest(command: .statusSummary)
+    #expect(try JSONDecoder().decode(CLIRelayRequest.self, from: try JSONEncoder().encode(request)).command == .statusSummary)
+}
+
+@Test func historyExportRequestsCarryTheirFormatAndRefusalsTheirType() throws {
+    let request = try CLIRelayRequest(command: .historyExportBegin, argument: "json")
+    let decoded = try JSONDecoder().decode(CLIRelayRequest.self, from: try JSONEncoder().encode(request))
+    #expect(decoded.command == .historyExportBegin)
+    #expect(decoded.argument == "json")
+    #expect(CLIAccessRefusal.code == "CLIAccessRefusal")
+    #expect(CLIAccessRefusal.code != CLIRelayRefusal.code)
+}

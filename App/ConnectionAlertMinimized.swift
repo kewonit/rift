@@ -30,9 +30,12 @@ struct ConnectionAlertMinimizedView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text(ConnectionAlertCountdown.label(deadline: prompt.deadline, now: context.date))
+                    // Wraps rather than cutting off a longer translation in the narrow bar.
+                    Text(ConnectionAlertCountdown.label(for: prompt, now: context.date))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(Color(nsColor: .systemOrange))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(ConnectionAlertSpeech.countdown(for: prompt, now: context.date))
                 }
             }
             Spacer(minLength: RiftDesign.Spacing.s)
@@ -55,6 +58,9 @@ struct ConnectionAlertMinimizedView: View {
         .frame(width: 380)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Connection waiting for a decision")
+        // The bar can appear without the whole alert ever showing, so it
+        // says what's waiting, and when ten seconds are left.
+        .modifier(ConnectionAlertAnnouncements(prompt: prompt, arrivalHeadline: arrivalHeadline))
         .task(id: prompt.nonce) {
             // As in the full alert: if news that the filter resolved the
             // connection never arrives, clear it after the deadline.
@@ -72,6 +78,14 @@ struct ConnectionAlertMinimizedView: View {
     }
 
     private var identity: ProcessIdentity? { prompt.appIdentity ?? prompt.processIdentity }
+
+    private var arrivalHeadline: String {
+        ConnectionAlertPresentation.headline(
+            application: DisplaySanitizer.plainText(applicationName ?? MonitorQuery.identityLabel(identity)),
+            destination: DisplaySanitizer.plainText(ConnectionAlertFacts(prompt: prompt).destination),
+            direction: prompt.direction
+        )
+    }
 }
 
 /// "+N waiting", as a menu to answer another waiting connection first.
@@ -92,6 +106,7 @@ struct ConnectionAlertWaitingMenu: View {
                 Text(compact ? "+\(others.count)" : ConnectionAlertPresentation.moreWaitingLabel(others.count) ?? "")
                     .monospacedDigit()
             }
+            .accessibilityLabel(others.count == 1 ? "1 more connection waiting" : "\(others.count) more connections waiting")
             .menuStyle(.borderlessButton)
             .fixedSize()
             .font(.caption)
@@ -108,24 +123,18 @@ struct ConnectionAlertWaitingMenu: View {
 
 enum ConnectionAlertCountdown {
     /// Settings › Alerts can block unanswered connections instead of allowing
-    /// them. Rift answers for you just before the filter's own deadline.
-    static let blocksUnansweredKey = "alertsBlockUnanswered"
-    /// How long before the filter's deadline Rift answers Block.
-    static let blockLead: TimeInterval = 1.5
+    /// them. A filter that speaks protocol 1.4 does it itself. For an older
+    /// one, Rift answers Block just before the filter's deadline.
+    static let blocksUnansweredKey = UnansweredAlertSettings.blocksKey
 
     static var blocksUnanswered: Bool { UserDefaults.standard.bool(forKey: blocksUnansweredKey) }
 
-    /// When nobody answers, the connection is allowed, or blocked if
-    /// Settings › Alerts says so.
-    static func label(deadline: Date, now: Date, blocks: Bool = blocksUnanswered) -> String {
-        let end = blocks ? deadline.addingTimeInterval(-blockLead) : deadline
-        let remaining = max(0, Int(end.timeIntervalSince(now).rounded(.up)))
-        let verb = blocks ? "Blocking" : "Allowing"
-        guard remaining > 0 else { return blocks ? "Not answered — connection blocked" : "Timed out — connection allowed" }
-        let minutes = remaining / 60
-        let seconds = remaining % 60
-        return minutes > 0
-            ? "\(verb) in \(minutes):\(String(format: "%02d", seconds))"
-            : "\(verb) in \(seconds)s"
+    /// What happens to this connection if nobody answers.
+    static func outcome(for prompt: PromptRequest) -> UnansweredAlertOutcome {
+        UnansweredAlertOutcome(prompt: prompt, blocksUnanswered: blocksUnanswered)
+    }
+
+    static func label(for prompt: PromptRequest, now: Date) -> String {
+        outcome(for: prompt).countdownLabel(for: prompt, now: now)
     }
 }

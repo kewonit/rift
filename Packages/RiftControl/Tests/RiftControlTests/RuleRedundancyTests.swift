@@ -101,3 +101,19 @@ private func host(_ name: String) throws -> DestinationCondition {
     #expect(summary.contains("Trackers"))
     #expect(!summary.contains("host1.example"))
 }
+
+@Test func portListsCoverAndConflictByTheirActualPorts() throws {
+    let safari = try app("com.apple.Safari")
+    let list = try rule(.allow, .exact(safari), port: PortRange.parse("20-30, 80, 443"))
+    let inside = try rule(.allow, .exact(safari), port: PortRange.parse("22, 443"), created: 5)
+    let straddling = try rule(.allow, .exact(safari), port: PortRange(30, 80), created: 5)
+    // Every port of the narrower rule is in the list, so the list covers it.
+    #expect(RuleRedundancy.redundantRules(in: [list, inside], now: now) == [inside.id: list.id])
+    // A range reaching into the gaps between the list's ports isn't covered.
+    #expect(RuleRedundancy.redundantRules(in: [list, straddling], now: now).isEmpty)
+    // A rule for only the list's first range is the redundant one of the
+    // two. The list covers more, so it's never the one reported.
+    let first = try rule(.allow, .exact(safari), port: PortRange(20, 30), created: -5)
+    #expect(RuleRedundancy.redundantRules(in: [first, list], now: now) == [first.id: list.id])
+    #expect(RuleRowViewValue.oneLineSummary(list, blocklistName: nil).contains("20–30, 80, 443"))
+}

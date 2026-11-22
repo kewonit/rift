@@ -320,3 +320,39 @@ private func temporaryPlan(
     #expect(rules.contains(permanent))
     #expect(rules.contains { $0.priority == .elevatedUser && $0.expiresAt == expiry })
 }
+
+@Test func aBroaderHighPriorityRuleIsReportedInsteadOfQuietlyOutranked() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let highBlock = try Rule(
+        id: UUID(), lineageID: lineage, revision: 1, action: .filter(.deny), priority: .high,
+        process: .anyProcess, destination: .anyEndpoint, transportProtocol: .anySupportedProtocol,
+        port: nil, direction: .outgoing, owner: .authorizedUser, createdAt: now, modifiedAt: now
+    )
+    // A one-click Allow from the Map makes a normal rule, which a
+    // high-priority Block still beats, so the Map says which rule decides.
+    let result = try plan(.allow, row: row, target: conditions, rules: [highBlock])
+    #expect(result == .overridden(by: highBlock.id))
+    // Blocking is already what happens.
+    #expect(try plan(.deny, row: row, target: conditions, rules: [highBlock])
+        != .overridden(by: highBlock.id))
+}
+
+@Test func flippingAHighPriorityRuleKeepsItsPriority() throws {
+    let row = try connection()
+    let conditions = try target(row)
+    let highBlock = try Rule(
+        id: UUID(), lineageID: lineage, revision: 1, action: .filter(.deny), priority: .high,
+        process: conditions.process, destination: conditions.destination,
+        transportProtocol: conditions.transport, port: conditions.port,
+        direction: conditions.direction, owner: conditions.owner, createdAt: now, modifiedAt: now
+    )
+    let result = try plan(.allow, row: row, target: conditions, rules: [highBlock])
+    guard case .changed(let rules, _) = result else {
+        Issue.record("Expected a change, got \(result)")
+        return
+    }
+    #expect(rules.count == 1)
+    #expect(rules[0].action == .filter(.allow))
+    #expect(rules[0].priority == .high)
+}

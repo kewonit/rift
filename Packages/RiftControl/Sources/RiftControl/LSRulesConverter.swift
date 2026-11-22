@@ -7,8 +7,9 @@ import RiftCore
 /// Rift identifies apps by their code signature, so each process path or
 /// code ID is looked up on this Mac. A rule Rift can't express the same way
 /// is skipped and counted rather than widened or narrowed: other protocols
-/// such as ICMP, DNS-server and packet-filter destinations, port lists, and
-/// rules for other accounts.
+/// such as ICMP, DNS-server and packet-filter destinations, and rules for
+/// other accounts. A rule with a list of ports is skipped too when the
+/// running filter is too old to apply one.
 public enum LSRulesConverter {
     public struct Conversion: Sendable, Equatable {
         public let payload: ConfigurationArchivePayload
@@ -25,22 +26,16 @@ public enum LSRulesConverter {
         public var notices: [String] {
             var parts: [String] = []
             if missingApps > 0 {
-                parts.append(missingApps == 1
-                    ? "1 rule is skipped because its app isn’t on this Mac."
-                    : "\(missingApps) rules are skipped because their apps aren’t on this Mac.")
+                parts.append(String(localized: "\(missingApps) rules are skipped because their apps aren’t on this Mac.", bundle: .module))
             }
             if unsupported > 0 {
-                parts.append(unsupported == 1
-                    ? "1 rule is skipped because Rift can’t apply it as written, such as one for ICMP or another account."
-                    : "\(unsupported) rules are skipped because Rift can’t apply them as written, such as ones for ICMP or another account.")
+                parts.append(String(localized: "\(unsupported) rules are skipped because Rift can’t apply them as written, such as ones for ICMP or another account.", bundle: .module))
             }
             if lowered > 0 {
-                parts.append(lowered == 1
-                    ? "1 high-priority rule is added at normal priority."
-                    : "\(lowered) high-priority rules are added at normal priority.")
+                parts.append(String(localized: "\(lowered) high-priority rules are added at normal priority.", bundle: .module))
             }
             if blockedDestinations > 0 {
-                parts.append("To block the file’s \(blockedDestinations) listed destinations too, import it in Settings › Blocklists.")
+                parts.append(String(localized: "To block the file’s \(blockedDestinations) listed destinations too, import it in Settings › Blocklists.", bundle: .module))
             }
             return parts
         }
@@ -54,6 +49,7 @@ public enum LSRulesConverter {
         lineageID: UUID,
         resolve: Resolver,
         suffixes: PublicSuffixList = .shared,
+        extendedRules: Bool = true,
         now: Date
     ) -> Conversion {
         // The file's own name and description come from whoever wrote it, so
@@ -84,7 +80,7 @@ public enum LSRulesConverter {
             case .resolved(let process):
                 guard let made = try? makeRules(
                     source, process: process, group: group.id, lineageID: lineageID,
-                    suffixes: suffixes, now: now
+                    suffixes: suffixes, extendedRules: extendedRules, now: now
                 ) else {
                     unsupported += 1
                     continue
@@ -193,6 +189,7 @@ public enum LSRulesConverter {
         group: UUID,
         lineageID: UUID,
         suffixes: PublicSuffixList,
+        extendedRules: Bool,
         now: Date
     ) throws -> MadeRules {
         let action: FilterAction
@@ -219,10 +216,10 @@ public enum LSRulesConverter {
         if source.ports == "any" || source.ports.isEmpty {
             port = nil
         } else {
-            let parts = source.ports.split(separator: "-", omittingEmptySubsequences: false)
-            guard parts.count <= 2, let lower = UInt16(parts[0]),
-                  let upper = UInt16(parts.count == 2 ? parts[1] : parts[0]) else { throw Unsupported() }
-            port = try PortRange(lower, upper)
+            // One port, a range, or a list such as "20-30, 80, 443".
+            let parsed = try PortRange.parse(source.ports)
+            guard extendedRules || !parsed.isList else { throw Unsupported() }
+            port = parsed
         }
         let destinations = try destinations(source.remote, direction: direction, suffixes: suffixes)
         // Notes keep their line breaks but not direction changes.
@@ -243,9 +240,11 @@ public enum LSRulesConverter {
                 )
             }
             guard source.priority == "high" else { return try rule(.normal) }
-            // Rift raises priority only for an Allow for one app to an exact
-            // destination, so other high-priority rules come in as normal.
+            // Only an Allow for one app to an exact destination overrides a
+            // blocklist. Other high-priority rules keep their place above
+            // normal rules, when the filter can apply that tier.
             if let elevated = try? rule(.elevatedUser) { return elevated }
+            if extendedRules { return try rule(.high) }
             lowered = true
             return try rule(.normal)
         }

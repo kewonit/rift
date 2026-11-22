@@ -12,7 +12,16 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case advanced = "Advanced"
 
     var id: String { rawValue }
-    var title: String { rawValue }
+    var title: String {
+        switch self {
+        case .general: String(localized: "General")
+        case .alerts: String(localized: "Alerts")
+        case .history: String(localized: "History & Privacy")
+        case .policies: String(localized: "Profiles & Blocklists")
+        case .networks: String(localized: "Networks")
+        case .advanced: String(localized: "Advanced")
+        }
+    }
     var symbol: String {
         switch self {
         case .general: "gear"
@@ -68,6 +77,14 @@ struct GeneralSettingsPane: View {
                     }
                 ))
                 .disabled(!isLoginItemReady)
+                GlobalShortcutToggle()
+            }
+            Section {
+                Button("Lock Configuration") { ConfigurationLock.shared.lock() }
+            } header: {
+                Text("Lock")
+            } footer: {
+                Text("Stops changes to rules, profiles, modes and settings until you unlock with Touch ID or your login password. Alerts can still be answered once, and changes you set up to happen on their own, such as subscription updates and switching profiles by network, keep working. Press ⌘L to lock.")
             }
             if let updater = RiftUpdater.shared {
                 UpdateSettingsSection(updater: updater)
@@ -77,7 +94,7 @@ struct GeneralSettingsPane: View {
     }
 
     private var currentModeLabel: String {
-        activeProfileName.map { "\($0) uses \(effectiveMode.displayName)" } ?? effectiveMode.displayName
+        activeProfileName.map { String(localized: "\($0) uses \(effectiveMode.displayName)") } ?? effectiveMode.displayName
     }
 }
 
@@ -88,6 +105,9 @@ struct AlertSettingsPane: View {
     @Binding var alertDefaultScope: String
     @Binding var alertDefaultDestination: String
     @Binding var recentLimit: Int
+    /// The filter holds the wait and blocks unanswered connections itself.
+    let filterEnforcesUnanswered: Bool
+    let unansweredChanged: () -> Void
     let permissionRequested: (Bool) -> Void
     @AppStorage(NotificationKinds.blocked.rawValue) private var notifyBlocked = true
     @AppStorage(NotificationKinds.undecided.rawValue) private var notifyUndecided = true
@@ -95,6 +115,8 @@ struct AlertSettingsPane: View {
     @AppStorage(NotificationKinds.ruleSound.rawValue) private var notifyRuleSound = false
     @AppStorage(PromptPanelController.keepMinimizedKey) private var keepAlertsMinimized = false
     @AppStorage(ConnectionAlertCountdown.blocksUnansweredKey) private var blocksUnanswered = false
+    @AppStorage(UnansweredAlertSettings.waitSecondsKey)
+    private var answerWaitSeconds = UnansweredAlertSettings.defaultWaitSeconds
 
     var body: some View {
         Form {
@@ -122,32 +144,54 @@ struct AlertSettingsPane: View {
             }
             Section {
                 Picker("Remember decisions", selection: $alertDefaultLifetime) {
-                    Text("Once").tag("Once")
-                    Text("Five minutes").tag("Five minutes")
-                    Text("One hour").tag("One hour")
-                    Text("Always").tag("Always")
+                    Text("As last time").tag(AlertDefaults.lastUsed)
+                    Divider()
+                    ForEach(AlertLifetime.allCases) { Text($0.displayName).tag($0.rawValue) }
                 }
                 Picker("New rules cover", selection: $alertDefaultDestination) {
-                    Text("This destination and port").tag("This destination")
-                    Text("This destination, any port").tag("This destination, any port")
-                    Text("Its domain and subdomains").tag("This domain")
+                    Text("As last time").tag(AlertDefaults.lastUsed)
+                    Divider()
+                    Text("This destination and port").tag(AlertDestinationChoice.exact.rawValue)
+                    Text("This destination, any port").tag(AlertDestinationChoice.anyPort.rawValue)
+                    Text("Its domain and subdomains").tag(AlertDestinationChoice.domain.rawValue)
                 }
                 Picker("Apply new rules to", selection: $alertDefaultScope) {
                     Text("Current profile").tag("Current profile")
                     Text("All profiles").tag("All profiles")
                 }
                 Toggle("Show alerts minimized", isOn: $keepAlertsMinimized)
-                Toggle("Block connections I don’t answer", isOn: $blocksUnanswered)
+                Picker("If I don’t answer", selection: $blocksUnanswered) {
+                    Text("Allow the connection").tag(false)
+                    Text("Block the connection").tag(true)
+                }
+                .onChange(of: blocksUnanswered) { unansweredChanged() }
+                Picker("Wait for an answer", selection: $answerWaitSeconds) {
+                    ForEach(UnansweredAlertSettings.waitChoices, id: \.self) { seconds in
+                        Text(UnansweredAlertSettings.waitTitle(seconds)).tag(seconds)
+                    }
+                }
+                .disabled(!filterEnforcesUnanswered)
+                .onChange(of: answerWaitSeconds) { unansweredChanged() }
                 Stepper("Recent apps in menu: \(recentLimit)", value: $recentLimit, in: 0...10)
             } header: {
                 Text("Alert Defaults")
             } footer: {
-                Text(blocksUnanswered
-                    ? "In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed."
-                    : "In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift lets the connection through.")
+                Text([
+                    String(localized: "In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown."),
+                    unansweredSettings.explanation(filterEnforces: filterEnforcesUnanswered),
+                    filterEnforcesUnanswered
+                        ? String(localized: "UDP connections wait 8 seconds at most.")
+                        : String(localized: "The wait can be changed once the network filter is on and up to date."),
+                ].joined(separator: " "))
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+extension AlertSettingsPane {
+    fileprivate var unansweredSettings: UnansweredAlertSettings {
+        UnansweredAlertSettings(blocks: blocksUnanswered, storedWaitSeconds: answerWaitSeconds)
     }
 }
 
@@ -158,22 +202,37 @@ struct HistorySettingsPane: View {
     let changed: () -> Void
     let clear: () -> Void
     let export: (HistoryExportFormat) -> Void
+    var loadHostnameCoverage: () async -> HistoryHostnameCoverage? = { nil }
+    @State private var hostnameCoverage: HistoryHostnameCoverage?
 
     var body: some View {
         Form {
             Section("History") {
                 Toggle("Save connection history", isOn: $historyEnabled)
-                Stepper("Keep for \(retentionDays) \(retentionDays == 1 ? "day" : "days")", value: $retentionDays, in: 1...30)
-                    .disabled(!historyEnabled)
-                Stepper(
-                    "Keep up to \(maximumFlows.formatted()) connections",
-                    value: $maximumFlows,
-                    in: 1_000...50_000,
-                    step: 1_000
-                )
+                Picker("Keep for", selection: $retentionDays) {
+                    ForEach(HistoryLimits.dayChoices(including: retentionDays), id: \.self) {
+                        Text(HistoryLimits.daysLabel($0)).tag($0)
+                    }
+                }
                 .disabled(!historyEnabled)
+                Picker("Keep up to", selection: $maximumFlows) {
+                    ForEach(HistoryLimits.flowChoices(including: maximumFlows), id: \.self) {
+                        Text("\($0.formatted()) connections").tag($0)
+                    }
+                }
+                .disabled(!historyEnabled)
+                Text("Whichever limit comes first applies. The Map and Review show the newest \(HistoryLimits.maximumLoadedFlows.formatted()) connections; exports include all of them. A longer history takes more disk space.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Text("When history is off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes, and only while the Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply.")
                     .font(.caption).foregroundStyle(.secondary)
+                if historyEnabled, let coverage = hostnameCoverage, let share = coverage.shareWithoutHostname {
+                    LabeledContent("Connections without a name, last 7 days") {
+                        Text("\(coverage.withoutHostname.formatted()) of \(coverage.outgoing.formatted()) (\(share.formatted(.percent.precision(.fractionLength(0...1)))))")
+                            .monospacedDigit()
+                    }
+                    Text("These outgoing connections reached Rift with only an IP address, so rules for names and domain blocklists couldn’t match them.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             Section {
                 ControlGroup {
@@ -188,6 +247,9 @@ struct HistorySettingsPane: View {
             }
         }
         .formStyle(.grouped)
+        .task(id: historyEnabled) {
+            hostnameCoverage = historyEnabled ? await loadHostnameCoverage() : nil
+        }
         .onChange(of: historyEnabled) { _, _ in changed() }
         .onChange(of: retentionDays) { _, _ in changed() }
         .onChange(of: maximumFlows) { _, _ in changed() }

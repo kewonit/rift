@@ -30,7 +30,15 @@ actor NotificationRouter {
             let content = UNMutableNotificationContent()
             content.title = NotificationCopy.title(action: event.action)
             content.body = NotificationCopy.body(destination: destination(event.flow))
-            content.userInfo = [NotificationResponder.rowIDKey: MonitorEventRow(event: event, coverage: .complete).id]
+            var info: [String: Any] = [NotificationResponder.rowIDKey: MonitorEventRow(event: event, coverage: .complete).id]
+            // A connection no rule decided gets Allow and Block buttons.
+            if event.reason != .concreteDecision,
+               event.flow.sourceAppIdentity ?? event.flow.sourceProcessIdentity != nil,
+               let data = NotificationActions.encode(event) {
+                content.categoryIdentifier = NotificationActions.undecidedCategory
+                info[NotificationActions.eventKey] = data
+            }
+            content.userInfo = info
             await deliver(
                 UNNotificationRequest(identifier: event.id, content: content, trigger: nil)
             )
@@ -67,7 +75,7 @@ actor NotificationRouter {
     }
 
     func healthMessage() -> String? {
-        deliveryFailureCount == 0 ? nil : "Some notifications couldn’t be shown."
+        deliveryFailureCount == 0 ? nil : String(localized: "Some notifications couldn’t be shown.")
     }
 
     private var notificationsEnabled: Bool {
@@ -96,7 +104,7 @@ actor NotificationRouter {
             return
         }
         let content = UNMutableNotificationContent()
-        content.title = "Rift connection summary"
+        content.title = String(localized: "Rift connection summary")
         content.body = NotificationCopy.summary(count: count)
         await deliver(UNNotificationRequest(
             identifier: "rift-summary-\(UUID().uuidString.lowercased())",

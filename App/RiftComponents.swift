@@ -31,12 +31,14 @@ struct RiftBytesText: View {
             }
         }
         .monospacedDigit()
-        .accessibilityLabel(accessibilityText)
+        .accessibilityLabel(Self.spoken(bytes, partial: partial))
     }
 
-    private var accessibilityText: String {
-        guard let bytes else { return "Unavailable" }
-        return (partial ? "At least " : "") + RiftFormat.bytes(bytes)
+    /// The total as VoiceOver reads it, with "at least" for the "≥".
+    static func spoken(_ bytes: UInt64?, partial: Bool) -> String {
+        guard let bytes else { return String(localized: "Unavailable") }
+        let total = RiftFormat.bytes(bytes)
+        return partial ? String(localized: "At least \(total)") : total
     }
 }
 
@@ -81,7 +83,7 @@ extension View {
 
 /// The search field in the bar above each table.
 struct RiftSearchField: View {
-    let prompt: String
+    let prompt: LocalizedStringKey
     @Binding var text: String
     var focus: FocusState<Bool>.Binding
 
@@ -105,6 +107,7 @@ struct RiftSearchField: View {
         .padding(.horizontal, RiftDesign.Spacing.s - 2)
         .frame(height: RiftDesign.barControlHeight)
         .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .riftContrastOutline(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .background(InitialFocusClearer())
         .frame(minWidth: 120, maxWidth: 220)
     }

@@ -75,16 +75,49 @@ final class NetworkProfileSwitcher {
     }
 
     func setChoice(_ choice: NetworkProfileChoice, for key: String) {
-        guard var network = remembered[key] else { return }
+        guard var network = remembered[key], ConfigurationLock.shared.permits(.byHand) else { return }
+        // An approval covered the old choice, not the new one.
+        if network.choice != choice { network.allowsLessStrictSwitch = nil }
         network.choice = choice
         remembered[key] = network
         save()
         if key == current?.key { Task { await apply(force: true) } }
     }
 
+    /// Lets Rift switch to this network's profile on its own even when it's
+    /// less strict. Given only here, in the app.
+    func setAllowsLessStrict(_ allowed: Bool, for key: String) {
+        guard var network = remembered[key], ConfigurationLock.shared.permits(.byHand) else { return }
+        network.allowsLessStrictSwitch = allowed ? true : nil
+        remembered[key] = network
+        save()
+        if allowed, key == current?.key { Task { await apply(force: true) } }
+    }
+
     func forget(_ key: String) {
+        guard ConfigurationLock.shared.permits(.byHand) else { return }
         remembered.removeValue(forKey: key)
         save()
+    }
+
+    /// Settings › Networks, as a configuration archive keeps it.
+    var archived: ArchivedNetworkProfiles {
+        ArchivedNetworkProfiles(
+            enabled: enabled, notifies: notifies, usesWiFiNames: usesWiFiNames,
+            otherNetworks: otherNetworks, remembered: Array(remembered.values)
+        )
+    }
+
+    /// Takes Settings › Networks from a restored archive.
+    func restore(_ archived: ArchivedNetworkProfiles) {
+        remembered = Dictionary(archived.remembered.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+        notifiedNew = Set(remembered.keys)
+        otherNetworks = archived.otherNetworks
+        notifies = archived.notifies
+        usesWiFiNames = archived.usesWiFiNames
+        enabled = archived.enabled
+        save()
+        refresh()
     }
 
     private func refresh() {
@@ -100,13 +133,18 @@ final class NetworkProfileSwitcher {
         guard enabled else { return }
         if let key = identity?.key, let identity {
             var network = remembered[key]
-                ?? RememberedNetwork(key: key, name: identity.displayName, choice: otherNetworks, lastSeenAt: Date())
+                ?? RememberedNetwork(key: key, name: identity.storedName, choice: otherNetworks, lastSeenAt: Date())
             let isNew = remembered[key] == nil
             network.lastSeenAt = Date()
             remembered[key] = network
             save()
             if isNew, notifies, notifiedNew.insert(key).inserted {
-                notify("New network: \(identity.displayName)", "Choose a profile for it in Settings › Networks.")
+                notify(
+                    String(localized: "New network: \(identity.displayName)"),
+                    String(localized: "Keep the current profile here, or choose one."),
+                    category: NotificationActions.newNetworkCategory,
+                    userInfo: [NotificationActions.networkKey: key]
+                )
             }
         }
         Task { await apply(force: force) }
@@ -119,28 +157,64 @@ final class NetworkProfileSwitcher {
         guard let target = NetworkProfileDecision.target(
             on: network, remembered: remembered, otherNetworks: otherNetworks, profiles: Set(profiles.keys)
         ), target != definitions.active else { return }
-        let name = target.flatMap { profiles[$0] } ?? "No profile"
+        let name = target.flatMap { profiles[$0] } ?? String(localized: "No profile")
         do {
-            _ = try await controlPlane.activateProfile(target, unattended: true)
-            lastMessage = "Switched to \(name) for \(network.displayName)."
-            if notifies { notify("Switched to \(name)", "For the network \(network.displayName).") }
+            _ = try await controlPlane.activateProfile(target, unattended: true, change: .automatic)
+            lastMessage = String(localized: "Switched to \(name) for \(network.displayName).")
+            if notifies {
+                notify(String(localized: "Switched to \(name)"), String(localized: "For the network \(network.displayName)."))
+            }
         } catch CLIRelayRefusal.profileSwitchNeedsConfirmation {
-            lastMessage = "\(name) is less strict, so Rift didn’t switch to it on its own."
+            if let key = network.key, remembered[key]?.allowsLessStrictSwitch == true {
+                await switchLessStrict(to: target, name: name, on: network, controlPlane: controlPlane)
+                return
+            }
+            lastMessage = String(localized: "\(name) is less strict, so Rift didn’t switch to it on its own.")
             if notifies {
                 notify(
-                    "Rift didn’t switch to \(name)",
-                    "\(name) is less strict than the current profile. To use it on \(network.displayName), choose it from the menu bar."
+                    String(localized: "Rift didn’t switch to \(name)"),
+                    String(localized: "\(name) is less strict than the current profile. To use it on \(network.displayName), choose it from the menu bar.")
                 )
             }
         } catch {
-            lastMessage = "Rift couldn’t switch to \(name)."
+            lastMessage = String(localized: "Rift couldn’t switch to \(name).")
         }
     }
 
-    private func notify(_ title: String, _ body: String) {
+    /// A less strict switch the person allowed for this network. Rift always
+    /// says when it makes one, whatever the notification setting.
+    private func switchLessStrict(
+        to target: UUID?,
+        name: String,
+        on network: NetworkIdentity,
+        controlPlane: ControlPlaneController
+    ) async {
+        do {
+            _ = try await controlPlane.activateProfile(target, unattended: false, change: .automatic)
+            lastMessage = String(localized: "Switched to \(name), which is less strict, as you allowed for \(network.displayName).")
+            notify(
+                String(localized: "Switched to \(name), which is less strict"),
+                String(localized: "You allowed this for \(network.displayName). To stop it, turn it off in Settings › Networks.")
+            )
+        } catch {
+            lastMessage = String(localized: "Rift couldn’t switch to \(name).")
+        }
+    }
+
+    /// Remembers the active profile, or no profile, for a network, from a
+    /// notification's button.
+    func useActiveProfile(for key: String) async {
+        guard let controlPlane, (try? controlPlane.requireUnlocked()) != nil,
+              let definitions = try? await controlPlane.policyDefinitions() else { return }
+        setChoice(definitions.active.map(NetworkProfileChoice.profile) ?? .noProfile, for: key)
+    }
+
+    private func notify(_ title: String, _ body: String, category: String? = nil, userInfo: [String: String] = [:]) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
+        if let category { content.categoryIdentifier = category }
+        content.userInfo = userInfo
         let request = UNNotificationRequest(identifier: "rift-network-\(UUID().uuidString)", content: content, trigger: nil)
         Task { try? await UNUserNotificationCenter.current().add(request) }
     }

@@ -136,7 +136,7 @@ public enum RuleRedundancy {
     private static func portCovers(_ cover: PortRange?, _ rule: PortRange?) -> Bool {
         guard let cover else { return true }
         guard let rule else { return false }
-        return cover.lowerBound <= rule.lowerBound && rule.upperBound <= cover.upperBound
+        return cover.covers(rule)
     }
 
     // MARK: Overlap
@@ -178,7 +178,7 @@ public enum RuleRedundancy {
 
     private static func portsOverlap(_ lhs: PortRange?, _ rhs: PortRange?) -> Bool {
         guard let lhs, let rhs else { return true }
-        return lhs.lowerBound <= rhs.upperBound && rhs.lowerBound <= lhs.upperBound
+        return lhs.overlaps(rhs)
     }
 
     /// A connection has both an address and, often, a name, so an address

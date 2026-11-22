@@ -10,6 +10,9 @@ public struct ConfigurationArchivePayload: Sendable, Hashable, Codable {
     public let profiles: [PolicyProfile]
     public let blocklists: [BlocklistSource]
     public let disabledBlocklistEntries: [BlocklistEntry]
+    /// Settings kept outside the configuration database. Absent from rule
+    /// files and from archives made before schema 4.
+    public let preferences: ConfigurationArchivePreferences?
 
     public init(
         baseOperationMode: OperationMode,
@@ -18,7 +21,8 @@ public struct ConfigurationArchivePayload: Sendable, Hashable, Codable {
         localGroups: [LocalRuleGroup],
         profiles: [PolicyProfile],
         blocklists: [BlocklistSource],
-        disabledBlocklistEntries: [BlocklistEntry] = []
+        disabledBlocklistEntries: [BlocklistEntry] = [],
+        preferences: ConfigurationArchivePreferences? = nil
     ) {
         self.baseOperationMode = baseOperationMode
         self.activeProfileID = activeProfileID
@@ -27,6 +31,7 @@ public struct ConfigurationArchivePayload: Sendable, Hashable, Codable {
         self.profiles = profiles
         self.blocklists = blocklists
         self.disabledBlocklistEntries = disabledBlocklistEntries
+        self.preferences = preferences
     }
 
     public init(from decoder: Decoder) throws {
@@ -40,16 +45,18 @@ public struct ConfigurationArchivePayload: Sendable, Hashable, Codable {
         disabledBlocklistEntries = try values.decodeIfPresent(
             [BlocklistEntry].self, forKey: .disabledBlocklistEntries
         ) ?? []
+        preferences = try values.decodeIfPresent(ConfigurationArchivePreferences.self, forKey: .preferences)
     }
 
     private enum CodingKeys: String, CodingKey {
         case baseOperationMode, activeProfileID, rules, localGroups, profiles, blocklists
-        case disabledBlocklistEntries
+        case disabledBlocklistEntries, preferences
     }
 }
 
 public struct ConfigurationArchive: Sendable, Hashable, Codable {
-    public static let schemaVersion: UInt16 = 3
+    /// 4 adds `preferences`. Rift still reads 3 and 2.
+    public static let schemaVersion: UInt16 = 4
     public static let maximumBytes = 16 * 1_024 * 1_024
 
     public let schemaVersion: UInt16
@@ -82,7 +89,8 @@ public enum ConfigurationArchiveCodec {
     public static func export(
         draft: PolicyConfigurationDraft,
         appVersion: String,
-        now: Date
+        now: Date,
+        preferences: ConfigurationArchivePreferences? = nil
     ) throws -> Data {
         try PolicyConfigurationValidator.validate(draft)
         let payload = ConfigurationArchivePayload(
@@ -92,7 +100,11 @@ public enum ConfigurationArchiveCodec {
             localGroups: draft.localGroups,
             profiles: draft.profiles,
             blocklists: draft.blocklists,
-            disabledBlocklistEntries: draft.disabledBlocklistEntries.sorted()
+            disabledBlocklistEntries: draft.disabledBlocklistEntries.sorted(),
+            preferences: preferences?.sanitized(
+                profileIDs: Set(draft.profiles.map(\.id)), blocklistIDs: Set(draft.blocklists.map(\.id)),
+                groupIDs: Set(draft.localGroups.map(\.id))
+            )
         )
         return try encode(payload, flags: knownFlags, appVersion: appVersion, now: now)
     }
@@ -182,7 +194,7 @@ public enum ConfigurationArchiveCodec {
         }
         let encodedVersion = try schemaVersion(in: data)
         if encodedVersion == 2 { return try decodeVersion2(data) }
-        guard encodedVersion == ConfigurationArchive.schemaVersion else {
+        guard encodedVersion == 3 || encodedVersion == ConfigurationArchive.schemaVersion else {
             throw ConfigurationArchiveError.unsupportedSchema
         }
         try validateShape(data, schemaVersion: encodedVersion)
@@ -247,6 +259,11 @@ public enum ConfigurationArchiveCodec {
                   return blocklists.contains(sourceID)
               }) else {
             throw ConfigurationArchiveError.invalidRelationship
+        }
+        // Preferences must be exactly what an export writes for this configuration.
+        if let preferences = payload.preferences,
+           !preferences.isValid(profileIDs: profiles, blocklistIDs: blocklists, groupIDs: groups) {
+            throw ConfigurationArchiveError.invalidDefinition
         }
         guard payload.localGroups.allSatisfy({
             isCanonicalName($0.name)
@@ -343,9 +360,11 @@ public enum ConfigurationArchiveCodec {
             "baseOperationMode", "rules", "localGroups", "profiles", "blocklists",
         ])
         if schemaVersion >= 3 { requiredPayloadKeys.insert("disabledBlocklistEntries") }
+        var optionalPayloadKeys: Set<String> = ["activeProfileID"]
+        if schemaVersion >= 4 { optionalPayloadKeys.insert("preferences") }
         let payloadKeys = Set(payload.keys)
         guard requiredPayloadKeys.isSubset(of: payloadKeys),
-              payloadKeys.subtracting(["activeProfileID"]) == requiredPayloadKeys else {
+              payloadKeys.subtracting(optionalPayloadKeys) == requiredPayloadKeys else {
             throw ConfigurationArchiveError.invalidShape
         }
     }

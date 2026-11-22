@@ -39,3 +39,12 @@ import Testing
     let choice = NetworkProfileChoice.profile(UUID())
     #expect(try JSONDecoder().decode(NetworkProfileChoice.self, from: JSONEncoder().encode(choice)) == choice)
 }
+
+@Test func networksSavedBeforeLessStrictApprovalStillRead() throws {
+    let old = Data(#"{"key":"wired:192.0.2.1","name":"Ethernet","choice":{"leaveAsIs":{}},"lastSeenAt":0}"#.utf8)
+    let network = try JSONDecoder().decode(RememberedNetwork.self, from: old)
+    #expect(network.allowsLessStrictSwitch == nil)
+    // Nothing new is written until the person allows it, so archives keep their shape.
+    let encoded = String(decoding: try JSONEncoder().encode(network), as: UTF8.self)
+    #expect(!encoded.contains("allowsLessStrictSwitch"))
+}

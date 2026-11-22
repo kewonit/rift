@@ -58,7 +58,7 @@ struct RiftSidebarView: View {
     @State private var activeDropTarget: RulesSidebarSelection?
     @State private var showingBlocklistImport = false
 
-    private func emptyHint(_ text: String) -> some View {
+    private func emptyHint(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -75,7 +75,7 @@ struct RiftSidebarView: View {
             .listItemTint(.monochrome)
             Section("Rules") {
                 ForEach(RuleListFilter.allCases) { filter in
-                    Label(filter.rawValue, systemImage: symbol(filter))
+                    Label(filter.title, systemImage: symbol(filter))
                         .tag(AppSidebarItem.rules(.filter(filter)))
                 }
             }
@@ -168,7 +168,7 @@ struct RiftSidebarView: View {
             Text(removalMessage(removal))
         }
         .confirmationDialog(
-            pendingDrop?.title ?? "Reorganize rules?",
+            pendingDrop?.title ?? String(localized: "Reorganize rules?"),
             isPresented: Binding(
                 get: { pendingDrop != nil },
                 set: { if !$0 { pendingDrop = nil } }
@@ -203,7 +203,7 @@ struct RiftSidebarView: View {
             rowCheckbox(
                 isOn: model.activeProfileID == profile.id,
                 label: model.activeProfileID == profile.id
-                    ? "Deactivate \(display(profile.name))" : "Activate \(display(profile.name))"
+                    ? String(localized: "Deactivate \(display(profile.name))") : String(localized: "Activate \(display(profile.name))")
             ) { on in
                 Task { await model.activateProfile(on ? profile.id : nil) }
             }
@@ -238,7 +238,7 @@ struct RiftSidebarView: View {
             Spacer(minLength: 4)
             rowCheckbox(
                 isOn: group.isEnabled,
-                label: group.isEnabled ? "Disable \(display(group.name))" : "Enable \(display(group.name))"
+                label: group.isEnabled ? String(localized: "Disable \(display(group.name))") : String(localized: "Enable \(display(group.name))")
             ) { on in
                 Task { await model.setGroup(group.id, enabled: on) }
             }
@@ -274,9 +274,10 @@ struct RiftSidebarView: View {
             Text(source.entryCount.formatted())
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
+                .accessibilityLabel(source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries")
             rowCheckbox(
                 isOn: source.status == .active,
-                label: source.status == .active ? "Disable \(display(source.name))" : "Enable \(display(source.name))"
+                label: source.status == .active ? String(localized: "Disable \(display(source.name))") : String(localized: "Enable \(display(source.name))")
             ) { on in
                 Task { await model.setBlocklist(source.id, enabled: on) }
             }
@@ -303,24 +304,24 @@ struct RiftSidebarView: View {
         switch removal {
         case .profile(let profile, let impact):
             if impact.protectedRules == 0 {
-                Button("Remove and Keep \(ruleCount(impact.totalRules, title: true))") {
+                Button("Remove and Keep \(impact.totalRules) Rules") {
                     Task { await model.removeProfile(profile.id, deletingRules: false) }
                 }
-                Button("Remove and Delete \(ruleCount(impact.totalRules, title: true))", role: .destructive) {
+                Button("Remove and Delete \(impact.totalRules) Rules", role: .destructive) {
                     Task { await model.removeProfile(profile.id, deletingRules: true) }
                 }
             }
         case .group(let group, let impact):
             if impact.protectedRules == 0 {
-                Button("Remove and Keep \(ruleCount(impact.totalRules, title: true))") {
+                Button("Remove and Keep \(impact.totalRules) Rules") {
                     Task { await model.removeGroup(group.id, deletingRules: false) }
                 }
-                Button("Remove and Delete \(ruleCount(impact.totalRules, title: true))", role: .destructive) {
+                Button("Remove and Delete \(impact.totalRules) Rules", role: .destructive) {
                     Task { await model.removeGroup(group.id, deletingRules: true) }
                 }
             }
         case .blocklist(let source, let impact):
-            Button("Remove Blocklist and \(ruleCount(impact.totalRules, title: true))", role: .destructive) {
+            Button("Remove Blocklist and \(impact.totalRules) Rules", role: .destructive) {
                 Task { await model.removeBlocklist(source.id) }
             }
         }
@@ -328,38 +329,35 @@ struct RiftSidebarView: View {
     }
 
     private var removalTitle: String {
-        guard let pendingRemoval else { return "Remove this item?" }
-        return "Remove “\(display(pendingRemoval.name))”?"
+        guard let pendingRemoval else { return String(localized: "Remove this item?") }
+        return String(localized: "Remove “\(display(pendingRemoval.name))”?")
     }
 
     private func removalMessage(_ removal: RuleDefinitionRemoval) -> String {
         switch removal {
         case .profile(_, let impact), .group(_, let impact):
             if impact.protectedRules > 0 {
-                let locked = impact.protectedRules == 1
-                    ? "1 rule that’s protected or comes from a blocklist"
-                    : "\(impact.protectedRules) rules that are protected or come from a blocklist"
-                return "This can’t be removed because it contains \(locked)."
+                return String(localized: "This can’t be removed because it contains \(impact.protectedRules) rules that are protected or come from a blocklist.")
             }
             let kept: String
             if case .profile = removal {
-                kept = "Kept rules will apply to all profiles. If this profile isn’t active, they’re turned off."
+                kept = String(localized: "Kept rules will apply to all profiles. If this profile isn’t active, they’re turned off.")
             } else {
-                kept = "Kept rules won’t belong to any group. If this group is off, they’re turned off."
+                kept = String(localized: "Kept rules won’t belong to any group. If this group is off, they’re turned off.")
             }
-            return "Choose whether to keep or delete its \(ruleCount(impact.totalRules)). \(kept) Open connections aren’t affected."
+            return String(localized: "Choose whether to keep or delete its \(impact.totalRules) rules. \(kept) Open connections aren’t affected.")
         case .blocklist(let source, let impact):
-            let entries = source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries"
-            return "This removes \(entries) and \(ruleCount(impact.totalRules)) from this blocklist. Open connections aren’t affected."
+            let entries = String(localized: "\(source.entryCount) entries")
+            return String(localized: "This removes \(entries) and \(impact.totalRules) rules from this blocklist. Open connections aren’t affected.")
         }
     }
 
     private var policyState: String {
         switch model.enforcementState {
-        case .savedPendingEnforcement: "Rules pending"
-        case .persistedPendingProvider: "Rules pending"
-        case .enforced: "Rules active"
-        case .applyFailed: "Rules not applied"
+        case .savedPendingEnforcement: String(localized: "Rules pending")
+        case .persistedPendingProvider: String(localized: "Rules pending")
+        case .enforced: String(localized: "Rules active")
+        case .applyFailed: String(localized: "Rules not applied")
         }
     }
 
@@ -385,10 +383,7 @@ struct RiftSidebarView: View {
 
     private func display(_ value: String) -> String { DisplaySanitizer.plainText(value) }
 
-    private func ruleCount(_ count: Int, title: Bool = false) -> String {
-        let noun = title ? (count == 1 ? "Rule" : "Rules") : (count == 1 ? "rule" : "rules")
-        return "\(count) \(noun)"
-    }
+
 }
 
 enum RuleDefinitionEditor: Identifiable {

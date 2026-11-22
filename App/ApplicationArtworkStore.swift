@@ -99,6 +99,13 @@ final class ApplicationArtworkStore {
     /// no bundle of its own to look up, so its app stands in. Only an app signed
     /// by the same team qualifies.
     private func helperArtwork(for identity: ProcessIdentity) async -> ApplicationArtwork? {
+        guard let proof = await parentProof(for: identity),
+              let artwork = renderArtwork(at: proof.url),
+              await verifier.revalidate(proof, identity: identity) else { return nil }
+        return ApplicationArtwork(image: artwork.image, displayName: artwork.displayName.map { String(localized: "\($0) Helper") })
+    }
+
+    private func parentProof(for identity: ProcessIdentity) async -> ApplicationCandidateProof? {
         guard let signed = identity.signedCode else { return nil }
         var parts = signed.signingIdentifier.split(separator: ".")
         while parts.count > 2 {
@@ -107,13 +114,27 @@ final class ApplicationArtworkStore {
             guard isSafeLookup(parent) else { return nil }
             let urls = NSWorkspace.shared.urlsForApplications(withBundleIdentifier: parent)
             guard !urls.isEmpty else { continue }
-            guard urls.count <= Self.maximumCandidates,
-                  let proof = await verifier.selectParent(candidates: urls, of: identity),
-                  let artwork = renderArtwork(at: proof.url),
-                  await verifier.revalidate(proof, identity: identity) else { return nil }
-            return ApplicationArtwork(image: artwork.image, displayName: artwork.displayName.map { "\($0) Helper" })
+            guard urls.count <= Self.maximumCandidates else { return nil }
+            return await verifier.selectParent(candidates: urls, of: identity)
         }
         return nil
+    }
+
+    /// The installed app whose signature matches `identity`, or for a helper
+    /// with no bundle of its own, the app from the same team it belongs to.
+    func verifiedBundle(for identity: ProcessIdentity) async -> (url: URL, isParent: Bool)? {
+#if DEBUG
+        if usesFixtureArtwork { return nil }
+#endif
+        let candidates = await candidateURLs(for: identity)
+        if !candidates.isEmpty,
+           let proof = await verifier.select(candidates: candidates, identity: identity),
+           await verifier.revalidate(proof, identity: identity) {
+            return (proof.url, false)
+        }
+        guard let proof = await parentProof(for: identity),
+              await verifier.revalidate(proof, identity: identity) else { return nil }
+        return (proof.url, true)
     }
 
     /// Artwork already in the cache, so a recreated view can show it at once.

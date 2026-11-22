@@ -1,3 +1,4 @@
+import Foundation
 import RiftCore
 import RiftIPC
 
@@ -10,27 +11,37 @@ public enum ConnectionAlertWarning: Sendable, Hashable {
     case translocated
     case internationalName
 
+    /// Each sentence is whole, for the app and for its helper, so it can be
+    /// translated without joining pieces.
     public var message: String {
         switch self {
-        case .unsigned(let helper):
-            "\(Self.subject(helper)) isn’t signed, so Rift can’t tell who made it. A rule for it stops working if the file changes."
-        case .selfSigned(let helper):
-            "\(Self.subject(helper)) is signed only by itself, so Rift can’t tell who made it. A rule for it stops working when it’s rebuilt or updated."
-        case .unrecognizedCertificate(let helper):
-            "\(Self.subject(helper)) is signed with a certificate Apple didn’t issue, so Rift can’t confirm who made it."
+        case .unsigned(false):
+            String(localized: "This app isn’t signed, so Rift can’t tell who made it. A rule for it stops working if the file changes.", bundle: .module)
+        case .unsigned(true):
+            String(localized: "The helper that made this connection isn’t signed, so Rift can’t tell who made it. A rule for it stops working if the file changes.", bundle: .module)
+        case .selfSigned(false):
+            String(localized: "This app is signed only by itself, so Rift can’t tell who made it. A rule for it stops working when it’s rebuilt or updated.", bundle: .module)
+        case .selfSigned(true):
+            String(localized: "The helper that made this connection is signed only by itself, so Rift can’t tell who made it. A rule for it stops working when it’s rebuilt or updated.", bundle: .module)
+        case .unrecognizedCertificate(false):
+            String(localized: "This app is signed with a certificate Apple didn’t issue, so Rift can’t confirm who made it.", bundle: .module)
+        case .unrecognizedCertificate(true):
+            String(localized: "The helper that made this connection is signed with a certificate Apple didn’t issue, so Rift can’t confirm who made it.", bundle: .module)
         case .translocated:
-            "macOS is running this app from a temporary copy, because it was opened where it was downloaded. Move it to Applications and open it again, or a rule for it won’t match next time."
+            String(localized: "macOS is running this app from a temporary copy, because it was opened where it was downloaded. Move it to Applications and open it again, or a rule for it won’t match next time.", bundle: .module)
         case .internationalName:
-            "This name uses international letters, shown in their xn-- form. Check it isn’t imitating a name you know."
+            String(localized: "This name uses international letters, shown in their xn-- form. Check it isn’t imitating a name you know.", bundle: .module)
         }
-    }
-
-    private static func subject(_ helper: Bool) -> String {
-        helper ? "The helper that made this connection" : "This app"
     }
 }
 
 public enum ConnectionAlertWarnings {
+    /// Whether allowing should take a deliberate click or ⌘A instead of
+    /// Return. Any warning is a reason to read the alert first.
+    public static func requiresDeliberateAllow(for prompt: PromptRequest) -> Bool {
+        !warnings(for: prompt).isEmpty
+    }
+
     /// Warnings for one alert, most serious first.
     public static func warnings(for prompt: PromptRequest) -> [ConnectionAlertWarning] {
         var result: [ConnectionAlertWarning] = []

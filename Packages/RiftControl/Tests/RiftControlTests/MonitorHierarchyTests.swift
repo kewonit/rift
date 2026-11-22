@@ -268,3 +268,24 @@ private func monitorConfiguration(rules: [Rule]) -> PolicyConfigurationDraft {
         activeProfileID: nil, enabledLocalGroupIDs: [], rules: rules
     )
 }
+
+@Test func monitorCoverageSaysWhenABlocklistDecides() throws {
+    let row = try monitorHierarchyRow()
+    let seed = try #require(MonitorExactRuleSeed.make(from: row))
+    let listed = try Rule(
+        id: UUID(), lineageID: UUID(), revision: 1, action: .filter(.deny),
+        priority: .blocklistDeny, process: .anyProcess, destination: seed.destination,
+        transportProtocol: .anySupportedProtocol, port: nil, direction: .bidirectional,
+        owner: seed.owner, flags: [.sourceManaged], source: .blocklist(sourceID: UUID()),
+        createdAt: Date(), modifiedAt: Date()
+    )
+    let blocked = MonitorCoverageEvaluator.evaluate(
+        [row], configuration: monitorConfiguration(rules: [listed]), enforcementState: .enforced
+    )[row.id]
+    #expect(blocked?.decidedByBlocklist == true)
+    let own = MonitorCoverageEvaluator.evaluate(
+        [row], configuration: monitorConfiguration(rules: [try monitorRule(for: row, exact: true)]),
+        enforcementState: .enforced
+    )[row.id]
+    #expect(own?.decidedByBlocklist == false)
+}

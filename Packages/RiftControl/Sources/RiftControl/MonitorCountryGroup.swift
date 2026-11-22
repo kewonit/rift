@@ -9,17 +9,17 @@ struct MonitorCountryGroup: Hashable {
 
     init(_ flow: FlowDescriptor, context: MonitorSearchContext) {
         guard let peer = flow.remoteEndpoint else {
-            self.init(key: "unknown", title: "Unknown location")
+            self.init(key: "unknown", title: String(localized: "Unknown location", bundle: .module))
             return
         }
         if peer.classes.contains(.loopback) {
-            self.init(key: "this-mac", title: "This Mac")
+            self.init(key: "this-mac", title: String(localized: "This Mac", bundle: .module))
         } else if !peer.classes.isEmpty {
-            self.init(key: "local-network", title: "Local network")
+            self.init(key: "local-network", title: String(localized: "Local network", bundle: .module))
         } else if let code = context.countryCode?(peer.address) {
             self.init(key: "country:" + code, title: context.countryName?(code) ?? code)
         } else {
-            self.init(key: "unknown", title: "Unknown location")
+            self.init(key: "unknown", title: String(localized: "Unknown location", bundle: .module))
         }
     }
 
@@ -39,7 +39,7 @@ struct MonitorDomainGroup: Hashable {
     init(_ flow: FlowDescriptor, suffixes: PublicSuffixList = .shared) {
         guard flow.direction == .outgoing, let host = flow.observedHostname else {
             key = "no-name"
-            title = "No name"
+            title = String(localized: "No name", bundle: .module)
             return
         }
         let domain = suffixes.registrableDomain(of: host) ?? host

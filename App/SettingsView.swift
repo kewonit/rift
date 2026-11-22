@@ -9,9 +9,9 @@ struct SettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationSensitiveDetails") private var sensitiveDetails = false
     @AppStorage("statusRecentLimit") private var recentLimit = 5
-    @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = "Once"
-    @AppStorage("alertDefaultScope") private var alertDefaultScope = "Current profile"
-    @AppStorage("alertDefaultDestination") private var alertDefaultDestination = "This destination"
+    @AppStorage(AlertDefaults.lifetimeKey) private var alertDefaultLifetime = AlertDefaults.lastUsed
+    @AppStorage(AlertDefaults.scopeKey) private var alertDefaultScope = "Current profile"
+    @AppStorage(AlertDefaults.destinationKey) private var alertDefaultDestination = AlertDefaults.lastUsed
     @AppStorage("settingsSection") private var section: SettingsSection = .general
     @State private var launchAtLogin = false
     @State private var loginItemLoaded = false
@@ -39,7 +39,7 @@ struct SettingsView: View {
     @State private var activeProfileID: UUID?
     @State private var newProfileName = ""
     @State private var newGroupName = ""
-    @State private var blocklistName = "Local Blocklist"
+    @State private var blocklistName = String(localized: "Local Blocklist")
     @State private var editingProfile: PolicyProfile?
     @State private var editingGroup: LocalRuleGroup?
     @State private var definitionName = ""
@@ -59,9 +59,11 @@ struct SettingsView: View {
                             .padding(.vertical, 8)
                         Divider()
                     }
+                    ConfigurationLockBanner()
                     pane(for: item)
                         .allowsHitTesting(!isPreview)
                         .accessibilityHidden(isPreview)
+                        .disabled(ConfigurationLock.shared.isLocked)
                 }
                 .tabItem { Label(item.title, systemImage: item.symbol) }
                 .tag(item)
@@ -78,10 +80,8 @@ struct SettingsView: View {
                 return
             }
             recentLimit = min(max(recentLimit, 0), 25)
-            if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
-            if !["Once", "Five minutes", "One hour", "Always"].contains(alertDefaultLifetime) {
-                alertDefaultLifetime = "Once"
-            }
+            alertDefaultLifetime = AlertDefaults.normalizedLifetimePreset(alertDefaultLifetime)
+            alertDefaultDestination = AlertDefaults.normalizedDestinationPreset(alertDefaultDestination)
             if !["Current profile", "All profiles"].contains(alertDefaultScope) {
                 alertDefaultScope = "Current profile"
             }
@@ -102,6 +102,7 @@ struct SettingsView: View {
             }
         }
         .modifier(ModeChangeConfirmation(pendingMode: $pendingBaseMode, confirm: saveBaseMode))
+        .riftAnnounces(message)
         .confirmationDialog(
             "Restore this configuration?",
             isPresented: $showingRestoreConfirmation,
@@ -164,6 +165,8 @@ struct SettingsView: View {
                 alertDefaultScope: $alertDefaultScope,
                 alertDefaultDestination: $alertDefaultDestination,
                 recentLimit: $recentLimit,
+                filterEnforcesUnanswered: controlPlane.filterSupportsExtendedPolicy,
+                unansweredChanged: controlPlane.syncUnansweredAlerts,
                 permissionRequested: requestNotificationPermission
             )
         case .history:
@@ -173,7 +176,10 @@ struct SettingsView: View {
                 maximumFlows: $maximumFlows,
                 changed: historySettingsChanged,
                 clear: { showingClearHistoryConfirmation = true },
-                export: { pendingHistoryExport = $0 }
+                export: { pendingHistoryExport = $0 },
+                loadHostnameCoverage: { [controlPlane] in
+                    try? await controlPlane.history?.hostnameCoverage(since: Date().addingTimeInterval(-7 * 86_400))
+                }
             )
         case .policies:
             PolicySettingsPane(
@@ -236,7 +242,7 @@ struct SettingsView: View {
             }
             await loadDefinitions()
         } catch {
-            message = "Couldn’t load settings. Try again in a moment."
+            message = String(localized: "Couldn’t load settings. Try again in a moment.")
         }
     }
 
@@ -248,7 +254,7 @@ struct SettingsView: View {
             activeProfileID = definitions.active
             blocklists = try await controlPlane.blocklistSources()
         } catch {
-            message = "Couldn’t load profiles, groups, and blocklists."
+            message = String(localized: "Couldn’t load profiles, groups, and blocklists.")
         }
     }
 
@@ -280,7 +286,7 @@ struct SettingsView: View {
                 wasSaved = true
                 if result.requiresAttention { failureMessage = result.message }
             } catch {
-                failureMessage = "Couldn’t change the default mode. Try again."
+                failureMessage = String(localized: "Couldn’t change the default mode. Try again.")
             }
             do {
                 let presentation = try await controlPlane.policyPresentation()
@@ -293,8 +299,8 @@ struct SettingsView: View {
                 confirmedBaseMode = wasSaved ? value : previous
                 failureMessage = failureMessage
                     ?? (wasSaved
-                        ? "The default mode was saved, but Settings couldn’t show the update."
-                        : "Couldn’t refresh the default mode.")
+                        ? String(localized: "The default mode was saved, but Settings couldn’t show the update.")
+                        : String(localized: "Couldn’t refresh the default mode."))
             }
             message = failureMessage
             isChangingBaseMode = false
@@ -320,7 +326,7 @@ struct SettingsView: View {
 
     private func applyHistorySettings(clearHistory: Bool, clearUsage: Bool = false) {
         savedHistory = HistoryValues(enabled: historyEnabled, days: retentionDays, flows: maximumFlows)
-        perform("Couldn’t change history settings. Try again.") {
+        perform(String(localized: "Couldn’t change history settings. Try again.")) {
             try await controlPlane.configureHistory(
                 enabled: historyEnabled,
                 retentionDays: retentionDays,
@@ -332,8 +338,8 @@ struct SettingsView: View {
 
     private func clearHistory(clearUsage: Bool) {
         perform(clearUsage
-            ? "Couldn’t clear connection history and rule usage."
-            : "Couldn’t clear connection history.") {
+            ? String(localized: "Couldn’t clear connection history and rule usage.")
+            : String(localized: "Couldn’t clear connection history.")) {
             try await controlPlane.clearHistory(clearUsage: clearUsage)
         }
     }
@@ -346,11 +352,11 @@ struct SettingsView: View {
                 let granted = try await controlPlane.requestNotificationPermission()
                 if !granted {
                     notificationsEnabled = false
-                    message = "Notifications aren’t allowed. Turn them on in System Settings › Notifications."
+                    message = String(localized: "Notifications aren’t allowed. Turn them on in System Settings › Notifications.")
                 }
             } catch {
                 notificationsEnabled = false
-                message = "Rift couldn’t ask for notification permission. Try again."
+                message = String(localized: "Rift couldn’t ask for notification permission. Try again.")
             }
             controlPlane.requestActivitySubscriptionUpdate()
         }
@@ -364,10 +370,10 @@ struct SettingsView: View {
                 switch outcome {
                 case .enforced:
                     restoreNeedsRetry = false
-                    message = "Configuration restored and active."
+                    message = String(localized: "Configuration restored and active.")
                 case .savedPendingEnforcement:
                     restoreNeedsRetry = true
-                    message = "The restored configuration is saved, but the filter isn’t using it yet."
+                    message = String(localized: "The restored configuration is saved, but the filter isn’t using it yet.")
                 }
                 self.importData = nil
             } catch {
@@ -379,30 +385,30 @@ struct SettingsView: View {
 
     private func restoreFailureMessage(_ error: any Error) -> String {
         guard let databaseError = error as? ConfigurationDatabaseError else {
-            return "Nothing was restored. Your current configuration hasn’t changed."
+            return String(localized: "Nothing was restored. Your current configuration hasn’t changed.")
         }
         switch databaseError {
         case .unsupportedSchema:
-            return "This configuration was saved by a newer version of Rift, so Rift left it unchanged. Update Rift, then try again."
+            return String(localized: "This configuration was saved by a newer version of Rift, so Rift left it unchanged. Update Rift, then try again.")
         case .recoveryRollbackFailed:
-            return "Recovery didn’t finish, and Rift couldn’t put the original configuration back. A private copy is in the Configuration Quarantine folder. Check it before you try again."
+            return String(localized: "Recovery didn’t finish, and Rift couldn’t put the original configuration back. A private copy is in the Configuration Quarantine folder. Check it before you try again.")
         case .recoveryPreparationCleanupFailed:
-            return "Nothing was restored, and your current configuration hasn’t changed. Rift couldn’t clean up a temporary file."
+            return String(localized: "Nothing was restored, and your current configuration hasn’t changed. Rift couldn’t clean up a temporary file.")
         case .schemaPreflightCleanupFailed:
-            return "Recovery stopped. Your configuration hasn’t changed, but Rift couldn’t remove a temporary copy."
+            return String(localized: "Recovery stopped. Your configuration hasn’t changed, but Rift couldn’t remove a temporary copy.")
         case .invalidDatabaseDirectory, .integrityCheckFailed:
-            return "Nothing was restored. Your current configuration hasn’t changed."
+            return String(localized: "Nothing was restored. Your current configuration hasn’t changed.")
         }
     }
 
     private func exportHistory() {
         guard let format = pendingHistoryExport else { return }
         pendingHistoryExport = nil
-        perform("Couldn’t export connection history.") {
+        perform(String(localized: "Couldn’t export connection history. A long history can be too large for JSON, so try CSV.")) {
             let data = try await controlPlane.historyExportData(format: format)
             try await ArchiveFileAccess.save(
                 data: data,
-                suggestedName: "Rift Connection History.\(format == .json ? "json" : "csv")"
+                suggestedName: String(localized: "Rift Connection History.\(format == .json ? "json" : "csv")")
             )
         }
     }
@@ -421,7 +427,7 @@ struct SettingsView: View {
     private func saveProfileName() {
         guard let profile = editingProfile else { return }
         editingProfile = nil
-        performDefinitionMutation("Couldn’t rename the profile.") {
+        performDefinitionMutation(String(localized: "Couldn’t rename the profile.")) {
             try await controlPlane.updateProfile(profile.id, name: definitionName)
         }
     }
@@ -429,7 +435,7 @@ struct SettingsView: View {
     private func saveGroup() {
         guard let group = editingGroup else { return }
         editingGroup = nil
-        performDefinitionMutation("Couldn’t update the group.") {
+        performDefinitionMutation(String(localized: "Couldn’t update the group.")) {
             try await controlPlane.updateLocalGroup(
                 group.id, name: definitionName, note: definitionNote
             )
@@ -470,14 +476,14 @@ struct SettingsView: View {
     private func configureLoginItem(_ enabled: Bool) {
         guard loginItemLoaded else {
             launchAtLogin = false
-            message = "Rift is still checking whether it opens at login. Try again in a moment."
+            message = String(localized: "Rift is still checking whether it opens at login. Try again in a moment.")
             return
         }
         do {
             try LoginItem.set(enabled)
         } catch {
             launchAtLogin = LoginItem.isEnabled
-            message = "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings."
+            message = String(localized: "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings.")
         }
     }
 }

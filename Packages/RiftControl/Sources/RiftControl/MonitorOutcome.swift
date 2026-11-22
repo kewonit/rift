@@ -1,3 +1,4 @@
+import Foundation
 import RiftCore
 import RiftIPC
 
@@ -46,14 +47,26 @@ extension RuntimeEvent {
 
     /// Why this happened, in a sentence that stays true for every mode.
     public var causeSentence: String {
-        let verb = outcome == .blocked ? "blocked" : "allowed"
+        let blocked = outcome == .blocked
         return switch cause {
-        case .rule: "A rule \(verb) it."
-        case .yourAnswer: "You \(verb) it when Rift asked."
-        case .mode: "No rule decided this, so your mode \(verb) it."
-        case .alertTimedOut: "The alert timed out, so it was \(verb)."
-        case .alertUnavailable: "Rift couldn’t show an alert, so it was \(verb)."
-        case .noActiveRules: "No rules were active, so it was \(verb)."
+        case .rule:
+            blocked ? String(localized: "A rule blocked it.", bundle: .module)
+                : String(localized: "A rule allowed it.", bundle: .module)
+        case .yourAnswer:
+            blocked ? String(localized: "You blocked it when Rift asked.", bundle: .module)
+                : String(localized: "You allowed it when Rift asked.", bundle: .module)
+        case .mode:
+            blocked ? String(localized: "No rule decided this, so your mode blocked it.", bundle: .module)
+                : String(localized: "No rule decided this, so your mode allowed it.", bundle: .module)
+        case .alertTimedOut:
+            blocked ? String(localized: "The alert timed out, so it was blocked.", bundle: .module)
+                : String(localized: "The alert timed out, so it was allowed.", bundle: .module)
+        case .alertUnavailable:
+            blocked ? String(localized: "Rift couldn’t show an alert, so it was blocked.", bundle: .module)
+                : String(localized: "Rift couldn’t show an alert, so it was allowed.", bundle: .module)
+        case .noActiveRules:
+            blocked ? String(localized: "No rules were active, so it was blocked.", bundle: .module)
+                : String(localized: "No rules were active, so it was allowed.", bundle: .module)
         }
     }
 }

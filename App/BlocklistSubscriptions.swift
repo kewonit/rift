@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 import RiftControl
+import RiftCore
+import UserNotifications
 
 /// Keeps subscribed blocklists up to date: once a day while Rift runs, and
 /// whenever the person asks. Only lists the person subscribed to are
@@ -52,12 +54,14 @@ final class BlocklistSubscriptions {
         return result
     }
 
-    /// Checks one list now. Returns what happened, in a sentence.
+    /// Checks one list now. Returns what happened, in a sentence. An
+    /// automatic check also notifies when the list changed or couldn't be
+    /// checked, if notifications are on.
     @discardableResult
-    func refresh(_ id: UUID) async -> String {
-        guard var item = items[id] else { return "This blocklist isn’t a subscription." }
-        guard let controlPlane else { return "Rift isn’t ready to check blocklists yet." }
-        guard !refreshing.contains(id) else { return "This blocklist is already being checked." }
+    func refresh(_ id: UUID, notifies: Bool = false) async -> String {
+        guard var item = items[id] else { return String(localized: "This blocklist isn’t a subscription.") }
+        guard let controlPlane else { return String(localized: "Rift isn’t ready to check blocklists yet.") }
+        guard !refreshing.contains(id) else { return String(localized: "This blocklist is already being checked.") }
         refreshing.insert(id)
         defer { refreshing.remove(id) }
         let now = Date()
@@ -69,7 +73,7 @@ final class BlocklistSubscriptions {
                 item.lastFailure = nil
                 item.lastCheckedAt = now
                 keep(item)
-                return "The blocklist is up to date."
+                return String(localized: "The blocklist is up to date.")
             case .changed(let data, let tag, let modified):
                 let result = try await controlPlane.replaceBlocklist(id, data: data)
                 item.lastFailure = nil
@@ -78,13 +82,15 @@ final class BlocklistSubscriptions {
                 item.lastModified = modified
                 if result != nil { item.lastChangedAt = now }
                 keep(item)
-                return result.map { $0.message } ?? "The blocklist is up to date."
+                if notifies, let result { await notify(String(localized: "Blocklist updated"), id: id, detail: result.message) }
+                return result.map { $0.message } ?? String(localized: "The blocklist is up to date.")
             }
         } catch {
             item.lastFailure = Self.message(for: error)
             item.lastCheckedAt = now
             keep(item)
-            return item.lastFailure ?? "The blocklist couldn’t be checked."
+            if notifies { await notify(String(localized: "A blocklist couldn’t be updated"), id: id, detail: item.lastFailure ?? "") }
+            return item.lastFailure ?? String(localized: "The blocklist couldn’t be checked.")
         }
     }
 
@@ -108,35 +114,87 @@ final class BlocklistSubscriptions {
         for id in items.keys where !existing.contains(id) { forget(id) }
         let now = Date()
         for item in items.values where item.isDue(now: now) {
-            await refresh(item.id)
+            await refresh(item.id, notifies: true)
         }
     }
 
     static func message(for error: any Error) -> String {
         switch error {
         case BlocklistSubscriptionError.invalidAddress:
-            "Enter the full web address of a list, starting with https://."
+            String(localized: "Enter the full web address of a list, starting with https://.")
         case BlocklistSubscriptionError.insecureAddress:
-            "Rift downloads lists only over HTTPS, so nobody on the network can change them. Use an address that starts with https://."
+            String(localized: "Rift downloads lists only over HTTPS, so nobody on the network can change them. Use an address that starts with https://.")
         case BlocklistSubscriptionError.credentialsInAddress:
-            "Leave the user name and password out of the address."
+            String(localized: "Leave the user name and password out of the address.")
         case BlocklistSubscriptionError.tooLarge:
-            "The list is too large for Rift to use."
+            String(localized: "The list is too large for Rift to use.")
         case BlocklistSubscriptionError.server(let status):
-            "The server answered with error \(status)."
+            String(localized: "The server answered with error \(status).")
         case BlocklistSubscriptionError.notAList:
-            "The server didn’t send a list."
+            String(localized: "The server didn’t send a list.")
         case PolicyDefinitionError.duplicateName:
-            "You already have a blocklist with that name. Choose another name."
+            String(localized: "You already have a blocklist with that name. Choose another name.")
         case is BlocklistParserError, is LSRulesFileError:
-            "The download isn’t a list Rift can read."
+            String(localized: "The download isn’t a list Rift can read.")
         case let error as URLError where error.code == .notConnectedToInternet:
-            "The Mac isn’t connected to the internet."
+            String(localized: "The Mac isn’t connected to the internet.")
         case is URLError:
-            "Rift couldn’t reach the server."
+            String(localized: "Rift couldn’t reach the server.")
         default:
-            "The list couldn’t be updated."
+            String(localized: "The list couldn’t be updated.")
         }
+    }
+
+    /// What a configuration archive keeps: each list's ID, address and how
+    /// often it's checked.
+    var archived: [ArchivedBlocklistSubscription] {
+        items.values.map { ArchivedBlocklistSubscription(blocklistID: $0.id, url: $0.url, interval: $0.interval) }
+    }
+
+    func setInterval(_ interval: BlocklistUpdateInterval, for id: UUID) {
+        guard var item = items[id], ConfigurationLock.shared.permits(.byHand) else { return }
+        item.interval = interval == .daily ? nil : interval
+        items[id] = item
+        save()
+    }
+
+    /// Checks every subscribed list now, one after another.
+    func refreshAll() async -> String {
+        var changed = 0
+        var failed = 0
+        for id in items.keys.sorted(by: { $0.uuidString < $1.uuidString }) {
+            let before = items[id]?.lastChangedAt
+            _ = await refresh(id)
+            if items[id]?.lastFailure != nil { failed += 1 } else if items[id]?.lastChangedAt != before { changed += 1 }
+        }
+        let lists = String(localized: "\(items.count) lists")
+        return String(
+            localized: "Checked \(lists): \(changed) updated, \(failed) couldn’t be checked.",
+            comment: "The first value is a count of lists, like “3 lists”"
+        )
+    }
+
+    private func notify(_ title: String, id: UUID, detail: String) async {
+        guard UserDefaults.standard.bool(forKey: "notificationsEnabled") else { return }
+        let name = (try? await controlPlane?.blocklistSources())?.first { $0.id == id }?.name
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = [name.map { DisplaySanitizer.plainText($0) }, detail].compactMap { $0 }.joined(separator: ": ")
+        let request = UNNotificationRequest(identifier: "rift-blocklist-\(id.uuidString)", content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Replaces the subscriptions with ones from a restored archive. They
+    /// haven't been checked on this Mac, so each is checked soon.
+    func restore(_ archived: [ArchivedBlocklistSubscription]) {
+        items = Dictionary(
+            archived.map {
+                ($0.blocklistID, BlocklistSubscription(id: $0.blocklistID, url: $0.url, interval: $0.interval))
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+        save()
+        Task { await refreshDue() }
     }
 
     private func save() {

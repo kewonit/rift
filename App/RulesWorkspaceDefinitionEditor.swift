@@ -79,10 +79,10 @@ struct RuleDefinitionEditorSheet: View {
 
     private var title: String {
         switch editor {
-        case .newProfile: "New Profile"
-        case .profile: "Edit Profile"
-        case .newGroup: "New Group"
-        case .group: "Edit Group"
+        case .newProfile: String(localized: "New Profile")
+        case .profile: String(localized: "Edit Profile")
+        case .newGroup: String(localized: "New Group")
+        case .group: String(localized: "Edit Group")
         }
     }
 
@@ -103,7 +103,7 @@ struct RuleDefinitionEditorSheet: View {
             _ = try PolicyDefinitionValidator.name(name)
             if isGroup { _ = try PolicyDefinitionValidator.note(note) }
         } catch {
-            failureMessage = "Use a shorter name or note."
+            failureMessage = String(localized: "Use a shorter name or note.")
             return
         }
         isSaving = true
@@ -113,7 +113,7 @@ struct RuleDefinitionEditorSheet: View {
             if didSave {
                 dismiss()
             } else {
-                failureMessage = "The change wasn’t saved. Make sure the name isn’t already in use, then try again."
+                failureMessage = String(localized: "The change wasn’t saved. Make sure the name isn’t already in use, then try again.")
             }
         }
     }
@@ -167,10 +167,10 @@ struct RuleBlocklistImportSheet: View {
                 if await model.importBlocklist(data: data, name: name) {
                     dismiss()
                 } else {
-                    failureMessage = "Rift couldn’t import this file. Your blocklists haven’t changed."
+                    failureMessage = String(localized: "Rift couldn’t import this file. Your blocklists haven’t changed.")
                 }
             } catch {
-                failureMessage = "Rift couldn’t read this file."
+                failureMessage = String(localized: "Rift couldn’t read this file.")
             }
             isImporting = false
         }

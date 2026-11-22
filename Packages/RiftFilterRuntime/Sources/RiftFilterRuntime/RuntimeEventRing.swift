@@ -24,6 +24,9 @@ public final class RuntimeEventRing: @unchecked Sendable {
     private var recentRevision: UInt64 = 0
     private var recentWasTruncated = false
     private var recentDenyAt: Date?
+    /// What the app reading these events speaks. Until it says, events go
+    /// out in the oldest shape, which every app decodes.
+    private var controllerProtocol = ProtocolVersion.baseline
 
     public init() {}
 
@@ -65,6 +68,12 @@ public final class RuntimeEventRing: @unchecked Sendable {
         changed?()
     }
 
+    /// Records which protocol the controller speaks, so events carry only
+    /// fields it can decode. Baseline again once it's gone.
+    public func setControllerProtocol(_ version: ProtocolVersion) {
+        lock.withLock { controllerProtocol = version }
+    }
+
     public func shouldReport(flowID: UUID) -> Bool {
         lock.withLock {
             switch subscription.mode {
@@ -98,7 +107,8 @@ public final class RuntimeEventRing: @unchecked Sendable {
             let snapshot = RecentActivitySnapshot(
                 subscriptionID: subscription.id, providerEpoch: providerEpoch,
                 revision: recentRevision,
-                events: values.flatMap { [$0.decision, $0.lifecycle].compactMap { $0 } },
+                events: values.flatMap { [$0.decision, $0.lifecycle].compactMap { $0 } }
+                    .map { $0.compatible(with: controllerProtocol) },
                 isTruncated: recentWasTruncated,
                 nextExpiry: values.map { $0.observedAt.addingTimeInterval(ActivitySubscription.recentLifetime) }.min()
             )
@@ -158,7 +168,8 @@ public final class RuntimeEventRing: @unchecked Sendable {
                 bytesInbound: seed.bytesInbound,
                 bytesOutbound: seed.bytesOutbound,
                 flowEndReason: seed.flowEndReason,
-                notificationRequested: seed.notificationRequested
+                notificationRequested: seed.notificationRequested,
+                processes: seed.processes
             )
             nextSequence &+= 1
             if subscription.mode == .recent {
@@ -206,7 +217,7 @@ public final class RuntimeEventRing: @unchecked Sendable {
     public func drain(maximumCount: Int = IPCProtocolLimits.maximumEventBatchCount) -> RuntimeEventBatch {
         lock.withLock {
             let count = min(max(0, maximumCount), events.count)
-            let result = Array(events.prefix(count))
+            let result = events.prefix(count).map { $0.compatible(with: controllerProtocol) }
             events.removeFirst(count)
             return RuntimeEventBatch(
                 providerEpoch: providerEpoch,
@@ -246,14 +257,10 @@ public final class RuntimeEventRing: @unchecked Sendable {
             if let lhs, let rhs { return max(lhs, rhs) }
             return lhs ?? rhs
         }
-        return RuntimeEvent(
-            providerEpoch: base.providerEpoch, sequence: base.sequence, kind: base.kind,
-            occurredAt: base.occurredAt, flow: base.flow, action: base.action, reason: base.reason,
-            policy: base.policy, winningRuleID: base.winningRuleID, affectingRuleIDs: base.affectingRuleIDs,
-            explanation: base.explanation,
+        return base.replacing(
             bytesInbound: maximum(prior.bytesInbound, event.bytesInbound),
             bytesOutbound: maximum(prior.bytesOutbound, event.bytesOutbound),
-            flowEndReason: base.flowEndReason, notificationRequested: base.notificationRequested
+            processes: base.processes
         )
     }
 

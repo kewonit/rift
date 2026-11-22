@@ -38,12 +38,18 @@ final class AppSession {
     let controlPlane: ControlPlaneController
     let lifecycle: FilterLifecycleController?
     let applicationArtwork: ApplicationArtworkStore
+    /// Apps with no rule and unanswered alerts, for the Review sheet.
+    let review = ReviewQueueModel()
+    /// Notices a filter that's on but has stopped reporting connections.
+    let liveness = FilterLivenessMonitor()
     var destination: AppDestination = .liveMap
     /// What the Map and Rules pages were showing, so switching pages keeps it.
     /// This is small on purpose: the rows themselves are released with the page.
     var savedMapState: SavedMapState?
     var savedRulesSearch = ""
     var requestedMonitorEventID: String?
+    /// A search for the Map to show, from `rift://map?search=…`.
+    var requestedMapSearch: String?
     /// Asks the Map page to show every connection in its table.
     var showsConnectionTable = false
     var requestedRuleIDs: Set<UUID> = []
@@ -110,7 +116,11 @@ final class AppSession {
             rulesMatchDesired: desired != nil && active == desired,
             mode: unreadable ? nil : controlPlane.currentMode,
             configurationUnreadable: unreadable,
-            waitingPrompts: controlPlane.pendingPrompts.count
+            waitingPrompts: controlPlane.pendingPrompts.count,
+            unansweredBlocked: controlPlane.pendingPrompts.contains {
+                ConnectionAlertCountdown.outcome(for: $0).blocks
+            },
+            filterSilent: liveness.isSilent
         )
     }
 
@@ -123,12 +133,12 @@ final class AppSession {
                 let result = try await controller.undoLastRuleChange()
                 let needsAttention = result?.requiresAttention == true
                 controller.actionResults.post(
-                    needsAttention ? result?.message ?? "" : (wasRedo ? "Redone." : "Undone."),
+                    needsAttention ? result?.message ?? "" : (wasRedo ? String(localized: "Redone.") : String(localized: "Undone.")),
                     tone: needsAttention ? .pending : .success,
                     offersUndo: true
                 )
             } catch {
-                controller.actionResults.post("Couldn’t undo because your rules changed.", tone: .failure)
+                controller.actionResults.post(String(localized: "Couldn’t undo because your rules changed."), tone: .failure)
             }
         }
     }
@@ -140,9 +150,9 @@ final class AppSession {
         Task { @MainActor in
             do {
                 _ = try await controlPlane.setEffectiveMode(mode)
-                results.post("Rules are back on, using \(mode.displayName).")
+                results.post(String(localized: "Rules are back on, using \(mode.displayName)."))
             } catch {
-                results.post("Couldn’t turn rules back on. Try again.", tone: .failure)
+                results.post(String(localized: "Couldn’t turn rules back on. Try again."), tone: .failure)
             }
         }
     }
@@ -281,9 +291,14 @@ final class AppSession {
             notificationResponder = responder
             UNUserNotificationCenter.current().delegate = responder
         }
+        controlPlane.protectionStatusProvider = { [weak self] in
+            self?.protectionStatus ?? ProtectionStatus.resolve(ProtectionInputs())
+        }
         startupTask = Task { [controlPlane] in
             await controlPlane.start()
         }
+        review.start(session: self)
+        if !isUIFixture { liveness.start(controlPlane: controlPlane) }
         observePrompts()
         observeLifecycle()
         observeApplicationActivation()

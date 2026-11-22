@@ -11,6 +11,7 @@ struct ConnectionsPanel: View {
     let toggleMap: () -> Void
     var searchFocus: FocusState<Bool>.Binding
     @AppStorage("connectionsLogShown") private var showsLog = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,6 +44,8 @@ struct ConnectionsPanel: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
                 ConnectionFilterBar(feed: feed, showsLog: showsLog)
                 if feed.loading { ProgressView().controlSize(.small) }
                 RiftSearchField(prompt: "Search apps and destinations", text: $feed.query.search, focus: searchFocus)
@@ -79,7 +82,7 @@ struct ConnectionsPanel: View {
                 .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: RiftDesign.Motion.press), value: feed.query.isViewingPast)
+        .animation(reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.press), value: feed.query.isViewingPast)
         .padding(.horizontal, RiftDesign.Spacing.m)
         .padding(.vertical, RiftDesign.Spacing.s)
     }
@@ -92,7 +95,7 @@ struct ConnectionsPanel: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, RiftDesign.Spacing.s)
                 .padding(.vertical, RiftDesign.Spacing.xxs)
-                .background(.regularMaterial, in: Capsule())
+                .riftNoteBackground(Capsule())
                 .padding(.bottom, RiftDesign.Spacing.xs)
                 .allowsHitTesting(false)
         }
@@ -166,16 +169,16 @@ struct ConnectionFilterBar: View {
             .disabled(showsLog)
             Menu {
                 Picker("Decision", selection: $feed.query.decision) {
-                    ForEach(MonitorDecisionFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorDecisionFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Direction", selection: $feed.query.direction) {
-                    ForEach(MonitorDirectionFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorDirectionFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Network", selection: $feed.query.locality) {
-                    ForEach(MonitorLocalityFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorLocalityFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Owner", selection: $feed.query.owner) {
-                    ForEach(MonitorOwnerFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorOwnerFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Divider()
                 Button("Clear Filters") {
@@ -217,11 +220,11 @@ struct ConnectionFilterBar: View {
             }
             Menu {
                 Picker("Sort By", selection: $feed.sort) {
-                    ForEach(MonitorHierarchySort.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorHierarchySort.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.inline)
             } label: {
-                Text(feed.sort.rawValue)
+                Text(feed.sort.title)
             }
             .help(showsLog ? "The log is always newest first" : "Sort connections")
             .disabled(showsLog)
@@ -237,10 +240,10 @@ struct ConnectionFilterBar: View {
 extension MonitorLens {
     var groupTitle: String {
         switch self {
-        case .application: "App"
-        case .hostname: "Destination"
-        case .domain: "Domain"
-        case .country: "Country"
+        case .application: String(localized: "App")
+        case .hostname: String(localized: "Destination")
+        case .domain: String(localized: "Domain")
+        case .country: String(localized: "Country")
         }
     }
 }
@@ -303,12 +306,17 @@ struct ConnectionContextMenu: View {
     var copyText: String?
     var hostname: String?
     var hide: (() -> Void)?
+    /// Narrows the list to this row's app or destination.
+    var focus: (title: String, run: () -> Void)?
 
     var body: some View {
         if canDecide() {
             Button("Allow…") { apply(.allow) }.disabled(disabled)
             Button("Block…") { apply(.deny) }.disabled(disabled)
             Divider()
+        }
+        if let focus {
+            Button(focus.title, action: focus.run)
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)
         if let hide {

@@ -1,3 +1,4 @@
+import Foundation
 import RiftControl
 
 /// How the connection list orders apps and destinations.
@@ -8,8 +9,21 @@ enum MonitorHierarchySort: String, CaseIterable, Identifiable, Sendable {
     case sent = "Data Sent"
     case received = "Data Received"
     case denied = "Most Blocked"
+    case count = "Most Connections"
 
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .activity: String(localized: "Most Recent")
+        case .name: String(localized: "Name")
+        case .traffic: String(localized: "Total Traffic")
+        case .sent: String(localized: "Data Sent")
+        case .received: String(localized: "Data Received")
+        case .denied: String(localized: "Most Blocked")
+        case .count: String(localized: "Most Connections")
+        }
+    }
 
     func comparator(_ lhs: MonitorHierarchyNode, _ rhs: MonitorHierarchyNode) -> Bool {
         switch self {
@@ -35,6 +49,10 @@ enum MonitorHierarchySort: String, CaseIterable, Identifiable, Sendable {
         case .denied:
             if lhs.aggregate.denied != rhs.aggregate.denied {
                 return lhs.aggregate.denied > rhs.aggregate.denied
+            }
+        case .count:
+            if lhs.aggregate.flowCount != rhs.aggregate.flowCount {
+                return lhs.aggregate.flowCount > rhs.aggregate.flowCount
             }
         }
         return lhs.id < rhs.id

@@ -4,7 +4,7 @@ import Testing
 @testable import RiftIPC
 
 @Test func compatibilityRequiresMatchingMajorVersion() {
-    #expect(ProtocolVersion.current == .internationalNames)
+    #expect(ProtocolVersion.current == .extendedPolicy)
     #expect(ProtocolVersion.current.supports(minimum: .baseline))
     #expect(ProtocolVersion.current.isCompatible(with: .init(major: 1, minor: 99)))
     #expect(!ProtocolVersion.current.isCompatible(with: .init(major: 2, minor: 0)))

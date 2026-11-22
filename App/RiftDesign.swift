@@ -61,11 +61,11 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
 
     var label: String {
         switch self {
-        case .allowed: "Allowed"
-        case .denied: "Blocked"
-        case .byDefault: "No rule"
-        case .timedOut: "Timed out"
-        case .mixed: "Some blocked"
+        case .allowed: String(localized: "Allowed")
+        case .denied: String(localized: "Blocked")
+        case .byDefault: String(localized: "No rule")
+        case .timedOut: String(localized: "Timed out")
+        case .mixed: String(localized: "Some blocked")
         }
     }
 
@@ -75,7 +75,9 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         case .denied: "xmark"
         case .byDefault: "minus"
         case .timedOut: "clock"
-        case .mixed: "xmark"
+        // Its own shape: in the same red as Blocked, a cross would tell the
+        // two apart only by the words beside it.
+        case .mixed: "circle.lefthalf.filled"
         }
     }
 
@@ -90,10 +92,10 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
 
 /// A titled group of rows in an inspector.
 struct RiftInspectorSection<Content: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     @ViewBuilder let content: Content
 
-    init(_ title: String, @ViewBuilder content: () -> Content) {
+    init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) {
         self.title = title
         self.content = content()
     }
@@ -121,11 +123,25 @@ struct RiftInspectorRowStyle: LabeledContentStyle {
     }
 }
 
-/// A label and value on one line, like a property in an inspector.
+/// A label and value on one line, like a property in an inspector. A literal
+/// title is looked up in the string catalog; a `String` is shown as it is.
 struct RiftPropertyRow<Value: View>: View {
-    let title: String
+    let title: Text
     var symbol: String?
     @ViewBuilder let value: Value
+
+    init(title: LocalizedStringKey, symbol: String? = nil, @ViewBuilder value: () -> Value) {
+        self.title = Text(title)
+        self.symbol = symbol
+        self.value = value()
+    }
+
+    @_disfavoredOverload
+    init(title: String, symbol: String? = nil, @ViewBuilder value: () -> Value) {
+        self.title = Text(title)
+        self.symbol = symbol
+        self.value = value()
+    }
 
     var body: some View {
         HStack(spacing: RiftDesign.Spacing.s) {
@@ -135,7 +151,7 @@ struct RiftPropertyRow<Value: View>: View {
                     .frame(width: 16)
                     .accessibilityHidden(true)
             }
-            Text(title).foregroundStyle(.secondary)
+            title.foregroundStyle(.secondary)
             Spacer(minLength: RiftDesign.Spacing.s)
             value
         }
@@ -153,11 +169,11 @@ enum RiftStatusTone: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .allowed: "Allowed"
-        case .denied: "Blocked"
-        case .unresolved: "Inactive"
-        case .warning: "Needs attention"
-        case .on: "On"
+        case .allowed: String(localized: "Allowed")
+        case .denied: String(localized: "Blocked")
+        case .unresolved: String(localized: "Inactive")
+        case .warning: String(localized: "Needs attention")
+        case .on: String(localized: "On")
         }
     }
 

@@ -4,6 +4,153 @@ The changelog records notable user-visible changes.
 
 ## Unreleased
 
+- A connection alert now offers a lasting rule for the whole domain by
+  default, so the same app doesn't ask again for the next name under it.
+  Connections with no name, and incoming ones, still default to the exact
+  destination. Alert defaults start at "As last time", which follows your most
+  recent lasting answer; choosing a fixed default in Settings › Alerts keeps it.
+  Before, alerts defaulted to Once for one host and port.
+- Alerts and the Alert Defaults setting add 15 minutes, 1 day and 1 week.
+- An alert with a warning, such as for unsigned code or a look-alike name, is
+  titled "Check this connection" and tinted, and Return no longer allows it:
+  click Allow or press ⌘A. The one-second guard against keys typed for
+  another window now covers ⌘A and ⌘B too.
+- Exported configurations now include blocklist subscription addresses,
+  Settings › Networks, and alert settings such as "Block connections I don't
+  answer", and Import Configuration restores them. Before, a restore brought
+  back a subscribed blocklist's entries but not its subscription, and lost
+  every network's profile choice. Undo Restore puts the previous settings
+  back. Configurations exported by this version can't be imported by earlier
+  ones.
+- `riftctl status` starts with the mode, the active profile and the filter's
+  state as Rift's Status page shows them, and `--json` adds them under `app`.
+  It doesn't open Rift for this; when Rift isn't running, it says so.
+- With history on, Settings › History shows how many outgoing connections in
+  the last 7 days reached Rift with only an IP address, which rules for names
+  and domain blocklists can't match. Diagnostics include the same two counts.
+- Setup now keeps 7 days of connection history when you choose Allow and
+  Watch, so there is something to review, and says so; you can turn it off
+  there or in Settings › History. Before, setup left history off, which kept
+  only 10 connections for five minutes. Choosing Ask Me offers "Allow Apple
+  system services", which adds the macOS Services group before the first
+  alert.
+- A Review sheet lists apps that connected with no rule over the last 7 days,
+  and alerts nobody answered, each with one-click Allow and Block and Undo.
+  The Map shows a banner and the menu-bar panel a line while something is
+  left; "Not Now" hides an app until it connects somewhere new. After a day
+  in Allow and Watch, Rift suggests a review once, and when nothing is left
+  it offers Ask Me.
+- Notifications about a connection no rule decided, including alerts nobody
+  answered, have Allow and Block buttons that make a lasting rule for its
+  domain, with Undo in Rift. A new network's notification offers "Use Current
+  Profile Here" and "Choose…", which opens Settings › Networks.
+- When the app in front is full screen, a new alert arrives as the small
+  minimized bar instead of covering it. With "Only this time" chosen, an
+  alert can answer the other waiting connections from the same app too. The
+  alert's lifetime is now a Remember menu, so the new lifetimes fit.
+- Rift now says when the filter is on but no connection has reached it for 5
+  minutes while the network is up, as happened to firewalls after some macOS
+  updates. The Status page, the menu-bar icon, the Map and `riftctl status`
+  show "Rift isn't seeing connections". Rift checks only while it's receiving
+  connections, with history on or the Map or menu open.
+- In a connection alert, single keys choose how long the answer lasts: O only
+  this time, 5 five minutes, H one hour, F always. D shows or hides the
+  details. They're off while you type a note.
+- The Map's connection table has a Rule column: one click always allows or
+  blocks that row, the whole app for an app or the name, domain or
+  connection for a destination, with Undo. A filled button shows what
+  today's rules do. Clicking a column header sorts by it, and Sort By adds
+  Most Connections.
+- In the menu-bar panel, pointing at a recent app shows its five-minute rule:
+  Block for an allowed app, Allow for a blocked one. Before, it took a
+  right-click. VoiceOver offers it as an action.
+- Settings › Networks can allow switching to a less strict profile on the
+  network you're on: turn on "Switch even when it's less strict" there.
+  Rift then switches on its own and always notifies you when it does.
+  Changing that network's profile turns the approval off. Without it, Rift
+  still never weakens protection on its own.
+- The Redundant, Unused and Expired rule lists say what they mean and offer
+  Delete All, with Undo. A rule's context menu adds Show on Map, which opens
+  the Map searched to its app. The rule editor's Choose App or Tool… accepts
+  command-line tools as well as apps.
+- Each blocklist subscription can be checked every hour, day or week, or
+  only when you ask; daily is still the default. Update All Subscriptions
+  checks them all at once. With notifications on, Rift says when an
+  automatic check changes a list or can't reach it.
+- Rift's Dock icon has a menu with Map, Rules, Review and Settings, and
+  Settings › General can turn on ⌃⌥⌘R to show the Map from any app. Both work
+  when the menu-bar icon is hidden. The shortcut needs no extra permission.
+- The Map's Decision column says "Blocked by a list" when a blocklist, not one
+  of your rules, blocked a connection. The map says how many connections it
+  doesn't draw (local, without a known country, or beyond the 12 busiest
+  countries), and its caption moved to the bottom so banners no longer hide
+  it. An alert's "Apply to" names the active profile.
+- A Map row's context menu adds Show Only This App or Show Only This
+  Destination, which fills the search to narrow the list.
+- `riftctl history export <path> [--format csv|json]` saves connection
+  history. It works only after you turn on Allow access from Terminal in
+  Settings › Advanced, which is off by default, because any app running as you
+  can run `riftctl`. Status, profiles and diagnostics don't need it.
+- VoiceOver now hears more of a connection alert: each warning, the time left
+  when it opens, a reminder when 10 seconds remain, and any problem that keeps
+  the alert open. The countdown reads in words instead of ticking every
+  second, and the minimized bar says what's waiting.
+- Map and Rules rows offer their main commands as VoiceOver actions, and
+  VoiceOver now says correctly whether a rule is on; before, every rule was
+  read as "Some on". The menu-bar panel and Review read times in words and
+  name their buttons for their app.
+- "Some blocked" has its own symbol instead of Blocked's red cross, and
+  VoiceOver can select a country on the map. With Increase Contrast, warned
+  alerts get an orange edge and map routes, search fields and highlights are
+  stronger; with Reduce Transparency, notes and map labels are opaque. Reduce
+  Motion covers more animations.
+- Settings › Alerts sets how long an alert waits for an answer (15 seconds to
+  2 minutes) and whether an unanswered connection is allowed or blocked. The
+  network filter enforces both, so Block also applies while Rift isn't open.
+  Before login, or while another account is in front, such connections are
+  still allowed, and UDP waits 8 seconds at most.
+- An alert's Details and the Map inspector show the process ID and full path
+  of the program that connected, and of its app when a helper connected for
+  it. History keeps them; diagnostics don't.
+- A rule can list ports, such as `20-30, 80, 443`, up to 16 ranges, in the
+  rule editor, Edit Rules and `.lsrules` import.
+- Any rule can be High priority. It wins over every normal rule however
+  specific, and never over a blocklist. Imported high-priority rules arrive
+  turned off until you've checked them.
+- The four changes above need the updated network filter (protocol 1.4). With
+  an older filter, Rift keeps the fixed alert wait, blocks unanswered
+  connections only while it's open, and doesn't offer port lists or High
+  priority.
+- Alert details and the Map inspector show what an app's developer says a
+  connection is for, from the Internet Access Policy file the app ships, read
+  from disk only and only when the app's signature covers it. When the
+  developer says what blocking breaks, the alert's first Block shows it and
+  Block Anyway blocks. With history on, an alert also says when it's the first
+  time the app has connected to that domain.
+- Export as .lsrules… in the Rules menu saves selected rules in that format.
+  Rules it can't express exactly, such as temporary, per-profile or
+  system-process rules, are left out, and Rift says how many.
+- Subscribe to Rule Group… keeps a group up to date from a `.lsrules` file at
+  an HTTPS address, checked hourly, daily, weekly or only when you ask. New
+  allow rules from an update stay off until you turn them on, unless you
+  change that for the group, and high-priority rules always wait.
+  Configuration archives include these subscriptions.
+- Lock Configuration (⌘L) stops changes to rules, profiles, modes and
+  settings, from the menu bar and `riftctl` too, until you unlock with Touch
+  ID or your login password; Unlock Until Quit locks again at the next
+  launch. Alerts can still be answered once, and subscription updates and
+  switching profiles by network keep working.
+- Settings › History can keep history for up to a year and 200,000
+  connections; defaults are unchanged. Exports now include every saved
+  connection, not just the newest 50,000.
+- Rift is now available in German, French and Spanish, following the Mac's
+  language: alerts, notifications, the menu bar, the Map, Rules, Review,
+  Settings and the Location Services prompt, with correct singular and plural
+  wording. The translations are machine-made and not yet reviewed by native
+  speakers. `riftctl` keeps printing English in every language, so scripts
+  that read it don't change.
+- The menu-bar panel and the minimized alert let longer text wrap instead of
+  cutting it off.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

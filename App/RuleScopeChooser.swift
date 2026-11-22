@@ -14,7 +14,10 @@ struct MonitorRuleRequest: Identifiable {
     var host: String { DisplaySanitizer.plainText(MonitorQuery.hostnameLabel(row)) }
     var domain: String? { MonitorRuleScope.domain(for: row)?.ascii }
     var port: UInt16? { row.event.flow.destinationEndpoint?.port }
-    var verb: String { action == .deny ? "Block" : "Allow" }
+    var verb: String { action == .deny ? String(localized: "Block") : String(localized: "Allow") }
+    var title: String {
+        action == .deny ? String(localized: "Block \(application)") : String(localized: "Allow \(application)")
+    }
 }
 
 /// Shows exactly what a rule will cover before it's made.
@@ -38,7 +41,7 @@ struct RuleScopeChooser: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: RiftDesign.Spacing.m) {
-            Text("\(request.verb) \(request.application)")
+            Text(request.title)
                 .font(.title3.weight(.semibold))
             if request.options.count > 1 {
                 Picker("Applies to", selection: $breadth) {
@@ -50,7 +53,7 @@ struct RuleScopeChooser: View {
                 .pickerStyle(.radioGroup)
             }
             Picker("For", selection: $duration) {
-                ForEach(MonitorRuleDuration.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(MonitorRuleDuration.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             VStack(alignment: .leading, spacing: RiftDesign.Spacing.xxs) {

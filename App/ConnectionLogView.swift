@@ -7,6 +7,7 @@ import SwiftUI
 struct ConnectionLogView: View {
     @Bindable var feed: MonitorFeed
     let artworkStore: ApplicationArtworkStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let days = Self.days(feed.displayed)
@@ -18,6 +19,8 @@ struct ConnectionLogView: View {
                             ConnectionLogRow(row: row.source, artworkStore: artworkStore)
                                 .tag(row.id)
                                 .id(row.id)
+                                .accessibilityAction(named: "Allow…") { requestRule(.allow, eventID: row.id) }
+                                .accessibilityAction(named: "Block…") { requestRule(.deny, eventID: row.id) }
                         }
                     }
                 }
@@ -41,7 +44,7 @@ struct ConnectionLogView: View {
             .overlay(alignment: .bottomTrailing) {
                 if let newest = days.first?.rows.first?.id {
                     Button {
-                        withAnimation { proxy.scrollTo(newest, anchor: .top) }
+                        withAnimation(reduceMotion ? nil : .default) { proxy.scrollTo(newest, anchor: .top) }
                     } label: {
                         Label("Jump to Newest", systemImage: "arrow.up.to.line")
                     }
@@ -56,6 +59,15 @@ struct ConnectionLogView: View {
                 }
             }
         }
+    }
+
+    /// Allow… or Block… for one line, as its menu offers them. The row is
+    /// looked up only when VoiceOver asks, because the log can be long.
+    private func requestRule(_ action: FilterAction, eventID: String) {
+        guard feed.applyingEventID == nil,
+              let node = MonitorHierarchyBuilder.node(forEventID: eventID, in: feed.hierarchy),
+              !monitorCoveragePending(node.ruleCoverage.state), feed.canDecide(node) else { return }
+        feed.requestRule(action, for: node)
     }
 
     /// The selected connection, by event, mapped to its row in the grouped
@@ -95,9 +107,9 @@ struct ConnectionLogView: View {
     }
 
     static func title(for day: Date, now: Date, calendar: Calendar = .autoupdatingCurrent) -> String {
-        if calendar.isDate(day, inSameDayAs: now) { return "Today" }
+        if calendar.isDate(day, inSameDayAs: now) { return String(localized: "Today") }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now),
-           calendar.isDate(day, inSameDayAs: yesterday) { return "Yesterday" }
+           calendar.isDate(day, inSameDayAs: yesterday) { return String(localized: "Yesterday") }
         return day.formatted(.dateTime.weekday(.wide).month().day().year())
     }
 }

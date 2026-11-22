@@ -1,3 +1,4 @@
+import RiftControl
 import RiftIPC
 import AppKit
 import Foundation
@@ -21,11 +22,29 @@ final class PromptPanelController {
     private var minimized = false
     private var lastInput: (prompts: [PromptRequest], controller: ControlPlaneController, artworkStore: ApplicationArtworkStore)?
     /// Answers Block for a connection nobody answered, when Settings › Alerts
-    /// says to.
+    /// says to and the filter is too old to do it itself.
     private var timeoutAnswers: [UUID: Task<Void, Never>] = [:]
     /// Connections the person is answering right now, which Rift leaves to
     /// them.
     var answering: Set<UUID> = []
+
+    /// Whether the frontmost app has a window covering a whole screen. Reads
+    /// only window sizes and owners, which needs no permission.
+    static func frontmostAppIsFullScreen() -> Bool {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              let windows = CGWindowListCopyWindowInfo(
+                  [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
+              ) as? [[String: Any]] else { return false }
+        let screens = NSScreen.screens.map(\.frame.size)
+        return windows.contains { window in
+            guard (window[kCGWindowOwnerPID as String] as? pid_t) == app.processIdentifier,
+                  (window[kCGWindowLayer as String] as? Int) == 0,
+                  let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return false }
+            return screens.contains { abs($0.width - rect.width) < 1 && abs($0.height - rect.height) < 1 }
+        }
+    }
 
     func update(
         prompts: [PromptRequest],
@@ -43,8 +62,10 @@ final class PromptPanelController {
         let next = prompts.first { $0.nonce == chosenNonce } ?? first
         if next.nonce != chosenNonce { chosenNonce = nil }
         // A new alert after none were waiting opens the way the person chose.
+        // Over a full-screen app it arrives as the small bar, so it doesn't
+        // interrupt whatever is on screen.
         if panel == nil {
-            minimized = UserDefaults.standard.bool(forKey: Self.keepMinimizedKey)
+            minimized = UserDefaults.standard.bool(forKey: Self.keepMinimizedKey) || Self.frontmostAppIsFullScreen()
         }
         let others = prompts.filter { $0.nonce != next.nonce }
         let view: AnyView
@@ -85,7 +106,7 @@ final class PromptPanelController {
             backing: .buffered,
             defer: false
         )
-        panel.title = minimized ? "Rift: Connection Waiting" : "Rift Connection Alert"
+        panel.title = minimized ? String(localized: "Rift: Connection Waiting") : String(localized: "Rift Connection Alert")
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
@@ -136,9 +157,9 @@ final class PromptPanelController {
         answering.formIntersection(waiting)
         for prompt in prompts where timeoutAnswers[prompt.nonce] == nil {
             timeoutAnswers[prompt.nonce] = Task { [weak self, weak controller] in
-                let wait = prompt.deadline.timeIntervalSinceNow - ConnectionAlertCountdown.blockLead
+                let wait = prompt.deadline.timeIntervalSinceNow - UnansweredAlertOutcome.appBlockLead
                 if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
-                guard !Task.isCancelled, ConnectionAlertCountdown.blocksUnanswered,
+                guard !Task.isCancelled, ConnectionAlertCountdown.outcome(for: prompt) == .blockedByApp,
                       prompt.deadline > Date(), let controller,
                       self?.answering.contains(prompt.nonce) != true else { return }
                 do {
@@ -148,7 +169,7 @@ final class PromptPanelController {
                     // it's going to be allowed after all.
                     guard controller.pendingPrompts.contains(where: { $0.nonce == prompt.nonce }) else { return }
                     controller.actionResults.post(
-                        "Rift couldn’t block a connection you didn’t answer, so it will be allowed.",
+                        String(localized: "Rift couldn’t block a connection you didn’t answer, so it will be allowed."),
                         tone: .failure
                     )
                 }

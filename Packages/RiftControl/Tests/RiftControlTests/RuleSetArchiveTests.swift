@@ -168,3 +168,30 @@ private func draft(
     #expect(plan.summary.contains("2 of them allow connections."))
     #expect(plan.summary.contains("added turned off"))
 }
+
+@Test func importedHighPriorityRulesArriveTurnedOff() throws {
+    let lineage = UUID()
+    // Someone else's high-priority rule would outrank this person's own
+    // rules the moment it's imported, so it waits for a look.
+    let high = try Rule(
+        id: UUID(), lineageID: UUID(), revision: 1, action: .filter(.allow), priority: .high,
+        process: .anyProcess, destination: .anyEndpoint, transportProtocol: .anySupportedProtocol,
+        port: nil, direction: .outgoing, owner: .authorizedUser, createdAt: now, modifiedAt: now
+    )
+    let payload = ConfigurationArchivePayload(
+        baseOperationMode: .alert, activeProfileID: nil,
+        rules: [high, try hostRule("plain.example", action: .deny)],
+        localGroups: [], profiles: [], blocklists: []
+    )
+    let plan = try RuleImportPlan.make(payload, into: draft(lineage: lineage, rules: []), now: now)
+    #expect(plan.turnedOff == 1)
+    #expect(plan.rules.first { $0.priority == .high }?.isEnabled == false)
+    #expect(plan.rules.first { $0.priority == .normal }?.isEnabled == true)
+    #expect(plan.summary.contains("1 high-priority, blocklist-exception or system-process rule is added turned off."))
+
+    // The rule survives an export and a restore with its tier.
+    let exported = try ConfigurationArchiveCodec.export(
+        draft: draft(lineage: lineage, rules: plan.rules), appVersion: "1.0", now: now
+    )
+    #expect(try ConfigurationArchiveCodec.decode(exported).rules.contains { $0.priority == .high })
+}

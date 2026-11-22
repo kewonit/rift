@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "RiftControl",
+    defaultLocalization: "en",
     platforms: [.macOS(.v15)],
     products: [
         .library(name: "RiftControl", type: .static, targets: ["RiftControl"]),
@@ -20,7 +21,8 @@ let package = Package(
                 "RiftCore",
                 "RiftIPC",
                 .product(name: "GRDB", package: "GRDB.swift"),
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "RiftControlTests",
