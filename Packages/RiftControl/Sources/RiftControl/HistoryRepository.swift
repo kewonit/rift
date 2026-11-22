@@ -114,7 +114,7 @@ public struct HistoryDiagnosticCounts: Sendable, Hashable {
 }
 
 public actor HistoryRepository {
-    private let database: DatabasePool
+    let database: DatabasePool
     private var changes = HistoryChangeJournal()
 
     public init(database: DatabasePool) {

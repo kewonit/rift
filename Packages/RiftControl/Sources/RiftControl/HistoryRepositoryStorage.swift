@@ -202,9 +202,12 @@ enum HistoryRepositoryStorage {
             try database.execute(
                 sql: """
                     INSERT INTO flow_lifecycle
-                        (provider_epoch, flow_id, decision_sequence, decision_at, decision_event)
-                    VALUES (?, ?, ?, ?, ?)
+                        (provider_epoch, flow_id, decision_sequence, decision_at, decision_event,
+                         app_key, destination_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(provider_epoch, flow_id) DO UPDATE SET
+                        app_key = COALESCE(flow_lifecycle.app_key, excluded.app_key),
+                        destination_name = COALESCE(flow_lifecycle.destination_name, excluded.destination_name),
                         decision_sequence = CASE
                             WHEN flow_lifecycle.decision_event IS NULL
                               OR excluded.decision_sequence < flow_lifecycle.decision_sequence
@@ -224,6 +227,7 @@ enum HistoryRepositoryStorage {
                 arguments: [
                     epoch, flowID, Int64(bitPattern: event.sequence),
                     event.occurredAt.timeIntervalSince1970, try encoder.encode(event),
+                    HistoryContactIndex.appKey(event.flow), HistoryContactIndex.destinationName(event.flow),
                 ]
             )
         case .statistics, .closed:
