@@ -91,6 +91,19 @@ The changelog records notable user-visible changes.
   history. It works only after you turn on Allow access from Terminal in
   Settings › Advanced, which is off by default, because any app running as you
   can run `riftctl`. Status, profiles and diagnostics don't need it.
+- VoiceOver now hears more of a connection alert: each warning, the time left
+  when it opens, a reminder when 10 seconds remain, and any problem that keeps
+  the alert open. The countdown reads in words instead of ticking every
+  second, and the minimized bar says what's waiting.
+- Map and Rules rows offer their main commands as VoiceOver actions, and
+  VoiceOver now says correctly whether a rule is on; before, every rule was
+  read as "Some on". The menu-bar panel and Review read times in words and
+  name their buttons for their app.
+- "Some blocked" has its own symbol instead of Blocked's red cross, and
+  VoiceOver can select a country on the map. With Increase Contrast, warned
+  alerts get an orange edge and map routes, search fields and highlights are
+  stronger; with Reduce Transparency, notes and map labels are opaque. Reduce
+  Motion covers more animations.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
