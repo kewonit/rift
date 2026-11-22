@@ -25,6 +25,9 @@ The changelog records notable user-visible changes.
 - `riftctl status` starts with the mode, the active profile and the filter's
   state as Rift's Status page shows them, and `--json` adds them under `app`.
   It doesn't open Rift for this; when Rift isn't running, it says so.
+- With history on, Settings › History shows how many outgoing connections in
+  the last 7 days reached Rift with only an IP address, which rules for names
+  and domain blocklists can't match. Diagnostics include the same two counts.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

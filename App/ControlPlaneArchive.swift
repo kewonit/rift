@@ -231,6 +231,7 @@ extension ControlPlaneController {
         let handshake = try? await client.handshake()
         let settings = try? await history?.settings()
         let historyCounts = try? await history?.diagnosticCounts()
+        let hostnames = try? await history?.hostnameCoverage(since: Date().addingTimeInterval(-7 * 86_400))
         let activitySnapshot = supportsActivitySubscriptions ? try? await client.recentActivity() : nil
         let configuration = try? await repository?.currentConfiguration()
         let desired = try? await repository?.newestDesiredPolicy()
@@ -295,6 +296,8 @@ extension ControlPlaneController {
             historyMaximumFlows: settings?.maximumFlows,
             visibleHistoryFlowCount: historyCounts?.visibleFlows,
             historyCoverageGapCount: historyCounts?.coverageGaps,
+            outgoingHistoryFlowsLastWeek: hostnames?.outgoing,
+            outgoingWithoutHostnameLastWeek: hostnames?.withoutHostname,
             historyDatabaseStatus: historyStatus,
             quarantinedHistoryItemCount: historyRecovery?.quarantinedItemCount ?? 0,
             ruleCount: configuration?.rules.count,
@@ -434,6 +437,8 @@ struct RedactedDiagnostics: Codable {
     let historyMaximumFlows: Int?
     let visibleHistoryFlowCount: Int?
     let historyCoverageGapCount: Int?
+    let outgoingHistoryFlowsLastWeek: Int?
+    let outgoingWithoutHostnameLastWeek: Int?
     let historyDatabaseStatus: String
     let quarantinedHistoryItemCount: Int
     let ruleCount: Int?

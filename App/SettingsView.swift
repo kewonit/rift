@@ -171,7 +171,10 @@ struct SettingsView: View {
                 maximumFlows: $maximumFlows,
                 changed: historySettingsChanged,
                 clear: { showingClearHistoryConfirmation = true },
-                export: { pendingHistoryExport = $0 }
+                export: { pendingHistoryExport = $0 },
+                loadHostnameCoverage: { [controlPlane] in
+                    try? await controlPlane.history?.hostnameCoverage(since: Date().addingTimeInterval(-7 * 86_400))
+                }
             )
         case .policies:
             PolicySettingsPane(

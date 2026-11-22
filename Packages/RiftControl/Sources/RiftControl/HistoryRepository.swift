@@ -86,6 +86,23 @@ public struct DecisionBucketSnapshot: Sendable, Hashable {
     }
 }
 
+/// How many outgoing connections in history arrived with only an IP
+/// address. Hostname rules and domain blocklists can't match those.
+public struct HistoryHostnameCoverage: Sendable, Hashable {
+    public let outgoing: Int
+    public let withoutHostname: Int
+
+    public init(outgoing: Int, withoutHostname: Int) {
+        self.outgoing = outgoing
+        self.withoutHostname = withoutHostname
+    }
+
+    /// The share without a name, from 0 to 1, or nil with nothing to count.
+    public var shareWithoutHostname: Double? {
+        outgoing == 0 ? nil : Double(withoutHostname) / Double(outgoing)
+    }
+}
+
 public struct HistoryDiagnosticCounts: Sendable, Hashable {
     public let visibleFlows: Int
     public let coverageGaps: Int
@@ -348,6 +365,32 @@ public actor HistoryRepository {
             )
         }
         changes.reset()
+    }
+
+    /// Counts decided outgoing connections since `start`, and those that
+    /// arrived with no hostname.
+    public func hostnameCoverage(since start: Date) throws -> HistoryHostnameCoverage {
+        try database.read { database in
+            let rows = try Row.fetchCursor(
+                database,
+                sql: """
+                    SELECT decision_event FROM flow_lifecycle
+                    WHERE decision_at >= ? AND decision_event IS NOT NULL
+                    """,
+                arguments: [start.timeIntervalSince1970]
+            )
+            let decoder = CanonicalPolicyJSON.decoder()
+            var outgoing = 0
+            var withoutHostname = 0
+            while let row = try rows.next() {
+                let encoded: Data = row["decision_event"]
+                let flow = try decoder.decode(RuntimeEvent.self, from: encoded).flow
+                guard flow.direction == .outgoing else { continue }
+                outgoing += 1
+                if flow.remoteEndpoint?.hostname == nil, flow.observedHostname == nil { withoutHostname += 1 }
+            }
+            return HistoryHostnameCoverage(outgoing: outgoing, withoutHostname: withoutHostname)
+        }
     }
 
     public func diagnosticCounts() throws -> HistoryDiagnosticCounts {

@@ -159,6 +159,8 @@ struct HistorySettingsPane: View {
     let changed: () -> Void
     let clear: () -> Void
     let export: (HistoryExportFormat) -> Void
+    var loadHostnameCoverage: () async -> HistoryHostnameCoverage? = { nil }
+    @State private var hostnameCoverage: HistoryHostnameCoverage?
 
     var body: some View {
         Form {
@@ -175,6 +177,14 @@ struct HistorySettingsPane: View {
                 .disabled(!historyEnabled)
                 Text("When history is off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes, and only while the Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply.")
                     .font(.caption).foregroundStyle(.secondary)
+                if historyEnabled, let coverage = hostnameCoverage, let share = coverage.shareWithoutHostname {
+                    LabeledContent("Connections without a name, last 7 days") {
+                        Text("\(coverage.withoutHostname.formatted()) of \(coverage.outgoing.formatted()) (\(share.formatted(.percent.precision(.fractionLength(0...1)))))")
+                            .monospacedDigit()
+                    }
+                    Text("These outgoing connections reached Rift with only an IP address, so rules for names and domain blocklists couldn’t match them.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             Section {
                 ControlGroup {
@@ -189,6 +199,9 @@ struct HistorySettingsPane: View {
             }
         }
         .formStyle(.grouped)
+        .task(id: historyEnabled) {
+            hostnameCoverage = historyEnabled ? await loadHostnameCoverage() : nil
+        }
         .onChange(of: historyEnabled) { _, _ in changed() }
         .onChange(of: retentionDays) { _, _ in changed() }
         .onChange(of: maximumFlows) { _, _ in changed() }
