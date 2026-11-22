@@ -80,6 +80,19 @@ struct ConnectionInspectorView: View {
                     Text(ConnectionAlertFacts.signerLabel(for: identity)).multilineTextAlignment(.trailing)
                 }
             }
+            // The process ID is the one this connection had. It may belong to
+            // another process by now, so it's only shown, never acted on.
+            ForEach(ProcessDetailsPresentation.rows(for: row?.event.processes)) { process in
+                RiftPropertyRow(title: process.title) {
+                    Text(process.value)
+                        .font(process.isPath ? .caption.monospaced() : .callout.monospacedDigit())
+                        .lineLimit(process.isPath ? 3 : 1)
+                        .truncationMode(.middle)
+                        .multilineTextAlignment(.trailing)
+                        .textSelection(.enabled)
+                        .help(process.isPath ? process.value : "")
+                }
+            }
             if let row {
                 ConnectionExplanationView(
                     identity: row.event.flow.sourceProcessIdentity ?? row.event.flow.sourceAppIdentity,

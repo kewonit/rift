@@ -159,7 +159,7 @@ struct AlertFixtureHost: View {
                     owner: flow.owner, appIdentity: flow.sourceAppIdentity,
                     processIdentity: flow.sourceProcessIdentity, direction: .outgoing,
                     transportProtocol: flow.transportProtocol, endpoint: flow.remoteEndpoint,
-                    winningRuleID: nil, affectingRuleIDs: []
+                    winningRuleID: nil, affectingRuleIDs: [], processes: row.event.processes
                 )
             }
     }

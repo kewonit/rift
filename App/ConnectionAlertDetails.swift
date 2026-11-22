@@ -104,6 +104,17 @@ struct ConnectionAlertDetails: View {
                 row("Direction", prompt.direction == .outgoing ? "Outgoing" : "Incoming")
                 row("Protocol", facts.protocolLabel)
                 row("Owner", facts.ownerLabel)
+                ForEach(ProcessDetailsPresentation.rows(for: prompt.processes)) { process in
+                    GridRow {
+                        Text(process.title).foregroundStyle(.secondary)
+                        Text(process.value)
+                            .font(process.isPath ? .callout.monospaced() : .body)
+                            .lineLimit(process.isPath ? 2 : 1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                            .help(process.isPath ? process.value : "")
+                    }
+                }
             }
             if let appIdentity = prompt.appIdentity {
                 identity("App", appIdentity)

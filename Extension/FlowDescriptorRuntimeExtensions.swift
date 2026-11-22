@@ -1,6 +1,25 @@
 import RiftCore
+import RiftIPC
+import Foundation
 
 extension CapturedFlowMetadata {
+    /// The process ID and path of what opened the connection, and of the app
+    /// it acts for when that's another process. Read from the audit tokens
+    /// only when an alert or a recorded decision is going to show them.
+    func processDetails() -> FlowProcessDetails? {
+        func observed(_ token: Data?) -> ObservedProcess? {
+            guard let token else { return nil }
+            return ObservedProcess(
+                processID: RiftAuditTokenPID(token),
+                executablePath: RiftCopyAuditTokenExecutablePath(token)
+            )
+        }
+        let process = observed(sourceProcessAuditToken)
+        let app = sourceAppAuditToken == sourceProcessAuditToken
+            ? nil : observed(sourceAppAuditToken)
+        return FlowProcessDetails(process: process ?? app, app: process == nil ? nil : app)
+    }
+
     func withIdentities(_ resolved: ResolvedIdentityPair) -> CapturedFlowMetadata {
         CapturedFlowMetadata(
             descriptor: descriptor.withIdentities(resolved),

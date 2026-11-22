@@ -10,6 +10,7 @@ public struct PromptSeed: Sendable {
     public let affectingRuleIDs: [UUID]
     /// What the filter will do at the deadline, for the alert to say.
     public let unansweredAction: FilterAction?
+    public let processes: FlowProcessDetails?
 
     public init(
         lineageID: UUID,
@@ -17,7 +18,8 @@ public struct PromptSeed: Sendable {
         flow: FlowDescriptor,
         winningRuleID: UUID?,
         affectingRuleIDs: [UUID],
-        unansweredAction: FilterAction? = nil
+        unansweredAction: FilterAction? = nil,
+        processes: FlowProcessDetails? = nil
     ) {
         self.lineageID = lineageID
         self.generation = generation
@@ -25,6 +27,7 @@ public struct PromptSeed: Sendable {
         self.winningRuleID = winningRuleID
         self.affectingRuleIDs = affectingRuleIDs
         self.unansweredAction = unansweredAction
+        self.processes = processes
     }
 }
 
@@ -150,7 +153,8 @@ public final class PromptQueue: @unchecked Sendable {
                 endpoint: seed.flow.destinationEndpoint,
                 winningRuleID: seed.winningRuleID,
                 affectingRuleIDs: Array(seed.affectingRuleIDs.prefix(256)),
-                unansweredAction: seed.unansweredAction
+                unansweredAction: seed.unansweredAction,
+                processes: seed.processes
             )
             entries[nonce] = Entry(
                 request: request,

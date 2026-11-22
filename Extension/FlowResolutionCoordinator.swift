@@ -111,7 +111,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         guard decision.filter.action == .ask else {
             record(
                 networkFlow: flow,
-                flow: metadata.descriptor,
+                metadata: metadata,
                 action: decision.filter.action,
                 reason: decision.filter.winningRuleID == nil
                     ? .unmatchedModeFallback : .concreteDecision,
@@ -214,7 +214,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         guard let completed = take(flowID: flowID) else { return }
         record(
             networkFlow: completed.flow,
-            flow: completed.metadata.descriptor,
+            metadata: completed.metadata,
             action: decision.filter.action,
             reason: decision.filter.winningRuleID == nil
                 ? .unmatchedModeFallback : .concreteDecision,
@@ -266,7 +266,9 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
                         flow: displayFlow,
                         winningRuleID: decision.filter.winningRuleID,
                         affectingRuleIDs: decision.filter.affectingRuleIDs,
-                        unansweredAction: policy.unansweredAction
+                        unansweredAction: policy.unansweredAction,
+                        processes: decision.privacy.action == .hidden
+                            ? nil : metadata.processDetails()
                     ),
                     deadline: deadline
                 ) { [weak self] resolution in
@@ -301,7 +303,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         for value in values {
             record(
                 networkFlow: value.flow,
-                flow: value.metadata.descriptor,
+                metadata: value.metadata,
                 action: action,
                 reason: reason,
                 policy: activePolicy.load()?.tuple,

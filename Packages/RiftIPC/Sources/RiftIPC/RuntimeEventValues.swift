@@ -37,6 +37,9 @@ public struct RuntimeEvent: Sendable, Hashable, Codable {
     public let bytesOutbound: UInt64?
     public let flowEndReason: RuntimeFlowEndReason?
     public let notificationRequested: Bool
+    /// The process ID and path behind a decision. Nil from a filter older
+    /// than protocol 1.4 and on events that only report bytes or a close.
+    public let processes: FlowProcessDetails?
 
     public init(
         providerEpoch: UUID,
@@ -53,7 +56,8 @@ public struct RuntimeEvent: Sendable, Hashable, Codable {
         bytesInbound: UInt64? = nil,
         bytesOutbound: UInt64? = nil,
         flowEndReason: RuntimeFlowEndReason? = nil,
-        notificationRequested: Bool = false
+        notificationRequested: Bool = false,
+        processes: FlowProcessDetails? = nil
     ) {
         self.providerEpoch = providerEpoch
         self.sequence = sequence
@@ -70,6 +74,7 @@ public struct RuntimeEvent: Sendable, Hashable, Codable {
         self.bytesOutbound = bytesOutbound
         self.flowEndReason = flowEndReason
         self.notificationRequested = notificationRequested
+        self.processes = processes
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -77,6 +82,30 @@ public struct RuntimeEvent: Sendable, Hashable, Codable {
         case winningRuleID, affectingRuleIDs, explanation, bytesInbound, bytesOutbound
         case flowEndReason
         case notificationRequested
+        case processes
+    }
+
+    /// The event as a controller speaking `version` can decode it. An app
+    /// older than protocol 1.4 refuses a message with fields it doesn't know.
+    public func compatible(with version: ProtocolVersion) -> RuntimeEvent {
+        guard !version.supports(minimum: .extendedPolicy), processes != nil else { return self }
+        return replacing(bytesInbound: bytesInbound, bytesOutbound: bytesOutbound, processes: nil)
+    }
+
+    /// The same event with other byte counts, or without its process details.
+    public func replacing(
+        bytesInbound: UInt64?,
+        bytesOutbound: UInt64?,
+        processes: FlowProcessDetails?
+    ) -> RuntimeEvent {
+        RuntimeEvent(
+            providerEpoch: providerEpoch, sequence: sequence, kind: kind, occurredAt: occurredAt,
+            flow: flow, action: action, reason: reason, policy: policy,
+            winningRuleID: winningRuleID, affectingRuleIDs: affectingRuleIDs,
+            explanation: explanation, bytesInbound: bytesInbound, bytesOutbound: bytesOutbound,
+            flowEndReason: flowEndReason, notificationRequested: notificationRequested,
+            processes: processes
+        )
     }
 
     public init(from decoder: Decoder) throws {
@@ -96,6 +125,7 @@ public struct RuntimeEvent: Sendable, Hashable, Codable {
         bytesOutbound = try values.decodeIfPresent(UInt64.self, forKey: .bytesOutbound)
         flowEndReason = try values.decodeIfPresent(RuntimeFlowEndReason.self, forKey: .flowEndReason)
         notificationRequested = try values.decodeIfPresent(Bool.self, forKey: .notificationRequested) ?? false
+        processes = try values.decodeIfPresent(FlowProcessDetails.self, forKey: .processes)
     }
 }
 
@@ -113,6 +143,7 @@ public struct RuntimeEventSeed: Sendable {
     public let bytesOutbound: UInt64?
     public let flowEndReason: RuntimeFlowEndReason?
     public let notificationRequested: Bool
+    public let processes: FlowProcessDetails?
 
     public init(
         kind: RuntimeEventKind = .decision,
@@ -127,7 +158,8 @@ public struct RuntimeEventSeed: Sendable {
         bytesInbound: UInt64? = nil,
         bytesOutbound: UInt64? = nil,
         flowEndReason: RuntimeFlowEndReason? = nil,
-        notificationRequested: Bool = false
+        notificationRequested: Bool = false,
+        processes: FlowProcessDetails? = nil
     ) {
         self.kind = kind
         self.occurredAt = occurredAt
@@ -142,6 +174,7 @@ public struct RuntimeEventSeed: Sendable {
         self.bytesOutbound = bytesOutbound
         self.flowEndReason = flowEndReason
         self.notificationRequested = notificationRequested
+        self.processes = processes
     }
 }
 

@@ -44,7 +44,7 @@ extension FlowResolutionCoordinator {
             if value.privacyResolved {
                 record(
                     networkFlow: value.flow,
-                    flow: value.metadata.descriptor,
+                    metadata: value.metadata,
                     action: action,
                     reason: .promptUnavailableFallback,
                     policy: activePolicy.load()?.tuple,
@@ -112,7 +112,7 @@ extension FlowResolutionCoordinator {
         if value.privacyResolved {
             record(
                 networkFlow: value.flow,
-                flow: value.metadata.descriptor,
+                metadata: value.metadata,
                 action: action,
                 reason: reason,
                 policy: activePolicy.load()?.tuple,
@@ -165,7 +165,7 @@ extension FlowResolutionCoordinator {
             } else if let completed = take(flowID: flowID) {
                 record(
                     networkFlow: completed.flow,
-                    flow: completed.metadata.descriptor,
+                    metadata: completed.metadata,
                     action: decision.filter.action,
                     reason: decision.filter.winningRuleID == nil
                         ? .unmatchedModeFallback : .concreteDecision,

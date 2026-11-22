@@ -26,7 +26,10 @@ for software updates, as described under [Update checks](#update-checks).
 - Persistent history keeps up to 50,000 flows for the number of days you
   choose in Settings › History, from 1 to 30: 7 when turned on in setup.
   It contains bounded decision metadata and close-reported byte totals when
-  macOS supplies them. Existing history preferences are preserved. Turning
+  macOS supplies them. The metadata includes the process ID and the path of
+  the program that connected, which can contain your account name. A JSON
+  history export includes them; diagnostics never do. Existing history
+  preferences are preserved. Turning
   recording off keeps old logs; deleting them requires Clear History.
   Privacy-hidden decisions do not enter visible history or aggregates.
 - Rule-use counters are separate from connection history. Users can clear them

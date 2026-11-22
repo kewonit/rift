@@ -131,6 +131,60 @@ private func runtimePolicy(_ alerts: UnansweredAlertPolicy?) throws -> RuntimePo
     #expect(updated.unansweredAction == .deny)
 }
 
+@Test func processDetailsReachOnlyAnAppThatCanDecodeThem() throws {
+    let processes = try #require(FlowProcessDetails(
+        process: ObservedProcess(processID: 812, executablePath: "/usr/local/bin/sync-tool"),
+        app: nil
+    ))
+    let ring = RuntimeEventRing()
+    ring.activate(providerEpoch: UUID())
+    func appendDecision() {
+        ring.append(RuntimeEventSeed(
+            occurredAt: observedAt, flow: flow(), action: .allow, reason: .concreteDecision,
+            policy: nil, processes: processes
+        ))
+    }
+
+    // An app that hasn't said which protocol it speaks gets the oldest shape.
+    appendDecision()
+    #expect(ring.drain().events.map(\.processes) == [nil])
+
+    ring.setControllerProtocol(.extendedPolicy)
+    appendDecision()
+    #expect(ring.drain().events.map(\.processes) == [processes])
+
+    // Events still queued when an older app takes over lose the new field.
+    appendDecision()
+    ring.setControllerProtocol(.internationalNames)
+    let older = ring.drain().events
+    #expect(older.map(\.processes) == [nil])
+    #expect(try SecureIPCCodec.decode(
+        [RuntimeEvent].self, from: SecureIPCCodec.encode(older)
+    ).count == 1)
+
+    // The recent-activity snapshot follows the same rule and keeps the
+    // details through a merge with byte counts.
+    ring.configure(ActivitySubscription(mode: .recent, maximumRecentConnections: 5))
+    let recentFlow = FlowDescriptor(
+        flowID: UUID(), observedAt: Date(), sourceAppIdentity: nil, sourceProcessIdentity: nil,
+        owner: .user(uid: 501), direction: .outgoing, transportProtocol: .tcp,
+        localEndpoint: nil, remoteEndpoint: nil, observedHostname: nil, metadataConfidence: []
+    )
+    ring.append(RuntimeEventSeed(
+        occurredAt: Date(), flow: recentFlow, action: .allow, reason: .concreteDecision,
+        policy: nil, processes: processes
+    ))
+    ring.append(RuntimeEventSeed(
+        kind: .statistics, occurredAt: Date(), flow: recentFlow, action: .allow,
+        reason: .concreteDecision, policy: nil, bytesInbound: 4, bytesOutbound: 2
+    ))
+    #expect(ring.recentSnapshot().events.allSatisfy { $0.processes == nil })
+    ring.setControllerProtocol(.extendedPolicy)
+    let recent = ring.recentSnapshot().events
+    #expect(recent.first { $0.kind == .decision }?.processes == processes)
+    #expect(recent.first { $0.kind == .statistics }?.bytesInbound == 4)
+}
+
 private struct IdentityAdmissionAskFixture {
     let lineageID = UUID()
 
