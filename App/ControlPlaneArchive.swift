@@ -387,6 +387,16 @@ extension ControlPlaneController {
             let finish = try SecureIPCCodec.decode(CLITransferFinish.self, from: request.payload)
             await cliTransfers.cancel(finish.transferID)
             return try CLIRelayResponse(summary: "Transfer released")
+        case .statusSummary:
+            let draft = try await repository?.currentConfiguration()
+            let status = protectionStatusProvider?()
+            let value = CLIAppStatus(
+                mode: draft?.operationMode.displayName ?? "Unknown",
+                profile: draft.flatMap { draft in draft.profiles.first { $0.id == draft.activeProfileID }?.name },
+                filter: status?.title ?? "Unknown",
+                filterDetail: status?.detail ?? ""
+            )
+            return try CLIRelayResponse(summary: value.lines, json: try CanonicalPolicyJSON.encoder().encode(value))
         }
     }
 }

@@ -18,14 +18,38 @@ struct RiftCTL: AsyncParsableCommand {
             let state = try await CLIServiceClient.withConnected { client in
                 try await client.health()
             }
+            // The mode and profile come from the app, which isn't opened for this.
+            let app = try? await CLIServiceClient.withConnected { client in
+                let response = try await client.relay(
+                    try CLIRelayRequest(command: .statusSummary), launchingAppIfNeeded: false
+                )
+                return try JSONDecoder().decode(CLIAppStatus.self, from: response.json)
+            }
             if json {
-                try CLIOutput.writeJSON(state)
+                try CLIOutput.writeJSON(StatusJSON(state: state, app: app))
             } else {
-                try CLIOutput.write("Provider: \(state.readiness.rawValue)\n"
+                let appLines = app?.lines ?? "Mode: unavailable (Rift isn’t running)"
+                try CLIOutput.write(appLines + "\n"
+                    + "Provider: \(state.readiness.rawValue)\n"
                     + "Epoch: \(state.providerEpoch?.uuidString.lowercased() ?? "none")\n"
                     + "Persisted generation: \(state.persisted.map { String($0.generation) } ?? "none")\n"
                     + "Active generation: \(state.active.map { String($0.generation) } ?? "none")")
             }
+        }
+    }
+
+    /// The filter's handshake state, with the app's view under `app` when
+    /// Rift is running. Earlier keys are unchanged.
+    struct StatusJSON: Encodable {
+        let state: HandshakeState
+        let app: CLIAppStatus?
+
+        private enum Key: String, CodingKey { case app }
+
+        func encode(to encoder: Encoder) throws {
+            try state.encode(to: encoder)
+            var container = encoder.container(keyedBy: Key.self)
+            try container.encodeIfPresent(app, forKey: .app)
         }
     }
 

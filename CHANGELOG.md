@@ -22,6 +22,9 @@ The changelog records notable user-visible changes.
   every network's profile choice. Undo Restore puts the previous settings
   back. Configurations exported by this version can't be imported by earlier
   ones.
+- `riftctl status` starts with the mode, the active profile and the filter's
+  state as Rift's Status page shows them, and `--json` adds them under `app`.
+  It doesn't open Rift for this; when Rift isn't running, it says so.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

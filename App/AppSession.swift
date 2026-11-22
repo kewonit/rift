@@ -281,6 +281,9 @@ final class AppSession {
             notificationResponder = responder
             UNUserNotificationCenter.current().delegate = responder
         }
+        controlPlane.protectionStatusProvider = { [weak self] in
+            self?.protectionStatus ?? ProtectionStatus.resolve(ProtectionInputs())
+        }
         startupTask = Task { [controlPlane] in
             await controlPlane.start()
         }

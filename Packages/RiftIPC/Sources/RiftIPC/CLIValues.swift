@@ -10,6 +10,30 @@ public enum CLICommandKind: String, Sendable, Hashable, Codable {
     case transferFinish
     case profilesList
     case profilesActivate
+    /// The mode, active profile and filter health, as the running app sees them.
+    case statusSummary
+}
+
+/// What `riftctl status` adds from the running app.
+public struct CLIAppStatus: Sendable, Hashable, Codable {
+    public let mode: String
+    public let profile: String?
+    /// The app's one-line reading of the filter, as on the Status page.
+    public let filter: String
+    public let filterDetail: String
+
+    public init(mode: String, profile: String?, filter: String, filterDetail: String) {
+        self.mode = String(mode.unicodeScalars.prefix(256))
+        self.profile = profile.map { String($0.unicodeScalars.prefix(256)) }
+        self.filter = String(filter.unicodeScalars.prefix(256))
+        self.filterDetail = String(filterDetail.unicodeScalars.prefix(1_024))
+    }
+
+    /// The lines `riftctl status` prints.
+    public var lines: String {
+        "Mode: \(mode)\nProfile: \(profile ?? "none")\nFilter: \(filter)"
+            + (filterDetail.isEmpty ? "" : " — \(filterDetail)")
+    }
 }
 
 /// A refusal the app relay returns to `riftctl`. Only the type name crosses
