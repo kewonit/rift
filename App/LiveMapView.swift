@@ -45,6 +45,26 @@ struct LiveMapView: View {
                 feed.pendingRuleRequest = nil
             }
         }
+        .sheet(isPresented: Binding(
+            get: { session.review.isPresented }, set: { session.review.isPresented = $0 }
+        )) {
+            ReviewView(
+                model: session.review,
+                mode: session.controlPlane.currentMode,
+                keepsHistory: session.controlPlane.persistentHistoryEnabled,
+                artworkStore: session.applicationArtwork,
+                showOnMap: { app in
+                    session.review.isPresented = false
+                    let name = MonitorQuery.identityLabel(app.identity).replacingOccurrences(of: "\"", with: "")
+                    feed.query.search = "app:\"\(name)\""
+                    feed.query.decision = .unresolved
+                },
+                switchToAskMe: {
+                    session.review.isPresented = false
+                    Task { _ = try? await session.controlPlane.setEffectiveMode(.alert) }
+                }
+            )
+        }
         .onChange(of: session.controlPlane.ruleChanges.revision) { _, _ in
             feed.requestPresentationRefresh()
         }
@@ -190,8 +210,31 @@ struct LiveMapView: View {
         }
     }
 
-    @ViewBuilder
     private var attentionBanner: some View {
+        VStack(spacing: RiftDesign.Spacing.s) {
+            statusBanner
+            reviewBanner
+        }
+    }
+
+    /// Offers the Review sheet while something is left to decide.
+    @ViewBuilder
+    private var reviewBanner: some View {
+        let review = session.review
+        if review.count > 0, !review.isPresented {
+            RiftBanner(message: ReviewBannerCopy.message(review.queue), detail: nil, tone: .info) {
+                Button("Review") { review.isPresented = true }
+                    .controlSize(.small)
+            }
+            .frame(maxWidth: 480)
+            .riftPanel(cornerRadius: RiftDesign.Radius.card)
+            .padding(.top, session.protectionStatus.showsBanner ? 0 : RiftDesign.Spacing.m)
+            .transition(RiftDesign.Motion.slide(fromY: -RiftDesign.Motion.travel, reduceMotion: reduceMotion))
+        }
+    }
+
+    @ViewBuilder
+    private var statusBanner: some View {
         let status = session.protectionStatus
         if status.showsBanner {
             RiftBanner(

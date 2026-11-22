@@ -34,6 +34,12 @@ The changelog records notable user-visible changes.
   only 10 connections for five minutes. Choosing Ask Me offers "Allow Apple
   system services", which adds the macOS Services group before the first
   alert.
+- A Review sheet lists apps that connected with no rule over the last 7 days,
+  and alerts nobody answered, each with one-click Allow and Block and Undo.
+  The Map shows a banner and the menu-bar panel a line while something is
+  left; "Not Now" hides an app until it connects somewhere new. After a day
+  in Allow and Watch, Rift suggests a review once, and when nothing is left
+  it offers Ask Me.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

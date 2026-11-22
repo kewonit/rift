@@ -38,6 +38,8 @@ final class AppSession {
     let controlPlane: ControlPlaneController
     let lifecycle: FilterLifecycleController?
     let applicationArtwork: ApplicationArtworkStore
+    /// Apps with no rule and unanswered alerts, for the Review sheet.
+    let review = ReviewQueueModel()
     var destination: AppDestination = .liveMap
     /// What the Map and Rules pages were showing, so switching pages keeps it.
     /// This is small on purpose: the rows themselves are released with the page.
@@ -287,6 +289,7 @@ final class AppSession {
         startupTask = Task { [controlPlane] in
             await controlPlane.start()
         }
+        review.start(session: self)
         observePrompts()
         observeLifecycle()
         observeApplicationActivation()

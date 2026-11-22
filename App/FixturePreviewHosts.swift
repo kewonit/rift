@@ -35,6 +35,7 @@ enum FixturePreviewOptions {
     }
     static var opensSettings: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-settings") }
     static var showsAlert: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-alert") }
+    static var opensReview: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-review") }
 
     /// Blocks the first connection through the real action path, and undoes it
     /// a few seconds later with `undo`.

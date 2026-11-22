@@ -79,6 +79,14 @@ struct StatusMenuView: View {
                 openConnection: openActivity,
                 decideForFiveMinutes: decideForFiveMinutes
             )
+            if session.review.count > 0 {
+                StatusMenuButton(action: openReview) {
+                    Label(ReviewBannerCopy.message(session.review.queue), systemImage: "checklist")
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .help("Allow or block each in one click")
+            }
             StatusMenuBlockedList(
                 items: snapshot.recentlyBlocked,
                 now: dashboardNow,
@@ -315,6 +323,12 @@ struct StatusMenuView: View {
                 errorMessage = "Rift couldn’t ask for notification permission. Try again."
             }
         }
+    }
+
+    private func openReview() {
+        session.destination = .liveMap
+        session.review.isPresented = true
+        showMainWindow()
     }
 
     private func openActivity(_ eventID: String) {

@@ -18,11 +18,14 @@ final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        let rowID = response.notification.request.content.userInfo[Self.rowIDKey] as? String
+        let userInfo = response.notification.request.content.userInfo
+        let rowID = userInfo[Self.rowIDKey] as? String
+        let opensReview = userInfo[ReviewQueueModel.notificationKey] as? Bool == true
         completionHandler()
         Task { @MainActor [weak self] in
             self?.session?.requestedMonitorEventID = rowID
             self?.session?.destination = .liveMap
+            if opensReview { self?.session?.review.isPresented = true }
             NSApplication.shared.activate(ignoringOtherApps: true)
             if let url = URL(string: "rift://map") { NSWorkspace.shared.open(url) }
         }
