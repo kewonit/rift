@@ -37,6 +37,8 @@ for required in \
   Resources/NetworkData/ip-country.bin \
   Resources/NetworkData/country-grid.bin \
   Resources/NetworkData/network-map.json \
+  Resources/DomainData/public_suffix_list.dat \
+  Scripts/build-domain-data.sh \
   Scripts/build-network-data.sh \
   Scripts/build-network-data.py \
   docs/release/build-signing.md \

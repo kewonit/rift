@@ -21,6 +21,8 @@ struct PolicySettingsPane: View {
     @State private var pendingModeProfile: PolicyProfile?
     @State private var blocklistEntry = ""
     @State private var entryImpact: BlocklistEntryImpact?
+    /// Other entries that also block what was checked.
+    @State private var otherCoveringEntries: [BlocklistEntry] = []
     @State private var pendingDisableImpact: BlocklistEntryImpact?
     @State private var showingDisableConfirmation = false
 
@@ -158,7 +160,10 @@ struct PolicySettingsPane: View {
                 .disabled(blocklistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             Divider()
             TextField("Domain, IP address, or IP range", text: $blocklistEntry)
-                .onChange(of: blocklistEntry) { _, _ in entryImpact = nil }
+                .onChange(of: blocklistEntry) { _, _ in
+                    entryImpact = nil
+                    otherCoveringEntries = []
+                }
             HStack {
                 Button("Check Entry", action: inspectBlocklistEntry)
                     .disabled(blocklistEntry.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -182,7 +187,7 @@ struct PolicySettingsPane: View {
         } header: {
             Text("Blocklists")
         } footer: {
-            Text("Blocklists apply to every account on this Mac. Each name, including an Adblock ||name^ line, blocks that exact host, not its subdomains.")
+            Text("Blocklists apply to every account on this Mac. A hosts file blocks the exact names it lists. A plain list of names, *.name and Adblock ||name^ lines also block the names under each one, except a suffix like co.uk. Lists imported before Rift supported subdomains match exact names until you import them again.")
         }
     }
 
@@ -269,10 +274,12 @@ struct PolicySettingsPane: View {
     private func inspectBlocklistEntry() {
         Task { @MainActor in
             do {
-                entryImpact = try await controlPlane.blocklistEntryImpact(blocklistEntry)
+                try await loadEntryImpacts()
+                if entryImpact == nil { message = "None of your blocklists block that." }
             } catch {
                 entryImpact = nil
-                message = "None of your blocklists contain that exact entry."
+                otherCoveringEntries = []
+                message = "Enter one name, IP address, or IP range to check."
             }
         }
     }
@@ -285,7 +292,7 @@ struct PolicySettingsPane: View {
                 )
                 message = result.message
                 await reload()
-                entryImpact = try await controlPlane.blocklistEntryImpact(blocklistEntry)
+                try await loadEntryImpacts()
             } catch {
                 message = "Couldn’t change that entry."
                 await reload()
@@ -293,7 +300,20 @@ struct PolicySettingsPane: View {
         }
     }
 
+    private func loadEntryImpacts() async throws {
+        let impacts = try await controlPlane.blocklistEntryImpacts(blocklistEntry)
+        entryImpact = impacts.first
+        otherCoveringEntries = impacts.dropFirst().map(\.entry)
+    }
+
     private func entryImpactSummary(_ impact: BlocklistEntryImpact) -> String {
+        let others = otherCoveringEntries.prefix(2).map(\.description).joined(separator: ", ")
+        let also = otherCoveringEntries.isEmpty ? "" : " • Also blocked by \(others)"
+            + (otherCoveringEntries.count > 2 ? " +\(otherCoveringEntries.count - 2)" : "")
+        return "\(impact.entry) • " + entrySummary(impact) + also
+    }
+
+    private func entrySummary(_ impact: BlocklistEntryImpact) -> String {
         let state = impact.isDisabled ? "Off" : "On"
         let activeCount = impact.activeSourceNames.count
         let totalCount = impact.sourceNames.count

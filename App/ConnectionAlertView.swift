@@ -48,6 +48,7 @@ struct ConnectionAlertView: View {
     enum DestinationScope: String, CaseIterable, Identifiable {
         case exact = "This destination"
         case anyPort = "This destination, any port"
+        case domain = "This domain"
         case any = "Any destination"
         var id: String { rawValue }
 
@@ -55,6 +56,7 @@ struct ConnectionAlertView: View {
             switch self {
             case .exact: .exactObservedEndpoint
             case .anyPort: .observedDestinationAnyPort
+            case .domain: .observedDomain
             case .any: .anyEndpoint
             }
         }
@@ -186,7 +188,10 @@ struct ConnectionAlertView: View {
 
             if lifetime != .once {
                 Picker("Destination", selection: $destinationScope) {
-                    ForEach(DestinationScope.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(destinationChoices) { choice in
+                        Text(choice == .domain ? "\(registeredDomain ?? "") and its subdomains" : choice.rawValue)
+                            .tag(choice)
+                    }
                 }
                 if destinationScope == .exact {
                     Text("Applies to this destination on this port, for the same protocol and direction.")
@@ -195,6 +200,11 @@ struct ConnectionAlertView: View {
                 }
                 if destinationScope == .anyPort {
                     Text("Applies to this destination on any port, for the same protocol and direction.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if destinationScope == .domain {
+                    Text("Applies to every name under \(registeredDomain ?? "this domain") on any port, for the same protocol and direction.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -295,7 +305,9 @@ struct ConnectionAlertView: View {
             presentedAt = Date()
             scope = RuleScope(rawValue: alertDefaultScope) ?? .currentProfile
             destinationScope = DestinationScope(rawValue: alertDefaultDestination) ?? .exact
-            if destinationScope == .any { destinationScope = .exact }
+            if !destinationChoices.contains(destinationScope) || destinationScope == .any {
+                destinationScope = .exact
+            }
             await resolveActiveProfile()
         }
         .task(id: presentationIdentity) {
@@ -386,8 +398,7 @@ struct ConnectionAlertView: View {
                     let sentence = RulePlainLanguage.change(
                         action: action,
                         application: applicationName,
-                        destination: destinationScope == .any
-                            ? "any destination" : DisplaySanitizer.plainText(destination),
+                        destination: destinationPhrase(for: destinationScope),
                         port: nil,
                         incoming: prompt.direction == .incoming,
                         lasting: selected.duration.map { _ in selected.rawValue.lowercased() }

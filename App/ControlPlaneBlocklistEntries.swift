@@ -2,14 +2,12 @@ import RiftControl
 import Foundation
 
 extension ControlPlaneController {
-    func blocklistEntryImpact(_ value: String) async throws -> BlocklistEntryImpact {
+    /// The blocklist entries that block what was typed, most specific first.
+    func blocklistEntryImpacts(_ value: String) async throws -> [BlocklistEntryImpact] {
         guard let configuration = try await repository?.currentConfiguration() else {
             throw RuleCommandError.missingConfiguration
         }
-        return try BlocklistEntryOverrides.impact(
-            for: BlocklistEntryOverrides.parseSingle(value),
-            configuration: configuration
-        )
+        return try BlocklistEntryOverrides.coveringEntries(for: value, configuration: configuration)
     }
 
     @discardableResult

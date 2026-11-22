@@ -9,6 +9,7 @@ public enum MonitorHierarchyKind: String, Sendable, Hashable {
     case hostname
     case address
     case country
+    case domain
     case flow
 }
 

@@ -22,10 +22,10 @@ public enum RuleOrdering {
             guard let first = values.first else { return .anyEndpoint }
             return .hostname(set: values, matched: first)
         case .domainSet(let values):
-            guard let fewest = values.min(by: { $0.labelCount < $1.labelCount }) else {
+            guard let mostSpecific = values.max(by: { $0.labelCount < $1.labelCount }) else {
                 return .anyEndpoint
             }
-            return .domain(set: values, matched: fewest)
+            return .domain(set: values, matched: mostSpecific)
         case .endpointClass(let value):
             return .endpointClass(value)
         case .anyEndpoint:

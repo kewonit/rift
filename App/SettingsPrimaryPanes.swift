@@ -127,6 +127,7 @@ struct AlertSettingsPane: View {
                 Picker("New rules cover", selection: $alertDefaultDestination) {
                     Text("This destination and port").tag("This destination")
                     Text("This destination, any port").tag("This destination, any port")
+                    Text("Its domain and subdomains").tag("This domain")
                 }
                 Picker("Apply new rules to", selection: $alertDefaultScope) {
                     Text("Current profile").tag("Current profile")

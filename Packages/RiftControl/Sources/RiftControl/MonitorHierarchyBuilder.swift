@@ -151,6 +151,11 @@ public enum MonitorHierarchyBuilder {
             return [appComponent] + helper + hostnameComponents(flow, subtitle: routeSubtitle(flow))
         case .hostname:
             return hostnameComponents(flow) + [appComponent] + helper
+        case .domain:
+            let domain = MonitorDomainGroup(flow)
+            let domainComponent = Component(kind: .domain, key: domain.key, title: domain.title, subtitle: nil)
+            return [domainComponent, appComponent] + helper
+                + hostnameComponents(flow, subtitle: routeSubtitle(flow))
         case .country:
             let country = MonitorCountryGroup(flow, context: context)
             let countryComponent = Component(

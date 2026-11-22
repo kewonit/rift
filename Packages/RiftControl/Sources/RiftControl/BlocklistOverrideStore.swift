@@ -57,6 +57,7 @@ private extension BlocklistEntry {
         switch self {
         case .domain(let value): "domain:\(value.ascii)"
         case .address(let value): "address:\(value.description)"
+        case .domainAndSubdomains(let value): "subdomains:\(value.ascii)"
         }
     }
 }

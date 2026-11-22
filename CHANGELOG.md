@@ -25,7 +25,7 @@ The changelog records notable user-visible changes.
 - Internationalized names, shown in their `xn--` form, can be blocked by name
   and imported from blocklists. Before, Rift ignored them.
 - Settings and the Block Unless Allowed confirmation now say that Rift filters
-  TCP and UDP only, and that blocklist names match exact hosts.
+  TCP and UDP only.
 - In a connection alert, Return allows and Esc blocks. Keys pressed in the
   first second after an alert appears are ignored. ⌘A and ⌘B still work.
 - Alerts offer Five minutes, and a rule can cover this destination on any port.
@@ -48,9 +48,8 @@ The changelog records notable user-visible changes.
 - Window › Float on Top keeps Rift above other windows.
 - Notifications have separate switches for blocked connections, connections no
   rule decided, and Notify rules, with an optional sound for Notify rules.
-- Blocklists read Adblock-style `||name^` lines, which block that exact host
-  like other names, and `;` comments. Adblock rules Rift can't apply are
-  skipped. Before, an element-hiding line such as `example.com##.ad` blocked
+- Blocklists read Adblock-style `||name^` lines and `;` comments. Adblock
+  rules Rift can't apply are skipped. Before, an element-hiding line such as `example.com##.ad` blocked
   example.com, and other Adblock rules stopped the import.
 - For incoming connections, the map, the Country column, the Network filter and
   `country:` search use the remote peer. Before, they used this Mac's own
@@ -76,6 +75,23 @@ The changelog records notable user-visible changes.
 - A connection alert can be minimized to a small bar that keeps counting down,
   and another waiting connection can be answered first. Settings › Alerts can
   show alerts minimized.
+- Rules can cover a domain and its subdomains. In the rule editor, turn on
+  Include subdomains or type `*.name`. Alerts and the Map offer "example.com
+  and its subdomains", taken from the part of the name someone registered, and
+  Settings › Alerts can preselect it. Rift won't make a domain rule for a
+  suffix anyone can register under, like `co.uk`; it checks a copy of the
+  Public Suffix List that ships with the app.
+- When two domain rules match a connection, the more specific one wins: a
+  Block on ads.example.com beats an Allow on example.com. Before, the broader
+  domain won.
+- In a blocklist, a plain list of names, `*.name` and `||name^` lines now block
+  every name under each one; hosts files still block the exact names they
+  list. Lists imported earlier match exact names until you import them again.
+  Check Entry lists every entry that blocks a name, including one that covers
+  it as a subdomain.
+- Names with international letters can be typed as they're written; Rift
+  stores and shows them in their `xn--` form.
+- The connections list can be grouped by domain.
 
 ## 0.4.0
 

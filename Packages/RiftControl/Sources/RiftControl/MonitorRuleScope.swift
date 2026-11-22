@@ -3,10 +3,11 @@ import RiftCore
 
 /// How much a rule made from a connection covers.
 ///
-/// There's no subdomain choice on purpose. Without public suffix validation, a
-/// host like `co.uk` would cover far more than anyone meant.
+/// The domain choice is the part someone registered, worked out from the
+/// bundled Public Suffix List, so it never covers a suffix like `co.uk`.
 public enum MonitorRuleBreadth: String, Sendable, Hashable, CaseIterable, Identifiable {
     case thisHost
+    case thisDomain
     case allDestinations
     case exactConnection
 
@@ -46,8 +47,11 @@ public enum MonitorRuleDuration: String, Sendable, Hashable, CaseIterable, Ident
 /// A hostname rule only needs the name, so it covers every port. Incoming
 /// connections keep the exact rule, because their destination is this Mac.
 public enum MonitorRuleScope {
-    /// The choices that make sense for these connections, broadest-useful first.
-    public static func options(for rows: [MonitorEventRow]) -> [MonitorRuleBreadth] {
+    /// The choices that make sense for these connections, the exact host first.
+    public static func options(
+        for rows: [MonitorEventRow],
+        suffixes: PublicSuffixList = .shared
+    ) -> [MonitorRuleBreadth] {
         let seeds = rows.compactMap(MonitorExactRuleSeed.make)
         guard seeds.count == rows.count, let first = seeds.first,
               seeds.allSatisfy({ $0.process == first.process && $0.owner == first.owner }) else {
@@ -61,14 +65,31 @@ public enum MonitorRuleScope {
         if seeds.allSatisfy({ $0.destination == first.destination }) {
             options.append(.thisHost)
         }
+        if let domain = domain(for: rows[0], suffixes: suffixes),
+           rows.allSatisfy({ self.domain(for: $0, suffixes: suffixes) == domain }) {
+            options.append(.thisDomain)
+        }
         options.append(.allDestinations)
         if single { options.append(.exactConnection) }
         return options
     }
 
+    /// The registered domain a connection's name belongs to, like
+    /// `example.co.uk` for `www.example.co.uk`, when there's a name and the
+    /// suffix list is available.
+    public static func domain(
+        for row: MonitorEventRow,
+        suffixes: PublicSuffixList = .shared
+    ) -> DomainName? {
+        guard row.event.flow.direction == .outgoing,
+              let host = row.event.flow.observedHostname else { return nil }
+        return suffixes.registrableDomain(of: host)
+    }
+
     public static func target(
         _ breadth: MonitorRuleBreadth,
-        for row: MonitorEventRow
+        for row: MonitorEventRow,
+        suffixes: PublicSuffixList = .shared
     ) throws -> MonitorRuleTarget? {
         guard let seed = MonitorExactRuleSeed.make(from: row) else { return nil }
         let destination: DestinationCondition
@@ -77,6 +98,9 @@ public enum MonitorRuleScope {
             return MonitorRuleTarget(seed: seed)
         case .thisHost:
             destination = seed.destination
+        case .thisDomain:
+            guard let domain = domain(for: row, suffixes: suffixes) else { return nil }
+            destination = try .normalizedDomainSet([domain])
         case .allDestinations:
             destination = .anyEndpoint
         }
@@ -89,19 +113,22 @@ public enum MonitorRuleScope {
     public static func title(
         _ breadth: MonitorRuleBreadth,
         host: String,
+        domain: String? = nil,
         port: UInt16?
     ) -> String {
         switch breadth {
         case .thisHost: "\(host), any port"
+        case .thisDomain: "\(domain ?? host) and its subdomains"
         case .allDestinations: "All destinations"
         case .exactConnection: port.map { "Only \(host) on port \($0)" } ?? "Only \(host)"
         }
     }
 
     /// The destination as it reads in a sentence about the rule.
-    public static func phrase(_ breadth: MonitorRuleBreadth, host: String) -> String {
+    public static func phrase(_ breadth: MonitorRuleBreadth, host: String, domain: String? = nil) -> String {
         switch breadth {
         case .thisHost: "\(host) on any port"
+        case .thisDomain: "\(domain ?? host) and its subdomains"
         case .allDestinations: "all destinations"
         case .exactConnection: host
         }
@@ -109,7 +136,8 @@ public enum MonitorRuleScope {
 
     /// Hostname rules need a name from macOS, so say so where it matters.
     public static func limitation(_ breadth: MonitorRuleBreadth, row: MonitorEventRow) -> String? {
-        guard breadth == .thisHost, row.event.flow.observedHostname != nil else { return nil }
+        guard breadth == .thisHost || breadth == .thisDomain,
+              row.event.flow.observedHostname != nil else { return nil }
         return "This applies to connections that use this name, not direct connections to its IP address."
     }
 }

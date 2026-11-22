@@ -37,6 +37,7 @@
 		10000000000000000000001B /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000001F /* Security.framework */; };
 		10000000000000000000001C /* ConnectionAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* ConnectionAlertView.swift */; };
 		100000000000000000000100 /* ConnectionAlertMinimized.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000100 /* ConnectionAlertMinimized.swift */; };
+		100000000000000000000101 /* ConnectionAlertDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000101 /* ConnectionAlertDestination.swift */; };
 		10000000000000000000001D /* PromptPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000021 /* PromptPanelController.swift */; };
 		10000000000000000000001E /* StatusMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000022 /* StatusMenuView.swift */; };
 		10000000000000000000001F /* RulesWorkspaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000023 /* RulesWorkspaceController.swift */; };
@@ -108,6 +109,7 @@
 		1000000000000000000000C7 /* ip-country.bin in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C7 /* ip-country.bin */; };
 		1000000000000000000000C6 /* country-grid.bin in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C6 /* country-grid.bin */; };
 		1000000000000000000000C5 /* network-map.json in Resources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C5 /* network-map.json */; };
+		100000000000000000000102 /* public_suffix_list.dat in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000102 /* public_suffix_list.dat */; };
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
 		1000000000000000000000C9 /* RiftComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C9 /* RiftComponents.swift */; };
 		1000000000000000000000CA /* MonitorFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CA /* MonitorFeed.swift */; };
@@ -226,6 +228,7 @@
 		20000000000000000000001F /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		200000000000000000000020 /* ConnectionAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertView.swift; sourceTree = "<group>"; };
 		200000000000000000000100 /* ConnectionAlertMinimized.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertMinimized.swift; sourceTree = "<group>"; };
+		200000000000000000000101 /* ConnectionAlertDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertDestination.swift; sourceTree = "<group>"; };
 		200000000000000000000021 /* PromptPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptPanelController.swift; sourceTree = "<group>"; };
 		200000000000000000000022 /* StatusMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuView.swift; sourceTree = "<group>"; };
 		200000000000000000000023 /* RulesWorkspaceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesWorkspaceController.swift; sourceTree = "<group>"; };
@@ -294,6 +297,7 @@
 		2000000000000000000000C7 /* ip-country.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NetworkData/ip-country.bin"; sourceTree = "<group>"; };
 		2000000000000000000000C6 /* country-grid.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NetworkData/country-grid.bin"; sourceTree = "<group>"; };
 		2000000000000000000000C5 /* network-map.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "NetworkData/network-map.json"; sourceTree = "<group>"; };
+		200000000000000000000102 /* public_suffix_list.dat */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DomainData/public_suffix_list.dat"; sourceTree = "<group>"; };
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
 		2000000000000000000000C9 /* RiftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftComponents.swift; sourceTree = "<group>"; };
 		2000000000000000000000CA /* MonitorFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeed.swift; sourceTree = "<group>"; };
@@ -411,6 +415,7 @@
 				20000000000000000000004D /* ControlPlaneCommandErrors.swift */,
 				200000000000000000000020 /* ConnectionAlertView.swift */,
 				200000000000000000000100 /* ConnectionAlertMinimized.swift */,
+				200000000000000000000101 /* ConnectionAlertDestination.swift */,
 				200000000000000000000021 /* PromptPanelController.swift */,
 				200000000000000000000022 /* StatusMenuView.swift */,
 				200000000000000000000023 /* RulesWorkspaceController.swift */,
@@ -574,6 +579,7 @@
 				2000000000000000000000C7 /* ip-country.bin */,
 				2000000000000000000000C6 /* country-grid.bin */,
 				2000000000000000000000C5 /* network-map.json */,
+				200000000000000000000102 /* public_suffix_list.dat */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -700,6 +706,7 @@
 				1000000000000000000000C7 /* ip-country.bin in Resources */,
 				1000000000000000000000C6 /* country-grid.bin in Resources */,
 				1000000000000000000000C5 /* network-map.json in Resources */,
+				100000000000000000000102 /* public_suffix_list.dat in Resources */,
 				1000000000000000000000CD /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -732,6 +739,7 @@
 				10000000000000000000004B /* ControlPlaneCommandErrors.swift in Sources */,
 				10000000000000000000001C /* ConnectionAlertView.swift in Sources */,
 				100000000000000000000100 /* ConnectionAlertMinimized.swift in Sources */,
+				100000000000000000000101 /* ConnectionAlertDestination.swift in Sources */,
 				10000000000000000000001D /* PromptPanelController.swift in Sources */,
 				10000000000000000000001E /* StatusMenuView.swift in Sources */,
 				10000000000000000000001F /* RulesWorkspaceController.swift in Sources */,

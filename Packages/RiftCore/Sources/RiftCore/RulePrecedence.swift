@@ -54,8 +54,10 @@ enum DestinationSpecificity: Sendable, Equatable {
         switch (lhs, rhs) {
         case (.ip(_, let left), .ip(_, let right)) where left.spanMagnitude != right.spanMagnitude:
             return left.spanMagnitude.lexicographicallyPrecedes(right.spanMagnitude)
+        // The more specific domain wins, like every other tie-break here: a
+        // Block on ads.example.com beats an Allow on example.com.
         case (.domain(_, let left), .domain(_, let right)) where left.labelCount != right.labelCount:
-            return left.labelCount < right.labelCount
+            return left.labelCount > right.labelCount
         default:
             return lhs.stableMember < rhs.stableMember
         }

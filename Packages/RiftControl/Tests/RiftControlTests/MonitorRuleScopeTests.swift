@@ -68,7 +68,9 @@ private func connection(
     #expect(options.contains(.thisHost))
 }
 
-@Test func nothingOffersARuleThatCoversSubdomains() throws {
+/// Without the suffix list, which the test bundle doesn't have, nothing covers
+/// subdomains. DomainRuleTests checks the choice with the list.
+@Test func withoutTheSuffixListNothingOffersARuleThatCoversSubdomains() throws {
     let row = try connection()
     for breadth in MonitorRuleScope.options(for: [row]) {
         let target = try #require(try MonitorRuleScope.target(breadth, for: row))

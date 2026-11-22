@@ -12,7 +12,10 @@ import Testing
     ads.example.test
     """.data(using: .utf8)!
     let entries = try BlocklistParser.parse(input)
-    #expect(entries.count == 4)
+    // The hosts line's names are exact; the plain name also covers its
+    // subdomains, so it's a separate entry.
+    #expect(entries.count == 5)
+    #expect(entries.contains(.domainAndSubdomains(try DomainName("ads.example.test"))))
     #expect(throws: BlocklistParserError.malformedLine(1)) {
         try BlocklistParser.parse(Data("bad%name".utf8))
     }
@@ -21,8 +24,8 @@ import Testing
 @Test func blocklistParserAcceptsHyphenatedDomainsWithoutTreatingThemAsRanges() throws {
     let entries = try BlocklistParser.parse(Data("ads-edge.example.test\napi-v2.example.test\n".utf8))
     #expect(entries == [
-        .domain(try DomainName("ads-edge.example.test")),
-        .domain(try DomainName("api-v2.example.test")),
+        .domainAndSubdomains(try DomainName("ads-edge.example.test")),
+        .domainAndSubdomains(try DomainName("api-v2.example.test")),
     ])
 }
 
@@ -219,7 +222,7 @@ private func blocklistFlow(hostname: String) throws -> FlowDescriptor {
     example.test##.banner
     ~shop.example.test#@#.ad
     """.data(using: .utf8)!
-    #expect(try BlocklistParser.parse(input) == [.domain(try DomainName("ads.example.test"))])
+    #expect(try BlocklistParser.parse(input) == [.domainAndSubdomains(try DomainName("ads.example.test"))])
 }
 
 @Test func blocklistParserTreatsSemicolonsAsComments() throws {
@@ -229,8 +232,8 @@ private func blocklistFlow(hostname: String) throws -> FlowDescriptor {
     0.0.0.0 tracker.example.test ## section note
     """.data(using: .utf8)!
     #expect(try BlocklistParser.parse(input) == [
-        .domain(try DomainName("ads.example.test")),
         .domain(try DomainName("tracker.example.test")),
+        .domainAndSubdomains(try DomainName("ads.example.test")),
     ])
 }
 
@@ -246,7 +249,7 @@ private func blocklistFlow(hostname: String) throws -> FlowDescriptor {
     203.0.113.0/24
     """.data(using: .utf8)!
     #expect(try BlocklistParser.parse(input) == [
-        .domain(try DomainName("ads.example.test")),
+        .domainAndSubdomains(try DomainName("ads.example.test")),
         .address(try IPInterval(cidr: IPAddress("203.0.113.0"), prefixLength: 24)),
     ])
 }

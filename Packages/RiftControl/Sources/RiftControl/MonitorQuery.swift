@@ -5,6 +5,7 @@ import Foundation
 public enum MonitorLens: String, CaseIterable, Sendable, Identifiable {
     case application = "App"
     case hostname = "Hostname"
+    case domain = "Domain"
     case country = "Country"
     public var id: String { rawValue }
 }
@@ -206,6 +207,8 @@ public enum MonitorQuery {
                 if endpointLabels.count < 4_096 { endpointLabels[endpoint] = label }
                 rawLabels = (applicationLabel(row), label)
             case .hostname: rawLabels = (hostnameLabel(row), applicationLabel(row))
+            case .domain:
+                rawLabels = (MonitorDomainGroup(row.event.flow).title, applicationLabel(row))
             case .country:
                 rawLabels = (MonitorCountryGroup(row.event.flow, context: context).title, applicationLabel(row))
             }

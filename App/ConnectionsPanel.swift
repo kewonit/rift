@@ -55,7 +55,7 @@ struct ConnectionsPanel: View {
                     .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .help(showsLog ? "Group connections by app, destination or country" : "List every connection in order, newest first")
+                .help(showsLog ? "Group connections by app, destination, domain or country" : "List every connection in order, newest first")
                 Button(action: toggleMap) {
                     Label(
                         mapHidden ? "Show Map" : "Hide Map",
@@ -239,6 +239,7 @@ extension MonitorLens {
         switch self {
         case .application: "App"
         case .hostname: "Destination"
+        case .domain: "Domain"
         case .country: "Country"
         }
     }

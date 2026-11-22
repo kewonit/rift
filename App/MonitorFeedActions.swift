@@ -131,7 +131,7 @@ extension MonitorFeed {
         let sentence = RulePlainLanguage.change(
             action: request.action,
             application: request.application,
-            destination: MonitorRuleScope.phrase(breadth, host: request.host),
+            destination: MonitorRuleScope.phrase(breadth, host: request.host, domain: request.domain),
             port: breadth == .exactConnection ? request.port : nil,
             incoming: request.row.event.flow.direction == .incoming,
             lasting: duration.phrase

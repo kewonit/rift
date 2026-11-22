@@ -52,6 +52,33 @@ public struct DomainName: Sendable, Hashable, Comparable, Codable, CustomStringC
         self.ascii = canonical
     }
 
+    /// A name typed or listed with international letters, such as
+    /// `bücher.de`, converted label by label to its ASCII `xn--` form. ASCII
+    /// input is checked as usual.
+    /// (A static function rather than an initializer, so `DomainName.init`
+    /// stays unambiguous.)
+    public static func converting(_ input: String) throws -> DomainName {
+        let trimmed = input.hasSuffix(".") ? String(input.dropLast()) : input
+        guard !trimmed.unicodeScalars.allSatisfy(\.isASCII) else {
+            return try DomainName(trimmed)
+        }
+        let folded = trimmed.precomposedStringWithCanonicalMapping
+            .lowercased(with: Locale(identifier: "en_US_POSIX"))
+        var labels: [String] = []
+        for label in folded.split(separator: ".", omittingEmptySubsequences: false) {
+            if label.unicodeScalars.allSatisfy(\.isASCII) {
+                labels.append(String(label))
+            } else {
+                guard let encoded = Punycode.encode(Array(label.unicodeScalars)),
+                      let text = String(bytes: encoded, encoding: .ascii) else {
+                    throw DomainNameError.malformedALabel
+                }
+                labels.append("xn--" + text)
+            }
+        }
+        return try DomainName(labels.joined(separator: "."))
+    }
+
     public var description: String { ascii }
     public var labelCount: Int { ascii.split(separator: ".").count }
 
