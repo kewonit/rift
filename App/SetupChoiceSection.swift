@@ -7,7 +7,7 @@ import SwiftUI
 /// history, so there is something to review; Ask Me starts with Apple's own
 /// services allowed, so there are fewer questions.
 struct SetupChoiceSection: View {
-    /// How long setup keeps history. Settings › History allows 1 to 30 days.
+    /// How long setup keeps history. Settings › History allows 1 to 365 days.
     static let historyDays = 7
 
     @Bindable var session: AppSession

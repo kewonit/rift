@@ -404,7 +404,7 @@ struct SettingsView: View {
     private func exportHistory() {
         guard let format = pendingHistoryExport else { return }
         pendingHistoryExport = nil
-        perform("Couldn’t export connection history.") {
+        perform("Couldn’t export connection history. A long history can be too large for JSON, so try CSV.") {
             let data = try await controlPlane.historyExportData(format: format)
             try await ArchiveFileAccess.save(
                 data: data,

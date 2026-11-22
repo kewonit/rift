@@ -23,8 +23,10 @@ for software updates, as described under [Update checks](#update-checks).
   visible, or five when only the menu panel is open. Collection stops and
   these buffers are released when all activity views are hidden, minimized,
   fully obscured, or closed. Rules and prompt handling remain active.
-- Persistent history keeps up to 50,000 flows for the number of days you
-  choose in Settings › History, from 1 to 30: 7 when turned on in setup.
+- Persistent history keeps up to the number of connections you choose in
+  Settings › History, from 1,000 to 200,000 (50,000 unless you change it), for
+  the number of days you choose, from 1 day to a year (30 days unless you
+  change it, or 7 when turned on in setup), whichever limit comes first.
   It contains bounded decision metadata and close-reported byte totals when
   macOS supplies them. The metadata includes the process ID and the path of
   the program that connected, which can contain your account name. A JSON

@@ -20,52 +20,18 @@ public enum HistoryExportCodec {
         exportedAt: Date,
         maximumBytes: Int = maximumBytes
     ) throws -> Data {
-        guard maximumBytes > 0 else { throw HistoryExportError.maximumBytesExceeded }
-        switch format {
-        case .json:
-            return try encodeJSON(
-                rows: rows,
-                exportedAt: exportedAt,
-                maximumBytes: maximumBytes
-            )
-        case .csv:
-            return try encodeCSV(rows: rows, maximumBytes: maximumBytes)
-        }
+        var stream = try HistoryExportStream(format: format, maximumBytes: maximumBytes)
+        for row in rows { try stream.append(row) }
+        return try stream.finish(exportedAt: exportedAt)
     }
 
-    private static func encodeJSON(
-        rows: [MonitorEventRow],
-        exportedAt: Date,
-        maximumBytes: Int
-    ) throws -> Data {
-        var output = BoundedExportData(maximumBytes: maximumBytes)
-        let encoder = CanonicalPolicyJSON.encoder()
-        try output.appendUTF8("{\"events\":[")
-        for (index, row) in rows.enumerated() {
-            if index > 0 { try output.appendUTF8(",") }
-            try output.append(encoder.encode(HistoryExportRecord(row)))
-        }
-        try output.appendUTF8("],\"exportedAt\":")
-        try output.append(encoder.encode(exportedAt))
-        try output.appendUTF8(",\"schemaVersion\":1}")
-        return output.data
-    }
+    static let csvHeader = [
+        "occurred_at_ms", "closed_at_ms", "provider_epoch", "flow_id", "application_identity",
+        "direction", "protocol", "hostname", "address", "port", "decision", "reason",
+        "winning_rule_id", "bytes_inbound", "bytes_outbound", "end_reason", "coverage",
+    ]
 
-    private static func encodeCSV(rows: [MonitorEventRow], maximumBytes: Int) throws -> Data {
-        let header = [
-            "occurred_at_ms", "closed_at_ms", "provider_epoch", "flow_id", "application_identity",
-            "direction", "protocol", "hostname", "address", "port", "decision", "reason",
-            "winning_rule_id", "bytes_inbound", "bytes_outbound", "end_reason", "coverage",
-        ]
-        var output = BoundedExportData(maximumBytes: maximumBytes)
-        try appendCSVRow(header, to: &output)
-        for row in rows {
-            try appendCSVRow(HistoryExportRecord(row).csvValues, to: &output)
-        }
-        return output.data
-    }
-
-    private static func appendCSVRow(
+    fileprivate static func appendCSVRow(
         _ values: [String],
         to output: inout BoundedExportData
     ) throws {
@@ -87,6 +53,45 @@ public enum HistoryExportCodec {
         let first = safe.drop(while: { $0.isWhitespace }).first
         if let first, "=+-@".contains(first) { safe = "'" + safe }
         return "\"" + safe.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+    }
+}
+
+/// Writes an export one connection at a time, so a long history is read
+/// row by row instead of all at once. The output is still bounded.
+public struct HistoryExportStream {
+    private let format: HistoryExportFormat
+    private let encoder = CanonicalPolicyJSON.encoder()
+    private var output: BoundedExportData
+    private var count = 0
+
+    public init(format: HistoryExportFormat, maximumBytes: Int = HistoryExportCodec.maximumBytes) throws {
+        guard maximumBytes > 0 else { throw HistoryExportError.maximumBytesExceeded }
+        self.format = format
+        output = BoundedExportData(maximumBytes: maximumBytes)
+        switch format {
+        case .json: try output.appendUTF8("{\"events\":[")
+        case .csv: try HistoryExportCodec.appendCSVRow(HistoryExportCodec.csvHeader, to: &output)
+        }
+    }
+
+    public mutating func append(_ row: MonitorEventRow) throws {
+        switch format {
+        case .json:
+            if count > 0 { try output.appendUTF8(",") }
+            try output.append(encoder.encode(HistoryExportRecord(row)))
+        case .csv:
+            try HistoryExportCodec.appendCSVRow(HistoryExportRecord(row).csvValues, to: &output)
+        }
+        count += 1
+    }
+
+    public mutating func finish(exportedAt: Date) throws -> Data {
+        if format == .json {
+            try output.appendUTF8("],\"exportedAt\":")
+            try output.append(encoder.encode(exportedAt))
+            try output.appendUTF8(",\"schemaVersion\":1}")
+        }
+        return output.data
     }
 }
 
@@ -133,7 +138,7 @@ private struct HistoryExportRecord: Codable {
     }
 }
 
-private struct BoundedExportData {
+fileprivate struct BoundedExportData {
     private(set) var data = Data()
     private let maximumBytes: Int
 

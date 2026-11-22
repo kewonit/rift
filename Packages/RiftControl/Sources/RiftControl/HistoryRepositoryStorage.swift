@@ -91,34 +91,67 @@ enum HistoryRepositoryStorage {
         return try decode(records, coverage: coverage)
     }
 
+    /// Every saved connection, newest first, up to `limit`, one at a time,
+    /// so an export of a long history never holds it all decoded at once.
+    static func forEachMonitorRow(
+        in database: Database,
+        coverage: HistoryCoverageSnapshot,
+        limit: Int,
+        _ body: (MonitorEventRow) throws -> Void
+    ) throws {
+        let rows = try Row.fetchCursor(
+            database,
+            sql: """
+                SELECT decision_event, closed_at, bytes_inbound, bytes_outbound, flow_end_reason
+                FROM flow_lifecycle
+                WHERE decision_event IS NOT NULL
+                ORDER BY decision_at DESC, decision_sequence DESC,
+                         provider_epoch DESC, flow_id DESC
+                LIMIT ?
+                """,
+            arguments: [max(1, limit)]
+        )
+        let decoder = CanonicalPolicyJSON.decoder()
+        let coverageIndex = HistoryCoverageIndex(coverage)
+        while let row = try rows.next() {
+            try body(try decodeRow(row, decoder: decoder, coverageIndex: coverageIndex))
+        }
+    }
+
     private static func decode(_ rows: [Row], coverage: HistoryCoverageSnapshot) throws -> [MonitorEventRow] {
         let decoder = CanonicalPolicyJSON.decoder()
         let coverageIndex = HistoryCoverageIndex(coverage)
-        return try rows.map { row in
-            let encoded: Data = row["decision_event"]
-            let event = try decoder.decode(RuntimeEvent.self, from: encoded)
-            let closedSeconds: Double? = row["closed_at"]
-            let closedAt = closedSeconds.map(Date.init(timeIntervalSince1970:))
-            let inbound: Int64? = row["bytes_inbound"]
-            let outbound: Int64? = row["bytes_outbound"]
-            let endReason: String? = row["flow_end_reason"]
-            let intervalEnd = max(closedAt ?? event.occurredAt, event.occurredAt)
-                .addingTimeInterval(0.001)
-            let rangeCoverage = coverageIndex.coverage(
-                from: event.occurredAt,
-                to: intervalEnd
-            )
-            let bytesMayBeLegacyClamped = inbound == Int64.max || outbound == Int64.max
-            return MonitorEventRow(
-                event: event,
-                coverage: bytesMayBeLegacyClamped
-                    ? .combined(rangeCoverage, .partial) : rangeCoverage,
-                closedAt: closedAt,
-                bytesInbound: inbound.map { UInt64(bitPattern: $0) },
-                bytesOutbound: outbound.map { UInt64(bitPattern: $0) },
-                flowEndReason: endReason.flatMap(RuntimeFlowEndReason.init(rawValue:))
-            )
-        }
+        return try rows.map { try decodeRow($0, decoder: decoder, coverageIndex: coverageIndex) }
+    }
+
+    private static func decodeRow(
+        _ row: Row,
+        decoder: JSONDecoder,
+        coverageIndex: HistoryCoverageIndex
+    ) throws -> MonitorEventRow {
+        let encoded: Data = row["decision_event"]
+        let event = try decoder.decode(RuntimeEvent.self, from: encoded)
+        let closedSeconds: Double? = row["closed_at"]
+        let closedAt = closedSeconds.map(Date.init(timeIntervalSince1970:))
+        let inbound: Int64? = row["bytes_inbound"]
+        let outbound: Int64? = row["bytes_outbound"]
+        let endReason: String? = row["flow_end_reason"]
+        let intervalEnd = max(closedAt ?? event.occurredAt, event.occurredAt)
+            .addingTimeInterval(0.001)
+        let rangeCoverage = coverageIndex.coverage(
+            from: event.occurredAt,
+            to: intervalEnd
+        )
+        let bytesMayBeLegacyClamped = inbound == Int64.max || outbound == Int64.max
+        return MonitorEventRow(
+            event: event,
+            coverage: bytesMayBeLegacyClamped
+                ? .combined(rangeCoverage, .partial) : rangeCoverage,
+            closedAt: closedAt,
+            bytesInbound: inbound.map { UInt64(bitPattern: $0) },
+            bytesOutbound: outbound.map { UInt64(bitPattern: $0) },
+            flowEndReason: endReason.flatMap(RuntimeFlowEndReason.init(rawValue:))
+        )
     }
 
     @discardableResult

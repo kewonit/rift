@@ -127,7 +127,10 @@ public actor HistoryRepository {
                 database,
                 sql: "SELECT * FROM history_settings WHERE singleton_id = 1"
             ) else {
-                return HistorySettings(enabled: true, retentionDays: 30, maximumFlows: 50_000)
+                return HistorySettings(
+                    enabled: true, retentionDays: HistoryLimits.defaultRetentionDays,
+                    maximumFlows: HistoryLimits.defaultMaximumFlows
+                )
             }
             return HistorySettings(
                 enabled: row["enabled"],
@@ -143,8 +146,8 @@ public actor HistoryRepository {
         maximumFlows: Int,
         now: Date = Date()
     ) throws {
-        let days = min(max(1, retentionDays), 30)
-        let flows = min(max(100, maximumFlows), 50_000)
+        let days = HistoryLimits.clampedDays(retentionDays)
+        let flows = HistoryLimits.clampedFlows(maximumFlows)
         let next = HistorySettings(enabled: enabled, retentionDays: days, maximumFlows: flows)
         try database.write { database in
             let wasEnabled = try Bool.fetchOne(
@@ -244,10 +247,10 @@ public actor HistoryRepository {
     }
 
     public func monitorSnapshot(
-        maximum: Int = 50_000,
+        maximum: Int = HistoryLimits.maximumLoadedFlows,
         window: MonitorTimeWindow? = nil
     ) throws -> HistoryMonitorSnapshot {
-        let boundedMaximum = min(max(1, maximum), 50_000)
+        let boundedMaximum = min(max(1, maximum), HistoryLimits.maximumLoadedFlows)
         let cursor = changes.cursor
         return try database.read { database in
             let coverage = try HistoryCoverageStore.snapshot(in: database)
@@ -415,13 +418,16 @@ public actor HistoryRepository {
     ) async throws -> Data {
         let current = try settings()
         try Task.checkCancellation()
-        let snapshot = try monitorSnapshot(maximum: current.maximumFlows)
-        return try HistoryExportCodec.encode(
-            rows: snapshot.rows,
-            format: format,
-            exportedAt: now,
-            maximumBytes: maximumBytes
-        )
+        // History can hold more than a view loads, so the export reads every
+        // saved connection one at a time instead of taking a snapshot.
+        return try await database.read { database in
+            let coverage = try HistoryCoverageStore.snapshot(in: database)
+            var stream = try HistoryExportStream(format: format, maximumBytes: maximumBytes)
+            try HistoryRepositoryStorage.forEachMonitorRow(
+                in: database, coverage: coverage, limit: current.maximumFlows
+            ) { try stream.append($0) }
+            return try stream.finish(exportedAt: now)
+        }
     }
 
     private func persist(

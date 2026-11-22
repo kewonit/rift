@@ -198,15 +198,20 @@ struct HistorySettingsPane: View {
         Form {
             Section("History") {
                 Toggle("Save connection history", isOn: $historyEnabled)
-                Stepper("Keep for \(retentionDays) \(retentionDays == 1 ? "day" : "days")", value: $retentionDays, in: 1...30)
-                    .disabled(!historyEnabled)
-                Stepper(
-                    "Keep up to \(maximumFlows.formatted()) connections",
-                    value: $maximumFlows,
-                    in: 1_000...50_000,
-                    step: 1_000
-                )
+                Picker("Keep for", selection: $retentionDays) {
+                    ForEach(HistoryLimits.dayChoices(including: retentionDays), id: \.self) {
+                        Text(HistoryLimits.daysLabel($0)).tag($0)
+                    }
+                }
                 .disabled(!historyEnabled)
+                Picker("Keep up to", selection: $maximumFlows) {
+                    ForEach(HistoryLimits.flowChoices(including: maximumFlows), id: \.self) {
+                        Text("\($0.formatted()) connections").tag($0)
+                    }
+                }
+                .disabled(!historyEnabled)
+                Text("Whichever limit comes first applies. The Map and Review show the newest \(HistoryLimits.maximumLoadedFlows.formatted()) connections; exports include all of them. A longer history takes more disk space.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Text("When history is off, Rift keeps up to \(ControlPlaneController.minimalFlowLimit) recent connections for five minutes, and only while the Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply.")
                     .font(.caption).foregroundStyle(.secondary)
                 if historyEnabled, let coverage = hostnameCoverage, let share = coverage.shareWithoutHostname {
