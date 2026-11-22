@@ -33,7 +33,7 @@ struct ConnectionAlertMinimizedView: View {
                     Text(ConnectionAlertCountdown.label(for: prompt, now: context.date))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(Color(nsColor: .systemOrange))
-                        .accessibilityLabel(ConnectionAlertSpeech.countdown(deadline: prompt.deadline, now: context.date))
+                        .accessibilityLabel(ConnectionAlertSpeech.countdown(for: prompt, now: context.date))
                 }
             }
             Spacer(minLength: RiftDesign.Spacing.s)

@@ -267,7 +267,7 @@ struct ConnectionAlertView: View {
                         .font(.caption)
                         .foregroundStyle(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                     }
-                    .modifier(ConnectionAlertCountdownElement(deadline: prompt.deadline, now: context.date, keys: controlActiveState == .key ? keyHint : nil))
+                    .modifier(ConnectionAlertCountdownElement(prompt: prompt, now: context.date, keys: controlActiveState == .key ? keyHint : nil))
                 }
             }
         }

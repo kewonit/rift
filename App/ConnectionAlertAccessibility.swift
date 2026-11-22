@@ -13,26 +13,19 @@ enum ConnectionAlertSpeech {
     /// Alerts already announced, so the minimized bar doesn't repeat one.
     private static var announced: Set<UUID> = []
 
-    /// The countdown in words, such as "Allowing in 25 seconds".
-    static func countdown(
-        deadline: Date,
-        now: Date,
-        blocks: Bool = ConnectionAlertCountdown.blocksUnanswered
-    ) -> String {
-        let remaining = Int(remainingTime(deadline: deadline, now: now, blocks: blocks).rounded(.up))
-        guard remaining > 0 else {
-            return ConnectionAlertCountdown.label(deadline: deadline, now: now, blocks: blocks)
-        }
+    /// The countdown in words, such as "Allowing in 25 seconds". It follows
+    /// what happens to this connection if nobody answers, which the filter
+    /// may decide itself.
+    static func countdown(for prompt: PromptRequest, now: Date) -> String {
+        let remaining = Int(remainingTime(for: prompt, now: now).rounded(.up))
+        guard remaining > 0 else { return ConnectionAlertCountdown.label(for: prompt, now: now) }
+        let blocks = ConnectionAlertCountdown.outcome(for: prompt).blocks
         return "\(blocks ? "Blocking" : "Allowing") in \(RiftSpokenTime.duration(seconds: remaining))"
     }
 
     /// Seconds until Rift or the filter answers for the person.
-    static func remainingTime(
-        deadline: Date,
-        now: Date,
-        blocks: Bool = ConnectionAlertCountdown.blocksUnanswered
-    ) -> TimeInterval {
-        let end = blocks ? deadline.addingTimeInterval(-ConnectionAlertCountdown.blockLead) : deadline
+    static func remainingTime(for prompt: PromptRequest, now: Date) -> TimeInterval {
+        let end = ConnectionAlertCountdown.outcome(for: prompt).answerDeadline(for: prompt)
         return max(0, end.timeIntervalSince(now))
     }
 
@@ -40,7 +33,7 @@ enum ConnectionAlertSpeech {
     /// announcement so none of them cuts another off.
     static func opening(_ headline: String, prompt: PromptRequest, now: Date = Date()) -> String {
         let warnings = ConnectionAlertWarnings.warnings(for: prompt).map { "Warning: \($0.message)" }
-        let time = countdown(deadline: prompt.deadline, now: now) + "."
+        let time = countdown(for: prompt, now: now) + "."
         return ([headline] + warnings + [time]).joined(separator: " ")
     }
 
@@ -74,19 +67,19 @@ struct ConnectionAlertAnnouncements: ViewModifier {
         content
             .task(id: prompt.nonce) {
                 guard let arrivalHeadline,
-                      ConnectionAlertSpeech.remainingTime(deadline: prompt.deadline, now: Date()) >= 5 else { return }
+                      ConnectionAlertSpeech.remainingTime(for: prompt, now: Date()) >= 5 else { return }
                 ConnectionAlertSpeech.announceOpening(arrivalHeadline, prompt: prompt, onlyOnce: true)
             }
             .task(id: CountdownKey(nonce: prompt.nonce, answered: answered)) {
                 guard !answered else { return }
-                let wait = ConnectionAlertSpeech.remainingTime(deadline: prompt.deadline, now: Date())
+                let wait = ConnectionAlertSpeech.remainingTime(for: prompt, now: Date())
                     - ConnectionAlertSpeech.finalWarning
                 // An alert that opens with little time left said so already.
                 guard wait > 5 else { return }
                 try? await Task.sleep(for: .seconds(wait))
                 guard !Task.isCancelled else { return }
                 AccessibilityNotification.Announcement(
-                    ConnectionAlertSpeech.countdown(deadline: prompt.deadline, now: Date())
+                    ConnectionAlertSpeech.countdown(for: prompt, now: Date())
                 ).post()
             }
             .riftAnnounces(problem)
@@ -97,7 +90,7 @@ struct ConnectionAlertAnnouncements: ViewModifier {
 /// VoiceOver element. Its value is read when someone moves to it; it isn't
 /// a progress indicator, so VoiceOver doesn't speak each tick.
 struct ConnectionAlertCountdownElement: ViewModifier {
-    let deadline: Date
+    let prompt: PromptRequest
     let now: Date
     /// The keys on show, such as "Esc Block · Return Allow".
     var keys: String?
@@ -106,7 +99,7 @@ struct ConnectionAlertCountdownElement: ViewModifier {
         content
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Time to answer")
-            .accessibilityValue(ConnectionAlertSpeech.countdown(deadline: deadline, now: now))
+            .accessibilityValue(ConnectionAlertSpeech.countdown(for: prompt, now: now))
             .accessibilityHint(keys.map { "Keys: " + $0.replacingOccurrences(of: " · ", with: ", ") } ?? "")
     }
 }

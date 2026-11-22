@@ -104,6 +104,23 @@ The changelog records notable user-visible changes.
   alerts get an orange edge and map routes, search fields and highlights are
   stronger; with Reduce Transparency, notes and map labels are opaque. Reduce
   Motion covers more animations.
+- Settings › Alerts sets how long an alert waits for an answer (15 seconds to
+  2 minutes) and whether an unanswered connection is allowed or blocked. The
+  network filter enforces both, so Block also applies while Rift isn't open.
+  Before login, or while another account is in front, such connections are
+  still allowed, and UDP waits 8 seconds at most.
+- An alert's Details and the Map inspector show the process ID and full path
+  of the program that connected, and of its app when a helper connected for
+  it. History keeps them; diagnostics don't.
+- A rule can list ports, such as `20-30, 80, 443`, up to 16 ranges, in the
+  rule editor, Edit Rules and `.lsrules` import.
+- Any rule can be High priority. It wins over every normal rule however
+  specific, and never over a blocklist. Imported high-priority rules arrive
+  turned off until you've checked them.
+- The four changes above need the updated network filter (protocol 1.4). With
+  an older filter, Rift keeps the fixed alert wait, blocks unanswered
+  connections only while it's open, and doesn't offer port lists or High
+  priority.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
