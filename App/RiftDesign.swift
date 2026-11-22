@@ -75,7 +75,9 @@ enum RiftDecision: CaseIterable, Hashable, Sendable {
         case .denied: "xmark"
         case .byDefault: "minus"
         case .timedOut: "clock"
-        case .mixed: "xmark"
+        // Its own shape: in the same red as Blocked, a cross would tell the
+        // two apart only by the words beside it.
+        case .mixed: "circle.lefthalf.filled"
         }
     }
 
