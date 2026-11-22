@@ -11,6 +11,7 @@ struct ConnectionsPanel: View {
     let toggleMap: () -> Void
     var searchFocus: FocusState<Bool>.Binding
     @AppStorage("connectionsLogShown") private var showsLog = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,6 +44,8 @@ struct ConnectionsPanel: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
                 ConnectionFilterBar(feed: feed, showsLog: showsLog)
                 if feed.loading { ProgressView().controlSize(.small) }
                 RiftSearchField(prompt: "Search apps and destinations", text: $feed.query.search, focus: searchFocus)
@@ -79,7 +82,7 @@ struct ConnectionsPanel: View {
                 .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: RiftDesign.Motion.press), value: feed.query.isViewingPast)
+        .animation(reduceMotion ? nil : .easeOut(duration: RiftDesign.Motion.press), value: feed.query.isViewingPast)
         .padding(.horizontal, RiftDesign.Spacing.m)
         .padding(.vertical, RiftDesign.Spacing.s)
     }
@@ -92,7 +95,7 @@ struct ConnectionsPanel: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, RiftDesign.Spacing.s)
                 .padding(.vertical, RiftDesign.Spacing.xxs)
-                .background(.regularMaterial, in: Capsule())
+                .riftNoteBackground(Capsule())
                 .padding(.bottom, RiftDesign.Spacing.xs)
                 .allowsHitTesting(false)
         }

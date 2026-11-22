@@ -24,9 +24,19 @@ struct ConnectionsTable: View {
                     }
                 }
                 .help(monitorCoverageLabel(node.ruleCoverage.state))
-                .accessibilityAction(named: "Allow…") { feed.requestRule(.allow, for: node) }
-                .accessibilityAction(named: "Block…") { feed.requestRule(.deny, for: node) }
-                .accessibilityAction(named: "Show Rule") { feed.showRules(for: node) }
+                // One element per row name, so VoiceOver reads it once and
+                // offers the row menu's main commands as actions.
+                .accessibilityElement(children: .combine)
+                .accessibilityActions {
+                    Button("Allow…") { feed.requestRule(.allow, for: node) }
+                    Button("Block…") { feed.requestRule(.deny, for: node) }
+                    if let search = ConnectionFocus.search(for: node) {
+                        Button(ConnectionFocus.title(for: node)) { feed.query.search = search }
+                    }
+                    if !node.ruleCoverage.ruleIDs.isEmpty {
+                        Button("Show Rule") { feed.showRules(for: node) }
+                    }
+                }
             }
             .width(min: 140, ideal: 170)
             TableColumn("Country") { node in
@@ -34,6 +44,7 @@ struct ConnectionsTable: View {
                 Text(country ?? "—")
                     .foregroundStyle(country == nil ? .tertiary : .primary)
                     .lineLimit(1)
+                    .accessibilityLabel(country ?? "Unknown")
             }
             .width(min: 60, ideal: 76)
             TableColumn("Decision", value: \.aggregate.denied) { node in
@@ -94,8 +105,7 @@ struct ConnectionsTable: View {
                     },
                     hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil,
                     focus: ConnectionFocus.search(for: node).map { search in
-                        (node.kind == .application || node.kind == .helper ? "Show Only This App" : "Show Only This Destination",
-                         { feed.query.search = search })
+                        (ConnectionFocus.title(for: node), { feed.query.search = search })
                     }
                 )
             }
@@ -146,6 +156,10 @@ private struct DecisionCell: View {
             RiftDecisionBadge(decision: aggregate.decision)
             Text(label).lineLimit(1)
         }
+        // "Blocked, Blocked" says nothing twice; a changed rule says both.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label.localizedCaseInsensitiveContains(aggregate.decision.label)
+            ? label : "\(aggregate.decision.label), \(label)")
     }
 
     private var label: String {

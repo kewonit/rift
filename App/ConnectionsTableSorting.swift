@@ -52,12 +52,14 @@ struct QuickRuleCell: View {
                 }
                 .help("Always allow \(scope)")
                 .accessibilityLabel("Always allow \(scope)")
+                .accessibilityAddTraits(current == .allow ? .isSelected : [])
                 Button { feed.applyQuickRule(.deny, for: node) } label: {
                     Image(systemName: current == .deny ? "xmark.circle.fill" : "xmark.circle")
                         .foregroundStyle(current == .deny ? Color(nsColor: .systemRed) : .secondary)
                 }
                 .help("Always block \(scope)")
                 .accessibilityLabel("Always block \(scope)")
+                .accessibilityAddTraits(current == .deny ? .isSelected : [])
             }
             .buttonStyle(.borderless)
             .disabled(feed.applyingEventID != nil || monitorCoveragePending(node.ruleCoverage.state))
@@ -76,6 +78,10 @@ struct QuickRuleCell: View {
 
 /// The Map search that shows only a row's app or destination.
 enum ConnectionFocus {
+    static func title(for node: MonitorHierarchyNode) -> String {
+        node.kind == .application || node.kind == .helper ? "Show Only This App" : "Show Only This Destination"
+    }
+
     static func search(for node: MonitorHierarchyNode) -> String? {
         let value = node.title.replacingOccurrences(of: "\"", with: "")
         guard !value.isEmpty else { return nil }

@@ -132,6 +132,8 @@ struct ConnectionInspectorView: View {
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
         }
     }
 }
