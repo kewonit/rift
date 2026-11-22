@@ -154,9 +154,7 @@ public enum RuleWorkspaceCopyDetails {
 
     private static func port(_ value: PortRange?) -> String {
         guard let value else { return "Any port" }
-        return value.lowerBound == value.upperBound
-            ? String(value.lowerBound)
-            : "\(value.lowerBound)-\(value.upperBound)"
+        return value.text()
     }
 
     private static func direction(_ value: DirectionCondition) -> String {

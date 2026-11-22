@@ -33,7 +33,9 @@ public struct PolicyCompatibility: Sendable, Hashable, Codable {
         for rules: [Rule],
         unansweredAlerts: UnansweredAlertPolicy? = nil
     ) -> ProtocolVersion {
-        if unansweredAlerts != nil { return .extendedPolicy }
+        if unansweredAlerts != nil || rules.contains(where: \.usesExtendedPolicy) {
+            return .extendedPolicy
+        }
         return rules.contains(where: \.hasInternationalName) ? .internationalNames : .baseline
     }
 

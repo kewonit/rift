@@ -40,7 +40,8 @@ struct RuleEditorAdvancedSection: View {
                     Text("Incoming").tag(DirectionCondition.incoming)
                     Text("Both").tag(DirectionCondition.bidirectional)
                 }
-                TextField("Port or range", text: $portText, prompt: Text("Any"))
+                TextField("Ports", text: $portText, prompt: Text("Any"))
+                    .help("One port, a range like 8000-8080, or a list like 20-30, 80, 443")
                 Picker("Profile", selection: $profileID) {
                     Text("All profiles").tag(UUID?.none)
                     ForEach(profiles) { Text($0.name).tag(Optional($0.id)) }
@@ -96,5 +97,19 @@ extension ManualRuleEditorView {
             case .hide: .privacy(.hide)
             }
         }
+    }
+}
+
+/// Whether the running filter speaks protocol 1.4, so the rule editors can
+/// offer what only it applies, such as port lists. True where there's no
+/// filter to ask, as in previews.
+private struct FilterSupportsExtendedRulesKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var filterSupportsExtendedRules: Bool {
+        get { self[FilterSupportsExtendedRulesKey.self] }
+        set { self[FilterSupportsExtendedRulesKey.self] = newValue }
     }
 }

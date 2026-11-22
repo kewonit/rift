@@ -174,8 +174,7 @@ struct RuleInspectorView: View {
 
     private var portLabel: String {
         guard let port = row.rule.port else { return "Any port" }
-        return port.lowerBound == port.upperBound
-            ? String(port.lowerBound) : "\(port.lowerBound)–\(port.upperBound)"
+        return port.text(rangeSeparator: "–")
     }
 
     private var ownerLabel: String {

@@ -8,6 +8,7 @@ struct RuleBulkEditSheet: View {
     let rules: [Rule]
     let save: (RuleBulkEdit) async -> Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.filterSupportsExtendedRules) private var filterSupportsExtendedRules
     @State private var action: ActionChoice = .unchanged
     @State private var transport: ProtocolChoice = .unchanged
     @State private var port: PortChoice = .unchanged
@@ -31,7 +32,7 @@ struct RuleBulkEditSheet: View {
                     ForEach(PortChoice.allCases) { Text($0.rawValue).tag($0) }
                 }
                 if port == .specific {
-                    TextField("Port or range", text: $portText, prompt: Text("443 or 8000-8080"))
+                    TextField("Ports", text: $portText, prompt: Text("443, 8000-8080 or 20-30, 80"))
                 }
                 Toggle("Replace notes", isOn: $replacesNote)
                 if replacesNote {
@@ -67,7 +68,7 @@ struct RuleBulkEditSheet: View {
         switch port {
         case .unchanged: portChange = nil
         case .any: portChange = .any
-        case .specific: portChange = .range(try Self.parsePort(portText))
+        case .specific: portChange = .range(try parsePort(portText))
         }
         return RuleBulkEdit(
             action: action.value,
@@ -81,8 +82,11 @@ struct RuleBulkEditSheet: View {
         let edit: RuleBulkEdit
         do {
             edit = try self.edit()
+        } catch PortError.listNeedsNewerFilter {
+            problem = "A list of ports needs the current network filter. Turn on or update the filter, then try again."
+            return
         } catch {
-            problem = "Enter a port, like 443, or a range, like 8000-8080."
+            problem = "Enter a port, like 443, a range, like 8000-8080, or a list, like 20-30, 80, 443, of up to 16."
             return
         }
         // Check every rule first, so nothing is saved if one can't change.
@@ -103,17 +107,15 @@ struct RuleBulkEditSheet: View {
         if await save(edit) { dismiss() }
     }
 
-    private static func parsePort(_ input: String) throws -> PortRange {
-        let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = value.split(separator: "-", omittingEmptySubsequences: false)
-        guard (1...2).contains(parts.count),
-              let lower = UInt16(parts[0].trimmingCharacters(in: .whitespaces)),
-              let upper = UInt16((parts.count == 2 ? parts[1] : parts[0]).trimmingCharacters(in: .whitespaces))
-        else { throw PortError.invalid }
-        return try PortRange(lower, upper)
+    private func parsePort(_ input: String) throws -> PortRange {
+        guard let ports = try? PortRange.parse(input.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            throw PortError.invalid
+        }
+        guard !ports.isList || filterSupportsExtendedRules else { throw PortError.listNeedsNewerFilter }
+        return ports
     }
 
-    private enum PortError: Error { case invalid }
+    private enum PortError: Error { case invalid, listNeedsNewerFilter }
 
     enum ActionChoice: String, CaseIterable, Identifiable {
         case unchanged = "No Change"

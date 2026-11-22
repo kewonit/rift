@@ -22,10 +22,11 @@ extension ControlPlaneController {
         let notices: [String]
         if LSRulesFile.looksLikeRulesFile(data) {
             let file = try LSRulesFile.decode(data)
+            let extendedRules = filterSupportsExtendedPolicy
             let conversion = await Task.detached(priority: .userInitiated) {
                 LSRulesConverter.convert(
                     file, fileName: "Imported rules", lineageID: UUID(),
-                    resolve: LSRulesIdentityResolver.resolve, now: Date()
+                    resolve: LSRulesIdentityResolver.resolve, extendedRules: extendedRules, now: Date()
                 )
             }.value
             payload = conversion.payload

@@ -20,11 +20,33 @@ private let resolver: LSRulesConverter.Resolver = { process in
     }
 }
 
-private func convert(_ json: String) throws -> LSRulesConverter.Conversion {
+private func convert(_ json: String, extendedRules: Bool = true) throws -> LSRulesConverter.Conversion {
     LSRulesConverter.convert(
         try LSRulesFile.decode(Data(json.utf8)), fileName: "Fallback", lineageID: UUID(),
-        resolve: resolver, suffixes: PublicSuffixList("example\nuk\nco.uk\n"), now: Date(timeIntervalSince1970: 100)
+        resolve: resolver, suffixes: PublicSuffixList("example\nuk\nco.uk\n"),
+        extendedRules: extendedRules, now: Date(timeIntervalSince1970: 100)
     )
+}
+
+@Test func portListsImportWhenTheFilterCanApplyThemAndAreSkippedWhenItCant() throws {
+    let file = """
+    {"rules": [
+      {"process": "any", "action": "deny", "ports": "20-30, 80, 443"},
+      {"process": "any", "action": "deny", "ports": "8000-8080"},
+      {"process": "any", "action": "deny", "ports": "80, 81"}
+    ]}
+    """
+    let current = try convert(file)
+    #expect(current.unsupported == 0)
+    #expect(current.payload.rules.map { $0.port?.text() } == ["20-30, 80, 443", "8000-8080", "80-81"])
+    #expect(current.payload.rules.map(\.usesExtendedPolicy) == [true, false, false])
+
+    // An older filter would refuse the whole policy, so the list is left out
+    // and counted. Nothing is narrowed to its first range.
+    let older = try convert(file, extendedRules: false)
+    #expect(older.unsupported == 1)
+    #expect(older.payload.rules.map { $0.port?.text() } == ["8000-8080", "80-81"])
+    #expect(older.payload.rules.map(\.usesExtendedPolicy) == [false, false])
 }
 
 @Test func ruleFilesAreToldApartFromBlocklistsAndRiftsOwnFiles() {
@@ -87,7 +109,7 @@ private func convert(_ json: String) throws -> LSRulesConverter.Conversion {
       {"process": "/Applications/Missing.app/Contents/MacOS/Missing", "action": "deny"},
       {"process": "any", "action": "deny", "protocol": "icmp"},
       {"process": "any", "action": "deny", "remote": "dns-servers"},
-      {"process": "any", "action": "deny", "ports": "80,443"},
+      {"process": "any", "action": "deny", "ports": "80,,443"},
       {"process": "any", "action": "deny", "owner": "any"},
       {"process": "any", "action": "deny", "remote-hosts": "a.example", "direction": "incoming"},
       {"process": "any", "via": "/usr/bin/curl", "action": "deny"},

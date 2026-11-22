@@ -163,3 +163,26 @@ private struct PayloadBeforeExtendedPolicy: Codable {
     #expect(try SecureIPCCodec.decode(PromptRequest.self, from: olderBytes).unansweredAction == nil)
     #expect(prompt.updated(deadline: fixedNow, cohortCount: 3).unansweredAction == .deny)
 }
+
+@Test func onlyAPolicyWithAPortListRuleNeedsProtocolOnePointFour() throws {
+    func compiled(_ ports: String) throws -> CompiledPolicyPayload {
+        let lineage = UUID()
+        let rule = try Rule(
+            id: UUID(), lineageID: lineage, revision: 1, action: .filter(.deny), priority: .normal,
+            process: .anyProcess, destination: .anyEndpoint, transportProtocol: .tcp,
+            port: try PortRange.parse(ports), direction: .outgoing, owner: .authorizedUser,
+            createdAt: fixedNow, modifiedAt: fixedNow
+        )
+        return try CompiledPolicyPayload(
+            lineageID: lineage, generation: 1, authorizedUID: 501, createdAt: fixedNow,
+            operationMode: .alert, activeProfileID: nil, enabledLocalGroupIDs: [], rules: [rule]
+        )
+    }
+    #expect(try compiled("443").compatibility.minimumExtensionProtocol == .baseline)
+    #expect(try compiled("8000-8080").compatibility.minimumExtensionProtocol == .baseline)
+    let list = try compiled("20-30, 80, 443")
+    #expect(list.compatibility.minimumExtensionProtocol == .extendedPolicy)
+    let artifact = try PolicyArtifact.compile(list)
+    #expect(try artifact.decode() == list)
+    #expect(try artifact.decode().rules[0].port?.contains(80) == true)
+}

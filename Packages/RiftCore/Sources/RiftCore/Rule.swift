@@ -158,6 +158,13 @@ public struct Rule: Sendable, Hashable, Codable {
         self.modifiedAt = modifiedAt
     }
 
+    /// Whether the rule uses something only a filter that speaks protocol 1.4
+    /// can decode, such as a list of ports. A policy holding such a rule says
+    /// so, and an older filter refuses it instead of applying part of it.
+    public var usesExtendedPolicy: Bool {
+        port?.isList == true
+    }
+
     public var expiryKey: ExpiredRuleKey? {
         expiresAt.map {
             ExpiredRuleKey(lineageID: lineageID, ruleID: id, revision: revision, expiresAt: $0)
@@ -196,7 +203,7 @@ public struct Rule: Sendable, Hashable, Codable {
             throw RuleValidationError.notesTooLong
         }
         if let port {
-            _ = try PortRange(port.lowerBound, port.upperBound)
+            _ = try port.validated()
         }
         if case .ipSet(let intervals) = destination {
             for interval in intervals {

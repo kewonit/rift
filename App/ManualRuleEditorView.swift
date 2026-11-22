@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct ManualRuleEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.filterSupportsExtendedRules) private var filterSupportsExtendedRules
     let initial: Rule?
     let identities: [RuleIdentityChoice]
     let groups: [LocalRuleGroup]
@@ -75,10 +76,7 @@ struct ManualRuleEditorView: View {
             case .anySupportedProtocol: _transport = State(initialValue: .any)
             }
             _direction = State(initialValue: initial.direction)
-            _portText = State(initialValue: initial.port.map {
-                $0.lowerBound == $0.upperBound
-                    ? String($0.lowerBound) : "\($0.lowerBound)-\($0.upperBound)"
-            } ?? "")
+            _portText = State(initialValue: initial.port?.text() ?? "")
             _temporary = State(initialValue: initial.expiresAt != nil)
             _expiry = State(initialValue: initial.expiresAt ?? Date().addingTimeInterval(3_600))
             _note = State(initialValue: initial.notes)
@@ -427,13 +425,13 @@ struct ManualRuleEditorView: View {
     private func parsePort(_ input: String) throws -> PortRange? {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return nil }
-        let parts = value.split(separator: "-", omittingEmptySubsequences: false)
-        guard parts.count <= 2,
-              let lower = UInt16(parts[0]),
-              let upper = UInt16(parts.count == 2 ? parts[1] : parts[0]) else {
-            throw EditorError.port
+        guard let ports = try? PortRange.parse(value) else { throw EditorError.port }
+        // A rule that already has a list keeps it. A new list waits for a
+        // filter that can apply one, or the whole policy would be refused.
+        guard !ports.isList || filterSupportsExtendedRules || initial?.port == ports else {
+            throw EditorError.portListNeedsNewerFilter
         }
-        return try PortRange(lower, upper)
+        return ports
     }
 
     private static func destinationText(_ destination: DestinationCondition) -> String {
@@ -459,7 +457,7 @@ struct ManualRuleEditorView: View {
     }
 
     private enum EditorError: Error {
-        case incomingDomain, expired, noteTooLong, port, unavailableIdentity
+        case incomingDomain, expired, noteTooLong, port, portListNeedsNewerFilter, unavailableIdentity
 
         var message: String {
             switch self {
@@ -470,7 +468,9 @@ struct ManualRuleEditorView: View {
             case .noteTooLong:
                 "This note is too long."
             case .port:
-                "Enter a port, like 443, or a range, like 8000-8080."
+                "Enter a port, like 443, a range, like 8000-8080, or a list, like 20-30, 80, 443, of up to 16."
+            case .portListNeedsNewerFilter:
+                "A list of ports needs the current network filter. Turn on or update the filter, then try again."
             case .unavailableIdentity:
                 "Choose an available app and owner."
             }

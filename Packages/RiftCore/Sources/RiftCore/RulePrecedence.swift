@@ -106,7 +106,9 @@ enum RulePrecedence {
         return PrecedenceExplanation(
             priority: rule.priority,
             destination: match.destination.description,
-            port: rule.port.map { "\($0.lowerBound)-\($0.upperBound)" } ?? "any port",
+            port: rule.port.map { port in
+                port.ranges.map { "\($0.lowerBound)-\($0.upperBound)" }.joined(separator: ",")
+            } ?? "any port",
             transportProtocol: String(describing: rule.transportProtocol),
             process: String(describing: rule.process),
             owner: String(describing: rule.owner),

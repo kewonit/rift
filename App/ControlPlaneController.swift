@@ -59,9 +59,10 @@ final class ControlPlaneController {
     @ObservationIgnored var visibleMonitorCount = 0
     @ObservationIgnored var visibleMenuCount = 0
     @ObservationIgnored var supportsActivitySubscriptions = false
-    /// The filter speaks protocol 1.4, so it can hold the alert wait and
-    /// block unanswered connections itself.
-    var filterEnforcesUnansweredAlerts = false
+    /// The filter speaks protocol 1.4, so it can hold the alert wait, block
+    /// unanswered connections itself, and apply rules that use what 1.4
+    /// added, such as port lists.
+    var filterSupportsExtendedPolicy = false
     @ObservationIgnored var unansweredAlertSync: Task<Void, Never>?
     @ObservationIgnored var unansweredAlertSyncPending = false
     @ObservationIgnored var unansweredAlertSyncRetries = 0
@@ -351,7 +352,7 @@ final class ControlPlaneController {
         activePolicyTuple = handshake?.active
         if let handshake {
             let enforces = handshake.protocolRange.maximum.supports(minimum: .extendedPolicy)
-            if filterEnforcesUnansweredAlerts != enforces { filterEnforcesUnansweredAlerts = enforces }
+            if filterSupportsExtendedPolicy != enforces { filterSupportsExtendedPolicy = enforces }
             syncUnansweredAlerts()
         }
         guard let handshake else {

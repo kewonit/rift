@@ -7,8 +7,9 @@ import RiftCore
 /// Rift identifies apps by their code signature, so each process path or
 /// code ID is looked up on this Mac. A rule Rift can't express the same way
 /// is skipped and counted rather than widened or narrowed: other protocols
-/// such as ICMP, DNS-server and packet-filter destinations, port lists, and
-/// rules for other accounts.
+/// such as ICMP, DNS-server and packet-filter destinations, and rules for
+/// other accounts. A rule with a list of ports is skipped too when the
+/// running filter is too old to apply one.
 public enum LSRulesConverter {
     public struct Conversion: Sendable, Equatable {
         public let payload: ConfigurationArchivePayload
@@ -54,6 +55,7 @@ public enum LSRulesConverter {
         lineageID: UUID,
         resolve: Resolver,
         suffixes: PublicSuffixList = .shared,
+        extendedRules: Bool = true,
         now: Date
     ) -> Conversion {
         // The file's own name and description come from whoever wrote it, so
@@ -84,7 +86,7 @@ public enum LSRulesConverter {
             case .resolved(let process):
                 guard let made = try? makeRules(
                     source, process: process, group: group.id, lineageID: lineageID,
-                    suffixes: suffixes, now: now
+                    suffixes: suffixes, extendedRules: extendedRules, now: now
                 ) else {
                     unsupported += 1
                     continue
@@ -193,6 +195,7 @@ public enum LSRulesConverter {
         group: UUID,
         lineageID: UUID,
         suffixes: PublicSuffixList,
+        extendedRules: Bool,
         now: Date
     ) throws -> MadeRules {
         let action: FilterAction
@@ -219,10 +222,10 @@ public enum LSRulesConverter {
         if source.ports == "any" || source.ports.isEmpty {
             port = nil
         } else {
-            let parts = source.ports.split(separator: "-", omittingEmptySubsequences: false)
-            guard parts.count <= 2, let lower = UInt16(parts[0]),
-                  let upper = UInt16(parts.count == 2 ? parts[1] : parts[0]) else { throw Unsupported() }
-            port = try PortRange(lower, upper)
+            // One port, a range, or a list such as "20-30, 80, 443".
+            let parsed = try PortRange.parse(source.ports)
+            guard extendedRules || !parsed.isList else { throw Unsupported() }
+            port = parsed
         }
         let destinations = try destinations(source.remote, direction: direction, suffixes: suffixes)
         // Notes keep their line breaks but not direction changes.

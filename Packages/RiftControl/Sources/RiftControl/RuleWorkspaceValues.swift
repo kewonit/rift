@@ -144,8 +144,7 @@ public struct RuleRowViewValue: Sendable, Hashable, Identifiable {
         case .endpointClass(let value): destination = RuleWorkspacePresentation.endpointClass(value)
         case .anyEndpoint: destination = "Any destination"
         }
-        let port = rule.port.map { $0.lowerBound == $0.upperBound
-            ? String($0.lowerBound) : "\($0.lowerBound)–\($0.upperBound)" } ?? "any port"
+        let port = rule.port.map { $0.text(rangeSeparator: "–") } ?? "any port"
         return DisplaySanitizer.plainText("\(destination) • \(port)")
     }
 }

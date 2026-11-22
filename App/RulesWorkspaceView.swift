@@ -221,6 +221,7 @@ struct RulesWorkspaceView: View {
                     await model.edit(row.id, draft: draft)
                 }
             }
+            .environment(\.filterSupportsExtendedRules, isPreview || model.controlPlane.filterSupportsExtendedPolicy)
             .task {
                 if requestedSelection.isEmpty {
                     await model.reload()

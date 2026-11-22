@@ -329,8 +329,7 @@ public enum MonitorCoverageEvaluator {
               rule.direction != .bidirectional,
               let endpoint = flow.destinationEndpoint,
               let endpointPort = endpoint.port,
-              rule.port?.lowerBound == endpointPort,
-              rule.port?.upperBound == endpointPort else { return false }
+              rule.port?.singlePort == endpointPort else { return false }
         switch rule.destination {
         case .ipSet(let values):
             return values.count == 1
