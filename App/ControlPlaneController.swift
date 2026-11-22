@@ -196,6 +196,7 @@ final class ControlPlaneController {
             await installConnectionHooks()
             requestReconnect()
             BlocklistSubscriptions.shared.start(controlPlane: self)
+            NetworkProfileSwitcher.shared.start(controlPlane: self)
         } catch {
             state = .failed
             recordStartupIssue("Rift couldn’t open its data, so it can’t show or change your rules. Quit Rift and open it again.")

@@ -54,6 +54,15 @@ country can be wrong for VPNs, relays, and content delivery networks, and the
 path is an estimate, not the route your data actually takes. Countries and
 paths are shown only while the map is open and aren't saved.
 
+## Switching profiles by network
+
+**Settings › Networks** is off until you turn it on. Rift then remembers the
+networks the Mac joins, on this Mac only, so you can choose a profile for each.
+It recognizes a network by its router's address. If you also turn on
+**Recognize Wi-Fi networks by name**, macOS asks whether Rift may use Location
+Services, because macOS lets apps read Wi-Fi names only with that permission.
+Rift reads only the network's name and never asks for the Mac's location.
+
 ## Blocklist subscriptions
 
 If you subscribe to a blocklist in **Settings › Blocklists**, Rift downloads it

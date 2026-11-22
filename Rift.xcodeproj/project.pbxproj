@@ -78,6 +78,8 @@
 		1000000000000000000000FC /* MonitorSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000FC /* MonitorSummaryView.swift */; };
 		100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000044 /* SettingsPrimaryPanes.swift */; };
 		100000000000000000000043 /* PolicySettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000045 /* PolicySettingsPane.swift */; };
+		100000000000000000000109 /* NetworkProfileSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000109 /* NetworkProfileSwitcher.swift */; };
+		100000000000000000000108 /* NetworkSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000108 /* NetworkSettingsPane.swift */; };
 		100000000000000000000105 /* BlocklistSubscriptionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000105 /* BlocklistSubscriptionViews.swift */; };
 		100000000000000000000044 /* ControlPlaneRuleMutations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000046 /* ControlPlaneRuleMutations.swift */; };
 		100000000000000000000045 /* ApplicationArtworkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000047 /* ApplicationArtworkStore.swift */; };
@@ -271,6 +273,8 @@
 		2000000000000000000000FC /* MonitorSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorSummaryView.swift; sourceTree = "<group>"; };
 		200000000000000000000044 /* SettingsPrimaryPanes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPrimaryPanes.swift; sourceTree = "<group>"; };
 		200000000000000000000045 /* PolicySettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolicySettingsPane.swift; sourceTree = "<group>"; };
+		200000000000000000000109 /* NetworkProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProfileSwitcher.swift; sourceTree = "<group>"; };
+		200000000000000000000108 /* NetworkSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsPane.swift; sourceTree = "<group>"; };
 		200000000000000000000105 /* BlocklistSubscriptionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlocklistSubscriptionViews.swift; sourceTree = "<group>"; };
 		200000000000000000000046 /* ControlPlaneRuleMutations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRuleMutations.swift; sourceTree = "<group>"; };
 		200000000000000000000047 /* ApplicationArtworkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationArtworkStore.swift; sourceTree = "<group>"; };
@@ -449,6 +453,8 @@
 				20000000000000000000002A /* SettingsView.swift */,
 				200000000000000000000044 /* SettingsPrimaryPanes.swift */,
 				200000000000000000000045 /* PolicySettingsPane.swift */,
+				200000000000000000000109 /* NetworkProfileSwitcher.swift */,
+				200000000000000000000108 /* NetworkSettingsPane.swift */,
 				200000000000000000000105 /* BlocklistSubscriptionViews.swift */,
 				20000000000000000000002B /* FixtureDecisionDriver.swift */,
 				20000000000000000000002C /* ControlPlaneArchive.swift */,
@@ -779,6 +785,8 @@
 				100000000000000000000026 /* SettingsView.swift in Sources */,
 				100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */,
 				100000000000000000000043 /* PolicySettingsPane.swift in Sources */,
+				100000000000000000000109 /* NetworkProfileSwitcher.swift in Sources */,
+				100000000000000000000108 /* NetworkSettingsPane.swift in Sources */,
 				100000000000000000000105 /* BlocklistSubscriptionViews.swift in Sources */,
 				100000000000000000000027 /* FixtureDecisionDriver.swift in Sources */,
 				100000000000000000000028 /* ControlPlaneArchive.swift in Sources */,

@@ -111,6 +111,14 @@ The changelog records notable user-visible changes.
   Allowed don't interrupt iCloud, updates or certificate checks. Nothing is
   added at setup, and the group's rules can be edited, turned off or deleted
   like any others.
+- Settings › Networks can switch profiles by network. Rift remembers the
+  networks the Mac joins, so you can choose a profile for each and for new
+  ones, and tells you when it switches or finds a new network. It recognizes
+  a network by its router's address, or by its Wi-Fi name if you allow it;
+  macOS then asks for Location Services permission, which it requires to read
+  Wi-Fi names. Rift switches on its own only to a profile at least as strict
+  as the current one; for a less strict one it notifies you instead, because
+  anyone can name a network after yours.
 
 ## 0.4.0
 

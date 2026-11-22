@@ -8,6 +8,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case alerts = "Alerts"
     case history = "History & Privacy"
     case policies = "Profiles & Blocklists"
+    case networks = "Networks"
     case advanced = "Advanced"
 
     var id: String { rawValue }
@@ -18,6 +19,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .alerts: "bell"
         case .history: "eye.slash"
         case .policies: "switch.2"
+        case .networks: "wifi"
         case .advanced: "wrench.and.screwdriver"
         }
     }
