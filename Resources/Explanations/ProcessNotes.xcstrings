@@ -3,171 +3,1011 @@
   "strings" : {
     "Checks for and downloads macOS and security updates." : {
       "comment" : "What the macOS service com.apple.softwareupdated does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sucht nach macOS- und Sicherheitsupdates und lädt sie herunter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busca y descarga actualizaciones de macOS y de seguridad."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche et télécharge les mises à jour de macOS et de sécurité."
+          }
+        }
+      }
     },
     "Checks the certificates of secure connections, and whether a certificate has been revoked, for apps and macOS." : {
       "comment" : "What the macOS service com.apple.trustd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüft für Apps und macOS die Zertifikate sicherer Verbindungen und ob ein Zertifikat widerrufen wurde."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprueba los certificados de las conexiones seguras, y si se ha revocado alguno, para las apps y macOS."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifie les certificats des connexions sécurisées, et s’ils ont été révoqués, pour les apps et macOS."
+          }
+        }
+      }
     },
     "Downloads App Store purchases and app updates." : {
       "comment" : "What the macOS service com.apple.storedownloadd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lädt App Store-Käufe und App-Updates herunter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descarga las compras del App Store y las actualizaciones de apps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharge les achats de l’App Store et les mises à jour des apps."
+          }
+        }
+      }
     },
     "Downloads and uploads files in the background on behalf of apps and macOS, so transfers continue after an app quits." : {
       "comment" : "What the macOS service com.apple.nsurlsessiond does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lädt im Hintergrund Dateien für Apps und macOS herunter und hoch, damit Übertragungen weiterlaufen, nachdem eine App beendet wurde."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descarga y sube archivos en segundo plano en nombre de las apps y de macOS, para que las transferencias continúen después de cerrar una app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharge et envoie des fichiers en arrière-plan pour les apps et macOS, afin que les transferts se poursuivent après la fermeture d’une app."
+          }
+        }
+      }
     },
     "Downloads content for the Tips app." : {
       "comment" : "What the macOS service com.apple.tipsd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lädt Inhalte für die App „Tipps“ herunter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descarga contenido para la app Consejos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharge le contenu de l’app Astuces."
+          }
+        }
+      }
     },
     "Downloads help pages for apps and macOS." : {
       "comment" : "What the macOS service com.apple.helpd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lädt Hilfeseiten für Apps und macOS herunter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descarga páginas de ayuda para las apps y macOS."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharge les pages d’aide des apps et de macOS."
+          }
+        }
+      }
     },
     "Downloads maps, places and location data for Maps and other apps." : {
       "comment" : "What the macOS service com.apple.geod does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lädt Karten, Orte und Standortdaten für „Karten“ und andere Apps herunter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descarga mapas, lugares y datos de ubicación para Mapas y otras apps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharge les cartes, les lieux et les données de localisation pour Plans et d’autres apps."
+          }
+        }
+      }
     },
     "Downloads system assets macOS uses, such as fonts, dictionaries, voices and machine-learning models." : {
       "comment" : "What the macOS service com.apple.mobileassetd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lädt Systemressourcen herunter, die macOS verwendet, etwa Schriften, Wörterbücher, Stimmen und Modelle für maschinelles Lernen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descarga recursos del sistema que usa macOS, como tipos de letra, diccionarios, voces y modelos de aprendizaje automático."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharge les ressources système utilisées par macOS, comme les polices, les dictionnaires, les voix et les modèles d’apprentissage automatique."
+          }
+        }
+      }
     },
     "Fetches suggestions for Spotlight, Safari and Look Up." : {
       "comment" : "What the macOS service com.apple.parsecd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruft Vorschläge für Spotlight, Safari und „Nachschlagen“ ab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtiene sugerencias para Spotlight, Safari y Consultar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupère les suggestions pour Spotlight, Safari et Recherche."
+          }
+        }
+      }
     },
     "Find My: locates your devices and items." : {
       "comment" : "What the macOS service com.apple.icloud.searchpartyd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Wo ist?“: ortet deine Geräte und Objekte."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encontrar: localiza tus dispositivos y objetos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localiser : localise vos appareils et vos objets."
+          }
+        }
+      }
     },
     "Gatekeeper: checks apps when they open, including whether Apple has notarized them." : {
       "comment" : "What the macOS service com.apple.syspolicyd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatekeeper: prüft Apps beim Öffnen, auch ob Apple sie beglaubigt hat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatekeeper: comprueba las apps al abrirlas, incluido si Apple las ha notarizado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatekeeper : vérifie les apps à leur ouverture, notamment si Apple les a notariées."
+          }
+        }
+      }
     },
     "Handles AirDrop, Handoff and other sharing between your devices." : {
       "comment" : "What the macOS service com.apple.sharingd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltet AirDrop, Handoff und anderes Teilen zwischen deinen Geräten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestiona AirDrop, Handoff y otras formas de compartir entre tus dispositivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gère AirDrop, Handoff et les autres partages entre vos appareils."
+          }
+        }
+      }
     },
     "Handles Family Sharing." : {
       "comment" : "What the macOS service com.apple.familycircled does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltet die Familienfreigabe."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestiona En familia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gère le Partage familial."
+          }
+        }
+      }
     },
     "Handles Siri requests." : {
       "comment" : "What the macOS service com.apple.assistantd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verarbeitet Siri-Anfragen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestiona las solicitudes a Siri."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gère les requêtes Siri."
+          }
+        }
+      }
     },
     "Handles iCloud Private Relay and other network proxies macOS manages." : {
       "comment" : "What the macOS service com.apple.networkserviceproxy does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltet iCloud Privat-Relay und andere Netzwerk-Proxys, die macOS steuert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestiona Relay privado de iCloud y otros proxies de red que administra macOS."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gère le relais privé iCloud et les autres proxys réseau gérés par macOS."
+          }
+        }
+      }
     },
     "Keeps a connection to Apple's push notification service, which delivers notifications and wake-ups for apps." : {
       "comment" : "What the macOS service com.apple.apsd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hält die Verbindung zu Apples Push-Mitteilungsdienst, der Mitteilungen zustellt und Apps aufweckt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantiene una conexión con el servicio de notificaciones push de Apple, que entrega notificaciones y activaciones a las apps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintient une connexion au service de notifications push d’Apple, qui transmet les notifications et les réveils des apps."
+          }
+        }
+      }
     },
     "Loads web content for Safari and for apps that show web pages." : {
       "comment" : "What the macOS service com.apple.WebKit.Networking does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lädt Webinhalte für Safari und für Apps, die Webseiten anzeigen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carga contenido web para Safari y para las apps que muestran páginas web."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charge le contenu web pour Safari et pour les apps qui affichent des pages web."
+          }
+        }
+      }
     },
     "Looks up names for the whole Mac (DNS) and finds devices on the local network (Bonjour)." : {
       "comment" : "What the macOS service com.apple.mDNSResponder does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löst Namen für den ganzen Mac auf (DNS) und findet Geräte im lokalen Netzwerk (Bonjour)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resuelve nombres para todo el Mac (DNS) y encuentra dispositivos en la red local (Bonjour)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résout les noms pour tout le Mac (DNS) et trouve les appareils du réseau local (Bonjour)."
+          }
+        }
+      }
     },
     "Looks up the names of Windows (SMB) computers on the local network." : {
       "comment" : "What the macOS service com.apple.netbiosd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ermittelt die Namen von Windows-Computern (SMB) im lokalen Netzwerk."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busca los nombres de los equipos Windows (SMB) de la red local."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résout les noms des ordinateurs Windows (SMB) du réseau local."
+          }
+        }
+      }
     },
     "Mail, Apple's email app." : {
       "comment" : "What the macOS service com.apple.mail does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mail, Apples E-Mail-App."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mail, la app de correo de Apple."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mail, l’app de messagerie d’Apple."
+          }
+        }
+      }
     },
     "Manages the internet accounts set up on this Mac." : {
       "comment" : "What the macOS service com.apple.accountsd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltet die Internetaccounts, die auf diesem Mac eingerichtet sind."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestiona las cuentas de internet configuradas en este Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gère les comptes internet configurés sur ce Mac."
+          }
+        }
+      }
     },
     "Maps." : {
       "comment" : "What the macOS service com.apple.Maps does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mapas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plans."
+          }
+        }
+      }
     },
     "Messages." : {
       "comment" : "What the macOS service com.apple.MobileSMS does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachrichten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensajes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messages."
+          }
+        }
+      }
     },
     "Music." : {
       "comment" : "What the macOS service com.apple.Music does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Musik."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Música."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Musique."
+          }
+        }
+      }
     },
     "Provides Location Services; it can look up nearby Wi-Fi networks with Apple to find the Mac's position." : {
       "comment" : "What the macOS service com.apple.locationd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stellt die Ortungsdienste bereit. Kann WLAN-Netzwerke in der Nähe bei Apple abfragen, um die Position des Mac zu bestimmen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proporciona la Localización; puede consultar con Apple las redes Wi-Fi cercanas para averiguar la posición del Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fournit le Service de localisation ; il peut interroger Apple sur les réseaux Wi-Fi proches pour trouver la position du Mac."
+          }
+        }
+      }
     },
     "Registers your devices for Messages, FaceTime and other Apple services that use your phone number or email address." : {
       "comment" : "What the macOS service com.apple.identityservicesd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registriert deine Geräte für Nachrichten, FaceTime und andere Apple-Dienste, die deine Telefonnummer oder E-Mail-Adresse nutzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra tus dispositivos para Mensajes, FaceTime y otros servicios de Apple que usan tu número de teléfono o tu correo electrónico."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistre vos appareils pour Messages, FaceTime et d’autres services Apple qui utilisent votre numéro de téléphone ou votre adresse e-mail."
+          }
+        }
+      }
     },
     "Safari, Apple's web browser." : {
       "comment" : "What the macOS service com.apple.Safari does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari, der Webbrowser von Apple."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari, el navegador web de Apple."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari, le navigateur web d’Apple."
+          }
+        }
+      }
     },
     "Sends and receives messages for the Messages app." : {
       "comment" : "What the macOS service com.apple.imagent does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet und empfängt Nachrichten für die App „Nachrichten“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía y recibe mensajes para la app Mensajes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoie et reçoit les messages de l’app Messages."
+          }
+        }
+      }
     },
     "Sends crash and diagnostic reports to Apple, if you turned on sharing in Privacy & Security › Analytics & Improvements." : {
       "comment" : "What the macOS service com.apple.SubmitDiagReports does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet Absturz- und Diagnoseberichte an Apple, wenn du das Teilen in Datenschutz & Sicherheit › Analyse & Verbesserungen eingeschaltet hast."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía a Apple informes de fallos y de diagnóstico si activaste la opción de compartirlos en Privacidad y seguridad › Análisis y mejoras."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoie les rapports de plantage et de diagnostic à Apple, si vous avez activé le partage dans Confidentialité et sécurité › Analyse et améliorations."
+          }
+        }
+      }
     },
     "Sends diagnostic and usage data to Apple, if you turned on sharing in Privacy & Security › Analytics & Improvements." : {
       "comment" : "What the macOS service com.apple.analyticsd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet Diagnose- und Nutzungsdaten an Apple, wenn du das Teilen in Datenschutz & Sicherheit › Analyse & Verbesserungen eingeschaltet hast."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía a Apple datos de diagnóstico y de uso si activaste la opción de compartirlos en Privacidad y seguridad › Análisis y mejoras."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoie des données de diagnostic et d’utilisation à Apple, si vous avez activé le partage dans Confidentialité et sécurité › Analyse et améliorations."
+          }
+        }
+      }
     },
     "Sets the clock from network time servers." : {
       "comment" : "What the macOS service com.apple.timed does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stellt die Uhr anhand von Netzwerk-Zeitservern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajusta el reloj con servidores de hora de la red."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Règle l’horloge à partir de serveurs de temps sur le réseau."
+          }
+        }
+      }
     },
     "Sets up the Mac's network connections, including getting an address from the network (DHCP)." : {
       "comment" : "What the macOS service com.apple.configd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richtet die Netzwerkverbindungen des Mac ein, einschließlich des Bezugs einer Adresse aus dem Netzwerk (DHCP)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura las conexiones de red del Mac, incluida la obtención de una dirección de la red (DHCP)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure les connexions réseau du Mac, notamment l’obtention d’une adresse auprès du réseau (DHCP)."
+          }
+        }
+      }
     },
     "Signs in to your Apple Account and keeps it authenticated for Apple services." : {
       "comment" : "What the macOS service com.apple.akd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meldet dich bei deinem Apple Account an und hält die Anmeldung für Apple-Dienste aktiv."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión en tu cuenta de Apple y la mantiene autenticada para los servicios de Apple."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecte à votre compte Apple et maintient son authentification pour les services Apple."
+          }
+        }
+      }
     },
     "Syncs Screen Time settings and reports between your devices." : {
       "comment" : "What the macOS service com.apple.ScreenTimeAgent does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert Einstellungen und Berichte von Bildschirmzeit zwischen deinen Geräten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincroniza los ajustes y los informes de Tiempo de uso entre tus dispositivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise les réglages et rapports de Temps d’écran entre vos appareils."
+          }
+        }
+      }
     },
     "Syncs app data with iCloud through CloudKit." : {
       "comment" : "What the macOS service com.apple.cloudd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert App-Daten über CloudKit mit iCloud."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincroniza datos de apps con iCloud mediante CloudKit."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise les données des apps avec iCloud via CloudKit."
+          }
+        }
+      }
     },
     "Syncs iCloud Drive files and documents." : {
       "comment" : "What the macOS service com.apple.bird does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert Dateien und Dokumente in iCloud Drive."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincroniza los archivos y documentos de iCloud Drive."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise les fichiers et documents d’iCloud Drive."
+          }
+        }
+      }
     },
     "Syncs your Apple Music and iTunes library." : {
       "comment" : "What the macOS service com.apple.itunescloudd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert deine Mediathek von Apple Music und iTunes."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincroniza tu biblioteca de Apple Music e iTunes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise votre bibliothèque Apple Music et iTunes."
+          }
+        }
+      }
     },
     "Syncs your calendars with the accounts they belong to." : {
       "comment" : "What the macOS service com.apple.CalendarAgent does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert deine Kalender mit den zugehörigen Accounts."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincroniza tus calendarios con las cuentas a las que pertenecen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise vos calendriers avec les comptes auxquels ils appartiennent."
+          }
+        }
+      }
     },
     "Syncs your photo library with iCloud Photos." : {
       "comment" : "What the macOS service com.apple.cloudphotod does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert deine Fotomediathek mit iCloud-Fotos."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincroniza tu fototeca con Fotos en iCloud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise votre photothèque avec Photos iCloud."
+          }
+        }
+      }
     },
     "Syncs your reminders." : {
       "comment" : "What the macOS service com.apple.remindd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert deine Erinnerungen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincroniza tus recordatorios."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise vos rappels."
+          }
+        }
+      }
     },
     "Talks to your Home accessories." : {
       "comment" : "What the macOS service com.apple.homed does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommuniziert mit deinem Home-Zubehör."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se comunica con tus accesorios de Casa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Communique avec vos accessoires Maison."
+          }
+        }
+      }
     },
     "Talks to your other nearby Apple devices for Continuity features such as Handoff and Universal Clipboard." : {
       "comment" : "What the macOS service com.apple.rapportd does",
-      "extractionState" : "manual"
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommuniziert mit deinen anderen Apple-Geräten in der Nähe für Integrationsfunktionen wie Handoff und die universelle Zwischenablage."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se comunica con tus otros dispositivos Apple cercanos para funciones de Continuidad como Handoff y Portapapeles Universal."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Communique avec vos autres appareils Apple à proximité pour les fonctionnalités Continuité comme Handoff et le Presse-papiers universel."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
