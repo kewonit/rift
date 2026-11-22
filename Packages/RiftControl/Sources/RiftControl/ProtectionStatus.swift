@@ -26,6 +26,9 @@ public struct ProtectionInputs: Sendable, Equatable {
     public var mode: OperationMode?
     public var configurationUnreadable: Bool
     public var waitingPrompts: Int
+    /// The filter says it's on, but no connection has reached Rift for a
+    /// while although the network is up. See `FilterLiveness`.
+    public var filterSilent: Bool
 
     public init(
         isPreview: Bool = false,
@@ -39,7 +42,8 @@ public struct ProtectionInputs: Sendable, Equatable {
         rulesMatchDesired: Bool = false,
         mode: OperationMode? = nil,
         configurationUnreadable: Bool = false,
-        waitingPrompts: Int = 0
+        waitingPrompts: Int = 0,
+        filterSilent: Bool = false
     ) {
         self.isPreview = isPreview
         self.buildCanFilter = buildCanFilter
@@ -53,6 +57,7 @@ public struct ProtectionInputs: Sendable, Equatable {
         self.mode = mode
         self.configurationUnreadable = configurationUnreadable
         self.waitingPrompts = waitingPrompts
+        self.filterSilent = filterSilent
     }
 }
 
@@ -75,6 +80,7 @@ public struct ProtectionStatus: Sendable, Equatable {
         case allowingEverything
         case rulesAtRisk
         case rulesNotCurrent
+        case filterSilent
         case waiting(Int)
         case active(OperationMode)
     }
@@ -134,7 +140,7 @@ public struct ProtectionStatus: Sendable, Equatable {
     public var canShowActivity: Bool {
         switch state {
         case .preview, .active, .waiting, .connecting, .rulesAtRisk, .rulesNotCurrent,
-             .allowingEverything, .modeUnknown:
+             .allowingEverything, .modeUnknown, .filterSilent:
             true
         default:
             false
@@ -204,9 +210,17 @@ public struct ProtectionStatus: Sendable, Equatable {
         guard input.rulesMatchDesired else { return rulesNotCurrent }
         guard input.filterServiceConfirmed else { return connecting }
         guard let mode = input.mode, mode != .degradedFallback else { return modeUnknown }
+        if input.filterSilent, mode != .filterOff { return filterSilent }
         if input.waitingPrompts > 0 { return waiting(input.waitingPrompts) }
         return active(mode)
     }
+
+    private static let filterSilent = ProtectionStatus(
+        state: .filterSilent,
+        title: "Rift isn’t seeing connections",
+        detail: "The filter says it’s on, but no connection has reached Rift for \(Int(FilterLiveness.silenceThreshold / 60)) minutes while the network is up. Your rules may not be applying.",
+        tone: .attention, traffic: .unknown, action: .showStatus, symbolName: "exclamationmark.shield"
+    )
 
     private static let preview = ProtectionStatus(
         state: .preview,

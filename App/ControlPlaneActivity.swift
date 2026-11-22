@@ -139,6 +139,7 @@ extension ControlPlaneController {
                     $0.event.flow.observedAt.addingTimeInterval(ActivitySubscription.recentLifetime) > now
                 }
                 recentActivity = snapshot
+                if !snapshot.events.isEmpty { lastFlowEventAt = Date() }
                 if recentActivityRows != rows {
                     recentActivityRows = rows
                     recordRuntimeActivity(true)
@@ -190,6 +191,7 @@ extension ControlPlaneController {
             reconcilePendingPrompts(with: batch)
             let lossChanged = recordRuntimeLoss(batch.droppedCount)
             recordRecentDeny(from: batch.events)
+            if !batch.events.isEmpty { lastFlowEventAt = Date() }
             await notifications.route(batch.events)
             await notifications.route(notificationEvents)
             await retainAndPersist(batch, runtimeInstanceID: runtimeInstanceID)

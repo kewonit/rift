@@ -52,6 +52,7 @@
 		10000000000000000000010B /* ReviewQueueModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010B /* ReviewQueueModel.swift */; };
 		10000000000000000000010C /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010C /* ReviewView.swift */; };
 		10000000000000000000010D /* NotificationActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010D /* NotificationActions.swift */; };
+		10000000000000000000010E /* FilterLivenessMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010E /* FilterLivenessMonitor.swift */; };
 		100000000000000000000028 /* ControlPlaneArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002C /* ControlPlaneArchive.swift */; };
 		100000000000000000000104 /* BlocklistSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000104 /* BlocklistSubscriptions.swift */; };
 		100000000000000000000103 /* ControlPlaneRuleImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000103 /* ControlPlaneRuleImport.swift */; };
@@ -254,6 +255,7 @@
 		20000000000000000000010B /* ReviewQueueModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewQueueModel.swift; sourceTree = "<group>"; };
 		20000000000000000000010C /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		20000000000000000000010D /* NotificationActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationActions.swift; sourceTree = "<group>"; };
+		20000000000000000000010E /* FilterLivenessMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLivenessMonitor.swift; sourceTree = "<group>"; };
 		20000000000000000000002C /* ControlPlaneArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneArchive.swift; sourceTree = "<group>"; };
 		200000000000000000000104 /* BlocklistSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlocklistSubscriptions.swift; sourceTree = "<group>"; };
 		200000000000000000000103 /* ControlPlaneRuleImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRuleImport.swift; sourceTree = "<group>"; };
@@ -469,6 +471,7 @@
 				20000000000000000000010B /* ReviewQueueModel.swift */,
 				20000000000000000000010C /* ReviewView.swift */,
 				20000000000000000000010D /* NotificationActions.swift */,
+				20000000000000000000010E /* FilterLivenessMonitor.swift */,
 				20000000000000000000002C /* ControlPlaneArchive.swift */,
 				200000000000000000000104 /* BlocklistSubscriptions.swift */,
 				200000000000000000000103 /* ControlPlaneRuleImport.swift */,
@@ -805,6 +808,7 @@
 				10000000000000000000010B /* ReviewQueueModel.swift in Sources */,
 				10000000000000000000010C /* ReviewView.swift in Sources */,
 				10000000000000000000010D /* NotificationActions.swift in Sources */,
+				10000000000000000000010E /* FilterLivenessMonitor.swift in Sources */,
 				100000000000000000000028 /* ControlPlaneArchive.swift in Sources */,
 				100000000000000000000104 /* BlocklistSubscriptions.swift in Sources */,
 				100000000000000000000103 /* ControlPlaneRuleImport.swift in Sources */,

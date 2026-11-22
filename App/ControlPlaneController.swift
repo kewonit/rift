@@ -50,6 +50,8 @@ final class ControlPlaneController {
     var pendingRestoreBackupURL: URL?
     /// The settings a restore replaced, so Undo Restore can put them back.
     @ObservationIgnored var pendingRestorePreferences: ConfigurationArchivePreferences?
+    /// When a connection last reached Rift, for noticing a quiet filter.
+    @ObservationIgnored var lastFlowEventAt: Date?
     /// The session's reading of protection, for `riftctl status`.
     @ObservationIgnored var protectionStatusProvider: (@MainActor () -> ProtectionStatus)?
     var transientHistory = TransientHistoryBuffer(maximumFlows: ControlPlaneController.minimalFlowLimit)

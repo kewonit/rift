@@ -48,6 +48,11 @@ The changelog records notable user-visible changes.
   minimized bar instead of covering it. With "Only this time" chosen, an
   alert can answer the other waiting connections from the same app too. The
   alert's lifetime is now a Remember menu, so the new lifetimes fit.
+- Rift now says when the filter is on but no connection has reached it for 5
+  minutes while the network is up, as happened to firewalls after some macOS
+  updates. The Status page, the menu-bar icon, the Map and `riftctl status`
+  show "Rift isn't seeing connections". Rift checks only while it's receiving
+  connections, with history on or the Map or menu open.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
