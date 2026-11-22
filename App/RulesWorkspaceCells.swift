@@ -31,8 +31,8 @@ extension RulesWorkspaceTable {
 
     func enabledLabel(_ node: RuleWorkspaceNode) -> String {
         switch enabledSymbol(node) {
-        case "checkmark.circle.fill": "On"
-        case "circle": "Off"
+        case "checkmark": "On"
+        case "xmark": "Off"
         default: "Some on"
         }
     }
