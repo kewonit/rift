@@ -44,7 +44,7 @@ final class DestinationMarkerView: MKAnnotationView {
         someBlocked = activity.blocked > 0 && !activity.allBlocked
         alphaValue = dimmed ? 0.45 : 1
         label.text = "\(destination.name) · \(destination.summary)"
-        setAccessibilityLabel("\(destination.name): \(destination.summary)")
+        setAccessibilityLabel("\(destination.name): \(destination.summary.replacingOccurrences(of: " · ", with: ", "))")
         setAccessibilityRole(.button)
         needsDisplay = true
         updateLabel()
@@ -56,6 +56,16 @@ final class DestinationMarkerView: MKAnnotationView {
 
     override func mouseEntered(with event: NSEvent) { hovering = true }
     override func mouseExited(with event: NSEvent) { hovering = false }
+
+    /// VoiceOver presses a marker the way a click does: it shows only that
+    /// country's connections.
+    override func accessibilityPerformPress() -> Bool {
+        var view = superview
+        while let current = view, !(current is MKMapView) { view = current.superview }
+        guard let mapView = view as? MKMapView, let annotation else { return false }
+        mapView.selectAnnotation(annotation, animated: false)
+        return true
+    }
 
     override func prepareForReuse() {
         super.prepareForReuse()
@@ -167,7 +177,8 @@ private final class MarkerLabel: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         let pill = NSBezierPath(roundedRect: bounds, xRadius: bounds.height / 2, yRadius: bounds.height / 2)
-        NSColor.windowBackgroundColor.withAlphaComponent(0.92).setFill()
+        let opaque = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        NSColor.windowBackgroundColor.withAlphaComponent(opaque ? 1 : 0.92).setFill()
         pill.fill()
         NSColor.separatorColor.setStroke()
         pill.lineWidth = 0.5

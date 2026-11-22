@@ -120,9 +120,13 @@ enum NetworkMapPalette {
         isOnDark(style: style, appearance: appearance) ? teal : ink
     }
 
+    /// With Increase Contrast, overland legs and routes left out of focus stay
+    /// easier to see. Turning it on changes the map's appearance, which
+    /// redraws the routes.
     static func route(isCable: Bool, dimmed: Bool, style: NetworkMapStyle, appearance: NSAppearance) -> NSColor {
-        let strength: CGFloat = isCable ? 0.95 : 0.55
-        return mark(style: style, appearance: appearance).withAlphaComponent(dimmed ? 0.16 : strength)
+        let contrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+        let strength: CGFloat = isCable ? 0.95 : (contrast ? 0.8 : 0.55)
+        return mark(style: style, appearance: appearance).withAlphaComponent(dimmed ? (contrast ? 0.3 : 0.16) : strength)
     }
 
     static func routeWidth(isCable: Bool) -> CGFloat { isCable ? 1.5 : 1 }
