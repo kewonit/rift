@@ -57,6 +57,28 @@ extension MonitorFeed {
         !MonitorRuleScope.options(for: node.eventIDs.compactMap { rowLookup[$0] }).isEmpty
     }
 
+    /// The scope a one-click rule from this row would use, or nil when the
+    /// row can't have one.
+    func quickBreadth(for node: MonitorHierarchyNode) -> MonitorRuleBreadth? {
+        guard let row = representativeRow(for: node) else { return nil }
+        return MonitorRuleScope.quickBreadth(for: node.kind, options: MonitorRuleScope.options(for: [row]))
+    }
+
+    /// Allows or blocks a row in one click, with the row's own scope, for
+    /// good. The result banner offers Undo.
+    func applyQuickRule(_ action: FilterAction, for node: MonitorHierarchyNode) {
+        let members = rows(in: node)
+        guard let row = members.first, let breadth = quickBreadth(for: node) else { return }
+        let options = MonitorRuleScope.options(for: members)
+        Task {
+            let request = MonitorRuleRequest(
+                action: action, node: node, row: row, options: options,
+                application: await applicationName(for: row)
+            )
+            applyRule(request, breadth: breadth, duration: .always)
+        }
+    }
+
     /// Opens the scope chooser, so the person sees what a rule covers first.
     func requestRule(_ action: FilterAction, for node: MonitorHierarchyNode) {
         let members = rows(in: node)

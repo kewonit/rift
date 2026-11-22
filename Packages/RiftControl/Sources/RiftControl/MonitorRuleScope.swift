@@ -125,6 +125,23 @@ public enum MonitorRuleScope {
     }
 
     /// The destination as it reads in a sentence about the rule.
+    /// The scope of a one-click rule from a Map row: the whole app for an
+    /// app, the domain for a domain, the name or address for a destination,
+    /// and the one connection for a single flow. Countries have none.
+    public static func quickBreadth(
+        for kind: MonitorHierarchyKind,
+        options: [MonitorRuleBreadth]
+    ) -> MonitorRuleBreadth? {
+        let preferred: [MonitorRuleBreadth] = switch kind {
+        case .application, .helper: [.allDestinations]
+        case .domain: [.thisDomain]
+        case .hostname, .route, .address: [.thisHost, .exactConnection]
+        case .flow: [.exactConnection, .thisHost]
+        case .country: []
+        }
+        return preferred.first(where: options.contains)
+    }
+
     public static func phrase(_ breadth: MonitorRuleBreadth, host: String, domain: String? = nil) -> String {
         switch breadth {
         case .thisHost: "\(host) on any port"

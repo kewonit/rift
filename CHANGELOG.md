@@ -56,6 +56,11 @@ The changelog records notable user-visible changes.
 - In a connection alert, single keys choose how long the answer lasts: O only
   this time, 5 five minutes, H one hour, F always. D shows or hides the
   details. They're off while you type a note.
+- The Map's connection table has a Rule column: one click always allows or
+  blocks that row, the whole app for an app or the name, domain or
+  connection for a destination, with Undo. A filled button shows what
+  today's rules do. Clicking a column header sorts by it, and Sort By adds
+  Most Connections.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

@@ -6,10 +6,11 @@ import SwiftUI
 struct ConnectionsTable: View {
     @Bindable var feed: MonitorFeed
     let artworkStore: ApplicationArtworkStore
+    @State private var sortOrder: [ConnectionsTableSorting.Comparator] = []
 
     var body: some View {
-        Table(feed.hierarchy, children: \.children, selection: $feed.selectionID) {
-            TableColumn("App or Destination") { node in
+        Table(feed.hierarchy, children: \.children, selection: $feed.selectionID, sortOrder: $sortOrder) {
+            TableColumn("App or Destination", value: \.title) { node in
                 HStack(spacing: RiftDesign.Spacing.s) {
                     ConnectionIdentityIcon(node: node, row: row(for: node), artworkStore: artworkStore, size: 16)
                     if node.kind == .application {
@@ -35,26 +36,30 @@ struct ConnectionsTable: View {
                     .lineLimit(1)
             }
             .width(min: 60, ideal: 76)
-            TableColumn("Decision") { node in
+            TableColumn("Decision", value: \.aggregate.denied) { node in
                 DecisionCell(node: node)
             }
             .width(min: 84, ideal: 100)
-            TableColumn("Sent") { node in
+            TableColumn("Rule") { node in
+                QuickRuleCell(node: node, feed: feed)
+            }
+            .width(min: 44, ideal: 48)
+            TableColumn("Sent", value: \.sortSent) { node in
                 RiftBytesText(bytes: node.aggregate.bytesOutbound, partial: node.aggregate.coverage != .complete)
             }
             .width(min: 52, ideal: 60)
             .alignment(.trailing)
-            TableColumn("Received") { node in
+            TableColumn("Received", value: \.sortReceived) { node in
                 RiftBytesText(bytes: node.aggregate.bytesInbound, partial: node.aggregate.coverage != .complete)
             }
             .width(min: 56, ideal: 64)
             .alignment(.trailing)
-            TableColumn("Count") { node in
+            TableColumn("Count", value: \.aggregate.flowCount) { node in
                 Text(RiftFormat.count(node.aggregate.flowCount)).monospacedDigit()
             }
             .width(min: 44, ideal: 50)
             .alignment(.trailing)
-            TableColumn("Last Seen") { node in
+            TableColumn("Last Seen", value: \.aggregate.lastSeen) { node in
                 // The clock ticks once a second, so a new row can be slightly ahead of it.
                 Text(Self.relativeFormatter.localizedString(
                     for: min(node.aggregate.lastSeen, feed.now), relativeTo: feed.now
@@ -65,6 +70,14 @@ struct ConnectionsTable: View {
             .width(min: 60, ideal: 70)
         }
         .alternatingRowBackgrounds(.disabled)
+        .onAppear { sortOrder = ConnectionsTableSorting.comparators(for: feed.sort) }
+        .onChange(of: feed.sort) { _, sort in sortOrder = ConnectionsTableSorting.comparators(for: sort) }
+        .onChange(of: sortOrder) { _, order in
+            // Each column sorts one way, so a second click keeps the order.
+            if let sort = ConnectionsTableSorting.sort(for: order), sort != feed.sort { feed.sort = sort }
+            let canonical = ConnectionsTableSorting.comparators(for: feed.sort)
+            if order != canonical { sortOrder = canonical }
+        }
         .onHover { feed.pointerIsOverList = $0 }
         .contextMenu(forSelectionType: String.self) { ids in
             if let id = ids.first, ids.count == 1,
