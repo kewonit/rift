@@ -20,7 +20,8 @@ enum ConnectionAlertSpeech {
         let remaining = Int(remainingTime(for: prompt, now: now).rounded(.up))
         guard remaining > 0 else { return ConnectionAlertCountdown.label(for: prompt, now: now) }
         let blocks = ConnectionAlertCountdown.outcome(for: prompt).blocks
-        return "\(blocks ? "Blocking" : "Allowing") in \(RiftSpokenTime.duration(seconds: remaining))"
+        let time = RiftSpokenTime.duration(seconds: remaining)
+        return blocks ? String(localized: "Blocking in \(time)") : String(localized: "Allowing in \(time)")
     }
 
     /// Seconds until Rift or the filter answers for the person.
@@ -100,7 +101,7 @@ struct ConnectionAlertCountdownElement: ViewModifier {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Time to answer")
             .accessibilityValue(ConnectionAlertSpeech.countdown(for: prompt, now: now))
-            .accessibilityHint(keys.map { "Keys: " + $0.replacingOccurrences(of: " · ", with: ", ") } ?? "")
+            .accessibilityHint(keys.map { String(localized: "Keys: \($0.replacingOccurrences(of: " · ", with: ", "))") } ?? "")
     }
 }
 

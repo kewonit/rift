@@ -47,11 +47,11 @@ struct NetworkSettingsPane: View {
                     .sorted { $0.lastSeenAt > $1.lastSeenAt }
                 ForEach(others) { network in
                     HStack {
-                        picker(network.name, key: network.key, choice: network.choice)
+                        picker(Self.name(of: network), key: network.key, choice: network.choice)
                         Button {
                             switcher.forget(network.key)
                         } label: {
-                            Label("Forget \(DisplaySanitizer.plainText(network.name))", systemImage: "minus.circle")
+                            Label("Forget \(DisplaySanitizer.plainText(Self.name(of: network)))", systemImage: "minus.circle")
                                 .labelStyle(.iconOnly)
                         }
                         .buttonStyle(.borderless)
@@ -104,5 +104,11 @@ struct NetworkSettingsPane: View {
         ForEach(profiles) { profile in
             Text(profile.name).tag(NetworkProfileChoice.profile(profile.id))
         }
+    }
+
+    /// A remembered network's name in the current language. Its saved name
+    /// stays in English, so it's worked out again from its key.
+    private static func name(of network: RememberedNetwork) -> String {
+        NetworkIdentity.displayName(forKey: network.key) ?? network.name
     }
 }

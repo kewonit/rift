@@ -30,7 +30,7 @@ struct RiftTimeline: View {
         HStack(alignment: .center, spacing: RiftDesign.Spacing.l) {
             VStack(alignment: .leading, spacing: RiftDesign.Spacing.xs) {
                 Picker("Show", selection: $mode) {
-                    ForEach(RiftTimelineMode.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(RiftTimelineMode.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -80,7 +80,7 @@ struct RiftTimeline: View {
                 }
                 Text(query.isViewingPast
                     ? end.formatted(date: longRange ? .abbreviated : .omitted, time: .shortened)
-                    : "Now")
+                    : String(localized: "Now"))
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
@@ -121,8 +121,8 @@ struct RiftTimeline: View {
         switch mode {
         case .traffic:
             HStack(spacing: RiftDesign.Spacing.m) {
-                TrafficTotal(symbol: "arrow.up", title: "Sent", bytes: traffic.sent, partial: traffic.partial)
-                TrafficTotal(symbol: "arrow.down", title: "Received", bytes: traffic.received, partial: traffic.partial)
+                TrafficTotal(symbol: "arrow.up", title: String(localized: "Sent"), bytes: traffic.sent, partial: traffic.partial)
+                TrafficTotal(symbol: "arrow.down", title: String(localized: "Received"), bytes: traffic.received, partial: traffic.partial)
             }
         case .decisions:
             HStack(spacing: RiftDesign.Spacing.m) {
@@ -156,7 +156,7 @@ struct RiftTimeline: View {
             .disabled(!query.canNavigateBackward)
             .help("Show the previous range")
             Picker("Time Range", selection: timeFilter) {
-                ForEach(Self.ranges) { Text($0.rawValue).tag($0) }
+                ForEach(Self.ranges) { Text($0.title).tag($0) }
             }
             .labelsHidden()
             .pickerStyle(.menu)
@@ -179,7 +179,7 @@ struct RiftTimeline: View {
     private var displayedRangeLabel: String {
         if query.isLiveTimeRange { return query.time.liveLabel }
         guard let window = query.baseTimeWindow(now: now, calendar: calendar),
-              let start = window.start, let end = window.end else { return query.time.rawValue }
+              let start = window.start, let end = window.end else { return query.time.title }
         return start.formatted(date: .abbreviated, time: .shortened)
             + " – " + end.formatted(date: .abbreviated, time: .shortened)
     }
@@ -191,7 +191,7 @@ struct RiftTimeline: View {
 
     private func hoverLabel(_ bucket: DecisionBucket) -> String {
         let time = bucket.start.formatted(date: .omitted, time: .shortened)
-        return "\(time) · \(bucket.allowed) allowed · \(bucket.denied) blocked · \(bucket.unresolved) with no rule"
+        return String(localized: "\(time) · \(bucket.allowed) allowed · \(bucket.denied) blocked · \(bucket.unresolved) with no rule")
     }
 }
 
@@ -212,8 +212,8 @@ private struct TrafficTotal: View {
         .font(.callout)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
-        .accessibilityValue((partial ? "At least " : "") + RiftFormat.bytes(bytes))
-        .help(partial ? "\(title). Some connections didn’t report their size, so this is a lower bound." : title)
+        .accessibilityValue(partial ? String(localized: "At least \(RiftFormat.bytes(bytes))") : RiftFormat.bytes(bytes))
+        .help(partial ? String(localized: "\(title). Some connections didn’t report their size, so this is a lower bound.") : title)
     }
 }
 

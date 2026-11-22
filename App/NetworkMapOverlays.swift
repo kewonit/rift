@@ -8,7 +8,7 @@ enum NetworkMapStyle: String, CaseIterable, Identifiable {
     case satellite
 
     var id: String { rawValue }
-    var title: String { self == .standard ? "Map" : "Satellite" }
+    var title: String { self == .standard ? String(localized: "Map") : String(localized: "Satellite") }
 
     var configuration: MKMapConfiguration {
         switch self {
@@ -63,7 +63,7 @@ final class RouteLegPolyline: MKPolyline {
 
 final class OriginAnnotation: NSObject, MKAnnotation {
     let coordinate: CLLocationCoordinate2D
-    let title: String? = "This Mac"
+    let title: String? = String(localized: "This Mac")
 
     init(coordinate: CLLocationCoordinate2D) { self.coordinate = coordinate }
 }

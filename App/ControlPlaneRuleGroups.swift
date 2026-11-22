@@ -17,9 +17,9 @@ struct PendingRuleGroupSubscription: Equatable {
     var summary: String {
         let rules = conversion.payload.rules
         let allows = rules.filter { $0.action == .filter(.allow) }.count
-        var parts = [rules.count == 1 ? "Adds 1 rule in a new group." : "Adds \(rules.count) rules in a new group."]
+        var parts = [String(localized: "Adds \(rules.count) rules in a new group.")]
         if allows > 0 {
-            parts.append(allows == 1 ? "1 of them allows connections." : "\(allows) of them allow connections.")
+            parts.append(String(localized: "\(allows) of them allow connections."))
         }
         return (parts + conversion.notices).joined(separator: " ")
     }

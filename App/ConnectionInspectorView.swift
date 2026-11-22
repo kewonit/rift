@@ -74,7 +74,7 @@ struct ConnectionInspectorView: View {
                         Text(MonitorQuery.endpointLabel(row)).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
                     }
                     RiftPropertyRow(title: "Protocol") { Text(MonitorQuery.protocolLabel(row)) }
-                    RiftPropertyRow(title: "Direction") { Text(row.event.flow.direction.rawValue.capitalized) }
+                    RiftPropertyRow(title: "Direction") { Text(row.event.flow.direction == .incoming ? "Incoming" : "Outgoing") }
                     if let closedAt = row.closedAt {
                         RiftPropertyRow(title: "Closed") { Text(closedAt.formatted(date: .omitted, time: .shortened)) }
                     }

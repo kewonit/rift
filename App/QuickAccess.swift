@@ -14,15 +14,15 @@ enum QuickAccess {
 
     static func dockMenu(review: ReviewQueueModel) -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(DockMenuItem("Map") { open("map") })
-        menu.addItem(DockMenuItem("Rules") { open("rules") })
+        menu.addItem(DockMenuItem(String(localized: "Map")) { open("map") })
+        menu.addItem(DockMenuItem(String(localized: "Rules")) { open("rules") })
         let count = review.count
-        menu.addItem(DockMenuItem(count > 0 ? "Review (\(count))…" : "Review…") {
+        menu.addItem(DockMenuItem(count > 0 ? String(localized: "Review (\(count))…") : String(localized: "Review…")) {
             review.isPresented = true
             open("map")
         })
         menu.addItem(.separator())
-        menu.addItem(DockMenuItem("Settings…") { open("settings") })
+        menu.addItem(DockMenuItem(String(localized: "Settings…")) { open("settings") })
         return menu
     }
 }

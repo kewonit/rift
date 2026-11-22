@@ -163,17 +163,17 @@ struct RulesWorkspaceView: View {
             Menu {
                 Picker("Show", selection: $model.actionFilter) {
                     ForEach(RuleActionFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+                        Text(filter.title).tag(filter)
                     }
                 }
                 Picker("Sort By", selection: $model.sort) {
                     ForEach(RuleWorkspaceSort.allCases) { sort in
-                        Text(sort.rawValue).tag(sort)
+                        Text(sort.title).tag(sort)
                     }
                 }
                 Picker("Search In", selection: $model.searchScope) {
                     ForEach(RuleSearchScope.allCases) { scope in
-                        Text(scope.rawValue).tag(scope)
+                        Text(scope.title).tag(scope)
                     }
                 }
             } label: {
@@ -181,7 +181,7 @@ struct RulesWorkspaceView: View {
             }
             .help("Filter and sort rules")
             // The filled symbol says a filter is on; VoiceOver says which.
-            .accessibilityValue(model.actionFilter == .all ? "" : "Showing \(model.actionFilter.rawValue) rules")
+            .accessibilityValue(model.actionFilter.showingDescription)
             Menu {
                 Button("Import Rules…") { Task { await model.chooseRulesToImport() } }
                 Button("Export Selected Rules…") { Task { await model.exportSelected() } }
@@ -282,7 +282,7 @@ struct RulesWorkspaceView: View {
 
     private var importTitle: String {
         let count = model.pendingImport?.plan.rules.count ?? 0
-        return count == 1 ? "Import 1 rule?" : "Import \(count) rules?"
+        return String(localized: "Import \(count) rules?")
     }
 
     private var bar: some View {
@@ -303,12 +303,10 @@ struct RulesWorkspaceView: View {
     }
 
     private var deleteMessage: String {
-        let note = "This only affects new connections and ones waiting for a decision."
-        switch model.skippedSelectionCount {
-        case 0: return note
-        case 1: return "1 protected or blocklist rule will be skipped. " + note
-        case let count: return "\(count) protected or blocklist rules will be skipped. " + note
-        }
+        let note = String(localized: "This only affects new connections and ones waiting for a decision.")
+        let count = model.skippedSelectionCount
+        guard count > 0 else { return note }
+        return String(localized: "\(count) protected or blocklist rules will be skipped. \(note)")
     }
 
     private func acceptRequestedSelection() async {

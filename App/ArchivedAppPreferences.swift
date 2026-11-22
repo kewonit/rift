@@ -38,15 +38,20 @@ enum ArchivedAppPreferences {
     }
 
     /// What a restore brings back besides the configuration, in a sentence.
+    /// riftctl prints it too, so it's in English while `RiftLocale.english` is set.
     static func summary(_ preferences: ConfigurationArchivePreferences) -> String {
         let subscriptions = preferences.blocklistSubscriptions.count
         let groups = preferences.ruleGroupSubscriptions?.count ?? 0
         let networks = preferences.networkProfiles.remembered.count
-        var parts = [subscriptions == 1 ? "1 blocklist subscription" : "\(subscriptions) blocklist subscriptions"]
-        if groups > 0 { parts.append(groups == 1 ? "1 rule group subscription" : "\(groups) rule group subscriptions") }
-        parts.append(networks == 1 ? "1 remembered network" : "\(networks) remembered networks")
+        var parts = [String(localized: "\(subscriptions) blocklist subscriptions", bundle: RiftLocale.mainBundle)]
+        if groups > 0 { parts.append(String(localized: "\(groups) rule group subscriptions", bundle: RiftLocale.mainBundle)) }
+        parts.append(String(localized: "\(networks) remembered networks", bundle: RiftLocale.mainBundle))
         parts.append(preferences.alerts.blocksUnanswered
-            ? "alert settings (unanswered connections are blocked)" : "alert settings")
-        return "Also restores \(ListFormatter.localizedString(byJoining: parts))."
+            ? String(localized: "alert settings (unanswered connections are blocked)", bundle: RiftLocale.mainBundle)
+            : String(localized: "alert settings", bundle: RiftLocale.mainBundle))
+        return String(
+            localized: "Also restores \(RiftLocale.list(parts)).", bundle: RiftLocale.mainBundle,
+            comment: "A list of what a restore brings back, like “2 blocklist subscriptions and alert settings”"
+        )
     }
 }

@@ -27,7 +27,7 @@ struct StatusMenuButton<Content: View>: View {
 
 /// A command row at the bottom of the menu-bar panel, with its shortcut.
 struct StatusMenuActionRow: View {
-    let title: String
+    let title: LocalizedStringKey
     var shortcut: String?
     var trailing: String?
     let action: () -> Void

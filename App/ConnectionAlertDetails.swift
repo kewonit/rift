@@ -8,40 +8,40 @@ struct ConnectionAlertFacts {
     let prompt: PromptRequest
 
     var destination: String {
-        guard let endpoint = prompt.endpoint else { return "Unavailable" }
+        guard let endpoint = prompt.endpoint else { return String(localized: "Unavailable") }
         let host = endpoint.hostname?.ascii ?? endpoint.address.description
         return endpoint.port.map { "\(host):\($0)" } ?? host
     }
 
     var destinationSource: String {
-        prompt.endpoint?.hostname == nil ? "IP address" : "Hostname"
+        prompt.endpoint?.hostname == nil ? String(localized: "IP address") : String(localized: "Hostname")
     }
 
     var protocolLabel: String {
         switch prompt.transportProtocol {
         case .tcp: "TCP"
         case .udp: "UDP"
-        case .unsupported(let number): "Unsupported (\(number))"
+        case .unsupported(let number): String(localized: "Unsupported (\(String(number)))")
         }
     }
 
     var ownerLabel: String {
         switch prompt.owner {
-        case .user: "Current user"
-        case .system: "System process (affects all users)"
-        case .unknown: "Unknown owner"
+        case .user: String(localized: "Current user")
+        case .system: String(localized: "System process (affects all users)")
+        case .unknown: String(localized: "Unknown owner")
         }
     }
 
     var identityTitle: String {
         switch prompt.appIdentity ?? prompt.processIdentity {
-        case .applePlatform: "Apple software"
-        case .developerID: "App from an identified developer"
-        case .appStore: "Mac App Store app"
-        case .otherSigner: "Signed app"
-        case .adHoc: "Ad hoc signed app"
-        case .unsigned: "Unsigned app"
-        case nil: "Unknown app"
+        case .applePlatform: String(localized: "Apple software")
+        case .developerID: String(localized: "App from an identified developer")
+        case .appStore: String(localized: "Mac App Store app")
+        case .otherSigner: String(localized: "Signed app")
+        case .adHoc: String(localized: "Ad hoc signed app")
+        case .unsigned: String(localized: "Unsigned app")
+        case nil: String(localized: "Unknown app")
         }
     }
 
@@ -56,9 +56,9 @@ struct ConnectionAlertFacts {
     func identityEvidence(for identity: ProcessIdentity) -> String {
         switch identity {
         case .applePlatform(let value), .developerID(let value), .appStore(let value):
-            return "\(value.teamIdentifier ?? "No Team ID") • \(value.signingIdentifier)"
+            return "\(value.teamIdentifier ?? String(localized: "No Team ID")) • \(value.signingIdentifier)"
         case .otherSigner(_, let identifier): return identifier
-        case .adHoc: return "Identified only by this exact build of the app."
+        case .adHoc: return String(localized: "Identified only by this exact build of the app.")
         case .unsigned(let path, _): return path
         }
     }
@@ -70,11 +70,12 @@ struct ConnectionAlertFacts {
         switch identity {
         case .applePlatform: "Apple"
         case .developerID(let value):
-            "Developer ID, team \(DisplaySanitizer.plainText(value.teamIdentifier ?? "unknown"))"
+            value.teamIdentifier.map { String(localized: "Developer ID, team \(DisplaySanitizer.plainText($0))") }
+                ?? String(localized: "Developer ID, team unknown")
         case .appStore: "Mac App Store"
-        case .otherSigner: "A certificate Apple didn’t issue"
-        case .adHoc: "Ad hoc (signed only by itself)"
-        case .unsigned: "Not signed"
+        case .otherSigner: String(localized: "A certificate Apple didn’t issue")
+        case .adHoc: String(localized: "Ad hoc (signed only by itself)")
+        case .unsigned: String(localized: "Not signed")
         }
     }
 
@@ -82,9 +83,9 @@ struct ConnectionAlertFacts {
     func fingerprint(for identity: ProcessIdentity) -> String? {
         switch identity {
         case .applePlatform, .developerID, .appStore: nil
-        case .otherSigner(let key, _): "Certificate key SHA-256 \(key)"
-        case .adHoc(let hash): "Code hash \(hash)"
-        case .unsigned(_, let hash): "File SHA-256 \(hash)"
+        case .otherSigner(let key, _): String(localized: "Certificate key SHA-256 \(key.description)")
+        case .adHoc(let hash): String(localized: "Code hash \(hash.description)")
+        case .unsigned(_, let hash): String(localized: "File SHA-256 \(hash.description)")
         }
     }
 }
@@ -102,7 +103,7 @@ struct ConnectionAlertDetails: View {
             Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 7) {
                 row("Destination", facts.destination)
                 row("Identified by", facts.destinationSource)
-                row("Direction", prompt.direction == .outgoing ? "Outgoing" : "Incoming")
+                row("Direction", prompt.direction == .outgoing ? String(localized: "Outgoing") : String(localized: "Incoming"))
                 row("Protocol", facts.protocolLabel)
                 row("Owner", facts.ownerLabel)
                 ForEach(ProcessDetailsPresentation.rows(for: prompt.processes)) { process in
@@ -148,7 +149,7 @@ struct ConnectionAlertDetails: View {
         }
     }
 
-    private func identity(_ title: String, _ identity: ProcessIdentity) -> some View {
+    private func identity(_ title: LocalizedStringKey, _ identity: ProcessIdentity) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             LabeledContent(
                 title,
@@ -168,7 +169,7 @@ struct ConnectionAlertDetails: View {
         }
     }
 
-    private func row(_ title: String, _ value: String) -> some View {
+    private func row(_ title: LocalizedStringKey, _ value: String) -> some View {
         GridRow {
             Text(title).foregroundStyle(.secondary)
             Text(DisplaySanitizer.plainText(value)).textSelection(.enabled)
@@ -208,7 +209,10 @@ struct ConnectionAlertKeys: View {
     static let lifetimeKeys: [(key: Character, lifetime: AlertLifetime)] = [
         ("o", .once), ("5", .fiveMinutes), ("h", .oneHour), ("f", .permanent),
     ]
-    static let help = "Keys: O only this time, 5 five minutes, H one hour, F always, D details"
+    static let help = String(
+        localized: "Keys: O only this time, 5 five minutes, H one hour, F always, D details",
+        comment: "The letters are the keys to press, so they stay O, 5, H, F and D in every language"
+    )
 
     let allow: () -> Void
     let block: () -> Void

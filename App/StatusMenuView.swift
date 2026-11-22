@@ -142,7 +142,7 @@ struct StatusMenuView: View {
             errorMessage.map { ($0, true) },
             controller.actionResults.current.map { ($0.message, $0.tone != .success) },
             profileActivationMessage.map { ($0, profileActivationNeedsAttention) },
-            controller.lostEventCount > 0 ? ("Some activity wasn’t recorded while Rift was unavailable.", false) : nil,
+            controller.lostEventCount > 0 ? (String(localized: "Some activity wasn’t recorded while Rift was unavailable."), false) : nil,
         ].compactMap { $0 }
         ForEach(lines, id: \.0) { line in
             // A symbol as well as the color marks what needs attention.
@@ -150,7 +150,7 @@ struct StatusMenuView: View {
                 .font(.caption)
                 .foregroundStyle(line.1 ? Color(nsColor: .systemOrange) : .secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel(line.1 ? "Needs attention: \(line.0)" : line.0)
+                .accessibilityLabel(line.1 ? String(localized: "Needs attention: \(line.0)") : line.0)
         }
     }
 
@@ -165,7 +165,7 @@ struct StatusMenuView: View {
                 )
             }
             if ConfigurationLock.shared.isLocked {
-                StatusMenuActionRow(title: "Unlock Configuration…", trailing: "Locked") {
+                StatusMenuActionRow(title: "Unlock Configuration…", trailing: String(localized: "Locked")) {
                     Task { await ConfigurationLock.shared.unlock(untilQuit: false) }
                 }
                 .help("Unlock with Touch ID or your login password to change the mode, profile or rules")
@@ -271,7 +271,7 @@ struct StatusMenuView: View {
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
-                errorMessage = ConfigurationLock.message(for: error) ?? "Couldn’t change the mode. Try again."
+                errorMessage = ConfigurationLock.message(for: error) ?? String(localized: "Couldn’t change the mode. Try again.")
             }
         }
     }
@@ -287,7 +287,7 @@ struct StatusMenuView: View {
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
-                errorMessage = ConfigurationLock.message(for: error) ?? "Couldn’t switch profiles. Try again."
+                errorMessage = ConfigurationLock.message(for: error) ?? String(localized: "Couldn’t switch profiles. Try again.")
             }
         }
     }
@@ -333,10 +333,10 @@ struct StatusMenuView: View {
             do {
                 let granted = try await controller.requestNotificationPermission()
                 notificationsEnabled = granted
-                errorMessage = granted ? nil : "Notifications aren’t allowed. Turn them on in System Settings › Notifications."
+                errorMessage = granted ? nil : String(localized: "Notifications aren’t allowed. Turn them on in System Settings › Notifications.")
             } catch {
                 notificationsEnabled = false
-                errorMessage = "Rift couldn’t ask for notification permission. Try again."
+                errorMessage = String(localized: "Rift couldn’t ask for notification permission. Try again.")
             }
         }
     }
@@ -365,7 +365,7 @@ struct StatusMenuView: View {
         guard !session.isUIFixture,
               let row = cache.rows.first(where: { $0.id == eventID }),
               let breadth = MonitorRuleScope.options(for: [row]).first else {
-            results.post("Rift can’t make a rule for this connection here. Open it in Rift.", tone: .failure)
+            results.post(String(localized: "Rift can’t make a rule for this connection here. Open it in Rift."), tone: .failure)
             return
         }
         Task {
@@ -373,7 +373,7 @@ struct StatusMenuView: View {
                 let change = try await controller.applyMonitorRule(
                     for: row, action: action, breadth: breadth, duration: .fiveMinutes
                 )
-                let done = action == .deny ? "Blocked for 5 minutes." : "Allowed for 5 minutes."
+                let done = action == .deny ? String(localized: "Blocked for 5 minutes.") : String(localized: "Allowed for 5 minutes.")
                 if let result = change.result {
                     results.post(
                         result.requiresAttention ? "\(done) \(result.message)" : done,
@@ -382,21 +382,21 @@ struct StatusMenuView: View {
                         offersUndo: true
                     )
                 } else {
-                    results.post(action == .deny ? "This is already blocked." : "This is already allowed.",
+                    results.post(action == .deny ? String(localized: "This is already blocked.") : String(localized: "This is already allowed."),
                                  ruleIDs: change.ruleIDs)
                 }
                 await load()
             } catch ControlPlaneController.RuleCommandError.elevatedOverrideRequiresConfirmation {
-                results.post("This destination is on a blocklist. Open it in Rift to allow it.", tone: .failure)
+                results.post(String(localized: "This destination is on a blocklist. Open it in Rift to allow it."), tone: .failure)
             } catch ControlPlaneController.RuleCommandError.permanentRuleConflict {
-                results.post(action == .deny ? "A permanent rule allows this. Change it in Rift."
-                    : "A permanent rule blocks this. Change it in Rift.", tone: .failure)
+                results.post(action == .deny ? String(localized: "A permanent rule allows this. Change it in Rift.")
+                    : String(localized: "A permanent rule blocks this. Change it in Rift."), tone: .failure)
             } catch ControlPlaneController.RuleCommandError.overriddenByRule {
-                results.post("Nothing changed, because another rule still decides this connection.", tone: .failure)
+                results.post(String(localized: "Nothing changed, because another rule still decides this connection."), tone: .failure)
             } catch ControlPlaneController.RuleCommandError.incomingBlocklistOverride {
-                results.post("This address is on a blocklist. To let it in, turn off its entry in Settings › Blocklists.", tone: .failure)
+                results.post(String(localized: "This address is on a blocklist. To let it in, turn off its entry in Settings › Blocklists."), tone: .failure)
             } catch {
-                results.post("The rule wasn’t added. Try again in Rift.", tone: .failure)
+                results.post(String(localized: "The rule wasn’t added. Try again in Rift."), tone: .failure)
             }
         }
     }
@@ -407,7 +407,7 @@ struct StatusMenuView: View {
             do {
                 try await controller.makeRulesPermanent([id], expectedGeneration: generation)
             } catch {
-                controller.actionResults.post("The rule wasn’t changed. Try again.", tone: .failure)
+                controller.actionResults.post(String(localized: "The rule wasn’t changed. Try again."), tone: .failure)
             }
             await load()
         }
@@ -419,7 +419,7 @@ struct StatusMenuView: View {
             do {
                 try await controller.deleteRules([id], expectedGeneration: generation)
             } catch {
-                controller.actionResults.post("The rule wasn’t removed. Try again.", tone: .failure)
+                controller.actionResults.post(String(localized: "The rule wasn’t removed. Try again."), tone: .failure)
             }
             await load()
         }

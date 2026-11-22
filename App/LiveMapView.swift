@@ -94,7 +94,7 @@ struct LiveMapView: View {
             guard step == "undo" else { return }
             try? await Task.sleep(for: .seconds(2))
             _ = try? await session.controlPlane.undoLastRuleChange()
-            session.controlPlane.actionResults.post("Undone.", offersUndo: true)
+            session.controlPlane.actionResults.post(String(localized: "Undone."), offersUndo: true)
         }
 #endif
         .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: showingTimeline)

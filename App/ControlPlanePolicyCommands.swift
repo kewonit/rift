@@ -58,7 +58,7 @@ extension ControlPlaneController {
             redactedSummary: action.rawValue,
             now: now
         )
-        ruleChanges.nextChangeName = action == .deny ? "Block" : "Allow"
+        ruleChanges.nextChangeName = action == .deny ? String(localized: "Block") : String(localized: "Allow")
         ruleChanges.record(
             before: draft.rules, after: updated.rules,
             generation: desired.tuple.generation, isRedo: false

@@ -8,10 +8,18 @@ extension ConnectionAlertView {
     typealias Lifetime = AlertLifetime
     typealias DestinationScope = AlertDestinationChoice
 
+    /// The raw value is what Settings stores, so it stays in English.
     enum RuleScope: String, CaseIterable, Identifiable {
         case currentProfile = "Current profile"
         case allProfiles = "All profiles"
         var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .currentProfile: String(localized: "Current profile")
+            case .allProfiles: String(localized: "All profiles")
+            }
+        }
     }
 
     /// The domain the connection's name was registered under, like
@@ -53,8 +61,8 @@ extension ConnectionAlertView {
 
     /// Names the active profile, so it's clear where a new rule lands.
     func scopeTitle(_ scope: RuleScope) -> String {
-        guard scope == .currentProfile, let name = currentProfileName else { return scope.rawValue }
-        return "Current profile (\(DisplaySanitizer.plainText(name)))"
+        guard scope == .currentProfile, let name = currentProfileName else { return scope.title }
+        return String(localized: "Current profile (\(DisplaySanitizer.plainText(name)))")
     }
 
     /// The last moment to answer: the filter's deadline, or a little before
@@ -66,8 +74,10 @@ extension ConnectionAlertView {
     /// The destination as it reads in a sentence about the new rule.
     func destinationPhrase(for scope: DestinationScope) -> String {
         switch scope {
-        case .any: "any destination"
-        case .domain: "\(registeredDomain ?? "this domain") and its subdomains"
+        case .any: String(localized: "any destination")
+        case .domain:
+            registeredDomain.map { String(localized: "\($0) and its subdomains") }
+                ?? String(localized: "this domain and its subdomains")
         case .exact, .anyPort: DisplaySanitizer.plainText(ConnectionAlertFacts(prompt: prompt).destination)
         }
     }

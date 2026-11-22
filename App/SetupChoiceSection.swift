@@ -28,12 +28,12 @@ struct SetupChoiceSection: View {
                     .foregroundStyle(.secondary)
                 option(
                     .silentAllow,
-                    badge: "Recommended",
-                    detail: "See what’s connecting first, and block anything you choose from the Map. Nothing is blocked until you say so."
+                    badge: String(localized: "Recommended"),
+                    detail: String(localized: "See what’s connecting first, and block anything you choose from the Map. Nothing is blocked until you say so.")
                 )
                 option(
                     .alert,
-                    detail: "Rift asks each time an app connects somewhere new, so expect many questions at first. Rift has to stay open to ask."
+                    detail: String(localized: "Rift asks each time an app connects somewhere new, so expect many questions at first. Rift has to stay open to ask.")
                 )
             }
             .padding(.vertical, RiftDesign.Spacing.xs)
@@ -120,16 +120,16 @@ struct SetupChoiceSection: View {
                     )
                 }
             } catch {
-                failure = "Rift couldn’t save your choice. Try again."
+                failure = String(localized: "Rift couldn’t save your choice. Try again.")
                 return
             }
             finish()
             do {
                 try LoginItem.set(opensAtLogin)
-                controller.actionResults.post("You’re all set. \(choice.summary)")
+                controller.actionResults.post(String(localized: "You’re all set. \(choice.summary)"))
             } catch {
                 controller.actionResults.post(
-                    "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings.",
+                    String(localized: "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings."),
                     tone: .pending
                 )
             }

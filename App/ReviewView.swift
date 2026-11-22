@@ -136,9 +136,10 @@ private struct ReviewAppRow: View {
     private var summary: String {
         let hosts = app.destinations.prefix(3).map { DisplaySanitizer.plainText($0.host) }
         let more = app.destinations.count - hosts.count
-        let list = hosts.joined(separator: ", ") + (more > 0 ? " and \(more) more" : "")
+        let joined = hosts.joined(separator: ", ")
+        let list = more > 0 ? String(localized: "\(joined) and \(more) more") : joined
         let last = app.lastSeen.formatted(.relative(presentation: .named))
-        return "\(list) · last seen \(last)"
+        return String(localized: "\(list) · last seen \(last)")
     }
 }
 
@@ -173,8 +174,13 @@ private struct ReviewUnansweredRow: View {
     }
 
     private var outcome: String {
-        let verb = item.row.event.action == .deny ? "blocked" : "allowed"
-        return item.count == 1 ? "\(verb) when nobody answered" : "\(verb) \(item.count) times when nobody answered"
+        let blocked = item.row.event.action == .deny
+        if item.count == 1 {
+            return blocked ? String(localized: "blocked when nobody answered") : String(localized: "allowed when nobody answered")
+        }
+        return blocked
+            ? String(localized: "blocked \(item.count) times when nobody answered")
+            : String(localized: "allowed \(item.count) times when nobody answered")
     }
 }
 

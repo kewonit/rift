@@ -31,9 +31,9 @@ extension RulesWorkspaceTable {
 
     func enabledLabel(_ node: RuleWorkspaceNode) -> String {
         switch enabledSymbol(node) {
-        case "checkmark": "On"
-        case "xmark": "Off"
-        default: "Some on"
+        case "checkmark": String(localized: "On")
+        case "xmark": String(localized: "Off")
+        default: String(localized: "Some on")
         }
     }
 
@@ -48,7 +48,7 @@ extension RulesWorkspaceTable {
     func scope(_ row: RuleRowViewValue) -> String {
         let profile = row.rule.profileID.flatMap { id in
             model.profiles.first { $0.id == id }?.name
-        } ?? "All profiles"
+        } ?? String(localized: "All profiles")
         let group = row.rule.localGroupID.flatMap { id in
             model.groups.first { $0.id == id }?.name
         }
@@ -60,12 +60,12 @@ extension RulesWorkspaceTable {
     }
 
     func source(_ row: RuleRowViewValue) -> String {
-        if row.rule.flags.contains(.protected) { return "Protected" }
+        if row.rule.flags.contains(.protected) { return String(localized: "Protected") }
         switch row.rule.priority {
-        case .elevatedUser: return "Exception"
-        case .blocklistDeny: return "Blocklist"
-        case .high: return "High priority"
-        case .normal: return "Manual"
+        case .elevatedUser: return String(localized: "Exception")
+        case .blocklistDeny: return String(localized: "Blocklist")
+        case .high: return String(localized: "High priority")
+        case .normal: return String(localized: "Manual")
         }
     }
 
@@ -83,9 +83,9 @@ extension RulesWorkspaceTable {
     func usageHelp(_ node: RuleWorkspaceNode) -> String {
         let values = rows(node)
         if values.allSatisfy({ $0.usage.coverage == .complete }) {
-            return "How many times this rule was used in saved history."
+            return String(localized: "How many times this rule was used in saved history.")
         }
-        return "At least this many. Some history is missing."
+        return String(localized: "At least this many. Some history is missing.")
     }
 
     func state(_ node: RuleWorkspaceNode) -> String {
@@ -93,12 +93,12 @@ extension RulesWorkspaceTable {
     }
 
     func ruleCountLabel(_ count: Int) -> String {
-        count == 1 ? "1 rule" : "\(count) rules"
+        String(localized: "\(count) rules")
     }
 
     func uniform(_ values: [String]) -> String {
         guard let first = values.first else { return "—" }
-        return values.dropFirst().allSatisfy { $0 == first } ? first : "Mixed"
+        return values.dropFirst().allSatisfy { $0 == first } ? first : String(localized: "Mixed")
     }
 }
 

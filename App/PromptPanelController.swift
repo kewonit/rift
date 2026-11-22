@@ -106,7 +106,7 @@ final class PromptPanelController {
             backing: .buffered,
             defer: false
         )
-        panel.title = minimized ? "Rift: Connection Waiting" : "Rift Connection Alert"
+        panel.title = minimized ? String(localized: "Rift: Connection Waiting") : String(localized: "Rift Connection Alert")
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
@@ -169,7 +169,7 @@ final class PromptPanelController {
                     // it's going to be allowed after all.
                     guard controller.pendingPrompts.contains(where: { $0.nonce == prompt.nonce }) else { return }
                     controller.actionResults.post(
-                        "Rift couldn’t block a connection you didn’t answer, so it will be allowed.",
+                        String(localized: "Rift couldn’t block a connection you didn’t answer, so it will be allowed."),
                         tone: .failure
                     )
                 }

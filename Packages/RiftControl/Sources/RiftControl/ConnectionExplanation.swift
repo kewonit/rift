@@ -21,10 +21,12 @@ public struct ProcessNotes: Sendable {
 
     /// What an Apple service does. Only code Apple signed as part of macOS
     /// matches, so another app can't borrow a service's description by
-    /// using its name.
+    /// using its name. Translations are in the app's ProcessNotes string
+    /// table, under the English note.
     public func note(for identity: ProcessIdentity?) -> String? {
-        guard case .applePlatform(let code) = identity else { return nil }
-        return notes[code.signingIdentifier]
+        guard case .applePlatform(let code) = identity,
+              let note = notes[code.signingIdentifier] else { return nil }
+        return Bundle.main.localizedString(forKey: note, value: note, table: "ProcessNotes")
     }
 }
 

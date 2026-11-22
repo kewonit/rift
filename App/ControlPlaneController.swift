@@ -159,7 +159,7 @@ final class ControlPlaneController {
             }
             guard case .success(let database) = configurationResult else {
                 configurationRecoveryRequired = true
-                startupIssue = "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules."
+                startupIssue = String(localized: "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules.")
                 state = .failed
                 await prepareConfigurationRecoveryConnection()
                 return
@@ -202,7 +202,7 @@ final class ControlPlaneController {
                     } else { history = nil }
                     historyRecovery = historyResult.recovery
                 } else {
-                    startupIssue = "Rift couldn’t open your connection history and left it untouched. Your rules aren’t affected."
+                    startupIssue = String(localized: "Rift couldn’t open your connection history and left it untouched. Your rules aren’t affected.")
                 }
             }
             state = .databaseReady
@@ -219,7 +219,7 @@ final class ControlPlaneController {
             NetworkProfileSwitcher.shared.start(controlPlane: self)
         } catch {
             state = .failed
-            recordStartupIssue("Rift couldn’t open its data, so it can’t show or change your rules. Quit Rift and open it again.")
+            recordStartupIssue(String(localized: "Rift couldn’t open its data, so it can’t show or change your rules. Quit Rift and open it again."))
         }
     }
 
@@ -416,7 +416,7 @@ final class ControlPlaneController {
                 historyRecovery = result.recovery
                 startupIssue = nil
             } else {
-                startupIssue = "Connection history isn’t available right now, and Rift left it untouched. You can still recover your rules and settings."
+                startupIssue = String(localized: "Connection history isn’t available right now, and Rift left it untouched. You can still recover your rules and settings.")
             }
         }
         configurationRecovery = result.recovery

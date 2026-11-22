@@ -129,17 +129,17 @@ final class ReviewQueueModel {
                         ruleIDs: change.ruleIDs, offersUndo: true
                     )
                 } else {
-                    results.post(action == .deny ? "This is already blocked." : "This is already allowed.", ruleIDs: change.ruleIDs)
+                    results.post(action == .deny ? String(localized: "This is already blocked.") : String(localized: "This is already allowed."), ruleIDs: change.ruleIDs)
                 }
             } catch ControlPlaneController.RuleCommandError.elevatedOverrideRequiresConfirmation {
-                results.post("A blocklist blocks part of this. Allow it from the Map, where Rift can confirm the change.", tone: .failure)
+                results.post(String(localized: "A blocklist blocks part of this. Allow it from the Map, where Rift can confirm the change."), tone: .failure)
             } catch ControlPlaneController.RuleCommandError.overriddenByRule(let ruleID) {
                 results.post(
-                    "Nothing changed, because another rule still decides this connection.",
+                    String(localized: "Nothing changed, because another rule still decides this connection."),
                     tone: .failure, ruleIDs: ruleID.map { [$0] } ?? []
                 )
             } catch {
-                results.post("The rule wasn’t added. Try again after Rift reconnects.", tone: .failure)
+                results.post(String(localized: "The rule wasn’t added. Try again after Rift reconnects."), tone: .failure)
             }
             await refresh()
         }
@@ -172,11 +172,9 @@ final class ReviewQueueModel {
               !defaults.bool(forKey: Key.notified), !queue.apps.isEmpty else { return }
         defaults.set(true, forKey: Key.notified)
         let content = UNMutableNotificationContent()
-        content.title = "Review what connected"
+        content.title = String(localized: "Review what connected")
         let apps = queue.apps.count
-        content.body = apps == 1
-            ? "1 app connected with no rule. Allow or block it in one click."
-            : "\(apps) apps connected with no rule. Allow or block each in one click."
+        content.body = String(localized: "\(apps) apps connected with no rule. Allow or block each in one click.")
         content.userInfo = [Self.notificationKey: true]
         let request = UNNotificationRequest(identifier: "rift-review", content: content, trigger: nil)
         Task { try? await UNUserNotificationCenter.current().add(request) }
@@ -188,11 +186,13 @@ enum ReviewBannerCopy {
     static func message(_ queue: ReviewQueue) -> String {
         let apps = queue.apps.count
         let unanswered = queue.unanswered.count
-        var parts: [String] = []
-        if apps > 0 { parts.append(apps == 1 ? "1 app connected with no rule" : "\(apps) apps connected with no rule") }
-        if unanswered > 0 {
-            parts.append(unanswered == 1 ? "1 alert went unanswered" : "\(unanswered) alerts went unanswered")
+        let appsPart = String(localized: "\(apps) apps connected with no rule")
+        let unansweredPart = String(localized: "\(unanswered) alerts went unanswered")
+        switch (apps > 0, unanswered > 0) {
+        case (true, true): return String(localized: "\(appsPart), and \(unansweredPart)")
+        case (true, false): return appsPart
+        case (false, true): return unansweredPart
+        case (false, false): return ""
         }
-        return parts.joined(separator: ", and ")
     }
 }

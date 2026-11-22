@@ -133,15 +133,15 @@ final class NetworkProfileSwitcher {
         guard enabled else { return }
         if let key = identity?.key, let identity {
             var network = remembered[key]
-                ?? RememberedNetwork(key: key, name: identity.displayName, choice: otherNetworks, lastSeenAt: Date())
+                ?? RememberedNetwork(key: key, name: identity.storedName, choice: otherNetworks, lastSeenAt: Date())
             let isNew = remembered[key] == nil
             network.lastSeenAt = Date()
             remembered[key] = network
             save()
             if isNew, notifies, notifiedNew.insert(key).inserted {
                 notify(
-                    "New network: \(identity.displayName)",
-                    "Keep the current profile here, or choose one.",
+                    String(localized: "New network: \(identity.displayName)"),
+                    String(localized: "Keep the current profile here, or choose one."),
                     category: NotificationActions.newNetworkCategory,
                     userInfo: [NotificationActions.networkKey: key]
                 )
@@ -157,25 +157,27 @@ final class NetworkProfileSwitcher {
         guard let target = NetworkProfileDecision.target(
             on: network, remembered: remembered, otherNetworks: otherNetworks, profiles: Set(profiles.keys)
         ), target != definitions.active else { return }
-        let name = target.flatMap { profiles[$0] } ?? "No profile"
+        let name = target.flatMap { profiles[$0] } ?? String(localized: "No profile")
         do {
             _ = try await controlPlane.activateProfile(target, unattended: true, change: .automatic)
-            lastMessage = "Switched to \(name) for \(network.displayName)."
-            if notifies { notify("Switched to \(name)", "For the network \(network.displayName).") }
+            lastMessage = String(localized: "Switched to \(name) for \(network.displayName).")
+            if notifies {
+                notify(String(localized: "Switched to \(name)"), String(localized: "For the network \(network.displayName)."))
+            }
         } catch CLIRelayRefusal.profileSwitchNeedsConfirmation {
             if let key = network.key, remembered[key]?.allowsLessStrictSwitch == true {
                 await switchLessStrict(to: target, name: name, on: network, controlPlane: controlPlane)
                 return
             }
-            lastMessage = "\(name) is less strict, so Rift didn’t switch to it on its own."
+            lastMessage = String(localized: "\(name) is less strict, so Rift didn’t switch to it on its own.")
             if notifies {
                 notify(
-                    "Rift didn’t switch to \(name)",
-                    "\(name) is less strict than the current profile. To use it on \(network.displayName), choose it from the menu bar."
+                    String(localized: "Rift didn’t switch to \(name)"),
+                    String(localized: "\(name) is less strict than the current profile. To use it on \(network.displayName), choose it from the menu bar.")
                 )
             }
         } catch {
-            lastMessage = "Rift couldn’t switch to \(name)."
+            lastMessage = String(localized: "Rift couldn’t switch to \(name).")
         }
     }
 
@@ -189,13 +191,13 @@ final class NetworkProfileSwitcher {
     ) async {
         do {
             _ = try await controlPlane.activateProfile(target, unattended: false, change: .automatic)
-            lastMessage = "Switched to \(name), which is less strict, as you allowed for \(network.displayName)."
+            lastMessage = String(localized: "Switched to \(name), which is less strict, as you allowed for \(network.displayName).")
             notify(
-                "Switched to \(name), which is less strict",
-                "You allowed this for \(network.displayName). To stop it, turn it off in Settings › Networks."
+                String(localized: "Switched to \(name), which is less strict"),
+                String(localized: "You allowed this for \(network.displayName). To stop it, turn it off in Settings › Networks.")
             )
         } catch {
-            lastMessage = "Rift couldn’t switch to \(name)."
+            lastMessage = String(localized: "Rift couldn’t switch to \(name).")
         }
     }
 

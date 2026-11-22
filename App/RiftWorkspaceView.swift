@@ -10,9 +10,9 @@ enum AppDestination: String, CaseIterable, Identifiable, Hashable {
 
     var title: String {
         switch self {
-        case .liveMap: "Map"
-        case .rules: "Rules"
-        case .health: "Status"
+        case .liveMap: String(localized: "Map")
+        case .rules: String(localized: "Rules")
+        case .health: String(localized: "Status")
         }
     }
 

@@ -133,12 +133,12 @@ final class AppSession {
                 let result = try await controller.undoLastRuleChange()
                 let needsAttention = result?.requiresAttention == true
                 controller.actionResults.post(
-                    needsAttention ? result?.message ?? "" : (wasRedo ? "Redone." : "Undone."),
+                    needsAttention ? result?.message ?? "" : (wasRedo ? String(localized: "Redone.") : String(localized: "Undone.")),
                     tone: needsAttention ? .pending : .success,
                     offersUndo: true
                 )
             } catch {
-                controller.actionResults.post("Couldn’t undo because your rules changed.", tone: .failure)
+                controller.actionResults.post(String(localized: "Couldn’t undo because your rules changed."), tone: .failure)
             }
         }
     }
@@ -150,9 +150,9 @@ final class AppSession {
         Task { @MainActor in
             do {
                 _ = try await controlPlane.setEffectiveMode(mode)
-                results.post("Rules are back on, using \(mode.displayName).")
+                results.post(String(localized: "Rules are back on, using \(mode.displayName)."))
             } catch {
-                results.post("Couldn’t turn rules back on. Try again.", tone: .failure)
+                results.post(String(localized: "Couldn’t turn rules back on. Try again."), tone: .failure)
             }
         }
     }

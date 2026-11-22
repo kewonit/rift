@@ -79,9 +79,9 @@ final class RuleGroupSubscriptions {
     /// the file couldn't be checked, if notifications are on.
     @discardableResult
     func refresh(_ id: UUID, notifies: Bool = false) async -> String {
-        guard var item = items[id] else { return "This group isn’t a subscription." }
-        guard let controlPlane else { return "Rift isn’t ready to check rule groups yet." }
-        guard !refreshing.contains(id) else { return "This group is already being checked." }
+        guard var item = items[id] else { return String(localized: "This group isn’t a subscription.") }
+        guard let controlPlane else { return String(localized: "Rift isn’t ready to check rule groups yet.") }
+        guard !refreshing.contains(id) else { return String(localized: "This group is already being checked.") }
         refreshing.insert(id)
         defer { refreshing.remove(id) }
         let now = Date()
@@ -93,7 +93,7 @@ final class RuleGroupSubscriptions {
                 item.lastFailure = nil
                 item.lastCheckedAt = now
                 keep(item)
-                return "The rule group is up to date."
+                return String(localized: "The rule group is up to date.")
             case .changed(let data, let tag, let modified):
                 let conversion = try await controlPlane.previewRuleGroup(data, url: item.url)
                 let update = try await controlPlane.updateSubscribedGroup(
@@ -107,7 +107,7 @@ final class RuleGroupSubscriptions {
                 item.notePending(held: update.merge.heldRuleIDs, groupRules: update.groupRules)
                 keep(item)
                 if notifies, !update.merge.heldRuleIDs.isEmpty {
-                    await notify("Rule group updated", id: id, detail: update.merge.summary)
+                    await notify(String(localized: "Rule group updated"), id: id, detail: update.merge.summary)
                 }
                 return update.merge.summary
             }
@@ -115,15 +115,15 @@ final class RuleGroupSubscriptions {
             item.lastFailure = Self.message(for: error)
             item.lastCheckedAt = now
             keep(item)
-            if notifies { await notify("A rule group couldn’t be updated", id: id, detail: item.lastFailure ?? "") }
-            return item.lastFailure ?? "The rule group couldn’t be checked."
+            if notifies { await notify(String(localized: "A rule group couldn’t be updated"), id: id, detail: item.lastFailure ?? "") }
+            return item.lastFailure ?? String(localized: "The rule group couldn’t be checked.")
         }
     }
 
     /// Turns on the rules an update held. Returns what happened.
     func approvePending(_ id: UUID) async -> String {
         guard var item = items[id], let controlPlane, !item.pendingRuleIDs.isEmpty else {
-            return "No rules are waiting."
+            return String(localized: "No rules are waiting.")
         }
         do {
             guard let generation = controlPlane.desiredPolicyTuple?.generation else {
@@ -135,11 +135,11 @@ final class RuleGroupSubscriptions {
             let count = item.pendingRuleIDs.count
             item.notePending(groupRules: await controlPlane.rules(inGroup: id) ?? [])
             keep(item)
-            let done = count == 1 ? "Turned on 1 rule." : "Turned on \(count) rules."
+            let done = String(localized: "Turned on \(count) rules.")
             return result.requiresAttention ? "\(done) \(result.message)" : done
         } catch {
             return ConfigurationLock.message(for: error)
-                ?? "The rules weren’t turned on. Your rules may have changed, so try again."
+                ?? String(localized: "The rules weren’t turned on. Your rules may have changed, so try again.")
         }
     }
 
@@ -194,11 +194,11 @@ final class RuleGroupSubscriptions {
         if let locked = ConfigurationLock.message(for: error) { return locked }
         switch error {
         case RuleGroupSubscriptionError.onlyBlockedDestinations:
-            return "This file only blocks destinations. Subscribe to it in Settings › Blocklists instead."
+            return String(localized: "This file only blocks destinations. Subscribe to it in Settings › Blocklists instead.")
         case RuleGroupSubscriptionError.noUsableRules:
-            return "None of the file’s rules can apply on this Mac, such as rules for apps that aren’t installed."
+            return String(localized: "None of the file’s rules can apply on this Mac, such as rules for apps that aren’t installed.")
         case BlocklistSubscriptionError.notAList, is LSRulesFileError:
-            return "The download isn’t a .lsrules rule group file."
+            return String(localized: "The download isn’t a .lsrules rule group file.")
         default:
             return BlocklistSubscriptions.message(for: error)
         }

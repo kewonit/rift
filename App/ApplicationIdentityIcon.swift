@@ -80,15 +80,15 @@ struct ApplicationNameText: View {
 }
 
 extension ProcessIdentity {
-    /// Who signed the code, in a word or two.
+    /// Who signed the code, in a word or two. Apple's own names stay as they are.
     var signerKind: String {
         switch self {
         case .applePlatform: "Apple"
         case .developerID: "Developer ID"
         case .appStore: "App Store"
-        case .otherSigner: "Signed"
-        case .adHoc: "Ad hoc signed"
-        case .unsigned: "Unsigned"
+        case .otherSigner: String(localized: "Signed")
+        case .adHoc: String(localized: "Ad hoc signed")
+        case .unsigned: String(localized: "Unsigned")
         }
     }
 }

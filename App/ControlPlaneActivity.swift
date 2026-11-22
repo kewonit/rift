@@ -223,12 +223,12 @@ extension ControlPlaneController {
             if transition.detectedRestart {
                 do { try await repository?.markUsagePartial() }
                 catch {
-                    recordStartupIssue("Rule usage counts may be incomplete because Rift couldn’t save them after the filter restarted.")
+                    recordStartupIssue(String(localized: "Rule usage counts may be incomplete because Rift couldn’t save them after the filter restarted."))
                 }
             }
             return transition.detectedRestart
         } catch {
-            recordStartupIssue("Some activity may be missing because Rift couldn’t save it after the filter restarted.")
+            recordStartupIssue(String(localized: "Some activity may be missing because Rift couldn’t save it after the filter restarted."))
             return false
         }
     }

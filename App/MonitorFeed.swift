@@ -270,7 +270,7 @@ final class MonitorFeed {
         } catch is CancellationError {
         } catch {
             guard windowIsVisible, !Task.isCancelled, requestID == activeQueryRequestID else { return }
-            loadError = "Rift couldn’t refresh activity. Showing what it loaded last."
+            loadError = String(localized: "Rift couldn’t refresh activity. Showing what it loaded last.")
         }
     }
 

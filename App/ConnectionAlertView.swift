@@ -131,7 +131,7 @@ struct ConnectionAlertView: View {
 
             if lifetime == .once, !sameAppWaiting.isEmpty {
                 let count = sameAppWaiting.count
-                Toggle("Also answer \(count) other waiting \(count == 1 ? "connection" : "connections") from this app", isOn: $answersSameApp)
+                Toggle("Also answer \(count) other waiting connections from this app", isOn: $answersSameApp)
             }
 
             if requiresSystemScopeConfirmation {
@@ -316,7 +316,7 @@ struct ConnectionAlertView: View {
         if selected != .once, scope == .currentProfile {
             guard let profile = activeProfileResolution.profile else {
                 lifetime = .once
-                decisionMessage = "The active profile changed. Choose where the rule applies, then try again."
+                decisionMessage = String(localized: "The active profile changed. Choose where the rule applies, then try again.")
                 decisionNeedsAttention = true
                 return
             }
@@ -347,7 +347,7 @@ struct ConnectionAlertView: View {
                     // Once counts as a choice only when a lasting one was on offer.
                     if lifetime == .once, lastingChoiceAvailable { alertLastLifetime = Lifetime.once.rawValue }
                 } catch {
-                    decisionMessage = "Rift couldn’t send your answer. This alert is still open, so you can try again."
+                    decisionMessage = String(localized: "Rift couldn’t send your answer. This alert is still open, so you can try again.")
                     decisionNeedsAttention = true
                 }
             } else {
@@ -377,7 +377,7 @@ struct ConnectionAlertView: View {
                         destination: destinationPhrase(for: destinationScope),
                         port: nil,
                         incoming: prompt.direction == .incoming,
-                        lasting: selected.duration.map { _ in selected.rawValue.lowercased() }
+                        lasting: selected.phrase
                     )
                     controller.actionResults.post(
                         result.requiresAttention ? "\(sentence) \(result.message)" : sentence,
@@ -386,7 +386,7 @@ struct ConnectionAlertView: View {
                         offersUndo: true
                     )
                 } catch {
-                    decisionMessage = "The rule wasn’t saved. This alert is still open, so you can try again."
+                    decisionMessage = String(localized: "The rule wasn’t saved. This alert is still open, so you can try again.")
                     decisionNeedsAttention = true
                 }
             }
@@ -416,8 +416,9 @@ struct ConnectionAlertView: View {
     private var deliberateAllow: Bool { ConnectionAlertWarnings.requiresDeliberateAllow(for: prompt) }
 
     private var keyHint: String {
-        if noteFocused { return "⌘B Block · ⌘A Allow" }
-        return deliberateAllow ? "Esc Block · ⌘A Allow" : "Esc Block · Return Allow"
+        // Key names stay as they are; only Block and Allow are translated.
+        if noteFocused { return String(localized: "⌘B Block · ⌘A Allow") }
+        return deliberateAllow ? String(localized: "Esc Block · ⌘A Allow") : String(localized: "Esc Block · Return Allow")
     }
 
     private var noteValid: Bool {
@@ -480,7 +481,7 @@ struct ConnectionAlertView: View {
     private var applicationName: String {
         let value = resolvedApplicationName ?? MonitorQuery.identityLabel(presentationIdentity)
         let sanitized = DisplaySanitizer.plainText(value)
-        return prompt.cohortCount > 1 ? "\(sanitized) (\(prompt.cohortCount) connections)" : sanitized
+        return prompt.cohortCount > 1 ? String(localized: "\(sanitized) (\(prompt.cohortCount) connections)") : sanitized
     }
 
     private var presentationIdentity: ProcessIdentity? {

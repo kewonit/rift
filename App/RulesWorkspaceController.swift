@@ -59,13 +59,13 @@ final class RulesWorkspaceController {
         let value: String
         switch sidebarSelection {
         case .filter(let filter):
-            value = filter.rawValue
+            value = filter.title
         case .profile(let id):
-            value = profiles.first { $0.id == id }?.name ?? "Profile"
+            value = profiles.first { $0.id == id }?.name ?? String(localized: "Profile")
         case .group(let id):
-            value = groups.first { $0.id == id }?.name ?? "Group"
+            value = groups.first { $0.id == id }?.name ?? String(localized: "Group")
         case .blocklist(let id):
-            value = blocklists.first { $0.id == id }?.name ?? "Blocklist"
+            value = blocklists.first { $0.id == id }?.name ?? String(localized: "Blocklist")
         }
         return DisplaySanitizer.plainText(value)
     }
@@ -112,7 +112,7 @@ final class RulesWorkspaceController {
         let available = ids.intersection(Set(rows.map(\.id)))
         selection = available
         if available.isEmpty, !ids.isEmpty {
-            notice = "That rule no longer exists or isn’t available to your account."
+            notice = String(localized: "That rule no longer exists or isn’t available to your account.")
             return .notFound
         }
         return .focused
@@ -168,25 +168,25 @@ final class RulesWorkspaceController {
             hasLoaded = true
             return true
         } catch {
-            errorMessage = "Couldn’t load rules. Try again once Rift reconnects to the filter."
+            errorMessage = String(localized: "Couldn’t load rules. Try again once Rift reconnects to the filter.")
             return false
         }
     }
 
     func setSelectedEnabled(_ enabled: Bool) async {
-        await ruleCommand(enabled ? "Enable Rules" : "Disable Rules") {
+        await ruleCommand(enabled ? String(localized: "Enable Rules") : String(localized: "Disable Rules")) {
             try await controlPlane.setRulesEnabled(selection, enabled: enabled, expectedGeneration: generation)
         }
     }
 
     func markSelectedReviewed(_ reviewed: Bool) async {
-        await ruleCommand(reviewed ? "Mark Rules Reviewed" : "Mark Rules Unreviewed") {
+        await ruleCommand(reviewed ? String(localized: "Mark Rules Reviewed") : String(localized: "Mark Rules Unreviewed")) {
             try await controlPlane.markRulesReviewed(selection, reviewed: reviewed, expectedGeneration: generation)
         }
     }
 
     func makeSelectedPermanent() async {
-        await ruleCommand("Make Rules Permanent") {
+        await ruleCommand(String(localized: "Make Rules Permanent")) {
             try await controlPlane.makeRulesPermanent(selection, expectedGeneration: generation)
         }
     }
@@ -201,7 +201,7 @@ final class RulesWorkspaceController {
 
     func editSelected(_ edit: RuleBulkEdit) async -> Bool {
         let ids = selection
-        return await ruleCommand("Edit Rules") {
+        return await ruleCommand(String(localized: "Edit Rules")) {
             try await controlPlane.mutateRules(expectedGeneration: generation, kind: "editRules") { rules in
                 try edit.applied(to: rules, ids: ids, now: Date())
             }
@@ -209,7 +209,7 @@ final class RulesWorkspaceController {
     }
 
     func deleteSelected() async {
-        await ruleCommand("Delete Rules") {
+        await ruleCommand(String(localized: "Delete Rules")) {
             try await controlPlane.deleteRules(selection, expectedGeneration: generation)
         }
     }
@@ -226,20 +226,20 @@ final class RulesWorkspaceController {
     func deleteAllShown() async {
         let ids = deletableShownRuleIDs
         guard !ids.isEmpty else { return }
-        await ruleCommand("Delete Rules") {
+        await ruleCommand(String(localized: "Delete Rules")) {
             try await controlPlane.deleteRules(ids, expectedGeneration: generation)
         }
     }
 
     func duplicateSelected() async {
         guard let id = selection.first else { return }
-        await ruleCommand("Duplicate Rule") {
+        await ruleCommand(String(localized: "Duplicate Rule")) {
             try await controlPlane.duplicateRule(id, expectedGeneration: generation)
         }
     }
 
     func assignSelectedToGroup(_ groupID: UUID?) async {
-        await ruleCommand("Move Rules to Group") {
+        await ruleCommand(String(localized: "Move Rules to Group")) {
             try await controlPlane.assignRulesToGroup(
                 selection, groupID: groupID, expectedGeneration: generation
             )
@@ -247,7 +247,7 @@ final class RulesWorkspaceController {
     }
 
     func assignSelectedToProfile(_ profileID: UUID?) async {
-        await ruleCommand("Move Rules to Profile") {
+        await ruleCommand(String(localized: "Move Rules to Profile")) {
             try await controlPlane.assignRulesToProfile(
                 selection, profileID: profileID, expectedGeneration: generation
             )
@@ -282,19 +282,23 @@ final class RulesWorkspaceController {
             notice = nil
             return request
         } catch RuleWorkspaceDropError.noEligibleRules {
-            notice = "Protected and blocklist rules can’t be moved."
+            notice = String(localized: "Protected and blocklist rules can’t be moved.")
         } catch RuleWorkspaceDropError.noChanges {
-            notice = "These rules are already there."
+            notice = String(localized: "These rules are already there.")
         } catch {
-            notice = "The selected rules changed. Try dragging them again."
+            notice = String(localized: "The selected rules changed. Try dragging them again.")
         }
         return nil
     }
 
     func performRuleDrop(_ request: RuleWorkspaceDropRequest) async {
-        let collection = request.target.isGroup ? "Group" : "Profile"
-        let action = request.operation == .copy ? "Copy" : "Move"
-        let succeeded = await ruleCommand("\(action) Rules to \(collection)") {
+        let actionName = switch (request.operation == .copy, request.target.isGroup) {
+        case (true, true): String(localized: "Copy Rules to Group")
+        case (true, false): String(localized: "Copy Rules to Profile")
+        case (false, true): String(localized: "Move Rules to Group")
+        case (false, false): String(localized: "Move Rules to Profile")
+        }
+        let succeeded = await ruleCommand(actionName) {
             try await controlPlane.applyRuleWorkspaceDrop(
                 request.ruleIDs,
                 target: request.target,
@@ -310,13 +314,13 @@ final class RulesWorkspaceController {
 
     private func collectionName(for target: RuleWorkspaceDropTarget) -> String {
         switch target {
-        case .localGroup(let id): groups.first { $0.id == id }?.name ?? "Group"
-        case .profile(let id): profiles.first { $0.id == id }?.name ?? "Profile"
+        case .localGroup(let id): groups.first { $0.id == id }?.name ?? String(localized: "Group")
+        case .profile(let id): profiles.first { $0.id == id }?.name ?? String(localized: "Profile")
         }
     }
 
     func edit(_ id: UUID, draft: ManualRuleDraft) async -> Bool {
-        await ruleCommand("Edit Rule") {
+        await ruleCommand(String(localized: "Edit Rule")) {
             try await controlPlane.editRule(
                 id, draft: draft, expectedGeneration: generation
             )
@@ -324,7 +328,7 @@ final class RulesWorkspaceController {
     }
 
     func create(_ draft: ManualRuleDraft) async -> Bool {
-        await ruleCommand("Create Rule") {
+        await ruleCommand(String(localized: "Create Rule")) {
             try await controlPlane.createManualRule(
                 draft, expectedGeneration: generation
             )
@@ -346,7 +350,7 @@ final class RulesWorkspaceController {
         } catch {
             await reload()
             reportNotSaved(
-                "The change wasn’t saved. Your rules may have changed, so check them and try again."
+                String(localized: "The change wasn’t saved. Your rules may have changed, so check them and try again.")
             )
             return false
         }
@@ -404,10 +408,10 @@ final class RulesWorkspaceController {
         do {
             let data = try await controlPlane.ruleSetArchiveData(selection)
             try await ArchiveFileAccess.save(
-                data: data, suggestedName: count == 1 ? "Rift Rule.json" : "Rift Rules.json"
+                data: data, suggestedName: count == 1 ? String(localized: "Rift Rule.json") : String(localized: "Rift Rules.json")
             )
         } catch {
-            reportNotSaved(ArchiveFileAccess.message(for: error, fallback: "The rules couldn’t be exported."))
+            reportNotSaved(ArchiveFileAccess.message(for: error, fallback: String(localized: "The rules couldn’t be exported.")))
         }
     }
 
@@ -416,12 +420,12 @@ final class RulesWorkspaceController {
     func exportSelectedAsLSRules() async {
         do {
             let export = try await controlPlane.lsrulesExport(selection)
-            let name = export.exported == 1 ? "Rift Rule.lsrules" : "Rift Rules.lsrules"
+            let name = export.exported == 1 ? String(localized: "Rift Rule.lsrules") : String(localized: "Rift Rules.lsrules")
             if try await ArchiveFileAccess.save(data: export.data, suggestedName: name) { notice = export.summary }
         } catch LSRulesWriter.ExportError.nothingToExport {
-            reportNotSaved("Nothing to export. The .lsrules format can’t express the selected rules, such as temporary rules, rules for one profile, or rules for system processes.")
+            reportNotSaved(String(localized: "Nothing to export. The .lsrules format can’t express the selected rules, such as temporary rules, rules for one profile, or rules for system processes."))
         } catch {
-            reportNotSaved(ArchiveFileAccess.message(for: error, fallback: "The rules couldn’t be exported."))
+            reportNotSaved(ArchiveFileAccess.message(for: error, fallback: String(localized: "The rules couldn’t be exported.")))
         }
     }
 
@@ -430,14 +434,14 @@ final class RulesWorkspaceController {
             guard let data = try await ArchiveFileAccess.open() else { return }
             let pending = try await controlPlane.previewRuleImport(data)
             guard !pending.plan.rules.isEmpty else {
-                reportNotSaved("Nothing to import. " + pending.summary)
+                reportNotSaved(String(localized: "Nothing to import. \(pending.summary)"))
                 return
             }
             pendingImport = pending
         } catch {
             reportNotSaved(ArchiveFileAccess.message(
                 for: error,
-                fallback: "Rift couldn’t read this file. Choose rules exported from Rift, or a .lsrules rule file."
+                fallback: String(localized: "Rift couldn’t read this file. Choose rules exported from Rift, or a .lsrules rule file.")
             ))
         }
     }
@@ -451,7 +455,7 @@ final class RulesWorkspaceController {
             present(result)
         } catch {
             await reload()
-            reportNotSaved("The rules weren’t imported. Your rules may have changed, so check them and try again.")
+            reportNotSaved(String(localized: "The rules weren’t imported. Your rules may have changed, so check them and try again."))
         }
     }
 

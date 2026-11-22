@@ -133,13 +133,19 @@ struct StatusMenuTemporaryRules: View {
         } else {
             (Int(seconds / 3_600), 3_600, "h")
         }
-        guard spoken else { return "\(left.count)\(left.suffix) left" }
-        return RiftSpokenTime.duration(seconds: left.count * left.unit) + " left"
+        guard spoken else {
+            return switch left.unit {
+            case 1: String(localized: "\(left.count)s left", comment: "Seconds left on a rule, abbreviated")
+            case 60: String(localized: "\(left.count)m left", comment: "Minutes left on a rule, abbreviated")
+            default: String(localized: "\(left.count)h left", comment: "Hours left on a rule, abbreviated")
+            }
+        }
+        return String(localized: "\(RiftSpokenTime.duration(seconds: left.count * left.unit)) left")
     }
 }
 
 struct StatusMenuSection<Content: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     @ViewBuilder let content: Content
 
     var body: some View {

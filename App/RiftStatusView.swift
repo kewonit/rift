@@ -23,7 +23,7 @@ struct RiftHealthView: View {
             if let issue = session.controlPlane.startupIssue {
                 Section {
                     StatusRow(
-                        title: "Rift found a problem",
+                        title: String(localized: "Rift found a problem"),
                         detail: issue,
                         tone: .warning,
                         symbol: "externaldrive.badge.exclamationmark"
@@ -37,7 +37,7 @@ struct RiftHealthView: View {
                 Section {
                     if case .active(let mode) = status.state {
                         StatusRow(
-                            title: "Mode: \(mode.displayName)",
+                            title: String(localized: "Mode: \(mode.displayName)"),
                             detail: mode.summary,
                             tone: .unresolved,
                             symbol: "slider.horizontal.3",
@@ -45,7 +45,7 @@ struct RiftHealthView: View {
                         )
                     }
                     StatusRow(
-                        title: "Your rules",
+                        title: String(localized: "Your rules"),
                         detail: status.rulesDetail(
                             ruleCount: ruleCounts?.rules, blocklistCount: ruleCounts?.blocklists
                         ),
@@ -56,13 +56,13 @@ struct RiftHealthView: View {
             }
             Section("Map") {
                 StatusRow(
-                    title: NetworkMapStore.shared.loadFailed ? "Cable map unavailable" : "Cable map ready",
+                    title: NetworkMapStore.shared.loadFailed ? String(localized: "Cable map unavailable") : String(localized: "Cable map ready"),
                     detail: NetworkMapStore.shared.loadFailed
-                        ? "The cable map couldn’t load. Filtering isn’t affected."
-                        : "Rift finds each connection’s country on this Mac and estimates the undersea cables it uses. Apple Maps gets no connection details from Rift.",
+                        ? String(localized: "The cable map couldn’t load. Filtering isn’t affected.")
+                        : String(localized: "Rift finds each connection’s country on this Mac and estimates the undersea cables it uses. Apple Maps gets no connection details from Rift."),
                     tone: NetworkMapStore.shared.loadFailed ? .warning : .allowed,
                     symbol: "map",
-                    badge: NetworkMapStore.shared.loadFailed ? nil : "Ready"
+                    badge: NetworkMapStore.shared.loadFailed ? nil : String(localized: "Ready")
                 )
             }
         }
@@ -126,7 +126,7 @@ struct RiftHealthView: View {
         .padding(.vertical, 3)
     }
 
-    private func fact(_ title: String, _ value: String) -> some View {
+    private func fact(_ title: LocalizedStringKey, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Text(value).font(.title3.weight(.semibold)).monospacedDigit()
@@ -152,31 +152,31 @@ struct RiftHealthView: View {
     private var filterSection: some View {
         if showsHealthSetupFixture {
             StatusRow(
-                title: "Set up the network filter",
-                detail: "The filter isn’t installed in this preview. Install and approve it from a signed copy of Rift.",
+                title: String(localized: "Set up the network filter"),
+                detail: String(localized: "The filter isn’t installed in this preview. Install and approve it from a signed copy of Rift."),
                 tone: .warning,
                 symbol: "network.badge.shield.half.filled"
             )
         } else if status.state == .cannotFilter {
             StatusRow(
-                title: "Filtering isn’t available in this copy",
-                detail: "You can look around, but Rift can’t see or block real connections here. Filtering needs a copy signed with Apple’s network filter permission.",
+                title: String(localized: "Filtering isn’t available in this copy"),
+                detail: String(localized: "You can look around, but Rift can’t see or block real connections here. Filtering needs a copy signed with Apple’s network filter permission."),
                 tone: .unresolved,
                 symbol: "network.badge.shield.half.filled"
             )
         } else if let lifecycle = session.lifecycle {
             StatusRow(
-                title: lifecycle.initialStatusResolved ? lifecycle.title : "Checking the network filter…",
+                title: lifecycle.initialStatusResolved ? lifecycle.title : String(localized: "Checking the network filter…"),
                 detail: lifecycle.initialStatusResolved
                     ? lifecycle.guidance
-                    : "Rift is checking the filter’s status with macOS.",
+                    : String(localized: "Rift is checking the filter’s status with macOS."),
                 tone: filterRowTone,
                 symbol: "network.badge.shield.half.filled"
             )
             HStack {
                 Button("Copy Status Report") {
                     lifecycle.copyRedactedDiagnostics()
-                    session.controlPlane.actionResults.post("Status report copied.")
+                    session.controlPlane.actionResults.post(String(localized: "Status report copied."))
                 }
                     .help("Copy a short status report for troubleshooting. It doesn’t include personal details.")
                 Spacer()
@@ -195,8 +195,8 @@ struct RiftHealthView: View {
             }
         } else {
             StatusRow(
-                title: "Not running in preview",
-                detail: "This preview uses sample data. The network filter isn’t running.",
+                title: String(localized: "Not running in preview"),
+                detail: String(localized: "This preview uses sample data. The network filter isn’t running."),
                 tone: .unresolved,
                 symbol: "network.badge.shield.half.filled"
             )

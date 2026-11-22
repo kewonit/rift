@@ -38,11 +38,10 @@ struct RuleMaintenanceBar: View {
     }
 
     static func summary(_ filter: RuleListFilter, count: Int) -> String? {
-        let rules = count == 1 ? "1 rule" : "\(count) rules"
         return switch filter {
-        case .redundant: "\(rules) change nothing, because other rules already decide everything they match."
-        case .unused: "\(rules) haven’t matched a connection since history began."
-        case .expired: "\(rules) expired and no longer apply."
+        case .redundant: String(localized: "\(count) rules change nothing, because other rules already decide everything they match.")
+        case .unused: String(localized: "\(count) rules haven’t matched a connection since history began.")
+        case .expired: String(localized: "\(count) rules expired and no longer apply.")
         default: nil
         }
     }

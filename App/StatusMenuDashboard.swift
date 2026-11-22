@@ -166,7 +166,7 @@ private struct StatusMenuHeader: View, Equatable {
                 Text(status.title).font(.headline).lineLimit(2)
                 Spacer(minLength: RiftDesign.Spacing.s)
                 Menu {
-                    Section(profile.map { "Mode for \($0)" } ?? "Mode") {
+                    Section(profile.map { String(localized: "Mode for \($0)") } ?? String(localized: "Mode")) {
                         ForEach(OperationMode.choices, id: \.self) { choice in
                             Toggle(isOn: Binding(
                                 get: { choice == mode },
@@ -178,10 +178,10 @@ private struct StatusMenuHeader: View, Equatable {
                         }
                     }
                 } label: {
-                    Text(modeIsUnreadable ? "Unknown" : mode.displayName)
+                    Text(modeIsUnreadable ? String(localized: "Unknown") : mode.displayName)
                 }
-                .accessibilityLabel(profile.map { "Mode for \($0)" } ?? "Mode")
-                .accessibilityValue(modeIsUnreadable ? "Unknown" : mode.displayName)
+                .accessibilityLabel(profile.map { String(localized: "Mode for \($0)") } ?? String(localized: "Mode"))
+                .accessibilityValue(modeIsUnreadable ? String(localized: "Unknown") : mode.displayName)
                 .fixedSize()
                 .controlSize(.small)
                 .disabled(!canChangeMode || modeIsUnreadable)

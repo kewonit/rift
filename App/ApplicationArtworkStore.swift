@@ -102,7 +102,7 @@ final class ApplicationArtworkStore {
         guard let proof = await parentProof(for: identity),
               let artwork = renderArtwork(at: proof.url),
               await verifier.revalidate(proof, identity: identity) else { return nil }
-        return ApplicationArtwork(image: artwork.image, displayName: artwork.displayName.map { "\($0) Helper" })
+        return ApplicationArtwork(image: artwork.image, displayName: artwork.displayName.map { String(localized: "\($0) Helper") })
     }
 
     private func parentProof(for identity: ProcessIdentity) async -> ApplicationCandidateProof? {

@@ -143,7 +143,7 @@ extension ControlPlaneController {
         case .permanentRuleConflict(let ruleID):
             throw RuleCommandError.permanentRuleConflict(ruleID)
         case .changed(let rules, let affected):
-            ruleChanges.nextChangeName = action == .deny ? "Block" : "Allow"
+            ruleChanges.nextChangeName = action == .deny ? String(localized: "Block") : String(localized: "Allow")
             let result = try await mutateRules(
                 expectedGeneration: snapshot.generation,
                 kind: "monitorExactRule"

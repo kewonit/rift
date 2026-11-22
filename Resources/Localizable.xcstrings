@@ -1,7 +1,2283 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-
+    "" : {
+      "shouldTranslate" : false
+    },
+    " • Also blocked by %@" : {},
+    "%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%@ (%u connections)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$u connections)"
+          }
+        }
+      }
+    },
+    "%@ A profile can use its own mode." : {},
+    "%@ Helper" : {},
+    "%@ The automatic backup didn’t complete." : {},
+    "%@ and %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$lld more"
+          }
+        }
+      }
+    },
+    "%@ and %lld more IP addresses" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@ and %2$lld more IP address"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@ and %2$lld more IP addresses"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@ and %lld more hosts" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@ and %2$lld more host"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@ and %2$lld more hosts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@ and its subdomains" : {},
+    "%@ connections" : {},
+    "%@ entries" : {},
+    "%@ from %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ from %2$@"
+          }
+        }
+      }
+    },
+    "%@ from %@ • Checked %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ from %2$@ • Checked %3$@"
+          }
+        }
+      }
+    },
+    "%@ is less strict than the current profile. To use it on %@, choose it from the menu bar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is less strict than the current profile. To use it on %2$@, choose it from the menu bar."
+          }
+        }
+      }
+    },
+    "%@ is less strict, so Rift didn’t switch to it on its own." : {},
+    "%@ left" : {},
+    "%@ of %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ (%3$@)"
+          }
+        }
+      }
+    },
+    "%@ uses %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ uses %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ · %3$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%@ · %lld allowed · %lld blocked · %lld with no rule" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld allowed · %3$lld blocked · %4$lld with no rule"
+          }
+        }
+      }
+    },
+    "%@ · %lld blocked" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld blocked"
+          }
+        }
+      }
+    },
+    "%@ · last seen %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · last seen %2$@"
+          }
+        }
+      }
+    },
+    "%@ • In %@ (%lld active) • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • In %2$@ (%3$lld active) • %4$@"
+          }
+        }
+      }
+    },
+    "%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%@, %@ blocked" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@ blocked"
+          }
+        }
+      }
+    },
+    "%@, and %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, and %2$@"
+          }
+        }
+      }
+    },
+    "%@. Some connections didn’t report their size, so this is a lower bound." : {},
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+      "shouldTranslate" : false
+    },
+    "%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%lld alerts went unanswered" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld alert went unanswered"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld alerts went unanswered"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld allowed, %lld blocked, %lld with no rule" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld allowed, %2$lld blocked, %3$lld with no rule"
+          }
+        }
+      }
+    },
+    "%lld allowed, %lld blocked, %lld with no rule, some history missing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld allowed, %2$lld blocked, %3$lld with no rule, some history missing"
+          }
+        }
+      }
+    },
+    "%lld apps connected with no rule" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld app connected with no rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld apps connected with no rule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld apps connected with no rule. Allow or block each in one click." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld app connected with no rule. Allow or block it in one click."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld apps connected with no rule. Allow or block each in one click."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld blocked" : {},
+    "%lld blocklist subscriptions" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocklist subscription"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocklist subscriptions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld blocklists" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocklist"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocklists"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld connections" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld connection"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld connections"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld connections aren’t drawn" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld connection isn’t drawn"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld connections aren’t drawn"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld connections blocked" : {},
+    "%lld entries" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entry"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entries"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld lists" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld list"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lists"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld more connections are waiting" : {},
+    "%lld more connections waiting" : {},
+    "%lld more matching connections" : {},
+    "%lld new allow rules from an update are off until you turn them on." : {},
+    "%lld of them allow connections." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld of them allows connections."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld of them allow connections."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld percent" : {},
+    "%lld protected or blocklist rules will be skipped." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld protected or blocklist rule will be skipped."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld protected or blocklist rules will be skipped."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld protected or blocklist rules will be skipped. %@" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld protected or blocklist rule will be skipped. %2$@"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld protected or blocklist rules will be skipped. %2$@"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld remembered networks" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld remembered network"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld remembered networks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rule group subscriptions" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule group subscription"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule group subscriptions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules are already there and won’t change." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule is already there and won’t change."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules are already there and won’t change."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules change nothing, because other rules already decide everything they match." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule changes nothing, because other rules already decide everything it matches."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules change nothing, because other rules already decide everything they match."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules expired and no longer apply." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule expired and no longer applies."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules expired and no longer apply."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules haven’t matched a connection since history began." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule hasn’t matched a connection since history began."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules haven’t matched a connection since history began."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lldh left" : {
+      "comment" : "Hours left on a rule, abbreviated"
+    },
+    "%lldm left" : {
+      "comment" : "Minutes left on a rule, abbreviated"
+    },
+    "%llds left" : {
+      "comment" : "Seconds left on a rule, abbreviated"
+    },
+    "1 connection blocked" : {},
+    "1 entry" : {},
+    "1 more connection is waiting" : {},
+    "1 more connection waiting" : {},
+    "1 new allow rule from an update is off until you turn it on." : {},
+    "1 protected or blocklist rule will be skipped." : {},
+    "443, 8000-8080 or 20-30, 80" : {},
+    "A blocklist blocks part of this. Allow it from the Map, where Rift can confirm the change." : {},
+    "A blocklist couldn’t be updated" : {},
+    "A certificate Apple didn’t issue" : {},
+    "A list of ports needs the current network filter. Turn on or update the filter, then try again." : {},
+    "A new network starts with the choice for new networks. Rift remembers networks only on this Mac." : {},
+    "A permanent rule allows this. Change it in Rift." : {},
+    "A permanent rule blocks this. Change it in Rift." : {},
+    "A rule group couldn’t be updated" : {},
+    "A selected rule is a blocklist exception, which can only allow. Leave the action as it is, or deselect that rule." : {},
+    "About the Map…" : {},
+    "About the map" : {},
+    "About this service" : {},
+    "Action" : {},
+    "Actions" : {},
+    "Activate" : {},
+    "Activate %@" : {},
+    "Active profile" : {},
+    "Ad hoc" : {},
+    "Ad hoc (signed only by itself)" : {},
+    "Ad hoc signed" : {},
+    "Ad hoc signed app" : {},
+    "Add" : {},
+    "Add Rule" : {},
+    "Add a rule" : {},
+    "Add a rule here, or block something from the Map." : {},
+    "Add macOS Services Group" : {},
+    "Address" : {},
+    "Adds %lld rules in a new group." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Adds %lld rule in a new group."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Adds %lld rules in a new group."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Adds a group that lets Apple’s own system services reach Apple’s servers, so Ask and Block Unless Allowed don’t interrupt iCloud, updates or certificate checks" : {},
+    "Adds the macOS Services group, which lets Apple’s own services reach Apple’s servers, so Rift asks about them less. You can turn it off in Rules." : {},
+    "Advanced" : {},
+    "Alert Defaults" : {},
+    "Alert Options" : {},
+    "Alert options" : {},
+    "Alerts" : {},
+    "Alerts nobody answered" : {},
+    "All Profiles" : {},
+    "All profiles" : {},
+    "Allow" : {},
+    "Allow %@" : {},
+    "Allow Apple system services" : {},
+    "Allow This Connection" : {},
+    "Allow access from Terminal" : {},
+    "Allow even if a blocklist blocks it" : {},
+    "Allow for 5 Minutes" : {},
+    "Allow or block each in one click" : {},
+    "Allow the connection" : {},
+    "Allow this app to reach this destination for 5 minutes" : {},
+    "Allow this blocklisted connection?" : {},
+    "Allowed" : {},
+    "Allowed for 5 minutes." : {},
+    "Allowed from now on" : {},
+    "Allowing in %@" : {},
+    "Allowing…" : {},
+    "Allow…" : {},
+    "Also answer %lld other waiting connections from this app" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Also answer %lld other waiting connection from this app"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Also answer %lld other waiting connections from this app"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Also restores %@." : {
+      "comment" : "A list of what a restore brings back, like “2 blocklist subscriptions and alert settings”"
+    },
+    "Always allow %@" : {},
+    "Always block %@" : {},
+    "An exported configuration includes your rules, groups, profiles, blocklists and their subscription addresses, alert settings, and Settings › Networks, which can name your Wi-Fi networks and routers." : {},
+    "Another network can use this name or router address. Rift always tells you when it makes a less strict switch, and changing this network’s profile turns this off." : {},
+    "Another rule decides" : {},
+    "Answer Another" : {},
+    "Any" : {},
+    "Any Port" : {},
+    "Any app" : {},
+    "Any destination" : {},
+    "Any port" : {},
+    "Anyone can register names under %@, so this would cover far too much. Enter a domain someone registered, like example.co.uk." : {},
+    "App" : {},
+    "App / Rule" : {},
+    "App Identity" : {},
+    "App from an identified developer" : {},
+    "App or Destination" : {},
+    "App: %@\nDestination: %@\nThis exception allows these connections even if a blocklist denies them." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "App: %1$@\nDestination: %2$@\nThis exception allows these connections even if a blocklist denies them."
+          }
+        }
+      }
+    },
+    "Apple software" : {},
+    "Applies to" : {},
+    "Applies to every name under %@ on any port, for the same protocol and direction." : {},
+    "Applies to every name under this domain on any port, for the same protocol and direction." : {},
+    "Applies to this destination on any port, for the same protocol and direction." : {},
+    "Applies to this destination on this port, for the same protocol and direction." : {},
+    "Apply Restored Configuration Again" : {},
+    "Apply new rules to" : {},
+    "Apply to" : {},
+    "Apps" : {},
+    "Apps with no rule" : {},
+    "As last time" : {},
+    "Ask" : {},
+    "Assign to Group" : {},
+    "Assign to Profile" : {},
+    "At least %@" : {},
+    "At least this many. Some history is missing." : {},
+    "Back to Live" : {},
+    "Because" : {},
+    "Block" : {},
+    "Block %@" : {},
+    "Block Anyway" : {},
+    "Block for 5 Minutes" : {},
+    "Block many sites from a file." : {},
+    "Block the connection" : {},
+    "Blocked" : {},
+    "Blocked by a list" : {},
+    "Blocked connections" : {},
+    "Blocked for 5 minutes." : {},
+    "Blocked from now on" : {},
+    "Blocking in %@" : {},
+    "Blocking…" : {},
+    "Blocklist" : {},
+    "Blocklist and protected rules aren’t changed. To undo, choose Edit › Undo Edit Rules (⌥⌘Z)." : {},
+    "Blocklist exception" : {},
+    "Blocklist name" : {},
+    "Blocklist updated" : {},
+    "Blocklists" : {},
+    "Blocklists apply to every account on this Mac. A hosts file blocks the exact names it lists. A plain list of names, *.name and Adblock ||name^ lines also block the names under each one, except a suffix like co.uk. Lists imported before Rift supported subdomains match exact names until you import them again." : {},
+    "Block…" : {},
+    "Both" : {},
+    "Both directions" : {},
+    "Broadcast" : {},
+    "By %@" : {},
+    "Cable data © OpenStreetMap contributors (ODbL). Country data from ip-location-db (public domain) and Natural Earth." : {},
+    "Cable map ready" : {},
+    "Cable map unavailable" : {},
+    "Cancel" : {},
+    "Certificate key SHA-256 %@" : {},
+    "Change how Rift handles connections without a rule" : {},
+    "Changes apply to new connections and ones waiting for a decision." : {},
+    "Check" : {},
+    "Check Entry" : {},
+    "Check File" : {},
+    "Check Now" : {},
+    "Check for Updates…" : {},
+    "Check for updates" : {},
+    "Check for updates automatically" : {},
+    "Check this connection" : {},
+    "Checked %@: %lld updated, %lld couldn’t be checked." : {
+      "comment" : "The first value is a count of lists, like “3 lists”",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Checked %1$@: %2$lld updated, %3$lld couldn’t be checked."
+          }
+        }
+      }
+    },
+    "Checked %lld recent connections • %lld match • %lld would change" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Checked %1$lld recent connections • %2$lld match • %3$lld would change"
+          }
+        }
+      }
+    },
+    "Checking active profile…" : {},
+    "Checking the network filter…" : {},
+    "Choose" : {},
+    "Choose App or Tool…" : {},
+    "Choose Block Anyway to block it." : {},
+    "Choose File and Import…" : {},
+    "Choose a file stored on this Mac. Network and cloud-only files aren’t supported." : {},
+    "Choose a hosts file or a list of domains, IP addresses, or IP ranges stored on this Mac." : {},
+    "Choose a regular file that belongs to your Mac account. Links to other files aren’t supported." : {},
+    "Choose a specific app for a blocklist exception." : {},
+    "Choose an app or a command-line tool." : {},
+    "Choose an available app and owner." : {},
+    "Choose an expiration time in the future." : {},
+    "Choose whether to keep or delete its %lld rules. %@ Open connections aren’t affected." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Choose whether to keep or delete its %1$lld rule. %2$@ Open connections aren’t affected."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Choose whether to keep or delete its %1$lld rules. %2$@ Open connections aren’t affected."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Choose…" : {},
+    "Clear Connection History…" : {},
+    "Clear Filters" : {},
+    "Clear History Only" : {},
+    "Clear History and Rule Usage" : {},
+    "Clear My Location" : {},
+    "Clear Search" : {},
+    "Clear Time Selection" : {},
+    "Clear connection history?" : {},
+    "Clear search" : {},
+    "Clear the selected time range" : {},
+    "Click the map to place this Mac" : {},
+    "Closed" : {},
+    "Code hash" : {},
+    "Code hash %@" : {},
+    "Command Line" : {},
+    "Complete" : {},
+    "Configuration" : {},
+    "Configuration reset. All traffic is allowed until the filter reconnects." : {},
+    "Configuration reset. Rift is starting fresh in Allow and Watch mode." : {},
+    "Configuration restored and active." : {},
+    "Connection" : {},
+    "Connection history isn’t available right now, and Rift left it untouched. You can still recover your rules and settings." : {},
+    "Connection notifications" : {},
+    "Connection request" : {},
+    "Connection waiting for a decision" : {},
+    "Connections" : {},
+    "Connections from the last 7 days that no rule decides yet." : {},
+    "Connections in the list" : {},
+    "Connections in the list, for the time shown" : {},
+    "Connections like this are hidden from the Map and history. They’re still filtered by your rules." : {},
+    "Connections no rule decided" : {},
+    "Connections that match a “Hide from history” rule never appear on the Map, in history, usage counts, or totals." : {},
+    "Connections without a name, last 7 days" : {},
+    "Copy" : {},
+    "Copy %lld Rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Copy %lld Rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Copy %lld Rules"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Copy %lld rules to “%@”?" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Copy %1$lld rule to “%2$@”?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Copy %1$lld rules to “%2$@”?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Copy Details" : {},
+    "Copy Hostname" : {},
+    "Copy Rules to Group" : {},
+    "Copy Rules to Profile" : {},
+    "Copy Status Report" : {},
+    "Copy a short status report for troubleshooting. It doesn’t include personal details." : {},
+    "Couldn’t add the macOS Services group. You may already have a group with that name." : {},
+    "Couldn’t change history settings. Try again." : {},
+    "Couldn’t change that entry." : {},
+    "Couldn’t change the default mode. Try again." : {},
+    "Couldn’t change the group." : {},
+    "Couldn’t change the mode. Try again." : {},
+    "Couldn’t change the profile." : {},
+    "Couldn’t change the profile’s mode." : {},
+    "Couldn’t check the active profile" : {},
+    "Couldn’t clear connection history and rule usage." : {},
+    "Couldn’t clear connection history." : {},
+    "Couldn’t complete this action" : {},
+    "Couldn’t create the group." : {},
+    "Couldn’t create the profile." : {},
+    "Couldn’t export connection history. A long history can be too large for JSON, so try CSV." : {},
+    "Couldn’t export the configuration." : {},
+    "Couldn’t import the blocklist. Your rules haven’t changed." : {},
+    "Couldn’t import the blocklist: “%@” isn’t a valid name or address. Your rules haven’t changed." : {},
+    "Couldn’t load profiles, groups, and blocklists." : {},
+    "Couldn’t load rules. Try again once Rift reconnects to the filter." : {},
+    "Couldn’t load settings. Try again in a moment." : {},
+    "Couldn’t read the file. %@" : {},
+    "Couldn’t refresh" : {},
+    "Couldn’t refresh the default mode." : {},
+    "Couldn’t remove the blocklist." : {},
+    "Couldn’t remove the group. It may contain protected or blocklist rules." : {},
+    "Couldn’t remove the profile. It may contain protected or blocklist rules." : {},
+    "Couldn’t rename the profile." : {},
+    "Couldn’t save diagnostics." : {},
+    "Couldn’t subscribe. %@" : {},
+    "Couldn’t switch profiles. Try again." : {},
+    "Couldn’t turn rules back on. Try again." : {},
+    "Couldn’t turn the blocklist on or off." : {},
+    "Couldn’t turn the group on or off." : {},
+    "Couldn’t undo because your rules changed." : {},
+    "Couldn’t undo the restore. Your current configuration hasn’t changed." : {},
+    "Couldn’t update the group." : {},
+    "Count" : {},
+    "Country" : {},
+    "Covered by different rules" : {},
+    "Create Rule" : {},
+    "Create a rule for this system process" : {},
+    "Created" : {},
+    "Current mode" : {},
+    "Current profile" : {},
+    "Current profile (%@)" : {},
+    "Current user" : {},
+    "Data" : {},
+    "Data Received" : {},
+    "Data Sent" : {},
+    "Deactivate" : {},
+    "Deactivate %@" : {},
+    "Decision" : {},
+    "Decisions" : {},
+    "Decisions over time" : {},
+    "Default mode" : {},
+    "Delete %lld Rules" : {},
+    "Delete %lld rules?" : {},
+    "Delete 1 rule?" : {},
+    "Delete All…" : {},
+    "Delete Rule" : {},
+    "Delete Rules" : {},
+    "Delete…" : {},
+    "Destination" : {},
+    "Destination details can appear on the Lock Screen. Notifications don’t change how connections are filtered. If a sound doesn’t play, turn on sounds for Rift in System Settings › Notifications." : {},
+    "Details" : {},
+    "Developer ID, team %@" : {},
+    "Developer ID, team unknown" : {},
+    "Diagnostics" : {},
+    "Direction" : {},
+    "Disable" : {},
+    "Disable %@" : {},
+    "Disable Rules" : {},
+    "Disable in All Blocklists…" : {},
+    "Disable this entry in all blocklists?" : {},
+    "Dismiss" : {},
+    "Domain" : {},
+    "Domain, IP address, or IP range" : {},
+    "Done" : {},
+    "Drag to look at part of this range" : {},
+    "Drag to show activity from a time range." : {},
+    "Drop rules here to move them. Hold Option to copy them instead." : {},
+    "Duplicate" : {},
+    "Duplicate Rule" : {},
+    "Earlier" : {},
+    "Edit" : {},
+    "Edit %lld Rules" : {},
+    "Edit 1 Rule" : {},
+    "Edit Group" : {},
+    "Edit Profile" : {},
+    "Edit Rule" : {},
+    "Edit Rules" : {},
+    "Edit Rules…" : {},
+    "Edit…" : {},
+    "Enable" : {},
+    "Enable %@" : {},
+    "Enable Again" : {},
+    "Enable Rules" : {},
+    "Ended %@" : {},
+    "Enter a port, like 443, a range, like 8000-8080, or a list, like 20-30, 80, 443, of up to 16." : {},
+    "Enter a valid hostname, IP address, or IP range." : {},
+    "Enter exact hostnames or IP addresses for a blocklist exception." : {},
+    "Enter one name, IP address, or IP range to check." : {},
+    "Enter the address of a .lsrules file. Rift adds its rules as a group and keeps them up to date." : {},
+    "Enter the full web address of a list, starting with https://." : {},
+    "Esc Block · Return Allow" : {},
+    "Esc Block · ⌘A Allow" : {},
+    "Every account" : {},
+    "Every app that connected has a rule." : {},
+    "Exception" : {},
+    "Expires" : {},
+    "Export" : {},
+    "Export CSV…" : {},
+    "Export Configuration…" : {},
+    "Export JSON…" : {},
+    "Export Selected Rules…" : {},
+    "Export Selected as .lsrules…" : {},
+    "Export as .lsrules…" : {},
+    "Export connection history?" : {},
+    "Export…" : {},
+    "File SHA-256 %@" : {},
+    "File hash" : {},
+    "Filter" : {},
+    "Filter (%lld)" : {},
+    "Filter and Sort" : {},
+    "Filter and sort rules" : {},
+    "Filter connections" : {},
+    "Filtering" : {},
+    "Filtering isn’t available in this copy" : {},
+    "Filters were cleared to show this connection." : {},
+    "Find Connections" : {},
+    "Find Rules" : {},
+    "Finish Setup" : {},
+    "Finish Setup First" : {},
+    "Finish setup first" : {},
+    "Finish setup first. You can choose a mode once the network filter is on." : {},
+    "Finish the rule to see how it would affect recent connections." : {},
+    "Float on Top" : {},
+    "For" : {},
+    "For the network %@." : {},
+    "Forget %@" : {},
+    "Forget this network" : {},
+    "From Now" : {},
+    "From now on" : {},
+    "From the Internet Access Policy the developer ships inside the app. Rift reads it from disk and checks the app’s signature covers it." : {},
+    "From the app’s developer" : {},
+    "From your connection history on this Mac" : {},
+    "General" : {},
+    "Get Your Rules Back" : {},
+    "Group" : {},
+    "Group By" : {},
+    "Group ID" : {},
+    "Group connections" : {},
+    "Group connections by app, destination, domain or country" : {},
+    "Group name" : {},
+    "Groups" : {},
+    "Helper process" : {},
+    "Hide Connections" : {},
+    "Hide Connections Like This" : {},
+    "Hide Inspector" : {},
+    "Hide Map" : {},
+    "Hide Timeline" : {},
+    "Hide from history" : {},
+    "Hide the inspector" : {},
+    "Hide the map to see more connections (⌘T)" : {},
+    "Hide the timeline" : {},
+    "Hides this app until it connects somewhere new." : {},
+    "High" : {},
+    "High priority" : {},
+    "High priority needs the current network filter. Turn on or update the filter, then try again." : {},
+    "History" : {},
+    "History & Privacy" : {},
+    "Hold new allow rules" : {},
+    "Hostname" : {},
+    "Hostname rules work only for outgoing connections." : {},
+    "Hostname unavailable" : {},
+    "Hostnames" : {},
+    "Hovered time" : {},
+    "How many times this rule was used in saved history." : {},
+    "How often Rift checks this file while it’s running" : {},
+    "How often Rift checks this list while it’s running" : {},
+    "How should Rift handle new connections?" : {},
+    "IP address" : {},
+    "Identified by" : {},
+    "Identified only by this exact build of the app." : {},
+    "If I don’t answer" : {},
+    "If you block it" : {},
+    "Import" : {},
+    "Import %lld rules?" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Import %lld rule?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Import %lld rules?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Import Blocklist" : {},
+    "Import Blocklist…" : {},
+    "Import Configuration…" : {},
+    "Import File…" : {},
+    "Import Rules…" : {},
+    "Import a File…" : {},
+    "Import a hosts file, a list of names or addresses, an Adblock list, or a .lsrules file that only blocks destinations" : {},
+    "Import or Export" : {},
+    "Import rules from a file, or export the selected rules to share them" : {},
+    "Imported" : {},
+    "In %@" : {
+      "comment" : "Time left on a rule, in minutes and seconds"
+    },
+    "In System Settings, open Login Items & Extensions, choose Network Extensions, and turn on Rift. macOS may ask for an administrator’s password. Then come back here." : {},
+    "In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown." : {},
+    "Inactive" : {},
+    "Include subdomains" : {},
+    "Incoming" : {},
+    "Incomplete" : {},
+    "Install and Enable" : {},
+    "Install updates automatically" : {},
+    "Installing the network filter…" : {},
+    "Its domain and subdomains" : {},
+    "Jump to Newest" : {},
+    "Just now" : {},
+    "Keep %lld days of connection history on this Mac" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Keep %lld day of connection history on this Mac"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Keep %lld days of connection history on this Mac"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Keep Alerts Minimized" : {},
+    "Keep History…" : {},
+    "Keep allow rules that arrive in an update off until you turn them on" : {},
+    "Keep for" : {},
+    "Keep new allow rules off until I turn them on" : {},
+    "Keep the current profile here, or choose one." : {},
+    "Keep up to" : {},
+    "Kept rules will apply to all profiles. If this profile isn’t active, they’re turned off." : {},
+    "Kept rules won’t belong to any group. If this group is off, they’re turned off." : {},
+    "Keys: %@" : {},
+    "Keys: O only this time, 5 five minutes, H one hour, F always, D details" : {
+      "comment" : "The letters are the keys to press, so they stay O, 5, H, F and D in every language"
+    },
+    "Last 5 minutes" : {},
+    "Last Seen" : {},
+    "Last used" : {},
+    "Later" : {},
+    "Leave empty to clear notes" : {},
+    "Leave the profile as it is" : {},
+    "Leave the user name and password out of the address." : {},
+    "Leaves this app’s connections to this host out of the Map and history. They’re still filtered." : {},
+    "List every connection in order, newest first" : {},
+    "Local Blocklist" : {},
+    "Local network" : {},
+    "Lock" : {},
+    "Lock Configuration" : {},
+    "Locked" : {},
+    "Mac App Store app" : {},
+    "Make Permanent" : {},
+    "Make Rules Permanent" : {},
+    "Make sure Rift is in your Applications folder. Then click Install and Enable, and approve the filter when macOS asks. All traffic is allowed until setup is done." : {},
+    "Make the exception more specific, then save." : {},
+    "Managed by" : {},
+    "Manual" : {},
+    "Map" : {},
+    "Map Options" : {},
+    "Map Style" : {},
+    "Map of undersea cables and where connections go" : {},
+    "Map style and options" : {},
+    "Mark Reviewed" : {},
+    "Mark Rules Reviewed" : {},
+    "Mark Rules Unreviewed" : {},
+    "Mark Unreviewed" : {},
+    "Matched by a broader rule" : {},
+    "Matched by an exact rule" : {},
+    "Matches" : {},
+    "Matches of Notify rules" : {},
+    "Matching connections won’t appear on the Map or in history. Past records stay." : {},
+    "Minimize" : {},
+    "Minimize. The connection keeps waiting and is allowed when time runs out." : {},
+    "Minimize. The connection keeps waiting and is blocked when time runs out." : {},
+    "Mixed" : {},
+    "Mode" : {},
+    "Mode for %@" : {},
+    "Mode: %@" : {},
+    "Modified" : {},
+    "More for %@" : {},
+    "Most Active Apps" : {},
+    "Most Active Countries" : {},
+    "Most Active Hostnames" : {},
+    "Most Blocked" : {},
+    "Most Connections" : {},
+    "Most Recent" : {},
+    "Move %lld Rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Move %lld Rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Move %lld Rules"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Move %lld rules to “%@”?" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Move %1$lld rule to “%2$@”?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Move %1$lld rules to “%2$@”?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Move My Location" : {},
+    "Move Rift to your Applications folder, then try again." : {},
+    "Move Rules to Group" : {},
+    "Move Rules to Profile" : {},
+    "Multicast" : {},
+    "My Location" : {},
+    "Name" : {},
+    "Name for a new blocklist" : {},
+    "Narrow with app:, host:, domain:, ip:, port:, proto:, country:, decision: (allowed, blocked, timedout), or direction:" : {},
+    "Navigate" : {},
+    "Needs attention" : {},
+    "Needs attention: %@" : {},
+    "Needs review" : {},
+    "Network" : {},
+    "Network Filter" : {},
+    "Network filter installed" : {},
+    "Network filter status and whether your rules are in sync" : {},
+    "Networks" : {},
+    "Networks Rift has seen" : {},
+    "Never" : {},
+    "New Group" : {},
+    "New Group…" : {},
+    "New Profile" : {},
+    "New Profile…" : {},
+    "New Rule…" : {},
+    "New connections appear while this window is open. They aren’t saved." : {},
+    "New group" : {},
+    "New network: %@" : {},
+    "New networks" : {},
+    "New profile" : {},
+    "New rules cover" : {},
+    "No Change" : {},
+    "No Connections" : {},
+    "No Connections to Show" : {},
+    "No Group" : {},
+    "No Matches" : {},
+    "No Matching Rules" : {},
+    "No Rule Selected" : {},
+    "No Rules Yet" : {},
+    "No Team ID" : {},
+    "No connections in the last 5 minutes" : {},
+    "No connections to other countries right now" : {},
+    "No connections to sum up." : {},
+    "No destination" : {},
+    "No group" : {},
+    "No matching rule" : {},
+    "No profile" : {},
+    "No rule" : {},
+    "No rule applied" : {},
+    "No rule decided this" : {},
+    "No rule is redundant. A rule is redundant when another rule already does the same for everything it covers, so deleting it changes nothing." : {},
+    "No rules are waiting." : {},
+    "No rules match this connection" : {},
+    "None" : {},
+    "None of the file’s rules can apply on this Mac, such as rules for apps that aren’t installed." : {},
+    "None of your blocklists block that." : {},
+    "Normal" : {},
+    "Not Now" : {},
+    "Not connected to a network Rift can recognize." : {},
+    "Not every selected rule can take these changes. Nothing was changed." : {},
+    "Not running in preview" : {},
+    "Not signed" : {},
+    "Note" : {},
+    "Note (optional)" : {},
+    "Notes" : {},
+    "Nothing changed, because a permanent rule does the opposite. Choose Always to change it." : {},
+    "Nothing changed, because another rule still decides this connection." : {},
+    "Nothing changed. A rule would let every address on the blocklist reach this service. To let this one in, turn off its entry in Settings › Blocklists." : {},
+    "Nothing connected in this time range." : {},
+    "Nothing matches your search and filters." : {},
+    "Nothing to export. The .lsrules format can’t express the selected rules, such as temporary rules, rules for one profile, or rules for system processes." : {},
+    "Nothing to import. %@" : {},
+    "Nothing to review" : {},
+    "Nothing was restored, and your current configuration hasn’t changed. Rift couldn’t clean up a temporary file." : {},
+    "Nothing was restored. Your current configuration hasn’t changed." : {},
+    "Notifications" : {},
+    "Notifications are off, so this rule won’t notify you until you turn them on in Settings." : {},
+    "Notifications aren’t allowed. Turn them on in System Settings › Notifications." : {},
+    "Notify" : {},
+    "Notify about blocks and undecided connections" : {},
+    "Notify me when Rift switches or finds a new network" : {},
+    "Now" : {},
+    "OK" : {},
+    "Off" : {},
+    "On" : {},
+    "One port, a range like 8000-8080, or a list like 20-30, 80, 443" : {},
+    "Open Map" : {},
+    "Open Rift at login" : {},
+    "Open Settings" : {},
+    "Open System Settings" : {},
+    "Open connections aren’t affected." : {},
+    "Opens a web search for this app and destination in your browser" : {},
+    "Optional items are masked differently each time you save. Rift never uploads diagnostics." : {},
+    "Or subscribe to a web address" : {},
+    "Order paused while you point at the list" : {},
+    "Other developer" : {},
+    "Outgoing" : {},
+    "Owner" : {},
+    "Pane Divider" : {},
+    "Partial" : {},
+    "Partly covered by rules" : {},
+    "Path" : {},
+    "Place this Mac on the map to see which undersea cables your connections likely use. Your location stays on this Mac." : {},
+    "Play a sound for Notify rules" : {},
+    "Port" : {},
+    "Port or Range" : {},
+    "Ports" : {},
+    "Preview" : {},
+    "Preview mode — settings can’t be changed" : {},
+    "Priority" : {},
+    "Profile" : {},
+    "Profile ID" : {},
+    "Profile name" : {},
+    "Profile: %@" : {},
+    "Profiles" : {},
+    "Profiles & Blocklists" : {},
+    "Protected" : {},
+    "Protected and blocklist rules can’t be moved." : {},
+    "Protected and blocklist rules can’t be turned off here." : {},
+    "Protection" : {},
+    "Protocol" : {},
+    "Public-key hash" : {},
+    "Quit Rift" : {},
+    "Quit Rift?" : {},
+    "Range end" : {},
+    "Range start" : {},
+    "Ready" : {},
+    "Ready to set up" : {},
+    "Received" : {},
+    "Recent" : {},
+    "Recent Connections" : {},
+    "Recent Rift log entries" : {},
+    "Recent activity (masked)" : {},
+    "Recent apps in menu: %lld" : {},
+    "Recent connections that no rule decides yet. Turn on history in Settings › History to review the last 7 days." : {},
+    "Recent connections · Not saved" : {},
+    "Recently Blocked" : {},
+    "Recognize Wi-Fi networks by name" : {},
+    "Recommended" : {},
+    "Recovery didn’t finish, and Rift couldn’t put the original configuration back. A private copy is in the Configuration Quarantine folder. Check it before you try again." : {},
+    "Recovery import: %lld rules, %lld profiles, %lld groups, and %lld blocklists. Rift keeps a private copy of the damaged configuration." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Recovery import: %1$lld rules, %2$lld profiles, %3$lld groups, and %4$lld blocklists. Rift keeps a private copy of the damaged configuration."
+          }
+        }
+      }
+    },
+    "Recovery stopped. Your configuration hasn’t changed, but Rift couldn’t remove a temporary copy." : {},
+    "Redo" : {},
+    "Redo %@" : {},
+    "Redo Rule Change" : {},
+    "Redone." : {},
+    "Refreshing filter settings…" : {},
+    "Remember" : {},
+    "Remember decisions" : {},
+    "Remove" : {},
+    "Remove Blocklist" : {},
+    "Remove Blocklist and %lld Rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Remove Blocklist and %lld Rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Remove Blocklist and %lld Rules"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Remove Rule" : {},
+    "Remove and Delete %lld Rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Remove and Delete %lld Rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Remove and Delete %lld Rules"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Remove and Delete Rules" : {},
+    "Remove and Delete Rules…" : {},
+    "Remove and Keep %lld Rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Remove and Keep %lld Rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Remove and Keep %lld Rules"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Remove and Keep Rules" : {},
+    "Remove this item?" : {},
+    "Remove this rule now" : {},
+    "Remove “%@”?" : {},
+    "Removed blocklist" : {},
+    "Removed group" : {},
+    "Removed profile" : {},
+    "Remove…" : {},
+    "Removing the network filter…" : {},
+    "Rename Profile" : {},
+    "Rename…" : {},
+    "Reorganize rules?" : {},
+    "Replace notes" : {},
+    "Reset Configuration" : {},
+    "Reset Configuration…" : {},
+    "Reset the damaged configuration?" : {},
+    "Restore" : {},
+    "Restore Backup" : {},
+    "Restore Backup…" : {},
+    "Restore the backup from %@?" : {},
+    "Restore this configuration?" : {},
+    "Result" : {},
+    "Resume Rules" : {},
+    "Review" : {},
+    "Review (%lld)…" : {},
+    "Review Waiting Connections" : {},
+    "Review what connected" : {},
+    "Reviewed" : {},
+    "Review…" : {},
+    "Revision" : {},
+    "Rift" : {},
+    "Rift Configuration.json" : {},
+    "Rift Connection Alert" : {},
+    "Rift Connection History.%@" : {},
+    "Rift Diagnostics.json" : {},
+    "Rift Rule.json" : {},
+    "Rift Rule.lsrules" : {},
+    "Rift Rules.json" : {},
+    "Rift Rules.lsrules" : {},
+    "Rift and its network filter aren’t set up to work together. Replace this copy of Rift with a complete one, then try again." : {},
+    "Rift asks each time an app connects somewhere new, so expect many questions at first. Rift has to stay open to ask." : {},
+    "Rift backs up your current configuration first." : {},
+    "Rift can’t make a rule for this connection here. Open it in Rift." : {},
+    "Rift can’t read Wi-Fi names because Location Services is off for Rift." : {},
+    "Rift can’t save activity right now. Recent activity is kept in memory for now." : {},
+    "Rift can’t see connections until the network filter is on." : {},
+    "Rift checks GitHub once a day, which shares your IP address and Rift’s version with GitHub. An update installs only if Rift’s developer signed it." : {},
+    "Rift connection summary" : {},
+    "Rift couldn’t ask for notification permission. Try again." : {},
+    "Rift couldn’t block a connection you didn’t answer, so it will be allowed." : {},
+    "Rift couldn’t check the filter’s status with macOS. Try again. Error code: %@." : {},
+    "Rift couldn’t confirm that all traffic is allowed, so the filter wasn’t removed. Try again." : {},
+    "Rift couldn’t confirm that the filter was cleared, so it didn’t remove the filter. Try again while signed in to the Mac account that manages Rift." : {},
+    "Rift couldn’t copy the rule details. Try again." : {},
+    "Rift couldn’t find a backup it can read." : {},
+    "Rift couldn’t find exactly one installed copy of this app." : {},
+    "Rift couldn’t hide these connections. Try again." : {},
+    "Rift couldn’t import this file. Your blocklists haven’t changed." : {},
+    "Rift couldn’t open its data, so it can’t show or change your rules. Quit Rift and open it again." : {},
+    "Rift couldn’t open your connection history and left it untouched. Your rules aren’t affected." : {},
+    "Rift couldn’t prepare its files on this Mac. Your rules aren’t affected. Restart your Mac, then open Rift again." : {},
+    "Rift couldn’t reach the server." : {},
+    "Rift couldn’t read its list of domain suffixes, so it can’t check subdomain rules." : {},
+    "Rift couldn’t read this file." : {},
+    "Rift couldn’t read this file. Choose a configuration file exported from Rift." : {},
+    "Rift couldn’t read this file. Choose rules exported from Rift, or a .lsrules rule file." : {},
+    "Rift couldn’t read your saved rules and settings, so it left them untouched. The filter may still be using your last working rules." : {},
+    "Rift couldn’t refresh activity. Showing what it loaded last." : {},
+    "Rift couldn’t refresh. Showing what it loaded last." : {},
+    "Rift couldn’t restore that backup. Try importing a file instead." : {},
+    "Rift couldn’t save your choice. Try again." : {},
+    "Rift couldn’t send your answer. This alert is still open, so you can try again." : {},
+    "Rift couldn’t start" : {},
+    "Rift couldn’t switch to %@." : {},
+    "Rift couldn’t verify that app, so it can’t make a rule for it." : {},
+    "Rift counts how often rules are used only while connection history is on, so it can only call a rule unused after that." : {},
+    "Rift didn’t replace the installed filter because this copy of Rift is older or doesn’t match. Use the latest version of Rift." : {},
+    "Rift didn’t switch to %@" : {},
+    "Rift downloads a subscribed list now and checks for a new version once a day while it’s running. The list’s server sees your IP address, as with any download." : {},
+    "Rift downloads lists only over HTTPS, so nobody on the network can change them. Use an address that starts with https://." : {},
+    "Rift downloads the file now and checks for a new version while it’s running. The file’s server sees your IP address, as with any download. Each update replaces the group’s rules from the file, so edits you make to them don’t last." : {},
+    "Rift feature · %@" : {},
+    "Rift finds each connection’s country on this Mac and estimates the undersea cables it uses. Apple Maps gets no connection details from Rift." : {},
+    "Rift found a problem" : {},
+    "Rift has a working backup from %@." : {},
+    "Rift is checking the filter’s status with macOS." : {},
+    "Rift is still checking whether it opens at login. Try again in a moment." : {},
+    "Rift is updating the filter settings in macOS." : {},
+    "Rift isn’t ready to check blocklists yet." : {},
+    "Rift isn’t ready to check rule groups yet." : {},
+    "Rift keeps a private copy of the damaged configuration whichever you choose." : {},
+    "Rift keeps up to %lld recent connections for five minutes while this view is open." : {},
+    "Rift needs attention" : {},
+    "Rift notifies you when this rule matches, up to a limit. It doesn’t change filtering." : {},
+    "Rift preview" : {},
+    "Rift switches on its own only to a profile at least as strict as the current one. Anyone can name a Wi-Fi network after yours, so when a network calls for a less strict profile, Rift notifies you instead, and you can switch from the menu bar. While you're on a network, you can allow it there anyway." : {},
+    "Rift will first make sure all traffic is allowed, then ask macOS to remove the filter." : {},
+    "Rift will keep a private copy of the damaged configuration before restoring." : {},
+    "Rift will stop saving new connections." : {},
+    "Rift, network filter, and macOS versions" : {},
+    "Rift: Connection Waiting" : {},
+    "Rule" : {},
+    "Rule Change" : {},
+    "Rule Groups" : {},
+    "Rule couldn’t be applied" : {},
+    "Rule group updated" : {},
+    "Rule saved, waiting for the filter" : {},
+    "Rule sets, like Home and Work." : {},
+    "Rule summaries (masked)" : {},
+    "Rule usage counts may be incomplete because Rift couldn’t save them after the filter restarted." : {},
+    "Rule usage counts may be incomplete because Rift couldn’t save them." : {},
+    "Rules" : {},
+    "Rules active" : {},
+    "Rules are back on, using %@." : {},
+    "Rules aren’t available right now" : {},
+    "Rules changed since this connection" : {},
+    "Rules for %@" : {},
+    "Rules not applied" : {},
+    "Rules pending" : {},
+    "Rules that apply" : {},
+    "Rules you changed after this backup won’t come back." : {},
+    "Rules: +%lld, −%lld, %lld changed. Profiles: %lld → %lld; groups: %lld → %lld; blocklists: %lld → %lld." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rules: +%1$lld, −%2$lld, %3$lld changed. Profiles: %4$lld → %5$lld; groups: %6$lld → %7$lld; blocklists: %8$lld → %9$lld."
+          }
+        }
+      }
+    },
+    "Satellite" : {},
+    "Save" : {},
+    "Save Diagnostics…" : {},
+    "Save Exception" : {},
+    "Save blocklist exception?" : {},
+    "Save connection history" : {},
+    "Saved and applied." : {},
+    "Saved, but the filter couldn’t apply it. Try again after Rift reconnects." : {},
+    "Saved. The filter will apply it once it’s running." : {},
+    "Saved. Waiting for the filter to apply it." : {},
+    "Saves the rules in the format other Mac firewalls import. Rules the format can’t express are left out." : {},
+    "Scope" : {},
+    "Scroll to the newest connection" : {},
+    "Search In" : {},
+    "Search apps and destinations" : {},
+    "Search rules" : {},
+    "Search the Web" : {},
+    "See what’s connecting first, and block anything you choose from the Map. Nothing is blocked until you say so." : {},
+    "Selected app" : {},
+    "Selection end" : {},
+    "Selection start" : {},
+    "Sent" : {},
+    "Sent %@, received %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sent %1$@, received %2$@"
+          }
+        }
+      }
+    },
+    "Sent %@, received %@, some sizes missing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sent %1$@, received %2$@, some sizes missing"
+          }
+        }
+      }
+    },
+    "Separate entries with commas or new lines. Each site also covers its subdomains: example.com covers www.example.com." : {},
+    "Separate entries with commas or new lines. Sites match exactly; www.example.com isn’t covered by example.com." : {},
+    "Set My Location" : {},
+    "Set Your Location" : {},
+    "Set up the network filter" : {},
+    "Set where this Mac is on the map" : {},
+    "Settings…" : {},
+    "Setup isn’t finished" : {},
+    "Several" : {},
+    "Show" : {},
+    "Show All Routes" : {},
+    "Show All Rules" : {},
+    "Show App in Finder" : {},
+    "Show Groups" : {},
+    "Show Inspector" : {},
+    "Show Log" : {},
+    "Show Map" : {},
+    "Show Matching Rules" : {},
+    "Show More Connections" : {},
+    "Show Only This App" : {},
+    "Show Only This Destination" : {},
+    "Show Rule" : {},
+    "Show Rules for This App" : {},
+    "Show Status" : {},
+    "Show This Rule" : {},
+    "Show Timeline" : {},
+    "Show alerts minimized" : {},
+    "Show destination details" : {},
+    "Show earlier connections again" : {},
+    "Show every country again" : {},
+    "Show in Rift" : {},
+    "Show on Map" : {},
+    "Show the Map with %@ from any app" : {},
+    "Show the inspector" : {},
+    "Show the inspector, with a summary when no connection is selected" : {},
+    "Show the map (⌘T)" : {},
+    "Show the next range" : {},
+    "Show the previous range" : {},
+    "Show the timeline" : {},
+    "Show the whole alert to decide" : {},
+    "Showing rules that can apply to this app. Each rule’s other conditions still apply." : {},
+    "Showing the 12 busiest countries" : {},
+    "Shows the most recent blocked connection" : {},
+    "Shows this connection in Rift" : {},
+    "Signature" : {},
+    "Signed" : {},
+    "Signed app" : {},
+    "Signed by" : {},
+    "Signed by: %@" : {},
+    "Signing ID" : {},
+    "Since %@" : {},
+    "Sites or IP addresses" : {},
+    "So you can review what connected. Older entries delete themselves, and nothing leaves this Mac. You can change this in Settings › History." : {},
+    "Some activity may be missing because Rift couldn’t save it after the filter restarted." : {},
+    "Some activity wasn’t recorded while Rift was unavailable." : {},
+    "Some blocked" : {},
+    "Some history is missing for this range." : {},
+    "Some notifications couldn’t be shown." : {},
+    "Some on" : {},
+    "Something went wrong while updating the filter. Rift can’t confirm that connections are being filtered. Try again." : {},
+    "Sort By" : {},
+    "Sort connections" : {},
+    "Source" : {},
+    "Source & Expiration" : {},
+    "Specific sites or addresses" : {},
+    "Start Fresh…" : {},
+    "Startup" : {},
+    "Status" : {},
+    "Status report copied." : {},
+    "Stops changes to rules, profiles, modes and settings until you unlock with Touch ID or your login password. Alerts can still be answered once, and changes you set up to happen on their own, such as subscription updates and switching profiles by network, keep working. Press ⌘L to lock." : {},
+    "Storage, history, alert, and missed-activity counts" : {},
+    "Subdomains apply to names. Turn off Include subdomains to enter IP addresses." : {},
+    "Subscribe" : {},
+    "Subscribe to Rule Group…" : {},
+    "Subscribe to a Rule Group" : {},
+    "Subscribed • %@ from %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Subscribed • %1$@ from %2$@"
+          }
+        }
+      }
+    },
+    "Subscribed • %@ from %@ • Checked %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Subscribed • %1$@ from %2$@ • Checked %3$@"
+          }
+        }
+      }
+    },
+    "Subscribed. %lld rules added." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Subscribed. %lld rule added."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Subscribed. %lld rules added."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Summary" : {},
+    "Switch even when it’s less strict" : {},
+    "Switch profiles by network" : {},
+    "Switch to %@" : {},
+    "Switch to Ask Me" : {},
+    "Switched to %@" : {},
+    "Switched to %@ for %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Switched to %1$@ for %2$@."
+          }
+        }
+      }
+    },
+    "Switched to %@, which is less strict" : {},
+    "Switched to %@, which is less strict, as you allowed for %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Switched to %1$@, which is less strict, as you allowed for %2$@."
+          }
+        }
+      }
+    },
+    "System" : {},
+    "System process" : {},
+    "System process (affects all users)" : {},
+    "System rules apply no matter who is logged in." : {},
+    "TCP or UDP" : {},
+    "Team ID" : {},
+    "Temporary" : {},
+    "Temporary Rules" : {},
+    "That connection is no longer available. It may have been removed from history or hidden by a rule." : {},
+    "That rule no longer exists or isn’t available to your account." : {},
+    "The Mac isn’t connected to the internet." : {},
+    "The active profile changed. Choose where the rule applies, then try again." : {},
+    "The app’s identity changed" : {},
+    "The blocklist couldn’t be checked." : {},
+    "The blocklist is up to date." : {},
+    "The cable map couldn’t load." : {},
+    "The cable map couldn’t load. Filtering isn’t affected." : {},
+    "The change wasn’t saved. Make sure the name isn’t already in use, then try again." : {},
+    "The change wasn’t saved. Your rules may have changed, so check them and try again." : {},
+    "The configuration wasn’t reset, and all traffic may be allowed for now. Try again while signed in to the Mac account that manages Rift." : {},
+    "The copies are saved as new rules." : {},
+    "The default mode was saved, but Settings couldn’t show the update." : {},
+    "The developer says blocking this means:" : {},
+    "The developer’s policy doesn’t mention this connection." : {},
+    "The download isn’t a .lsrules rule group file." : {},
+    "The download isn’t a list Rift can read." : {},
+    "The faint lines are undersea internet cables. Some are main sea routes drawn from where cables come ashore." : {},
+    "The file can include app names, destinations, ports, and connection times. Share it with care." : {},
+    "The file changed while Rift was reading it. Nothing was changed. Try again." : {},
+    "The filter couldn’t be set up, so connections aren’t being filtered. Try again. Error code: %@ (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The filter couldn’t be set up, so connections aren’t being filtered. Try again. Error code: %1$@ (%2$@)."
+          }
+        }
+      }
+    },
+    "The filter is turned off in macOS" : {},
+    "The filter isn’t installed in this preview. Install and approve it from a signed copy of Rift." : {},
+    "The filter settings saved in macOS don’t point to Rift’s filter. Uninstall and reinstall the network filter, then try again." : {},
+    "The filter settings saved in macOS don’t turn on connection filtering. Uninstall and reinstall the network filter, then try again." : {},
+    "The filter settings saved in macOS use packet filtering, which Rift doesn’t support. Uninstall and reinstall the network filter, then try again." : {},
+    "The filter was turned off outside Rift, so connections aren’t being filtered." : {},
+    "The filter wasn’t approved" : {},
+    "The installed filter doesn’t match this version of Rift. Update or reinstall Rift, then try again." : {},
+    "The list couldn’t be updated." : {},
+    "The list is too large for Rift to use." : {},
+    "The log is always newest first" : {},
+    "The network filter is on" : {},
+    "The notes are too long." : {},
+    "The restored configuration is now active." : {},
+    "The restored configuration is saved, but the filter isn’t using it yet." : {},
+    "The rule group couldn’t be checked." : {},
+    "The rule group is up to date." : {},
+    "The rule that decided this was removed" : {},
+    "The rule wasn’t added. Try again after Rift reconnects." : {},
+    "The rule wasn’t added. Try again in Rift." : {},
+    "The rule wasn’t changed. Try again." : {},
+    "The rule wasn’t removed. Try again." : {},
+    "The rule wasn’t saved. This alert is still open, so you can try again." : {},
+    "The rule wasn’t saved. Your rules may have changed, so check it and try again." : {},
+    "The rules couldn’t be exported." : {},
+    "The rules weren’t imported. Your rules may have changed, so check them and try again." : {},
+    "The rules weren’t turned on. Your rules may have changed, so try again." : {},
+    "The save location changed before Rift could save. Nothing was replaced. Try again." : {},
+    "The selected rules changed. Try dragging them again." : {},
+    "The server answered with error %lld." : {},
+    "The server didn’t send a list." : {},
+    "The wait can be changed once the network filter is on and up to date." : {},
+    "Their groups won’t change." : {},
+    "Their profiles won’t change." : {},
+    "There are no recent connections to preview." : {},
+    "There are too many entries. Split them into more than one rule." : {},
+    "These outgoing connections reached Rift with only an IP address, so rules for names and domain blocklists couldn’t match them." : {},
+    "These rules are already there." : {},
+    "This Mac" : {},
+    "This address is on a blocklist. To let it in, turn off its entry in Settings › Blocklists." : {},
+    "This allows only this app and destination, and overrides your blocklists for them." : {},
+    "This blocklist is already being checked." : {},
+    "This blocklist isn’t a subscription." : {},
+    "This can’t be removed because it contains %lld rules that are protected or come from a blocklist." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "This can’t be removed because it contains %lld rule that’s protected or comes from a blocklist."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "This can’t be removed because it contains %lld rules that are protected or come from a blocklist."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "This can’t be undone. Your rules and settings aren’t affected." : {},
+    "This configuration was saved by a newer version of Rift, so Rift left it unchanged. Update Rift, then try again." : {},
+    "This connection uses only an IP address, so domain rules and domain blocklists can’t match it." : {},
+    "This copy of Rift is missing its network filter, or the filter is the wrong version. Replace this copy of Rift with a complete one, then try again." : {},
+    "This copy of Rift is missing its network filter, or the filter is the wrong version. Replace this copy of Rift with a complete one." : {},
+    "This copy of Rift isn’t signed the way macOS requires for a network filter, so it can’t filter connections." : {},
+    "This deletes the rules in this group. Open connections aren’t affected." : {},
+    "This deletes the rules in this profile. Open connections aren’t affected." : {},
+    "This deletes your rules, profiles, groups, and blocklists, and starts fresh in Allow and Watch mode. Rift keeps a private copy of the damaged configuration. All traffic is allowed until the reset finishes." : {},
+    "This destination and port" : {},
+    "This destination is on a blocklist. Open it in Rift to allow it." : {},
+    "This destination, any port" : {},
+    "This disk can’t keep the file private to your account, so nothing was saved. Choose a location on your Mac’s disk." : {},
+    "This file has some rules, not a whole configuration. To add them, use Import Rules on the Rules page." : {},
+    "This file is too large for Rift to import. Nothing was changed." : {},
+    "This file only blocks destinations. Subscribe to it in Settings › Blocklists instead." : {},
+    "This group is already being checked." : {},
+    "This group isn’t a subscription." : {},
+    "This is already allowed." : {},
+    "This is already blocked." : {},
+    "This network" : {},
+    "This note is too long." : {},
+    "This only affects new connections and ones waiting for a decision." : {},
+    "This preview uses sample data. The network filter isn’t running." : {},
+    "This removes %@ and %lld rules from this blocklist. Open connections aren’t affected." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "This removes %1$@ and %2$lld rule from this blocklist. Open connections aren’t affected."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "This removes %1$@ and %2$lld rules from this blocklist. Open connections aren’t affected."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "This removes the blocklist and its rules. Open connections aren’t affected." : {},
+    "This rule decides" : {},
+    "This rule will apply to all destinations for this app with the same protocol, direction, and owner." : {},
+    "This rules file has %lld rules that do more than block destinations. Import it with Import Rules on the Rules page." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "This rules file has a rule that does more than block destinations. Import it with Import Rules on the Rules page."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "This rules file has %lld rules that do more than block destinations. Import it with Import Rules on the Rules page."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "This version of Rift comes with a newer network filter. Update the filter to keep filtering." : {},
+    "Time" : {},
+    "Time Range" : {},
+    "Time to answer" : {},
+    "Timed out" : {},
+    "Times used" : {},
+    "To be asked about new connections from now on, switch to Ask Me." : {},
+    "Today" : {},
+    "Too broad for an exception" : {},
+    "Total Traffic" : {},
+    "Traffic" : {},
+    "Traffic over time" : {},
+    "Try Again" : {},
+    "Try again." : {},
+    "Turn Off" : {},
+    "Turn Off and Clear History" : {},
+    "Turn Off and Clear History and Rule Usage" : {},
+    "Turn Off and Keep History" : {},
+    "Turn On" : {},
+    "Turn On All" : {},
+    "Turn On Filter" : {},
+    "Turn off connection history?" : {},
+    "Turn on Include subdomains, or remove *. so every site matches exactly." : {},
+    "Turn rules on and off together." : {},
+    "Turned on %lld rules." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Turned on %lld rule."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Turned on %lld rules."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Turning on the network filter…" : {},
+    "Type RESET" : {},
+    "UDP connections wait 8 seconds at most." : {},
+    "Unavailable" : {},
+    "Undo" : {},
+    "Undo %@" : {},
+    "Undo Restore" : {},
+    "Undo Rule Change" : {},
+    "Undone." : {},
+    "Uninstall Network Filter" : {},
+    "Uninstall Network Filter…" : {},
+    "Uninstall the Rift network filter?" : {},
+    "Unknown" : {},
+    "Unknown app" : {},
+    "Unknown owner" : {},
+    "Unlock" : {},
+    "Unlock Configuration…" : {},
+    "Unlock Until Quit" : {},
+    "Unlock Until Quit…" : {},
+    "Unlock with Touch ID or your login password" : {},
+    "Unlock with Touch ID or your login password to change the mode, profile or rules" : {},
+    "Unlock…" : {},
+    "Unsigned" : {},
+    "Unsigned app" : {},
+    "Unsupported (%@)" : {},
+    "Up to %lld recent connections, masked" : {},
+    "Up to %lld rule summaries, masked" : {},
+    "Up to 200 Rift log entries from the last 15 minutes" : {},
+    "Update All Subscriptions" : {},
+    "Update Filter" : {},
+    "Update Now" : {},
+    "Updates" : {},
+    "Updating the network filter…" : {},
+    "Usage" : {},
+    "Usage history" : {},
+    "Use Current Profile Here" : {},
+    "Use Default Mode" : {},
+    "Use a shorter name or note." : {},
+    "Use either hostnames or IP addresses in one rule, not both." : {},
+    "User ID %@" : {},
+    "Uses" : {},
+    "Version" : {},
+    "View Rule" : {},
+    "Viewing past activity" : {},
+    "Wait for an answer" : {},
+    "Waiting for Connections" : {},
+    "Waiting for the filter to apply your last rule change" : {},
+    "Waiting for your approval" : {},
+    "Warning: %@" : {},
+    "Watching since you opened this panel. Turn on history in Settings to see earlier connections." : {},
+    "What’s Included" : {},
+    "When an app connects to another country, Rift draws a line along the cables the connection most likely uses. Rift looks up the country on your Mac and estimates the path. It can’t see the real route your data takes." : {},
+    "When an update adds a rule that allows connections, it stays off until you turn it on. High-priority rules always wait." : {},
+    "When history is off, Rift keeps up to %lld recent connections for five minutes, and only while the Map is open (five while only the menu is open). Nothing is kept while those views are closed. Your rules still apply." : {},
+    "Whether the filter is using your latest rules" : {},
+    "Whichever limit comes first applies. The Map and Review show the newest %@ connections; exports include all of them. A longer history takes more disk space." : {},
+    "Wins over every normal rule, however specific. Blocklists still come first." : {},
+    "Yesterday" : {},
+    "You allowed this for %@. To stop it, turn it off in Settings › Networks." : {},
+    "You already have a blocklist with that name. Choose another name." : {},
+    "You can add rules once the network filter is on." : {},
+    "You can change this at any time." : {},
+    "You can look around, but Rift can’t see or block real connections here. Filtering needs a copy signed with Apple’s network filter permission." : {},
+    "You can undo this right after." : {},
+    "Your account" : {},
+    "Your location stays on this Mac. Apple Maps draws the map and gets no connection details from Rift." : {},
+    "Your previous configuration is back and active." : {},
+    "Your previous configuration is back, but the filter isn’t using it yet." : {},
+    "Your rules" : {},
+    "Your rules are back, from the backup on %@." : {},
+    "Your rules are back, from the backup on that day." : {},
+    "You’re all set. %@" : {},
+    "alert settings" : {},
+    "alert settings (unanswered connections are blocked)" : {},
+    "allowed %lld times when nobody answered" : {},
+    "allowed when nobody answered" : {},
+    "any destination" : {},
+    "blocked %lld times when nobody answered" : {},
+    "blocked when nobody answered" : {},
+    "changes to" : {},
+    "from" : {},
+    "https://example.com/list.txt" : {
+      "shouldTranslate" : false
+    },
+    "https://example.com/rules.lsrules" : {
+      "shouldTranslate" : false
+    },
+    "local" : {
+      "comment" : "Why connections aren’t drawn on the map: they stay on the local network"
+    },
+    "local or without a known country" : {},
+    "macOS approved the filter, but Rift hasn’t finished turning it on, so connections aren’t being filtered." : {},
+    "macOS can’t report the filter’s status until you restart your Mac." : {},
+    "macOS couldn’t change whether Rift opens at login. Check Login Items in System Settings." : {},
+    "macOS couldn’t prepare the filter for removal. Try again. Error code: %@." : {},
+    "macOS couldn’t turn on the filter, so connections aren’t being filtered. Try again. Error code: %@." : {},
+    "macOS didn’t allow the filter. Approve Rift in System Settings, then try again." : {},
+    "macOS found more than one Rift network filter. Remove the extra copy of Rift, then try again." : {},
+    "macOS has the Rift filter turned on." : {},
+    "macOS lets apps read Wi-Fi names only with Location Services permission. Rift reads only the network’s name, never the Mac’s location. Without it, Rift recognizes networks by their router’s address." : {},
+    "macOS may ask whether Rift can filter network content. Choose Allow." : {},
+    "macOS will finish installing the filter after a restart. Restart your Mac, then open Rift again." : {},
+    "macOS will finish removing the filter after a restart. Restart your Mac before you install Rift again." : {},
+    "riftctl can always show status and profiles and save redacted diagnostics. Exporting connection history needs this on, because any app running as you can run riftctl." : {},
+    "this" : {},
+    "this app everywhere" : {},
+    "this domain and its subdomains" : {},
+    "to" : {},
+    "© OpenStreetMap" : {},
+    "—" : {
+      "shouldTranslate" : false
+    },
+    "⌘B Block · ⌘A Allow" : {}
   },
   "version" : "1.0"
 }

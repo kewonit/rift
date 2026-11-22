@@ -66,7 +66,7 @@ struct RuleGroupSubscribeSheet: View {
             do {
                 pending = try await RuleGroupSubscriptions.shared.preview(address: address)
             } catch {
-                message = "Couldn’t read the file. " + RuleGroupSubscriptions.message(for: error)
+                message = String(localized: "Couldn’t read the file. \(RuleGroupSubscriptions.message(for: error))")
             }
         }
     }
@@ -80,11 +80,11 @@ struct RuleGroupSubscribeSheet: View {
                 let (result, groupID) = try await RuleGroupSubscriptions.shared.subscribe(
                     pending, interval: interval, holdsNewAllowRules: holdsNewAllowRules
                 )
-                let added = pending.ruleCount == 1 ? "Subscribed. 1 rule added." : "Subscribed. \(pending.ruleCount) rules added."
+                let added = String(localized: "Subscribed. \(pending.ruleCount) rules added.")
                 finished(result.requiresAttention ? "\(added) \(result.message)" : added, groupID)
                 dismiss()
             } catch {
-                message = "Couldn’t subscribe. " + RuleGroupSubscriptions.message(for: error)
+                message = String(localized: "Couldn’t subscribe. \(RuleGroupSubscriptions.message(for: error))")
             }
         }
     }
@@ -171,7 +171,7 @@ struct RuleGroupSubscriptionBanner: View {
     private func detail(_ item: RuleGroupSubscription) -> String {
         let host = BlocklistSubscriptionAddress.host(of: item.url)
         let updates = item.effectiveInterval.phrase
-        guard let checked = item.lastCheckedAt else { return "Subscribed • \(updates) from \(host)" }
-        return "Subscribed • \(updates) from \(host) • Checked \(checked.formatted(.relative(presentation: .named)))"
+        guard let checked = item.lastCheckedAt else { return String(localized: "Subscribed • \(updates) from \(host)") }
+        return String(localized: "Subscribed • \(updates) from \(host) • Checked \(checked.formatted(.relative(presentation: .named)))")
     }
 }

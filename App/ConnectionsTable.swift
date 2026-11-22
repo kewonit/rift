@@ -44,7 +44,7 @@ struct ConnectionsTable: View {
                 Text(country ?? "—")
                     .foregroundStyle(country == nil ? .tertiary : .primary)
                     .lineLimit(1)
-                    .accessibilityLabel(country ?? "Unknown")
+                    .accessibilityLabel(country ?? String(localized: "Unknown"))
             }
             .width(min: 60, ideal: 76)
             TableColumn("Decision", value: \.aggregate.denied) { node in
@@ -132,7 +132,7 @@ struct ConnectionsTable: View {
     private func countryName(for node: MonitorHierarchyNode) -> String? {
         if node.kind == .country { return node.title }
         // Grouped by country, everything under a country shares it.
-        if feed.query.lens != .country, (node.children?.count ?? 0) > 1 { return "Several" }
+        if feed.query.lens != .country, (node.children?.count ?? 0) > 1 { return String(localized: "Several") }
         guard let address = row(for: node)?.event.flow.remoteEndpoint?.address else { return nil }
         let code: String?
 #if DEBUG
@@ -164,15 +164,15 @@ private struct DecisionCell: View {
 
     private var label: String {
         if let futureChange { return futureChange }
-        if aggregate.decision == .denied, node.ruleCoverage.decidedByBlocklist { return "Blocked by a list" }
-        return aggregate.decision == .mixed ? "\(aggregate.denied) blocked" : aggregate.decision.label
+        if aggregate.decision == .denied, node.ruleCoverage.decidedByBlocklist { return String(localized: "Blocked by a list") }
+        return aggregate.decision == .mixed ? String(localized: "\(aggregate.denied) blocked") : aggregate.decision.label
     }
 
     /// Says when today's rules differ from what this row recorded.
     private var futureChange: String? {
         switch node.ruleCoverage.currentAction {
-        case .deny where aggregate.denied == 0: "Blocked from now on"
-        case .allow where aggregate.denied > 0: "Allowed from now on"
+        case .deny where aggregate.denied == 0: String(localized: "Blocked from now on")
+        case .allow where aggregate.denied > 0: String(localized: "Allowed from now on")
         default: nil
         }
     }

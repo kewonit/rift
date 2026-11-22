@@ -16,7 +16,7 @@ struct ConnectionAlertRuleOptions: View {
     var body: some View {
         Picker("Destination", selection: $destinationScope) {
             ForEach(choices) { choice in
-                Text(choice == .domain ? "\(registeredDomain ?? "") and its subdomains" : choice.rawValue)
+                Text(choice == .domain ? String(localized: "\(registeredDomain ?? "") and its subdomains") : choice.displayName)
                     .tag(choice)
             }
         }
@@ -31,7 +31,9 @@ struct ConnectionAlertRuleOptions: View {
                 .foregroundStyle(.secondary)
         }
         if destinationScope == .domain {
-            Text("Applies to every name under \(registeredDomain ?? "this domain") on any port, for the same protocol and direction.")
+            Text(registeredDomain.map {
+                String(localized: "Applies to every name under \($0) on any port, for the same protocol and direction.")
+            } ?? String(localized: "Applies to every name under this domain on any port, for the same protocol and direction."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

@@ -12,7 +12,16 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case advanced = "Advanced"
 
     var id: String { rawValue }
-    var title: String { rawValue }
+    var title: String {
+        switch self {
+        case .general: String(localized: "General")
+        case .alerts: String(localized: "Alerts")
+        case .history: String(localized: "History & Privacy")
+        case .policies: String(localized: "Profiles & Blocklists")
+        case .networks: String(localized: "Networks")
+        case .advanced: String(localized: "Advanced")
+        }
+    }
     var symbol: String {
         switch self {
         case .general: "gear"
@@ -85,7 +94,7 @@ struct GeneralSettingsPane: View {
     }
 
     private var currentModeLabel: String {
-        activeProfileName.map { "\($0) uses \(effectiveMode.displayName)" } ?? effectiveMode.displayName
+        activeProfileName.map { String(localized: "\($0) uses \(effectiveMode.displayName)") } ?? effectiveMode.displayName
     }
 }
 
@@ -137,7 +146,7 @@ struct AlertSettingsPane: View {
                 Picker("Remember decisions", selection: $alertDefaultLifetime) {
                     Text("As last time").tag(AlertDefaults.lastUsed)
                     Divider()
-                    ForEach(AlertLifetime.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                    ForEach(AlertLifetime.allCases) { Text($0.displayName).tag($0.rawValue) }
                 }
                 Picker("New rules cover", selection: $alertDefaultDestination) {
                     Text("As last time").tag(AlertDefaults.lastUsed)
@@ -167,11 +176,13 @@ struct AlertSettingsPane: View {
             } header: {
                 Text("Alert Defaults")
             } footer: {
-                Text("In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown. "
-                    + unansweredSettings.explanation(filterEnforces: filterEnforcesUnanswered)
-                    + (filterEnforcesUnanswered
-                        ? " UDP connections wait 8 seconds at most."
-                        : " The wait can be changed once the network filter is on and up to date."))
+                Text([
+                    String(localized: "In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown."),
+                    unansweredSettings.explanation(filterEnforces: filterEnforcesUnanswered),
+                    filterEnforcesUnanswered
+                        ? String(localized: "UDP connections wait 8 seconds at most.")
+                        : String(localized: "The wait can be changed once the network filter is on and up to date."),
+                ].joined(separator: " "))
             }
         }
         .formStyle(.grouped)

@@ -67,8 +67,8 @@ struct QuickRuleCell: View {
     }
 
     private func scopePhrase(_ breadth: MonitorRuleBreadth) -> String {
-        guard let row = feed.representativeRow(for: node) else { return "this" }
-        if breadth == .allDestinations { return "this app everywhere" }
+        guard let row = feed.representativeRow(for: node) else { return String(localized: "this") }
+        if breadth == .allDestinations { return String(localized: "this app everywhere") }
         return MonitorRuleScope.phrase(
             breadth, host: DisplaySanitizer.plainText(MonitorQuery.hostnameLabel(row)),
             domain: MonitorRuleScope.domain(for: row)?.ascii
@@ -79,7 +79,7 @@ struct QuickRuleCell: View {
 /// The Map search that shows only a row's app or destination.
 enum ConnectionFocus {
     static func title(for node: MonitorHierarchyNode) -> String {
-        node.kind == .application || node.kind == .helper ? "Show Only This App" : "Show Only This Destination"
+        node.kind == .application || node.kind == .helper ? String(localized: "Show Only This App") : String(localized: "Show Only This Destination")
     }
 
     static func search(for node: MonitorHierarchyNode) -> String? {

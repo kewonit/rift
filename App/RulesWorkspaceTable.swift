@@ -128,7 +128,7 @@ struct RulesWorkspaceTable: View {
         ) {
             Button("OK") { contextMessage = nil }
         } message: {
-            Text(contextMessage ?? "Try again.")
+            Text(contextMessage ?? String(localized: "Try again."))
         }
     }
 
@@ -238,11 +238,11 @@ struct RulesWorkspaceTable: View {
     private var emptyFilterMessage: String {
         switch model.sidebarSelection.listFilter {
         case .unused:
-            "Rift counts how often rules are used only while connection history is on, so it can only call a rule unused after that."
+            String(localized: "Rift counts how often rules are used only while connection history is on, so it can only call a rule unused after that.")
         case .redundant:
-            "No rule is redundant. A rule is redundant when another rule already does the same for everything it covers, so deleting it changes nothing."
+            String(localized: "No rule is redundant. A rule is redundant when another rule already does the same for everything it covers, so deleting it changes nothing.")
         default:
-            "Nothing matches your search and filters."
+            String(localized: "Nothing matches your search and filters.")
         }
     }
 
@@ -322,7 +322,7 @@ struct RulesWorkspaceTable: View {
         guard let identity = selectedApplicationIdentity(ids) else { return }
         Task {
             guard await artworkStore.revealApplication(for: identity) else {
-                contextMessage = "Rift couldn’t find exactly one installed copy of this app."
+                contextMessage = String(localized: "Rift couldn’t find exactly one installed copy of this app.")
                 return
             }
         }
@@ -350,7 +350,7 @@ struct RulesWorkspaceTable: View {
             RuleWorkspaceCopyDetails.text(for: row.rule, context: context),
             forType: .string
         ) else {
-            contextMessage = "Rift couldn’t copy the rule details. Try again."
+            contextMessage = String(localized: "Rift couldn’t copy the rule details. Try again.")
             return
         }
     }

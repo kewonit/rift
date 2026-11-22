@@ -36,7 +36,7 @@ struct RuleEditorAdvancedSection: View {
                         .foregroundStyle(.orange)
                 }
                 Picker("Protocol", selection: $transport) {
-                    ForEach(ManualRuleEditorView.ProtocolChoice.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(ManualRuleEditorView.ProtocolChoice.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Direction", selection: $direction) {
                     Text("Outgoing").tag(DirectionCondition.outgoing)

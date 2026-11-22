@@ -49,9 +49,9 @@ struct BlocklistSubscriptionStatus: View {
     private func detail(_ item: BlocklistSubscription) -> String {
         let host = BlocklistSubscriptionAddress.host(of: item.url)
         let updates = item.effectiveInterval.phrase
-        guard let checked = item.lastCheckedAt else { return "\(updates) from \(host)" }
+        guard let checked = item.lastCheckedAt else { return String(localized: "\(updates) from \(host)") }
         let when = checked.formatted(.relative(presentation: .named))
-        return "\(updates) from \(host) • Checked \(when)"
+        return String(localized: "\(updates) from \(host) • Checked \(when)")
     }
 }
 
@@ -96,7 +96,7 @@ struct BlocklistSubscribeRow: View {
                 address = ""
                 name = ""
             } catch {
-                message = "Couldn’t subscribe. " + BlocklistSubscriptions.message(for: error)
+                message = String(localized: "Couldn’t subscribe. \(BlocklistSubscriptions.message(for: error))")
             }
             await reload()
         }

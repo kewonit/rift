@@ -169,16 +169,16 @@ struct ConnectionFilterBar: View {
             .disabled(showsLog)
             Menu {
                 Picker("Decision", selection: $feed.query.decision) {
-                    ForEach(MonitorDecisionFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorDecisionFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Direction", selection: $feed.query.direction) {
-                    ForEach(MonitorDirectionFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorDirectionFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Network", selection: $feed.query.locality) {
-                    ForEach(MonitorLocalityFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorLocalityFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Owner", selection: $feed.query.owner) {
-                    ForEach(MonitorOwnerFilter.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorOwnerFilter.allCases) { Text($0.title).tag($0) }
                 }
                 Divider()
                 Button("Clear Filters") {
@@ -220,11 +220,11 @@ struct ConnectionFilterBar: View {
             }
             Menu {
                 Picker("Sort By", selection: $feed.sort) {
-                    ForEach(MonitorHierarchySort.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(MonitorHierarchySort.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.inline)
             } label: {
-                Text(feed.sort.rawValue)
+                Text(feed.sort.title)
             }
             .help(showsLog ? "The log is always newest first" : "Sort connections")
             .disabled(showsLog)
@@ -240,10 +240,10 @@ struct ConnectionFilterBar: View {
 extension MonitorLens {
     var groupTitle: String {
         switch self {
-        case .application: "App"
-        case .hostname: "Destination"
-        case .domain: "Domain"
-        case .country: "Country"
+        case .application: String(localized: "App")
+        case .hostname: String(localized: "Destination")
+        case .domain: String(localized: "Domain")
+        case .country: String(localized: "Country")
         }
     }
 }

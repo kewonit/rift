@@ -63,10 +63,13 @@ struct ConfigurationRecoverySection: View {
             defer { restoring = false }
             do {
                 _ = try await controller.restoreLatestBackup()
-                controller.actionResults.post("Your rules are back, from the backup on \(backupDay ?? "that day").")
+                controller.actionResults.post(
+                backupDay.map { String(localized: "Your rules are back, from the backup on \($0).") }
+                    ?? String(localized: "Your rules are back, from the backup on that day.")
+            )
             } catch {
                 controller.actionResults.post(
-                    "Rift couldn’t restore that backup. Try importing a file instead.",
+                    String(localized: "Rift couldn’t restore that backup. Try importing a file instead."),
                     tone: .failure
                 )
             }

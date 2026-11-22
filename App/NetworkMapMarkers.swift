@@ -136,11 +136,11 @@ final class OriginMarkerView: MKAnnotationView {
         canShowCallout = false
         displayPriority = .required
         collisionMode = .circle
-        label.text = "This Mac"
+        label.text = String(localized: "This Mac")
         label.sizeToFit()
         label.frame.origin = CGPoint(x: (frame.width - label.frame.width) / 2, y: -label.frame.height - 4)
         addSubview(label)
-        setAccessibilityLabel("This Mac")
+        setAccessibilityLabel(String(localized: "This Mac"))
     }
 
     required init?(coder: NSCoder) { nil }

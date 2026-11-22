@@ -23,13 +23,13 @@ struct RuleBulkEditSheet: View {
             Text(rules.count == 1 ? "Edit 1 Rule" : "Edit \(rules.count) Rules").font(.headline)
             Form {
                 Picker("Action", selection: $action) {
-                    ForEach(ActionChoice.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(ActionChoice.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Protocol", selection: $transport) {
-                    ForEach(ProtocolChoice.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(ProtocolChoice.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Port", selection: $port) {
-                    ForEach(PortChoice.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(PortChoice.allCases) { Text($0.title).tag($0) }
                 }
                 if port == .specific {
                     TextField("Ports", text: $portText, prompt: Text("443, 8000-8080 or 20-30, 80"))
@@ -83,23 +83,23 @@ struct RuleBulkEditSheet: View {
         do {
             edit = try self.edit()
         } catch PortError.listNeedsNewerFilter {
-            problem = "A list of ports needs the current network filter. Turn on or update the filter, then try again."
+            problem = String(localized: "A list of ports needs the current network filter. Turn on or update the filter, then try again.")
             return
         } catch {
-            problem = "Enter a port, like 443, a range, like 8000-8080, or a list, like 20-30, 80, 443, of up to 16."
+            problem = String(localized: "Enter a port, like 443, a range, like 8000-8080, or a list, like 20-30, 80, 443, of up to 16.")
             return
         }
         // Check every rule first, so nothing is saved if one can't change.
         do {
             _ = try edit.applied(to: rules, ids: Set(rules.map(\.id)), now: Date())
         } catch RuleValidationError.elevatedPriorityRequiresAllow {
-            problem = "A selected rule is a blocklist exception, which can only allow. Leave the action as it is, or deselect that rule."
+            problem = String(localized: "A selected rule is a blocklist exception, which can only allow. Leave the action as it is, or deselect that rule.")
             return
         } catch RuleValidationError.notesTooLong {
-            problem = "The notes are too long."
+            problem = String(localized: "The notes are too long.")
             return
         } catch {
-            problem = "Not every selected rule can take these changes. Nothing was changed."
+            problem = String(localized: "Not every selected rule can take these changes. Nothing was changed.")
             return
         }
         saving = true

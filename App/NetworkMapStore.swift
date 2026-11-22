@@ -50,9 +50,9 @@ struct MapDestination: Identifiable, Hashable, Sendable {
     }
 
     var summary: String {
-        let connections = activity.connections == 1 ? "1 connection" : "\(activity.connections) connections"
+        let connections = String(localized: "\(activity.connections) connections")
         guard activity.blocked > 0 else { return connections }
-        return "\(connections) · \(activity.blocked) blocked"
+        return String(localized: "\(connections) · \(activity.blocked) blocked")
     }
 }
 

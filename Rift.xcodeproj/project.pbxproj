@@ -134,6 +134,7 @@
 		100000000000000000000107 /* process-notes.json in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000107 /* process-notes.json */; };
 		100000000000000000000581 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000581 /* InfoPlist.xcstrings */; };
 		100000000000000000000580 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000580 /* Localizable.xcstrings */; };
+		100000000000000000000582 /* ProcessNotes.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000582 /* ProcessNotes.xcstrings */; };
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
 		100000000000000000000400 /* RiftAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000400 /* RiftAccessibility.swift */; };
 		100000000000000000000401 /* ConnectionAlertAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000401 /* ConnectionAlertAccessibility.swift */; };
@@ -158,6 +159,7 @@
 		1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DD /* FilterConfigurationStore.swift */; };
 		1000000000000000000000DC /* RuleInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DC /* RuleInspectorView.swift */; };
 		100000000000000000000180 /* CLIAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000180 /* CLIAccess.swift */; };
+		100000000000000000000500 /* ChoiceTitles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000500 /* ChoiceTitles.swift */; };
 		1000000000000000000000DB /* RiftStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DB /* RiftStatusView.swift */; };
 		1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */; };
 		1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000D9 /* ConfigurationMutationResult.swift */; };
@@ -350,6 +352,7 @@
 		200000000000000000000107 /* process-notes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Explanations/process-notes.json"; sourceTree = "<group>"; };
 		200000000000000000000581 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		200000000000000000000580 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		200000000000000000000582 /* ProcessNotes.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Explanations/ProcessNotes.xcstrings"; sourceTree = "<group>"; };
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
 		200000000000000000000400 /* RiftAccessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftAccessibility.swift; sourceTree = "<group>"; };
 		200000000000000000000401 /* ConnectionAlertAccessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertAccessibility.swift; sourceTree = "<group>"; };
@@ -374,6 +377,7 @@
 		2000000000000000000000DD /* FilterConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterConfigurationStore.swift; sourceTree = "<group>"; };
 		2000000000000000000000DC /* RuleInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleInspectorView.swift; sourceTree = "<group>"; };
 		200000000000000000000180 /* CLIAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIAccess.swift; sourceTree = "<group>"; };
+		200000000000000000000500 /* ChoiceTitles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoiceTitles.swift; sourceTree = "<group>"; };
 		2000000000000000000000DB /* RiftStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftStatusView.swift; sourceTree = "<group>"; };
 		2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneDefinitionCommands.swift; sourceTree = "<group>"; };
 		2000000000000000000000D9 /* ConfigurationMutationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationMutationResult.swift; sourceTree = "<group>"; };
@@ -556,6 +560,7 @@
 				2000000000000000000000DD /* FilterConfigurationStore.swift */,
 				2000000000000000000000DC /* RuleInspectorView.swift */,
 				200000000000000000000180 /* CLIAccess.swift */,
+				200000000000000000000500 /* ChoiceTitles.swift */,
 				2000000000000000000000DB /* RiftStatusView.swift */,
 				2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */,
 				2000000000000000000000D9 /* ConfigurationMutationResult.swift */,
@@ -664,6 +669,7 @@
 				200000000000000000000107 /* process-notes.json */,
 				200000000000000000000581 /* InfoPlist.xcstrings */,
 				200000000000000000000580 /* Localizable.xcstrings */,
+				200000000000000000000582 /* ProcessNotes.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -794,6 +800,7 @@
 				100000000000000000000107 /* process-notes.json in Resources */,
 				100000000000000000000581 /* InfoPlist.xcstrings in Resources */,
 				100000000000000000000580 /* Localizable.xcstrings in Resources */,
+				100000000000000000000582 /* ProcessNotes.xcstrings in Resources */,
 				1000000000000000000000CD /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -911,6 +918,7 @@
 				1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */,
 				1000000000000000000000DC /* RuleInspectorView.swift in Sources */,
 				100000000000000000000180 /* CLIAccess.swift in Sources */,
+				100000000000000000000500 /* ChoiceTitles.swift in Sources */,
 				1000000000000000000000DB /* RiftStatusView.swift in Sources */,
 				1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */,
 				1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */,

@@ -42,9 +42,11 @@ extension ControlPlaneController {
             guard configurationRecoveryRequired || configurationRecovery != nil else {
                 throw ArchiveControllerError.missingConfiguration
             }
-            let recovery = "Recovery import: \(payload.rules.count) rules, "
-                + "\(payload.profiles.count) profiles, \(payload.localGroups.count) groups, "
-                + "and \(payload.blocklists.count) blocklists. Rift keeps a private copy of the damaged configuration."
+            // riftctl prints this preview too, so it's in English while RiftLocale.english is set.
+            let recovery = String(
+                localized: "Recovery import: \(payload.rules.count) rules, \(payload.profiles.count) profiles, \(payload.localGroups.count) groups, and \(payload.blocklists.count) blocklists. Rift keeps a private copy of the damaged configuration.",
+                bundle: RiftLocale.mainBundle
+            )
             return recovery + preferencesSummary(payload)
         }
         let currentRules = Dictionary(uniqueKeysWithValues: current.rules.map { ($0.id, $0) })
@@ -54,10 +56,10 @@ extension ControlPlaneController {
         let changed = incomingRules.filter { id, rule in
             currentRules[id].map { $0 != rule } ?? false
         }.count
-        let changes = "Rules: +\(added), −\(removed), \(changed) changed. "
-            + "Profiles: \(current.profiles.count) → \(payload.profiles.count); "
-            + "groups: \(current.localGroups.count) → \(payload.localGroups.count); "
-            + "blocklists: \(current.blocklists.count) → \(payload.blocklists.count)."
+        let changes = String(
+            localized: "Rules: +\(added), −\(removed), \(changed) changed. Profiles: \(current.profiles.count) → \(payload.profiles.count); groups: \(current.localGroups.count) → \(payload.localGroups.count); blocklists: \(current.blocklists.count) → \(payload.blocklists.count).",
+            bundle: RiftLocale.mainBundle
+        )
         return changes + preferencesSummary(payload)
     }
 

@@ -1,0 +1,174 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Checks for and downloads macOS and security updates." : {
+      "comment" : "What the macOS service com.apple.softwareupdated does",
+      "extractionState" : "manual"
+    },
+    "Checks the certificates of secure connections, and whether a certificate has been revoked, for apps and macOS." : {
+      "comment" : "What the macOS service com.apple.trustd does",
+      "extractionState" : "manual"
+    },
+    "Downloads App Store purchases and app updates." : {
+      "comment" : "What the macOS service com.apple.storedownloadd does",
+      "extractionState" : "manual"
+    },
+    "Downloads and uploads files in the background on behalf of apps and macOS, so transfers continue after an app quits." : {
+      "comment" : "What the macOS service com.apple.nsurlsessiond does",
+      "extractionState" : "manual"
+    },
+    "Downloads content for the Tips app." : {
+      "comment" : "What the macOS service com.apple.tipsd does",
+      "extractionState" : "manual"
+    },
+    "Downloads help pages for apps and macOS." : {
+      "comment" : "What the macOS service com.apple.helpd does",
+      "extractionState" : "manual"
+    },
+    "Downloads maps, places and location data for Maps and other apps." : {
+      "comment" : "What the macOS service com.apple.geod does",
+      "extractionState" : "manual"
+    },
+    "Downloads system assets macOS uses, such as fonts, dictionaries, voices and machine-learning models." : {
+      "comment" : "What the macOS service com.apple.mobileassetd does",
+      "extractionState" : "manual"
+    },
+    "Fetches suggestions for Spotlight, Safari and Look Up." : {
+      "comment" : "What the macOS service com.apple.parsecd does",
+      "extractionState" : "manual"
+    },
+    "Find My: locates your devices and items." : {
+      "comment" : "What the macOS service com.apple.icloud.searchpartyd does",
+      "extractionState" : "manual"
+    },
+    "Gatekeeper: checks apps when they open, including whether Apple has notarized them." : {
+      "comment" : "What the macOS service com.apple.syspolicyd does",
+      "extractionState" : "manual"
+    },
+    "Handles AirDrop, Handoff and other sharing between your devices." : {
+      "comment" : "What the macOS service com.apple.sharingd does",
+      "extractionState" : "manual"
+    },
+    "Handles Family Sharing." : {
+      "comment" : "What the macOS service com.apple.familycircled does",
+      "extractionState" : "manual"
+    },
+    "Handles Siri requests." : {
+      "comment" : "What the macOS service com.apple.assistantd does",
+      "extractionState" : "manual"
+    },
+    "Handles iCloud Private Relay and other network proxies macOS manages." : {
+      "comment" : "What the macOS service com.apple.networkserviceproxy does",
+      "extractionState" : "manual"
+    },
+    "Keeps a connection to Apple's push notification service, which delivers notifications and wake-ups for apps." : {
+      "comment" : "What the macOS service com.apple.apsd does",
+      "extractionState" : "manual"
+    },
+    "Loads web content for Safari and for apps that show web pages." : {
+      "comment" : "What the macOS service com.apple.WebKit.Networking does",
+      "extractionState" : "manual"
+    },
+    "Looks up names for the whole Mac (DNS) and finds devices on the local network (Bonjour)." : {
+      "comment" : "What the macOS service com.apple.mDNSResponder does",
+      "extractionState" : "manual"
+    },
+    "Looks up the names of Windows (SMB) computers on the local network." : {
+      "comment" : "What the macOS service com.apple.netbiosd does",
+      "extractionState" : "manual"
+    },
+    "Mail, Apple's email app." : {
+      "comment" : "What the macOS service com.apple.mail does",
+      "extractionState" : "manual"
+    },
+    "Manages the internet accounts set up on this Mac." : {
+      "comment" : "What the macOS service com.apple.accountsd does",
+      "extractionState" : "manual"
+    },
+    "Maps." : {
+      "comment" : "What the macOS service com.apple.Maps does",
+      "extractionState" : "manual"
+    },
+    "Messages." : {
+      "comment" : "What the macOS service com.apple.MobileSMS does",
+      "extractionState" : "manual"
+    },
+    "Music." : {
+      "comment" : "What the macOS service com.apple.Music does",
+      "extractionState" : "manual"
+    },
+    "Provides Location Services; it can look up nearby Wi-Fi networks with Apple to find the Mac's position." : {
+      "comment" : "What the macOS service com.apple.locationd does",
+      "extractionState" : "manual"
+    },
+    "Registers your devices for Messages, FaceTime and other Apple services that use your phone number or email address." : {
+      "comment" : "What the macOS service com.apple.identityservicesd does",
+      "extractionState" : "manual"
+    },
+    "Safari, Apple's web browser." : {
+      "comment" : "What the macOS service com.apple.Safari does",
+      "extractionState" : "manual"
+    },
+    "Sends and receives messages for the Messages app." : {
+      "comment" : "What the macOS service com.apple.imagent does",
+      "extractionState" : "manual"
+    },
+    "Sends crash and diagnostic reports to Apple, if you turned on sharing in Privacy & Security › Analytics & Improvements." : {
+      "comment" : "What the macOS service com.apple.SubmitDiagReports does",
+      "extractionState" : "manual"
+    },
+    "Sends diagnostic and usage data to Apple, if you turned on sharing in Privacy & Security › Analytics & Improvements." : {
+      "comment" : "What the macOS service com.apple.analyticsd does",
+      "extractionState" : "manual"
+    },
+    "Sets the clock from network time servers." : {
+      "comment" : "What the macOS service com.apple.timed does",
+      "extractionState" : "manual"
+    },
+    "Sets up the Mac's network connections, including getting an address from the network (DHCP)." : {
+      "comment" : "What the macOS service com.apple.configd does",
+      "extractionState" : "manual"
+    },
+    "Signs in to your Apple Account and keeps it authenticated for Apple services." : {
+      "comment" : "What the macOS service com.apple.akd does",
+      "extractionState" : "manual"
+    },
+    "Syncs Screen Time settings and reports between your devices." : {
+      "comment" : "What the macOS service com.apple.ScreenTimeAgent does",
+      "extractionState" : "manual"
+    },
+    "Syncs app data with iCloud through CloudKit." : {
+      "comment" : "What the macOS service com.apple.cloudd does",
+      "extractionState" : "manual"
+    },
+    "Syncs iCloud Drive files and documents." : {
+      "comment" : "What the macOS service com.apple.bird does",
+      "extractionState" : "manual"
+    },
+    "Syncs your Apple Music and iTunes library." : {
+      "comment" : "What the macOS service com.apple.itunescloudd does",
+      "extractionState" : "manual"
+    },
+    "Syncs your calendars with the accounts they belong to." : {
+      "comment" : "What the macOS service com.apple.CalendarAgent does",
+      "extractionState" : "manual"
+    },
+    "Syncs your photo library with iCloud Photos." : {
+      "comment" : "What the macOS service com.apple.cloudphotod does",
+      "extractionState" : "manual"
+    },
+    "Syncs your reminders." : {
+      "comment" : "What the macOS service com.apple.remindd does",
+      "extractionState" : "manual"
+    },
+    "Talks to your Home accessories." : {
+      "comment" : "What the macOS service com.apple.homed does",
+      "extractionState" : "manual"
+    },
+    "Talks to your other nearby Apple devices for Continuity features such as Handoff and Universal Clipboard." : {
+      "comment" : "What the macOS service com.apple.rapportd does",
+      "extractionState" : "manual"
+    }
+  },
+  "version" : "1.0"
+}

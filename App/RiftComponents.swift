@@ -36,8 +36,9 @@ struct RiftBytesText: View {
 
     /// The total as VoiceOver reads it, with "at least" for the "≥".
     static func spoken(_ bytes: UInt64?, partial: Bool) -> String {
-        guard let bytes else { return "Unavailable" }
-        return (partial ? "At least " : "") + RiftFormat.bytes(bytes)
+        guard let bytes else { return String(localized: "Unavailable") }
+        let total = RiftFormat.bytes(bytes)
+        return partial ? String(localized: "At least \(total)") : total
     }
 }
 
@@ -82,7 +83,7 @@ extension View {
 
 /// The search field in the bar above each table.
 struct RiftSearchField: View {
-    let prompt: String
+    let prompt: LocalizedStringKey
     @Binding var text: String
     var focus: FocusState<Bool>.Binding
 

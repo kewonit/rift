@@ -75,7 +75,7 @@ actor NotificationRouter {
     }
 
     func healthMessage() -> String? {
-        deliveryFailureCount == 0 ? nil : "Some notifications couldn’t be shown."
+        deliveryFailureCount == 0 ? nil : String(localized: "Some notifications couldn’t be shown.")
     }
 
     private var notificationsEnabled: Bool {
@@ -104,7 +104,7 @@ actor NotificationRouter {
             return
         }
         let content = UNMutableNotificationContent()
-        content.title = "Rift connection summary"
+        content.title = String(localized: "Rift connection summary")
         content.body = NotificationCopy.summary(count: count)
         await deliver(UNNotificationRequest(
             identifier: "rift-summary-\(UUID().uuidString.lowercased())",

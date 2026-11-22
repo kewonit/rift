@@ -35,7 +35,7 @@ extension ControlPlaneController {
             }
             return true
         } catch {
-            recordStartupIssue("Rift couldn’t confirm that the filter was cleared, so it didn’t remove the filter. Try again while signed in to the Mac account that manages Rift.")
+            recordStartupIssue(String(localized: "Rift couldn’t confirm that the filter was cleared, so it didn’t remove the filter. Try again while signed in to the Mac account that manages Rift."))
             return false
         }
     }

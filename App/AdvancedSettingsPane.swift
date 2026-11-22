@@ -110,10 +110,10 @@ struct AdvancedSettingsPane: View {
     }
 
     private func exportConfiguration() {
-        perform("Couldn’t export the configuration.") {
+        perform(String(localized: "Couldn’t export the configuration.")) {
             let data = try await controlPlane.configurationArchiveData()
             try await ArchiveFileAccess.save(
-                data: data, suggestedName: "Rift Configuration.json"
+                data: data, suggestedName: String(localized: "Rift Configuration.json")
             )
         }
     }
@@ -127,22 +127,22 @@ struct AdvancedSettingsPane: View {
                 showingRestoreConfirmation = true
             } catch ConfigurationArchiveError.ruleSubset {
                 importData = nil
-                message = "This file has some rules, not a whole configuration. To add them, use Import Rules on the Rules page."
+                message = String(localized: "This file has some rules, not a whole configuration. To add them, use Import Rules on the Rules page.")
             } catch {
                 importData = nil
                 message = ArchiveFileAccess.message(
                     for: error,
-                    fallback: "Rift couldn’t read this file. Choose a configuration file exported from Rift."
+                    fallback: String(localized: "Rift couldn’t read this file. Choose a configuration file exported from Rift.")
                 )
             }
         }
     }
 
     private func saveDiagnostics() {
-        perform("Couldn’t save diagnostics.") {
+        perform(String(localized: "Couldn’t save diagnostics.")) {
             let data = try await controlPlane.diagnosticsBundleData(options: diagnosticsOptions)
             try await ArchiveFileAccess.save(
-                data: data, suggestedName: "Rift Diagnostics.json"
+                data: data, suggestedName: String(localized: "Rift Diagnostics.json")
             )
         }
     }
@@ -153,10 +153,10 @@ struct AdvancedSettingsPane: View {
                 let outcome = try await controlPlane.retryPendingConfiguration()
                 restoreNeedsRetry = outcome == .savedPendingEnforcement
                 message = outcome == .enforced
-                    ? "The restored configuration is now active."
-                    : "The restored configuration is saved, but the filter isn’t using it yet."
+                    ? String(localized: "The restored configuration is now active.")
+                    : String(localized: "The restored configuration is saved, but the filter isn’t using it yet.")
             } catch {
-                message = "The restored configuration is saved, but the filter isn’t using it yet."
+                message = String(localized: "The restored configuration is saved, but the filter isn’t using it yet.")
             }
         }
     }
@@ -167,10 +167,10 @@ struct AdvancedSettingsPane: View {
                 let outcome = try await controlPlane.rollbackLastRestore()
                 restoreNeedsRetry = outcome == .savedPendingEnforcement
                 message = outcome == .enforced
-                    ? "Your previous configuration is back and active."
-                    : "Your previous configuration is back, but the filter isn’t using it yet."
+                    ? String(localized: "Your previous configuration is back and active.")
+                    : String(localized: "Your previous configuration is back, but the filter isn’t using it yet.")
             } catch {
-                message = "Couldn’t undo the restore. Your current configuration hasn’t changed."
+                message = String(localized: "Couldn’t undo the restore. Your current configuration hasn’t changed.")
             }
         }
     }
@@ -182,7 +182,7 @@ struct AdvancedSettingsPane: View {
             let prepared = await controlPlane.prepareForUninstall()
             preparingUninstall = false
             guard prepared else {
-                message = "Rift couldn’t confirm that all traffic is allowed, so the filter wasn’t removed. Try again."
+                message = String(localized: "Rift couldn’t confirm that all traffic is allowed, so the filter wasn’t removed. Try again.")
                 return
             }
             lifecycle.uninstall()
@@ -197,10 +197,10 @@ struct AdvancedSettingsPane: View {
             do {
                 let outcome = try await controlPlane.resetConfiguration()
                 message = outcome == .enforced
-                    ? "Configuration reset. Rift is starting fresh in Allow and Watch mode."
-                    : "Configuration reset. All traffic is allowed until the filter reconnects."
+                    ? String(localized: "Configuration reset. Rift is starting fresh in Allow and Watch mode.")
+                    : String(localized: "Configuration reset. All traffic is allowed until the filter reconnects.")
             } catch {
-                message = "The configuration wasn’t reset, and all traffic may be allowed for now. Try again while signed in to the Mac account that manages Rift."
+                message = String(localized: "The configuration wasn’t reset, and all traffic may be allowed for now. Try again while signed in to the Mac account that manages Rift.")
             }
             resettingConfiguration = false
         }

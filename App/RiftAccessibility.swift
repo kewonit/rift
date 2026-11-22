@@ -74,7 +74,7 @@ enum RiftSpokenTime {
     /// "Just now" or "3 minutes ago", matching `RiftRelativeTime.short`.
     @MainActor
     static func ago(_ date: Date, now: Date) -> String {
-        if now.timeIntervalSince(date) < 10 { return "Just now" }
+        if now.timeIntervalSince(date) < 10 { return String(localized: "Just now") }
         return relative.localizedString(for: min(date, now), relativeTo: now)
     }
 

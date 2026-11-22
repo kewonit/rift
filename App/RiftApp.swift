@@ -81,7 +81,7 @@ private struct RiftStatusIcon: View {
         statusImage
             .accessibilityLabel(
                 session.isUIFixture
-                    ? "Rift preview"
+                    ? String(localized: "Rift preview")
                     : session.statusAccessibilityLabel
             )
     }
@@ -168,8 +168,8 @@ private final class AppStartupCoordinator {
         case .startupFailed:
             NSApplication.shared.activate(ignoringOtherApps: true)
             let alert = NSAlert()
-            alert.messageText = "Rift couldn’t start"
-            alert.informativeText = "Rift couldn’t prepare its files on this Mac. Your rules aren’t affected. Restart your Mac, then open Rift again."
+            alert.messageText = String(localized: "Rift couldn’t start")
+            alert.informativeText = String(localized: "Rift couldn’t prepare its files on this Mac. Your rules aren’t affected. Restart your Mac, then open Rift again.")
             alert.runModal()
         default:
             return

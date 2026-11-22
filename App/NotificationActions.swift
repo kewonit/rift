@@ -20,16 +20,16 @@ enum NotificationActions {
         let undecided = UNNotificationCategory(
             identifier: undecidedCategory,
             actions: [
-                UNNotificationAction(identifier: allow, title: "Allow", options: []),
-                UNNotificationAction(identifier: block, title: "Block", options: [.destructive]),
+                UNNotificationAction(identifier: allow, title: String(localized: "Allow"), options: []),
+                UNNotificationAction(identifier: block, title: String(localized: "Block"), options: [.destructive]),
             ],
             intentIdentifiers: []
         )
         let network = UNNotificationCategory(
             identifier: newNetworkCategory,
             actions: [
-                UNNotificationAction(identifier: useCurrentProfile, title: "Use Current Profile Here", options: []),
-                UNNotificationAction(identifier: chooseProfile, title: "Choose…", options: [.foreground]),
+                UNNotificationAction(identifier: useCurrentProfile, title: String(localized: "Use Current Profile Here"), options: []),
+                UNNotificationAction(identifier: chooseProfile, title: String(localized: "Choose…"), options: [.foreground]),
             ],
             intentIdentifiers: []
         )

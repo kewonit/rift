@@ -13,7 +13,7 @@ extension RulesWorkspaceController {
     }
 
     func createProfile(name: String) async -> Bool {
-        await definitionCommand("Couldn’t create the profile.") {
+        await definitionCommand(String(localized: "Couldn’t create the profile.")) {
             try await controlPlane.createProfile(name: name)
         }
     }
@@ -23,7 +23,7 @@ extension RulesWorkspaceController {
         name: String,
         operationModeOverride: OperationMode?
     ) async -> Bool {
-        await definitionCommand("Couldn’t change the profile.") {
+        await definitionCommand(String(localized: "Couldn’t change the profile.")) {
             try await controlPlane.updateProfile(
                 id,
                 name: name,
@@ -33,46 +33,46 @@ extension RulesWorkspaceController {
     }
 
     func activateProfile(_ id: UUID?) async {
-        _ = await definitionCommand("Couldn’t switch profiles. Try again.") {
+        _ = await definitionCommand(String(localized: "Couldn’t switch profiles. Try again.")) {
             try await controlPlane.activateProfile(id)
         }
     }
 
     func removeProfile(_ id: UUID, deletingRules: Bool) async {
         _ = await definitionCommand(
-            "Couldn’t remove the profile. It may contain protected or blocklist rules."
+            String(localized: "Couldn’t remove the profile. It may contain protected or blocklist rules.")
         ) {
             try await controlPlane.removeProfile(id, deletingRules: deletingRules)
         }
     }
 
     func addMacOSServicesGroup() async {
-        _ = await definitionCommand("Couldn’t add the macOS Services group. You may already have a group with that name.") {
+        _ = await definitionCommand(String(localized: "Couldn’t add the macOS Services group. You may already have a group with that name.")) {
             try await controlPlane.addMacOSServicesGroup()
         }
     }
 
     func createGroup(name: String) async -> Bool {
-        await definitionCommand("Couldn’t create the group.") {
+        await definitionCommand(String(localized: "Couldn’t create the group.")) {
             try await controlPlane.createLocalGroup(name: name)
         }
     }
 
     func updateGroup(_ id: UUID, name: String, note: String) async -> Bool {
-        await definitionCommand("Couldn’t change the group.") {
+        await definitionCommand(String(localized: "Couldn’t change the group.")) {
             try await controlPlane.updateLocalGroup(id, name: name, note: note)
         }
     }
 
     func setGroup(_ id: UUID, enabled: Bool) async {
-        _ = await definitionCommand("Couldn’t turn the group on or off.") {
+        _ = await definitionCommand(String(localized: "Couldn’t turn the group on or off.")) {
             try await controlPlane.setLocalGroup(id, enabled: enabled)
         }
     }
 
     func removeGroup(_ id: UUID, deletingRules: Bool) async {
         let removed = await definitionCommand(
-            "Couldn’t remove the group. It may contain protected or blocklist rules."
+            String(localized: "Couldn’t remove the group. It may contain protected or blocklist rules.")
         ) {
             try await controlPlane.removeLocalGroup(id, deletingRules: deletingRules)
         }
@@ -81,20 +81,20 @@ extension RulesWorkspaceController {
     }
 
     func setBlocklist(_ id: UUID, enabled: Bool) async {
-        _ = await definitionCommand("Couldn’t turn the blocklist on or off.") {
+        _ = await definitionCommand(String(localized: "Couldn’t turn the blocklist on or off.")) {
             try await controlPlane.setBlocklist(id, enabled: enabled)
         }
     }
 
     func removeBlocklist(_ id: UUID) async {
-        _ = await definitionCommand("Couldn’t remove the blocklist.") {
+        _ = await definitionCommand(String(localized: "Couldn’t remove the blocklist.")) {
             try await controlPlane.removeBlocklist(id)
         }
     }
 
     func importBlocklist(data: Data, name: String) async -> Bool {
         await definitionCommand(
-            "Couldn’t import the blocklist. Your rules haven’t changed."
+            String(localized: "Couldn’t import the blocklist. Your rules haven’t changed.")
         ) {
             try await controlPlane.importBlocklist(data: data, name: name)
         }

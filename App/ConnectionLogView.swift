@@ -107,9 +107,9 @@ struct ConnectionLogView: View {
     }
 
     static func title(for day: Date, now: Date, calendar: Calendar = .autoupdatingCurrent) -> String {
-        if calendar.isDate(day, inSameDayAs: now) { return "Today" }
+        if calendar.isDate(day, inSameDayAs: now) { return String(localized: "Today") }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now),
-           calendar.isDate(day, inSameDayAs: yesterday) { return "Yesterday" }
+           calendar.isDate(day, inSameDayAs: yesterday) { return String(localized: "Yesterday") }
         return day.formatted(.dateTime.weekday(.wide).month().day().year())
     }
 }

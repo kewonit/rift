@@ -1,3 +1,4 @@
+import Foundation
 import RiftControl
 import RiftCore
 
@@ -6,21 +7,22 @@ enum ManualRuleOverrideConfirmation {
         let destination: String
         switch draft.destination {
         case .ipSet(let values):
-            destination = boundedSummary(values.map(\.description), noun: ("IP address", "IP addresses"))
+            destination = boundedSummary(values.map(\.description), hosts: false)
         case .exactHostnameSet(let values):
-            destination = boundedSummary(values.map(\.ascii), noun: ("host", "hosts"))
+            destination = boundedSummary(values.map(\.ascii), hosts: true)
         case .domainSet, .endpointClass, .anyEndpoint:
-            destination = "Too broad for an exception"
+            destination = String(localized: "Too broad for an exception")
         }
-        return "App: \(bounded(applicationLabel))\nDestination: \(destination)\nThis exception allows these connections even if a blocklist denies them."
+        return String(localized: "App: \(bounded(applicationLabel))\nDestination: \(destination)\nThis exception allows these connections even if a blocklist denies them.")
     }
 
-    private static func boundedSummary(_ values: [String], noun: (one: String, many: String)) -> String {
-        guard let first = values.first else { return "No destination" }
+    private static func boundedSummary(_ values: [String], hosts: Bool) -> String {
+        guard let first = values.first else { return String(localized: "No destination") }
         let remainder = values.count - 1
-        return remainder == 0
-            ? bounded(first)
-            : "\(bounded(first)) and \(remainder) more \(remainder == 1 ? noun.one : noun.many)"
+        guard remainder > 0 else { return bounded(first) }
+        return hosts
+            ? String(localized: "\(bounded(first)) and \(remainder) more hosts")
+            : String(localized: "\(bounded(first)) and \(remainder) more IP addresses")
     }
 
     private static func bounded(_ value: String) -> String {

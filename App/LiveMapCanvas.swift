@@ -159,17 +159,20 @@ struct LiveMapCanvas: View {
 
     private var statusMessage: (text: String, symbol: String, isError: Bool)? {
         if let loadError { return (loadError, "exclamationmark.triangle.fill", true) }
-        if store.loadFailed { return ("The cable map couldn’t load.", "exclamationmark.triangle.fill", true) }
+        if store.loadFailed { return (String(localized: "The cable map couldn’t load."), "exclamationmark.triangle.fill", true) }
         if originController.origin != nil, store.resources != nil, destinations.isEmpty, !displayed.isEmpty {
-            return ("No connections to other countries right now", "globe", false)
+            return (String(localized: "No connections to other countries right now"), "globe", false)
         }
-        let undrawn = undrawnConnections == 1 ? "1 connection isn’t drawn" : "\(undrawnConnections) connections aren’t drawn"
+        let undrawn = String(localized: "\(undrawnConnections) connections aren’t drawn")
         if activity.count >= 12 {
-            return ("Showing the 12 busiest countries" + (undrawnConnections > 0 ? " · \(undrawn)" : ""), "globe", false)
+            let busiest = String(localized: "Showing the 12 busiest countries")
+            return (undrawnConnections > 0 ? "\(busiest) · \(undrawn)" : busiest, "globe", false)
         }
         if undrawnConnections > 0 {
-            let reason = localConnections == undrawnConnections ? "local" : "local or without a known country"
-            return ("\(undrawn): \(reason)", "house", false)
+            let reason = localConnections == undrawnConnections
+                ? String(localized: "local", comment: "Why connections aren’t drawn on the map: they stay on the local network")
+                : String(localized: "local or without a known country")
+            return (String(localized: "\(undrawn): \(reason)"), "house", false)
         }
         return nil
     }
