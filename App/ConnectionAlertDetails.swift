@@ -175,6 +175,7 @@ struct ConnectionAlertWarningList: View {
                         .font(.callout)
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel("Warning: \(warning.message)")
                 }
             }
         }

@@ -126,6 +126,8 @@
 		100000000000000000000102 /* public_suffix_list.dat in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000102 /* public_suffix_list.dat */; };
 		100000000000000000000107 /* process-notes.json in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000107 /* process-notes.json */; };
 		1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C8 /* MonitorFixtureStream.swift */; };
+		100000000000000000000400 /* RiftAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000400 /* RiftAccessibility.swift */; };
+		100000000000000000000401 /* ConnectionAlertAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000401 /* ConnectionAlertAccessibility.swift */; };
 		1000000000000000000000C9 /* RiftComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000C9 /* RiftComponents.swift */; };
 		1000000000000000000000CA /* MonitorFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000CA /* MonitorFeed.swift */; };
 		1000000000000000000000EC /* MapCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000EC /* MapCommands.swift */; };
@@ -330,6 +332,8 @@
 		200000000000000000000102 /* public_suffix_list.dat */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DomainData/public_suffix_list.dat"; sourceTree = "<group>"; };
 		200000000000000000000107 /* process-notes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Explanations/process-notes.json"; sourceTree = "<group>"; };
 		2000000000000000000000C8 /* MonitorFixtureStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFixtureStream.swift; sourceTree = "<group>"; };
+		200000000000000000000400 /* RiftAccessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftAccessibility.swift; sourceTree = "<group>"; };
+		200000000000000000000401 /* ConnectionAlertAccessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertAccessibility.swift; sourceTree = "<group>"; };
 		2000000000000000000000C9 /* RiftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftComponents.swift; sourceTree = "<group>"; };
 		2000000000000000000000CA /* MonitorFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorFeed.swift; sourceTree = "<group>"; };
 		2000000000000000000000EC /* MapCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCommands.swift; sourceTree = "<group>"; };
@@ -503,6 +507,8 @@
 				20000000000000000000003C /* MonitorFixtureData.swift */,
 				20000000000000000000003D /* LiveMapOrigin.swift */,
 				2000000000000000000000C8 /* MonitorFixtureStream.swift */,
+				200000000000000000000400 /* RiftAccessibility.swift */,
+				200000000000000000000401 /* ConnectionAlertAccessibility.swift */,
 				2000000000000000000000C9 /* RiftComponents.swift */,
 				2000000000000000000000CA /* MonitorFeed.swift */,
 				2000000000000000000000EC /* MapCommands.swift */,
@@ -844,6 +850,8 @@
 				10000000000000000000003A /* MonitorFixtureData.swift in Sources */,
 				10000000000000000000003B /* LiveMapOrigin.swift in Sources */,
 				1000000000000000000000C8 /* MonitorFixtureStream.swift in Sources */,
+				100000000000000000000400 /* RiftAccessibility.swift in Sources */,
+				100000000000000000000401 /* ConnectionAlertAccessibility.swift in Sources */,
 				1000000000000000000000C9 /* RiftComponents.swift in Sources */,
 				1000000000000000000000CA /* MonitorFeed.swift in Sources */,
 				1000000000000000000000EC /* MapCommands.swift in Sources */,

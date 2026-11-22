@@ -267,6 +267,7 @@ struct ConnectionAlertView: View {
                         .font(.caption)
                         .foregroundStyle(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                     }
+                    .modifier(ConnectionAlertCountdownElement(deadline: prompt.deadline, now: context.date, keys: controlActiveState == .key ? keyHint : nil))
                 }
             }
         }
@@ -275,7 +276,8 @@ struct ConnectionAlertView: View {
         // Its own height, so a taller window can't open gaps between the controls.
         .fixedSize(horizontal: false, vertical: true)
         // A warned alert looks different, so it isn't answered from habit.
-        .background(deliberateAllow ? Color(nsColor: .systemOrange).opacity(0.07) : .clear)
+        .modifier(ConnectionAlertWarnedTint(warned: deliberateAllow))
+        .modifier(ConnectionAlertAnnouncements(prompt: prompt, answered: decisionInProgress || durableRuleSaved, problem: decisionNeedsAttention && !durableRuleSaved ? decisionMessage : nil))
         .task {
             initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
             presentedAt = Date()
@@ -297,11 +299,11 @@ struct ConnectionAlertView: View {
             resolvedApplicationName = name
         }
         .task(id: prompt.nonce) {
-            AccessibilityNotification.Announcement(ConnectionAlertPresentation.headline(
+            ConnectionAlertSpeech.announceOpening(ConnectionAlertPresentation.headline(
                 application: applicationName,
                 destination: DisplaySanitizer.plainText(destination),
                 direction: prompt.direction
-            )).post()
+            ), prompt: prompt)
             // The filter resolves the connection at the deadline. If that news
             // never arrives, clear the alert so it can't sit here with no way out.
             let wait = prompt.deadline.timeIntervalSinceNow + 2

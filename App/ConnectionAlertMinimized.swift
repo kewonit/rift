@@ -33,6 +33,7 @@ struct ConnectionAlertMinimizedView: View {
                     Text(ConnectionAlertCountdown.label(deadline: prompt.deadline, now: context.date))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(Color(nsColor: .systemOrange))
+                        .accessibilityLabel(ConnectionAlertSpeech.countdown(deadline: prompt.deadline, now: context.date))
                 }
             }
             Spacer(minLength: RiftDesign.Spacing.s)
@@ -55,6 +56,9 @@ struct ConnectionAlertMinimizedView: View {
         .frame(width: 380)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Connection waiting for a decision")
+        // The bar can appear without the whole alert ever showing, so it
+        // says what's waiting, and when ten seconds are left.
+        .modifier(ConnectionAlertAnnouncements(prompt: prompt, arrivalHeadline: arrivalHeadline))
         .task(id: prompt.nonce) {
             // As in the full alert: if news that the filter resolved the
             // connection never arrives, clear it after the deadline.
@@ -72,6 +76,14 @@ struct ConnectionAlertMinimizedView: View {
     }
 
     private var identity: ProcessIdentity? { prompt.appIdentity ?? prompt.processIdentity }
+
+    private var arrivalHeadline: String {
+        ConnectionAlertPresentation.headline(
+            application: DisplaySanitizer.plainText(applicationName ?? MonitorQuery.identityLabel(identity)),
+            destination: DisplaySanitizer.plainText(ConnectionAlertFacts(prompt: prompt).destination),
+            direction: prompt.direction
+        )
+    }
 }
 
 /// "+N waiting", as a menu to answer another waiting connection first.
@@ -92,6 +104,7 @@ struct ConnectionAlertWaitingMenu: View {
                 Text(compact ? "+\(others.count)" : ConnectionAlertPresentation.moreWaitingLabel(others.count) ?? "")
                     .monospacedDigit()
             }
+            .accessibilityLabel(others.count == 1 ? "1 more connection waiting" : "\(others.count) more connections waiting")
             .menuStyle(.borderlessButton)
             .fixedSize()
             .font(.caption)
