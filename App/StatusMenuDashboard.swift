@@ -34,6 +34,8 @@ struct StatusMenuDashboard: View {
             HStack {
                 Text("Notify about blocks and undecided connections")
                     .fixedSize(horizontal: false, vertical: true)
+                    // The switch carries the same words.
+                    .accessibilityHidden(true)
                 Spacer(minLength: RiftDesign.Spacing.s)
                 Toggle("Notify about blocks and undecided connections", isOn: Binding(
                     get: { notificationsEnabled }, set: { _ in toggleNotifications() }
@@ -87,6 +89,7 @@ struct StatusMenuDashboard: View {
                                 Text(RiftRelativeTime.short(item.occurredAt, now: now))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.tertiary)
+                                    .accessibilityLabel(RiftSpokenTime.ago(item.occurredAt, now: now))
                                 RiftDecisionBadge(decision: item.decision)
                             }
                         }
@@ -111,6 +114,7 @@ struct StatusMenuDashboard: View {
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
                     }
                 }
                 .accessibilityHint("Shows the most recent blocked connection")
@@ -176,6 +180,8 @@ private struct StatusMenuHeader: View, Equatable {
                 } label: {
                     Text(modeIsUnreadable ? "Unknown" : mode.displayName)
                 }
+                .accessibilityLabel(profile.map { "Mode for \($0)" } ?? "Mode")
+                .accessibilityValue(modeIsUnreadable ? "Unknown" : mode.displayName)
                 .fixedSize()
                 .controlSize(.small)
                 .disabled(!canChangeMode || modeIsUnreadable)
@@ -217,11 +223,17 @@ private struct StatusMenuTraffic: View, Equatable {
                 } icon: {
                     Image(systemName: "arrow.up").foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Sent")
+                .accessibilityValue(RiftBytesText.spoken(traffic.sent, partial: traffic.partial))
                 Label {
                     RiftBytesText(bytes: traffic.received, partial: traffic.partial)
                 } icon: {
                     Image(systemName: "arrow.down").foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Received")
+                .accessibilityValue(RiftBytesText.spoken(traffic.received, partial: traffic.partial))
             }
             .font(.caption)
             TrafficBars(snapshot: traffic)
@@ -229,5 +241,6 @@ private struct StatusMenuTraffic: View, Equatable {
         }
         .padding(RiftDesign.Spacing.s + 2)
         .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: RiftDesign.Radius.card, style: .continuous))
+        .riftContrastOutline(RoundedRectangle(cornerRadius: RiftDesign.Radius.card, style: .continuous))
     }
 }

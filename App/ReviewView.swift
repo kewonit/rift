@@ -17,6 +17,7 @@ struct ReviewView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: RiftDesign.Spacing.xs) {
                 Text("Review").font(.title2.weight(.semibold))
+                    .accessibilityAddTraits(.isHeader)
                 Text(keepsHistory
                     ? "Connections from the last 7 days that no rule decides yet."
                     : "Recent connections that no rule decides yet. Turn on history in Settings › History to review the last 7 days.")
@@ -107,7 +108,7 @@ private struct ReviewAppRow: View {
                     .font(.caption).foregroundStyle(.secondary).lineLimit(2)
             }
             Spacer(minLength: RiftDesign.Spacing.s)
-            ReviewDecisionButtons(busy: busy, decide: { decide($0, displayName) })
+            ReviewDecisionButtons(busy: busy, name: displayName, decide: { decide($0, displayName) })
             Menu {
                 Button("Show on Map", action: showOnMap)
                 Button("Not Now", action: notNow)
@@ -122,6 +123,7 @@ private struct ReviewAppRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
+        .accessibilityLabel(displayName)
         .task(id: app.identity) {
             name = await artworkStore.artwork(for: app.identity)?.displayName
         }
@@ -156,10 +158,11 @@ private struct ReviewUnansweredRow: View {
                     .font(.caption).foregroundStyle(.secondary).lineLimit(2)
             }
             Spacer(minLength: RiftDesign.Spacing.s)
-            ReviewDecisionButtons(busy: busy, decide: { decide($0, displayName) })
+            ReviewDecisionButtons(busy: busy, name: displayName, decide: { decide($0, displayName) })
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
+        .accessibilityLabel(displayName)
         .task(id: item.identity) {
             name = await artworkStore.artwork(for: item.identity)?.displayName
         }
@@ -177,12 +180,16 @@ private struct ReviewUnansweredRow: View {
 
 private struct ReviewDecisionButtons: View {
     let busy: Bool
+    /// The app, so VoiceOver's list of buttons says which Block is which.
+    let name: String
     let decide: (FilterAction) -> Void
 
     var body: some View {
         HStack(spacing: RiftDesign.Spacing.xs) {
             Button("Block") { decide(.deny) }
+                .accessibilityLabel("Block \(name)")
             Button("Allow") { decide(.allow) }
+                .accessibilityLabel("Allow \(name)")
         }
         .controlSize(.small)
         .disabled(busy)

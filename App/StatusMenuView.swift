@@ -125,6 +125,8 @@ struct StatusMenuView: View {
             if windowIsVisible { refreshCoordinator.request { await load() } }
         }
         .modifier(ModeChangeConfirmation(pendingMode: $pendingMode, confirm: setMode))
+        .riftAnnounces(errorMessage)
+        .riftAnnounces(profileActivationMessage)
         .confirmationDialog("Quit Rift?", isPresented: $showingQuitConfirmation, titleVisibility: .visible) {
             Button("Quit Rift", role: .destructive) { NSApplication.shared.terminate(nil) }
             Button("Cancel", role: .cancel) {}
@@ -142,10 +144,12 @@ struct StatusMenuView: View {
             controller.lostEventCount > 0 ? ("Some activity wasn’t recorded while Rift was unavailable.", false) : nil,
         ].compactMap { $0 }
         ForEach(lines, id: \.0) { line in
-            Text(line.0)
+            // A symbol as well as the color marks what needs attention.
+            (line.1 ? Text("\(Image(systemName: "exclamationmark.triangle.fill")) \(line.0)") : Text(line.0))
                 .font(.caption)
                 .foregroundStyle(line.1 ? Color(nsColor: .systemOrange) : .secondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(line.1 ? "Needs attention: \(line.0)" : line.0)
         }
     }
 

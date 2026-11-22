@@ -6,6 +6,7 @@ struct StatusMenuButton<Content: View>: View {
     let action: () -> Void
     @ViewBuilder let label: Content
     @State private var hovering = false
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Button(action: action) {
@@ -14,7 +15,7 @@ struct StatusMenuButton<Content: View>: View {
                 .padding(.vertical, RiftDesign.Spacing.xs)
                 .frame(maxWidth: .infinity, minHeight: 26, alignment: .leading)
                 .background(
-                    hovering ? Color.primary.opacity(0.09) : .clear,
+                    hovering ? Color.primary.opacity(contrast == .increased ? 0.18 : 0.09) : .clear,
                     in: RoundedRectangle(cornerRadius: RiftDesign.Radius.control - 2, style: .continuous)
                 )
                 .contentShape(Rectangle())
@@ -75,10 +76,13 @@ struct StatusMenuFiveMinuteRow<Content: View>: View {
     let decide: (FilterAction) -> Void
     @ViewBuilder let content: Content
     @State private var hovering = false
+    @FocusState private var buttonFocused: Bool
 
     var body: some View {
         HStack(spacing: 0) {
+            // On the row's own button, so VoiceOver offers it there.
             content
+                .accessibilityAction(named: title) { decide(undo) }
             Button { decide(undo) } label: {
                 Image(systemName: undo == .allow ? "checkmark.circle" : "xmark.circle")
                     .foregroundStyle(undo == .allow ? Color(nsColor: .systemGreen) : Color(nsColor: .systemRed))
@@ -87,11 +91,13 @@ struct StatusMenuFiveMinuteRow<Content: View>: View {
             }
             .buttonStyle(.borderless)
             .help(title)
-            .opacity(hovering ? 1 : 0)
+            .focused($buttonFocused)
+            // Also shown while it has keyboard focus, so a Tab onto it
+            // doesn't land on nothing.
+            .opacity(hovering || buttonFocused ? 1 : 0)
             .accessibilityHidden(true)
         }
         .onHover { hovering = $0 }
-        .accessibilityAction(named: title) { decide(undo) }
     }
 
     private var title: String { undo == .allow ? "Allow for 5 Minutes" : "Block for 5 Minutes" }

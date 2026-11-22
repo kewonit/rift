@@ -43,6 +43,7 @@ struct StatusMenuBlockedList: View {
                                 Text(RiftRelativeTime.short(item.occurredAt, now: now))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.tertiary)
+                                    .accessibilityLabel(RiftSpokenTime.ago(item.occurredAt, now: now))
                             }
                         }
                         .accessibilityHint("Shows this connection in Rift")
@@ -92,6 +93,7 @@ struct StatusMenuTemporaryRules: View {
                         Text(remaining(rule.expiresAt))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
+                            .accessibilityLabel(remaining(rule.expiresAt, spoken: true))
                         Button { remove(rule.id) } label: {
                             Label("Remove Rule", systemImage: "xmark.circle")
                                 .labelStyle(.iconOnly)
@@ -121,11 +123,18 @@ struct StatusMenuTemporaryRules: View {
         }
     }
 
-    private func remaining(_ end: Date) -> String {
+    /// "5m left", or "5 minutes left" for VoiceOver.
+    private func remaining(_ end: Date, spoken: Bool = false) -> String {
         let seconds = max(0, end.timeIntervalSince(now))
-        if seconds < 60 { return "\(Int(seconds))s left" }
-        if seconds < 3_600 { return "\(Int((seconds / 60).rounded(.up)))m left" }
-        return "\(Int(seconds / 3_600))h left"
+        let left: (count: Int, unit: Int, suffix: String) = if seconds < 60 {
+            (Int(seconds), 1, "s")
+        } else if seconds < 3_600 {
+            (Int((seconds / 60).rounded(.up)), 60, "m")
+        } else {
+            (Int(seconds / 3_600), 3_600, "h")
+        }
+        guard spoken else { return "\(left.count)\(left.suffix) left" }
+        return RiftSpokenTime.duration(seconds: left.count * left.unit) + " left"
     }
 }
 

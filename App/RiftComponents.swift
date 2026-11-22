@@ -31,10 +31,11 @@ struct RiftBytesText: View {
             }
         }
         .monospacedDigit()
-        .accessibilityLabel(accessibilityText)
+        .accessibilityLabel(Self.spoken(bytes, partial: partial))
     }
 
-    private var accessibilityText: String {
+    /// The total as VoiceOver reads it, with "at least" for the "≥".
+    static func spoken(_ bytes: UInt64?, partial: Bool) -> String {
         guard let bytes else { return "Unavailable" }
         return (partial ? "At least " : "") + RiftFormat.bytes(bytes)
     }
