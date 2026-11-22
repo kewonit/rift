@@ -26,6 +26,9 @@ struct LiveMapCanvas: View {
     @State private var activity: [CountryActivity] = []
     @State private var destinations: [MapDestination] = []
     @State private var localConnections = 0
+    /// Connections with no line on the map: local, without a known country,
+    /// or beyond the busiest countries. Saying how many keeps the map honest.
+    @State private var undrawnConnections = 0
     @State private var generation = 0
     /// MapKit holds a few hundred MB of tiles and textures. Keep the map while
     /// the window is only briefly hidden, then release it.
@@ -114,7 +117,8 @@ struct LiveMapCanvas: View {
                     .padding(.horizontal, RiftDesign.Spacing.m)
                     .padding(.vertical, RiftDesign.Spacing.xs + 2)
                     .riftPanel(cornerRadius: RiftDesign.Radius.card)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    // At the bottom, so banners about Rift's state at the top never hide it.
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .allowsHitTesting(false)
             }
             Text("© OpenStreetMap")
@@ -159,8 +163,14 @@ struct LiveMapCanvas: View {
         if originController.origin != nil, store.resources != nil, destinations.isEmpty, !displayed.isEmpty {
             return ("No connections to other countries right now", "globe", false)
         }
-        if activity.count >= 12 { return ("Showing the 12 busiest countries", "globe", false) }
-        if localConnections > 0 { return ("Local connections aren’t shown on the map", "house", false) }
+        let undrawn = undrawnConnections == 1 ? "1 connection isn’t drawn" : "\(undrawnConnections) connections aren’t drawn"
+        if activity.count >= 12 {
+            return ("Showing the 12 busiest countries" + (undrawnConnections > 0 ? " · \(undrawn)" : ""), "globe", false)
+        }
+        if undrawnConnections > 0 {
+            let reason = localConnections == undrawnConnections ? "local" : "local or without a known country"
+            return ("\(undrawn): \(reason)", "house", false)
+        }
         return nil
     }
 
@@ -201,6 +211,9 @@ struct LiveMapCanvas: View {
             localConnections = rows.filter {
                 !($0.source.event.flow.remoteEndpoint?.classes.isEmpty ?? true)
             }.count
+            let drawn = Set(result.map(\.countryCode))
+            let drawnConnections = grouped.filter { drawn.contains($0.countryCode) }.reduce(0) { $0 + $1.connections }
+            undrawnConnections = max(0, rows.count - drawnConnections)
         }
     }
 }

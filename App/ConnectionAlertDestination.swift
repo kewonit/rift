@@ -34,6 +34,12 @@ extension ConnectionAlertView {
         return others.filter { ($0.appIdentity ?? $0.processIdentity) == identity && $0.direction == prompt.direction }
     }
 
+    /// Names the active profile, so it's clear where a new rule lands.
+    func scopeTitle(_ scope: RuleScope) -> String {
+        guard scope == .currentProfile, let name = currentProfileName else { return scope.rawValue }
+        return "Current profile (\(DisplaySanitizer.plainText(name)))"
+    }
+
     /// The last moment to answer: the filter's deadline, or a little before
     /// it when Rift answers Block for unanswered connections.
     var answerDeadline: Date {

@@ -38,19 +38,23 @@ public struct MonitorRuleCoverage: Sendable, Hashable {
     public let currentAction: FilterAction?
     /// The deciding rule in words, so nobody has to go looking for it.
     public let winningRuleSummary: String?
+    /// The deciding rule comes from a blocklist, not from the person.
+    public let decidedByBlocklist: Bool
 
     public init(
         state: MonitorRuleCoverageState,
         ruleIDs: Set<UUID> = [],
         winningRuleID: UUID? = nil,
         currentAction: FilterAction? = nil,
-        winningRuleSummary: String? = nil
+        winningRuleSummary: String? = nil,
+        decidedByBlocklist: Bool = false
     ) {
         self.state = state
         self.ruleIDs = ruleIDs
         self.winningRuleID = winningRuleID
         self.currentAction = currentAction
         self.winningRuleSummary = winningRuleSummary
+        self.decidedByBlocklist = decidedByBlocklist
     }
 }
 
@@ -223,7 +227,8 @@ public enum MonitorCoverageEvaluator {
                 ? first.currentAction : nil
             return MonitorRuleCoverage(
                 state: first.state, ruleIDs: allIDs, winningRuleID: winner, currentAction: action,
-                winningRuleSummary: winner == nil ? nil : first.winningRuleSummary
+                winningRuleSummary: winner == nil ? nil : first.winningRuleSummary,
+                decidedByBlocklist: values.allSatisfy(\.decidedByBlocklist)
             )
         }
         let uncovered: Set<MonitorRuleCoverageState> = [
@@ -275,7 +280,8 @@ public enum MonitorCoverageEvaluator {
                 ruleIDs: ruleIDs,
                 winningRuleID: winnerID,
                 currentAction: decision.filter.action,
-                winningRuleSummary: summary(of: winner, state: enforcementState)
+                winningRuleSummary: summary(of: winner, state: enforcementState),
+                decidedByBlocklist: winner.priority == .blocklistDeny
             )
         }
         if let historicalID = historicalRuleID, !historicalRuleExists {

@@ -190,7 +190,7 @@ struct ConnectionAlertView: View {
                 }
                 if activeProfileResolution.profile != nil {
                     Picker("Apply to", selection: $scope) {
-                        ForEach(RuleScope.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(RuleScope.allCases) { Text(scopeTitle($0)).tag($0) }
                     }
                 }
                 TextField("Note (optional)", text: $note, axis: .vertical)
@@ -488,6 +488,7 @@ struct ConnectionAlertView: View {
         prompt.appIdentity ?? prompt.processIdentity
     }
 
+    var currentProfileName: String? { activeProfileResolution.profile?.name }
     private var facts: ConnectionAlertFacts { ConnectionAlertFacts(prompt: prompt) }
     private var destination: String { facts.destination }
     private var identityTitle: String { facts.identityTitle }

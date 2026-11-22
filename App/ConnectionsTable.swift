@@ -146,6 +146,7 @@ private struct DecisionCell: View {
 
     private var label: String {
         if let futureChange { return futureChange }
+        if aggregate.decision == .denied, node.ruleCoverage.decidedByBlocklist { return "Blocked by a list" }
         return aggregate.decision == .mixed ? "\(aggregate.denied) blocked" : aggregate.decision.label
     }
 

@@ -80,6 +80,11 @@ The changelog records notable user-visible changes.
 - Rift's Dock icon has a menu with Map, Rules, Review and Settings, and
   Settings › General can turn on ⌃⌥⌘R to show the Map from any app. Both work
   when the menu-bar icon is hidden. The shortcut needs no extra permission.
+- The Map's Decision column says "Blocked by a list" when a blocklist, not one
+  of your rules, blocked a connection. The map says how many connections it
+  doesn't draw (local, without a known country, or beyond the 12 busiest
+  countries), and its caption moved to the bottom so banners no longer hide
+  it. An alert's "Apply to" names the active profile.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
