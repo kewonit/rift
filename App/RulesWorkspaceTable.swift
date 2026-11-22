@@ -164,6 +164,7 @@ struct RulesWorkspaceTable: View {
         .help([node.title, node.applicationIdentity?.signerKind, node.subtitle].compactMap { $0 }.joined(separator: " — "))
         .accessibilityElement(children: .combine)
         .accessibilityValue(node.row == nil ? ruleCountLabel(node.ruleIDs.count) : "")
+        .accessibilityActions { rowAccessibilityActions(node) }
 
         if let ruleIDs = draggableRuleIDs(for: node) {
             cell

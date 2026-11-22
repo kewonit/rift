@@ -274,6 +274,7 @@ struct RiftSidebarView: View {
             Text(source.entryCount.formatted())
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
+                .accessibilityLabel(source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries")
             rowCheckbox(
                 isOn: source.status == .active,
                 label: source.status == .active ? "Disable \(display(source.name))" : "Enable \(display(source.name))"

@@ -172,6 +172,8 @@ struct RulesWorkspaceView: View {
                 Label("Filter and Sort", systemImage: filterSymbol)
             }
             .help("Filter and sort rules")
+            // The filled symbol says a filter is on; VoiceOver says which.
+            .accessibilityValue(model.actionFilter == .all ? "" : "Showing \(model.actionFilter.rawValue) rules")
             Menu {
                 Button("Import Rules…") { Task { await model.chooseRulesToImport() } }
                 Button("Export Selected Rules…") { Task { await model.exportSelected() } }

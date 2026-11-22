@@ -105,4 +105,36 @@ extension RulesWorkspaceTable {
                 : "\(skipped) protected or blocklist rules will be skipped.")
         }
     }
+
+    /// The row's main menu commands as VoiceOver actions, so a row can be
+    /// edited or deleted without selecting it and opening its menu. They're
+    /// worked out from the row alone, because every visible row asks.
+    @ViewBuilder
+    func rowAccessibilityActions(_ node: RuleWorkspaceNode) -> some View {
+        let ids: Set<RuleWorkspaceNodeID> = [node.id]
+        let editable = rows(node).filter {
+            !$0.rule.flags.contains(.protected) && !$0.rule.flags.contains(.sourceManaged)
+        }
+        let apps = Set(rows(node).compactMap { applicationIdentity($0.rule.process) })
+        if !isPreview, editable.count == 1, rows(node).count == 1 {
+            Button("Edit") { editingRow = row(applySelection(ids).first) }
+        } else if !isPreview, editable.count > 1 {
+            Button("Edit Rules…") {
+                applySelection(ids)
+                model.bulkEditing = true
+            }
+        }
+        if !isPreview, !editable.isEmpty {
+            Button("Delete…") {
+                applySelection(ids)
+                showingDeleteConfirmation = true
+            }
+        }
+        if apps.count == 1 {
+            Button("Show Rules for This App") { focusAffectingRules(ids) }
+            if !isPreview {
+                Button("Show on Map") { showOnMap(ids) }
+            }
+        }
+    }
 }
