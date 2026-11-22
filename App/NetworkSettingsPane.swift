@@ -20,11 +20,19 @@ struct NetworkSettingsPane: View {
                     locationNote
                 }
             } footer: {
-                Text("Rift switches on its own only to a profile at least as strict as the current one. Anyone can name a Wi-Fi network after yours, so when a network calls for a less strict profile, Rift notifies you instead, and you can switch from the menu bar.")
+                Text("Rift switches on its own only to a profile at least as strict as the current one. Anyone can name a Wi-Fi network after yours, so when a network calls for a less strict profile, Rift notifies you instead, and you can switch from the menu bar. While you're on a network, you can allow it there anyway.")
             }
             Section("This network") {
                 if let current = switcher.current, let key = current.key {
                     picker(current.displayName, key: key, choice: switcher.remembered[key]?.choice ?? switcher.otherNetworks)
+                    if let network = switcher.remembered[key], network.choice != .leaveAsIs {
+                        Toggle("Switch even when it’s less strict", isOn: Binding(
+                            get: { network.allowsLessStrictSwitch == true },
+                            set: { switcher.setAllowsLessStrict($0, for: key) }
+                        ))
+                        Text("Another network can use this name or router address. Rift always tells you when it makes a less strict switch, and changing this network’s profile turns this off.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 } else {
                     Text("Not connected to a network Rift can recognize.").foregroundStyle(.secondary)
                 }

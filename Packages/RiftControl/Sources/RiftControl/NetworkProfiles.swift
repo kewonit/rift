@@ -65,14 +65,25 @@ public struct RememberedNetwork: Sendable, Hashable, Codable, Identifiable {
     public var name: String
     public var choice: NetworkProfileChoice
     public var lastSeenAt: Date
+    /// The person allowed switching to this network's profile even when it's
+    /// less strict than the current one. Nil, the default, means no; it's
+    /// optional so networks saved before it existed read the same way.
+    public var allowsLessStrictSwitch: Bool?
 
     public var id: String { key }
 
-    public init(key: String, name: String, choice: NetworkProfileChoice, lastSeenAt: Date) {
+    public init(
+        key: String,
+        name: String,
+        choice: NetworkProfileChoice,
+        lastSeenAt: Date,
+        allowsLessStrictSwitch: Bool? = nil
+    ) {
         self.key = key
         self.name = name
         self.choice = choice
         self.lastSeenAt = lastSeenAt
+        self.allowsLessStrictSwitch = allowsLessStrictSwitch
     }
 }
 

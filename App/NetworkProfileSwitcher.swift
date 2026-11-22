@@ -76,10 +76,22 @@ final class NetworkProfileSwitcher {
 
     func setChoice(_ choice: NetworkProfileChoice, for key: String) {
         guard var network = remembered[key] else { return }
+        // An approval covered the old choice, not the new one.
+        if network.choice != choice { network.allowsLessStrictSwitch = nil }
         network.choice = choice
         remembered[key] = network
         save()
         if key == current?.key { Task { await apply(force: true) } }
+    }
+
+    /// Lets Rift switch to this network's profile on its own even when it's
+    /// less strict. Given only here, in the app.
+    func setAllowsLessStrict(_ allowed: Bool, for key: String) {
+        guard var network = remembered[key] else { return }
+        network.allowsLessStrictSwitch = allowed ? true : nil
+        remembered[key] = network
+        save()
+        if allowed, key == current?.key { Task { await apply(force: true) } }
     }
 
     func forget(_ key: String) {
@@ -150,6 +162,10 @@ final class NetworkProfileSwitcher {
             lastMessage = "Switched to \(name) for \(network.displayName)."
             if notifies { notify("Switched to \(name)", "For the network \(network.displayName).") }
         } catch CLIRelayRefusal.profileSwitchNeedsConfirmation {
+            if let key = network.key, remembered[key]?.allowsLessStrictSwitch == true {
+                await switchLessStrict(to: target, name: name, on: network, controlPlane: controlPlane)
+                return
+            }
             lastMessage = "\(name) is less strict, so Rift didn’t switch to it on its own."
             if notifies {
                 notify(
@@ -157,6 +173,26 @@ final class NetworkProfileSwitcher {
                     "\(name) is less strict than the current profile. To use it on \(network.displayName), choose it from the menu bar."
                 )
             }
+        } catch {
+            lastMessage = "Rift couldn’t switch to \(name)."
+        }
+    }
+
+    /// A less strict switch the person allowed for this network. Rift always
+    /// says when it makes one, whatever the notification setting.
+    private func switchLessStrict(
+        to target: UUID?,
+        name: String,
+        on network: NetworkIdentity,
+        controlPlane: ControlPlaneController
+    ) async {
+        do {
+            _ = try await controlPlane.activateProfile(target, unattended: false)
+            lastMessage = "Switched to \(name), which is less strict, as you allowed for \(network.displayName)."
+            notify(
+                "Switched to \(name), which is less strict",
+                "You allowed this for \(network.displayName). To stop it, turn it off in Settings › Networks."
+            )
         } catch {
             lastMessage = "Rift couldn’t switch to \(name)."
         }

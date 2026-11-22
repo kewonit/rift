@@ -64,6 +64,11 @@ The changelog records notable user-visible changes.
 - In the menu-bar panel, pointing at a recent app shows its five-minute rule:
   Block for an allowed app, Allow for a blocked one. Before, it took a
   right-click. VoiceOver offers it as an action.
+- Settings › Networks can allow switching to a less strict profile on the
+  network you're on: turn on "Switch even when it's less strict" there.
+  Rift then switches on its own and always notifies you when it does.
+  Changing that network's profile turns the approval off. Without it, Rift
+  still never weakens protection on its own.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
