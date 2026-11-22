@@ -1,0 +1,42 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSLocationUsageDescription" : {
+      "comment" : "Privacy - Location Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "macOS lets an app read Wi-Fi network names only with Location Services. Rift reads only the network name, to switch profiles by network, and never the Mac’s location."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Privacy - Location When In Use Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "macOS lets an app read Wi-Fi network names only with Location Services. Rift reads only the network name, to switch profiles by network, and never the Mac’s location."
+          }
+        }
+      }
+    },
+    "NSSystemExtensionUsageDescription" : {
+      "comment" : "Privacy - System Extension Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rift uses a network filter to apply your connection rules on this Mac."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
