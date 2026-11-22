@@ -67,6 +67,7 @@ public struct ProtectionInputs: Sendable, Equatable {
 
 /// The single answer to "what is Rift doing right now?", shared by the Status
 /// page, the menu-bar panel and the Map banner so they can't disagree.
+/// `riftctl status` prints it too, so its words come from `RiftLocale.bundle`.
 public struct ProtectionStatus: Sendable, Equatable {
     public enum State: Sendable, Equatable {
         case preview
@@ -113,11 +114,11 @@ public struct ProtectionStatus: Sendable, Equatable {
 
         public var title: String {
             switch self {
-            case .setUp: String(localized: "Set Up Rift", bundle: .module)
-            case .openSystemSettings: String(localized: "Open System Settings", bundle: .module)
-            case .showStatus: String(localized: "Show Status", bundle: .module)
-            case .reviewWaiting: String(localized: "Review", bundle: .module)
-            case .resumeRules: String(localized: "Resume Rules", bundle: .module)
+            case .setUp: String(localized: "Set Up Rift", bundle: RiftLocale.bundle)
+            case .openSystemSettings: String(localized: "Open System Settings", bundle: RiftLocale.bundle)
+            case .showStatus: String(localized: "Show Status", bundle: RiftLocale.bundle)
+            case .reviewWaiting: String(localized: "Review", bundle: RiftLocale.bundle)
+            case .resumeRules: String(localized: "Resume Rules", bundle: RiftLocale.bundle)
             }
         }
     }
@@ -154,13 +155,13 @@ public struct ProtectionStatus: Sendable, Equatable {
     /// One line about the person's rules, separate from the filter's health.
     public var rulesSummary: String {
         switch state {
-        case .active(.filterOff): String(localized: "Off.", bundle: .module)
-        case .active, .waiting: String(localized: "In effect.", bundle: .module)
-        case .rulesAtRisk: String(localized: "In effect, but temporary rules may not apply.", bundle: .module)
-        case .rulesNotCurrent: String(localized: "Your latest changes are saved, but they aren’t in effect yet.", bundle: .module)
-        case .allowingEverything: String(localized: "None are in effect.", bundle: .module)
-        case .configurationUnreadable: String(localized: "Rift can’t read them.", bundle: .module)
-        default: String(localized: "Rift can’t confirm they’re in effect.", bundle: .module)
+        case .active(.filterOff): String(localized: "Off.", bundle: RiftLocale.bundle)
+        case .active, .waiting: String(localized: "In effect.", bundle: RiftLocale.bundle)
+        case .rulesAtRisk: String(localized: "In effect, but temporary rules may not apply.", bundle: RiftLocale.bundle)
+        case .rulesNotCurrent: String(localized: "Your latest changes are saved, but they aren’t in effect yet.", bundle: RiftLocale.bundle)
+        case .allowingEverything: String(localized: "None are in effect.", bundle: RiftLocale.bundle)
+        case .configurationUnreadable: String(localized: "Rift can’t read them.", bundle: RiftLocale.bundle)
+        default: String(localized: "Rift can’t confirm they’re in effect.", bundle: RiftLocale.bundle)
         }
     }
 
@@ -168,15 +169,15 @@ public struct ProtectionStatus: Sendable, Equatable {
     public func rulesDetail(ruleCount: Int?, blocklistCount: Int?) -> String {
         guard rulesApply, let ruleCount, let blocklistCount else { return rulesSummary }
         if ruleCount == 0, blocklistCount == 0 {
-            return String(localized: "\(rulesSummary) You have no rules yet.", bundle: .module)
+            return String(localized: "\(rulesSummary) You have no rules yet.", bundle: RiftLocale.bundle)
         }
-        let rules = String(localized: "\(ruleCount) rules", bundle: .module)
+        let rules = String(localized: "\(ruleCount) rules", bundle: RiftLocale.bundle)
         guard blocklistCount > 0 else {
-            return String(localized: "\(rulesSummary) \(rules).", bundle: .module,
+            return String(localized: "\(rulesSummary) \(rules).", bundle: RiftLocale.bundle,
                           comment: "The rules summary, then a count of rules")
         }
-        let lists = String(localized: "\(blocklistCount) blocklists", bundle: .module)
-        return String(localized: "\(rulesSummary) \(rules) and \(lists).", bundle: .module,
+        let lists = String(localized: "\(blocklistCount) blocklists", bundle: RiftLocale.bundle)
+        return String(localized: "\(rulesSummary) \(rules) and \(lists).", bundle: RiftLocale.bundle,
                       comment: "The rules summary, then counts of rules and blocklists")
     }
 
@@ -227,41 +228,49 @@ public struct ProtectionStatus: Sendable, Equatable {
         return active(mode)
     }
 
-    private static let filterSilent = ProtectionStatus(
-        state: .filterSilent,
-        title: String(localized: "Rift isn’t seeing connections", bundle: .module),
-        detail: String(localized: "The filter says it’s on, but no connection has reached Rift for \(Int(FilterLiveness.silenceThreshold / 60)) minutes while the network is up. Your rules may not be applying.", bundle: .module),
-        tone: .attention, traffic: .unknown, action: .showStatus, symbolName: "exclamationmark.shield"
-    )
+    private static var filterSilent: ProtectionStatus {
+        ProtectionStatus(
+            state: .filterSilent,
+            title: String(localized: "Rift isn’t seeing connections", bundle: RiftLocale.bundle),
+            detail: String(localized: "The filter says it’s on, but no connection has reached Rift for \(Int(FilterLiveness.silenceThreshold / 60)) minutes while the network is up. Your rules may not be applying.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .unknown, action: .showStatus, symbolName: "exclamationmark.shield"
+        )
+    }
 
-    private static let preview = ProtectionStatus(
-        state: .preview,
-        title: String(localized: "Preview", bundle: .module),
-        detail: String(localized: "This preview shows sample data. Nothing on this Mac changes.", bundle: .module),
-        tone: .preview, traffic: .unknown, action: nil, symbolName: "eye"
-    )
+    private static var preview: ProtectionStatus {
+        ProtectionStatus(
+            state: .preview,
+            title: String(localized: "Preview", bundle: RiftLocale.bundle),
+            detail: String(localized: "This preview shows sample data. Nothing on this Mac changes.", bundle: RiftLocale.bundle),
+            tone: .preview, traffic: .unknown, action: nil, symbolName: "eye"
+        )
+    }
 
-    private static let cannotFilter = ProtectionStatus(
-        state: .cannotFilter,
-        title: String(localized: "This copy can’t filter", bundle: .module),
-        detail: String(localized: "It isn’t signed with Apple’s network filter permission, so it can’t see or block connections.", bundle: .module),
-        tone: .attention, traffic: .allAllowed, action: .showStatus, symbolName: "shield.slash"
-    )
+    private static var cannotFilter: ProtectionStatus {
+        ProtectionStatus(
+            state: .cannotFilter,
+            title: String(localized: "This copy can’t filter", bundle: RiftLocale.bundle),
+            detail: String(localized: "It isn’t signed with Apple’s network filter permission, so it can’t see or block connections.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .allAllowed, action: .showStatus, symbolName: "shield.slash"
+        )
+    }
 
-    private static let checking = ProtectionStatus(
-        state: .checking,
-        title: String(localized: "Checking the filter", bundle: .module),
-        detail: String(localized: "Rift is checking the filter’s status with macOS.", bundle: .module),
-        tone: .neutral, traffic: .unknown, action: nil, symbolName: "shield.slash"
-    )
+    private static var checking: ProtectionStatus {
+        ProtectionStatus(
+            state: .checking,
+            title: String(localized: "Checking the filter", bundle: RiftLocale.bundle),
+            detail: String(localized: "Rift is checking the filter’s status with macOS.", bundle: RiftLocale.bundle),
+            tone: .neutral, traffic: .unknown, action: nil, symbolName: "shield.slash"
+        )
+    }
 
     private static func unreadable(hasActivePolicy: Bool) -> ProtectionStatus {
         ProtectionStatus(
             state: .configurationUnreadable,
-            title: String(localized: "Rift can’t read your rules", bundle: .module),
+            title: String(localized: "Rift can’t read your rules", bundle: RiftLocale.bundle),
             detail: hasActivePolicy
-                ? String(localized: "The filter is still using your last working rules.", bundle: .module)
-                : String(localized: "Rift can’t confirm any rules are in effect.", bundle: .module),
+                ? String(localized: "The filter is still using your last working rules.", bundle: RiftLocale.bundle)
+                : String(localized: "Rift can’t confirm any rules are in effect.", bundle: RiftLocale.bundle),
             tone: .attention,
             traffic: hasActivePolicy ? .rulesApply : .unknown,
             action: .showStatus,
@@ -269,108 +278,126 @@ public struct ProtectionStatus: Sendable, Equatable {
         )
     }
 
-    private static let setupNeeded = ProtectionStatus(
-        state: .setupNeeded,
-        title: String(localized: "Set up Rift", bundle: .module),
-        detail: String(localized: "Rift isn’t filtering yet. All connections are allowed until setup is done.", bundle: .module),
-        tone: .neutral, traffic: .allAllowed, action: .setUp, symbolName: "shield.slash"
-    )
+    private static var setupNeeded: ProtectionStatus {
+        ProtectionStatus(
+            state: .setupNeeded,
+            title: String(localized: "Set up Rift", bundle: RiftLocale.bundle),
+            detail: String(localized: "Rift isn’t filtering yet. All connections are allowed until setup is done.", bundle: RiftLocale.bundle),
+            tone: .neutral, traffic: .allAllowed, action: .setUp, symbolName: "shield.slash"
+        )
+    }
 
     private static func settingUp(title: String?) -> ProtectionStatus {
         ProtectionStatus(
             state: .settingUp,
-            title: title ?? String(localized: "Updating the filter", bundle: .module),
-            detail: String(localized: "Rift can’t confirm your rules are in effect until this finishes.", bundle: .module),
+            title: title ?? String(localized: "Updating the filter", bundle: RiftLocale.bundle),
+            detail: String(localized: "Rift can’t confirm your rules are in effect until this finishes.", bundle: RiftLocale.bundle),
             tone: .neutral, traffic: .unknown, action: nil, symbolName: "shield.slash"
         )
     }
 
-    private static let needsApproval = ProtectionStatus(
-        state: .needsApproval,
-        title: String(localized: "Approve Rift in System Settings", bundle: .module),
-        detail: String(localized: "Open Login Items & Extensions, choose Network Extensions, and turn on Rift. All connections are allowed until you do.", bundle: .module),
-        tone: .attention, traffic: .allAllowed, action: .openSystemSettings,
-        symbolName: "exclamationmark.shield"
-    )
+    private static var needsApproval: ProtectionStatus {
+        ProtectionStatus(
+            state: .needsApproval,
+            title: String(localized: "Approve Rift in System Settings", bundle: RiftLocale.bundle),
+            detail: String(localized: "Open Login Items & Extensions, choose Network Extensions, and turn on Rift. All connections are allowed until you do.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .allAllowed, action: .openSystemSettings,
+            symbolName: "exclamationmark.shield"
+        )
+    }
 
-    private static let filterTurnedOff = ProtectionStatus(
-        state: .filterTurnedOff,
-        title: String(localized: "The filter is off", bundle: .module),
-        detail: String(localized: "It’s installed but turned off, so all connections are allowed.", bundle: .module),
-        tone: .attention, traffic: .allAllowed, action: .showStatus, symbolName: "shield.slash"
-    )
+    private static var filterTurnedOff: ProtectionStatus {
+        ProtectionStatus(
+            state: .filterTurnedOff,
+            title: String(localized: "The filter is off", bundle: RiftLocale.bundle),
+            detail: String(localized: "It’s installed but turned off, so all connections are allowed.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .allAllowed, action: .showStatus, symbolName: "shield.slash"
+        )
+    }
 
     private static func lifecycleProblem(_ message: String) -> ProtectionStatus {
         // The filter's own messages say when connections aren't filtered.
         let statesEffect = message.contains(String(
-            localized: "aren’t being filtered", bundle: .module,
+            localized: "aren’t being filtered", bundle: RiftLocale.bundle,
             comment: "Must appear word for word in the filter messages that say connections aren’t being filtered"
         ))
         return ProtectionStatus(
             state: .lifecycleProblem,
-            title: String(localized: "Rift needs attention", bundle: .module),
+            title: String(localized: "Rift needs attention", bundle: RiftLocale.bundle),
             detail: statesEffect
                 ? message
-                : String(localized: "\(message) Rift can’t confirm connections are being filtered.", bundle: .module),
+                : String(localized: "\(message) Rift can’t confirm connections are being filtered.", bundle: RiftLocale.bundle),
             tone: .attention, traffic: .unknown, action: .showStatus,
             symbolName: "exclamationmark.shield"
         )
     }
 
-    private static let connecting = ProtectionStatus(
-        state: .connecting,
-        title: String(localized: "Connecting to the filter", bundle: .module),
-        detail: String(localized: "Rift can’t confirm your rules are in effect yet.", bundle: .module),
-        tone: .neutral, traffic: .unknown, action: nil, symbolName: "shield.slash"
-    )
+    private static var connecting: ProtectionStatus {
+        ProtectionStatus(
+            state: .connecting,
+            title: String(localized: "Connecting to the filter", bundle: RiftLocale.bundle),
+            detail: String(localized: "Rift can’t confirm your rules are in effect yet.", bundle: RiftLocale.bundle),
+            tone: .neutral, traffic: .unknown, action: nil, symbolName: "shield.slash"
+        )
+    }
 
-    private static let unreachable = ProtectionStatus(
-        state: .unreachable,
-        title: String(localized: "Can’t reach the filter", bundle: .module),
-        detail: String(localized: "Rift can’t confirm your rules or ask about new connections.", bundle: .module),
-        tone: .attention, traffic: .unknown, action: .showStatus,
-        symbolName: "exclamationmark.shield"
-    )
+    private static var unreachable: ProtectionStatus {
+        ProtectionStatus(
+            state: .unreachable,
+            title: String(localized: "Can’t reach the filter", bundle: RiftLocale.bundle),
+            detail: String(localized: "Rift can’t confirm your rules or ask about new connections.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .unknown, action: .showStatus,
+            symbolName: "exclamationmark.shield"
+        )
+    }
 
-    private static let modeUnknown = ProtectionStatus(
-        state: .modeUnknown,
-        title: String(localized: "Rift needs attention", bundle: .module),
-        detail: String(localized: "Rift can’t confirm how connections are handled.", bundle: .module),
-        tone: .attention, traffic: .unknown, action: .showStatus,
-        symbolName: "exclamationmark.shield"
-    )
+    private static var modeUnknown: ProtectionStatus {
+        ProtectionStatus(
+            state: .modeUnknown,
+            title: String(localized: "Rift needs attention", bundle: RiftLocale.bundle),
+            detail: String(localized: "Rift can’t confirm how connections are handled.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .unknown, action: .showStatus,
+            symbolName: "exclamationmark.shield"
+        )
+    }
 
-    private static let allowingEverything = ProtectionStatus(
-        state: .allowingEverything,
-        title: String(localized: "All connections are being allowed", bundle: .module),
-        detail: String(localized: "The filter is on but has no rules loaded.", bundle: .module),
-        tone: .attention, traffic: .allAllowed, action: .showStatus,
-        symbolName: "exclamationmark.shield"
-    )
+    private static var allowingEverything: ProtectionStatus {
+        ProtectionStatus(
+            state: .allowingEverything,
+            title: String(localized: "All connections are being allowed", bundle: RiftLocale.bundle),
+            detail: String(localized: "The filter is on but has no rules loaded.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .allAllowed, action: .showStatus,
+            symbolName: "exclamationmark.shield"
+        )
+    }
 
-    private static let rulesAtRisk = ProtectionStatus(
-        state: .rulesAtRisk,
-        title: String(localized: "Rules are on, with a problem", bundle: .module),
-        detail: String(localized: "Your rules are in effect, but the filter can’t save its state, and temporary rules may not apply.", bundle: .module),
-        tone: .attention, traffic: .rulesApply, action: .showStatus,
-        symbolName: "exclamationmark.shield"
-    )
+    private static var rulesAtRisk: ProtectionStatus {
+        ProtectionStatus(
+            state: .rulesAtRisk,
+            title: String(localized: "Rules are on, with a problem", bundle: RiftLocale.bundle),
+            detail: String(localized: "Your rules are in effect, but the filter can’t save its state, and temporary rules may not apply.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .rulesApply, action: .showStatus,
+            symbolName: "exclamationmark.shield"
+        )
+    }
 
-    private static let rulesNotCurrent = ProtectionStatus(
-        state: .rulesNotCurrent,
-        title: String(localized: "Your latest rules aren’t in effect", bundle: .module),
-        detail: String(localized: "Your changes are saved, but the filter is still using your previous rules.", bundle: .module),
-        tone: .attention, traffic: .rulesApply, action: .showStatus,
-        symbolName: "exclamationmark.shield"
-    )
+    private static var rulesNotCurrent: ProtectionStatus {
+        ProtectionStatus(
+            state: .rulesNotCurrent,
+            title: String(localized: "Your latest rules aren’t in effect", bundle: RiftLocale.bundle),
+            detail: String(localized: "Your changes are saved, but the filter is still using your previous rules.", bundle: RiftLocale.bundle),
+            tone: .attention, traffic: .rulesApply, action: .showStatus,
+            symbolName: "exclamationmark.shield"
+        )
+    }
 
     private static func waiting(_ count: Int, blocked: Bool) -> ProtectionStatus {
         ProtectionStatus(
             state: .waiting(count),
-            title: String(localized: "Connections are waiting", bundle: .module),
+            title: String(localized: "Connections are waiting", bundle: RiftLocale.bundle),
             detail: blocked
-                ? String(localized: "Any you don’t answer in time are blocked.", bundle: .module)
-                : String(localized: "Any you don’t answer in time are allowed.", bundle: .module),
+                ? String(localized: "Any you don’t answer in time are blocked.", bundle: RiftLocale.bundle)
+                : String(localized: "Any you don’t answer in time are allowed.", bundle: RiftLocale.bundle),
             tone: .attention, traffic: .rulesApply, action: .reviewWaiting,
             symbolName: "exclamationmark.shield"
         )
@@ -380,26 +407,26 @@ public struct ProtectionStatus: Sendable, Equatable {
         switch mode {
         case .alert:
             ProtectionStatus(
-                state: .active(mode), title: String(localized: "Rift is asking", bundle: .module),
-                detail: String(localized: "Rift asks about new connections with no rule. If it can’t ask, they’re allowed.", bundle: .module),
+                state: .active(mode), title: String(localized: "Rift is asking", bundle: RiftLocale.bundle),
+                detail: String(localized: "Rift asks about new connections with no rule. If it can’t ask, they’re allowed.", bundle: RiftLocale.bundle),
                 tone: .good, traffic: .rulesApply, action: nil, symbolName: "questionmark.circle"
             )
         case .silentAllow:
             ProtectionStatus(
-                state: .active(mode), title: String(localized: "Rift is watching", bundle: .module),
-                detail: String(localized: "New connections are allowed unless a rule blocks them.", bundle: .module),
+                state: .active(mode), title: String(localized: "Rift is watching", bundle: RiftLocale.bundle),
+                detail: String(localized: "New connections are allowed unless a rule blocks them.", bundle: RiftLocale.bundle),
                 tone: .neutral, traffic: .rulesApply, action: nil, symbolName: "eye"
             )
         case .silentDeny:
             ProtectionStatus(
-                state: .active(mode), title: String(localized: "Rift is blocking", bundle: .module),
-                detail: String(localized: "New connections are blocked unless a rule allows them.", bundle: .module),
+                state: .active(mode), title: String(localized: "Rift is blocking", bundle: RiftLocale.bundle),
+                detail: String(localized: "New connections are blocked unless a rule allows them.", bundle: RiftLocale.bundle),
                 tone: .good, traffic: .rulesApply, action: nil, symbolName: "xmark.shield"
             )
         case .filterOff:
             ProtectionStatus(
-                state: .active(mode), title: String(localized: "Rules are paused", bundle: .module),
-                detail: String(localized: "All connections are allowed and your rules are off.", bundle: .module),
+                state: .active(mode), title: String(localized: "Rules are paused", bundle: RiftLocale.bundle),
+                detail: String(localized: "All connections are allowed and your rules are off.", bundle: RiftLocale.bundle),
                 tone: .neutral, traffic: .allAllowed, action: .resumeRules, symbolName: "pause.circle"
             )
         case .degradedFallback:

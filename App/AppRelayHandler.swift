@@ -1,3 +1,4 @@
+import RiftControl
 import RiftIPC
 import Foundation
 
@@ -52,7 +53,8 @@ final class AppRelayHandler: NSObject, RiftAppRelayXPC, @unchecked Sendable {
                     throw ArchiveControllerError.invalidRelayRequest
                 }
                 let value = try SecureIPCCodec.decode(CLIRelayRequest.self, from: request.payload)
-                let response = try await operation(value)
+                // riftctl prints English in every language.
+                let response = try await RiftLocale.$english.withValue(true) { try await operation(value) }
                 reply.call(SecureIPCReply(
                     requestID: request.requestID,
                     status: .success,
