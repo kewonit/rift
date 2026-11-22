@@ -121,6 +121,28 @@ The changelog records notable user-visible changes.
   an older filter, Rift keeps the fixed alert wait, blocks unanswered
   connections only while it's open, and doesn't offer port lists or High
   priority.
+- Alert details and the Map inspector show what an app's developer says a
+  connection is for, from the Internet Access Policy file the app ships, read
+  from disk only and only when the app's signature covers it. When the
+  developer says what blocking breaks, the alert's first Block shows it and
+  Block Anyway blocks. With history on, an alert also says when it's the first
+  time the app has connected to that domain.
+- Export as .lsrules… in the Rules menu saves selected rules in that format.
+  Rules it can't express exactly, such as temporary, per-profile or
+  system-process rules, are left out, and Rift says how many.
+- Subscribe to Rule Group… keeps a group up to date from a `.lsrules` file at
+  an HTTPS address, checked hourly, daily, weekly or only when you ask. New
+  allow rules from an update stay off until you turn them on, unless you
+  change that for the group, and high-priority rules always wait.
+  Configuration archives include these subscriptions.
+- Lock Configuration (⌘L) stops changes to rules, profiles, modes and
+  settings, from the menu bar and `riftctl` too, until you unlock with Touch
+  ID or your login password; Unlock Until Quit locks again at the next
+  launch. Alerts can still be answered once, and subscription updates and
+  switching profiles by network keep working.
+- Settings › History can keep history for up to a year and 200,000
+  connections; defaults are unchanged. Exports now include every saved
+  connection, not just the newest 50,000.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

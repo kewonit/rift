@@ -48,7 +48,9 @@ extension ControlPlaneController {
                 unansweredAlertSyncRetries = 0
                 return
             }
-            _ = try await mutateConfiguration(kind: "setUnansweredAlerts") { draft in
+            // Automatic: it only keeps the filter in step with a choice already
+            // made, so a locked configuration mustn't stop it.
+            _ = try await mutateConfiguration(kind: "setUnansweredAlerts", change: .automatic) { draft in
                 Self.copy(draft, unansweredAlertChange: .set(wanted))
             }
             unansweredAlertSyncRetries = 0
