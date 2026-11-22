@@ -389,6 +389,7 @@ final class RulesWorkspaceController {
     }
 
     func dismissNotice() { notice = nil }
+    func showNotice(_ message: String) { notice = message }
 
     // MARK: Sharing rules
 

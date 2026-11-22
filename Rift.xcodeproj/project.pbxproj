@@ -48,6 +48,9 @@
 		100000000000000000000025 /* NotificationRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000029 /* NotificationRouter.swift */; };
 		100000000000000000000200 /* DeveloperPolicyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000200 /* DeveloperPolicyStore.swift */; };
 		100000000000000000000201 /* ConnectionAlertRuleOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000201 /* ConnectionAlertRuleOptions.swift */; };
+		100000000000000000000202 /* ControlPlaneRuleGroups.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000202 /* ControlPlaneRuleGroups.swift */; };
+		100000000000000000000203 /* RuleGroupSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000203 /* RuleGroupSubscriptions.swift */; };
+		100000000000000000000204 /* RuleGroupSubscriptionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000204 /* RuleGroupSubscriptionViews.swift */; };
 		100000000000000000000026 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002A /* SettingsView.swift */; };
 		100000000000000000000027 /* FixtureDecisionDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002B /* FixtureDecisionDriver.swift */; };
 		10000000000000000000010A /* ArchivedAppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010A /* ArchivedAppPreferences.swift */; };
@@ -261,6 +264,9 @@
 		200000000000000000000029 /* NotificationRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRouter.swift; sourceTree = "<group>"; };
 		200000000000000000000200 /* DeveloperPolicyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperPolicyStore.swift; sourceTree = "<group>"; };
 		200000000000000000000201 /* ConnectionAlertRuleOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertRuleOptions.swift; sourceTree = "<group>"; };
+		200000000000000000000202 /* ControlPlaneRuleGroups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRuleGroups.swift; sourceTree = "<group>"; };
+		200000000000000000000203 /* RuleGroupSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleGroupSubscriptions.swift; sourceTree = "<group>"; };
+		200000000000000000000204 /* RuleGroupSubscriptionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleGroupSubscriptionViews.swift; sourceTree = "<group>"; };
 		20000000000000000000002A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		20000000000000000000002B /* FixtureDecisionDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureDecisionDriver.swift; sourceTree = "<group>"; };
 		20000000000000000000010A /* ArchivedAppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedAppPreferences.swift; sourceTree = "<group>"; };
@@ -482,6 +488,9 @@
 				200000000000000000000029 /* NotificationRouter.swift */,
 				200000000000000000000200 /* DeveloperPolicyStore.swift */,
 				200000000000000000000201 /* ConnectionAlertRuleOptions.swift */,
+				200000000000000000000202 /* ControlPlaneRuleGroups.swift */,
+				200000000000000000000203 /* RuleGroupSubscriptions.swift */,
+				200000000000000000000204 /* RuleGroupSubscriptionViews.swift */,
 				20000000000000000000002A /* SettingsView.swift */,
 				200000000000000000000044 /* SettingsPrimaryPanes.swift */,
 				200000000000000000000045 /* PolicySettingsPane.swift */,
@@ -829,6 +838,9 @@
 				100000000000000000000025 /* NotificationRouter.swift in Sources */,
 				100000000000000000000200 /* DeveloperPolicyStore.swift in Sources */,
 				100000000000000000000201 /* ConnectionAlertRuleOptions.swift in Sources */,
+				100000000000000000000202 /* ControlPlaneRuleGroups.swift in Sources */,
+				100000000000000000000203 /* RuleGroupSubscriptions.swift in Sources */,
+				100000000000000000000204 /* RuleGroupSubscriptionViews.swift in Sources */,
 				100000000000000000000026 /* SettingsView.swift in Sources */,
 				100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */,
 				100000000000000000000043 /* PolicySettingsPane.swift in Sources */,

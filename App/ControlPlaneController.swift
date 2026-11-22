@@ -215,6 +215,7 @@ final class ControlPlaneController {
                 _ = ProcessNotes.shared
             }
             BlocklistSubscriptions.shared.start(controlPlane: self)
+            RuleGroupSubscriptions.shared.start(controlPlane: self)
             NetworkProfileSwitcher.shared.start(controlPlane: self)
         } catch {
             state = .failed

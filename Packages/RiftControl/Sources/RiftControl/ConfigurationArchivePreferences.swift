@@ -11,26 +11,36 @@ public struct ConfigurationArchivePreferences: Sendable, Hashable, Codable {
     public var blocklistSubscriptions: [ArchivedBlocklistSubscription]
     public var networkProfiles: ArchivedNetworkProfiles
     public var alerts: ArchivedAlertPreferences
+    /// Nil when there are none, so archives without rule group subscriptions
+    /// keep exactly the shape they had before.
+    public var ruleGroupSubscriptions: [ArchivedRuleGroupSubscription]?
 
     public init(
         blocklistSubscriptions: [ArchivedBlocklistSubscription],
         networkProfiles: ArchivedNetworkProfiles,
-        alerts: ArchivedAlertPreferences
+        alerts: ArchivedAlertPreferences,
+        ruleGroupSubscriptions: [ArchivedRuleGroupSubscription]? = nil
     ) {
         self.blocklistSubscriptions = blocklistSubscriptions
         self.networkProfiles = networkProfiles
         self.alerts = alerts
+        self.ruleGroupSubscriptions = ruleGroupSubscriptions
     }
 
     /// Drops what the configuration beside it can't support: subscriptions
-    /// for blocklists it doesn't have, and network choices naming profiles
-    /// it doesn't have, which then leave the profile as it is.
-    public func sanitized(profileIDs: Set<UUID>, blocklistIDs: Set<UUID>) -> Self {
+    /// for blocklists or rule groups it doesn't have, and network choices
+    /// naming profiles it doesn't have, which then leave the profile as it is.
+    public func sanitized(profileIDs: Set<UUID>, blocklistIDs: Set<UUID>, groupIDs: Set<UUID> = []) -> Self {
         var copy = self
         var seen: Set<UUID> = []
         copy.blocklistSubscriptions = blocklistSubscriptions
             .filter { blocklistIDs.contains($0.blocklistID) && seen.insert($0.blocklistID).inserted }
             .sorted { $0.blocklistID.uuidString < $1.blocklistID.uuidString }
+        var seenGroups: Set<UUID> = []
+        let groups = (ruleGroupSubscriptions ?? [])
+            .filter { groupIDs.contains($0.groupID) && seenGroups.insert($0.groupID).inserted }
+            .sorted { $0.groupID.uuidString < $1.groupID.uuidString }
+        copy.ruleGroupSubscriptions = groups.isEmpty ? nil : groups
         copy.networkProfiles = networkProfiles.sanitized(profileIDs: profileIDs)
         copy.alerts = alerts.normalized
         return copy
@@ -38,17 +48,20 @@ public struct ConfigurationArchivePreferences: Sendable, Hashable, Codable {
 
     /// Whether an archive's copy is exactly what Rift would have written for
     /// that configuration. Anything else means the file was edited.
-    public func isValid(profileIDs: Set<UUID>, blocklistIDs: Set<UUID>) -> Bool {
+    public func isValid(profileIDs: Set<UUID>, blocklistIDs: Set<UUID>, groupIDs: Set<UUID> = []) -> Bool {
+        let groups = ruleGroupSubscriptions ?? []
         guard blocklistSubscriptions.count <= Self.maximumSubscriptions,
+              groups.count <= Self.maximumSubscriptions,
               networkProfiles.remembered.count <= Self.maximumNetworks,
               blocklistSubscriptions.allSatisfy({
                   (try? BlocklistSubscriptionAddress.validate($0.url.absoluteString)) == $0.url
               }),
+              groups.allSatisfy({ (try? BlocklistSubscriptionAddress.validate($0.url.absoluteString)) == $0.url }),
               networkProfiles.remembered.allSatisfy({
                   $0.key.unicodeScalars.count <= Self.maximumTextScalars
                       && $0.name.unicodeScalars.count <= Self.maximumTextScalars
               }) else { return false }
-        return sanitized(profileIDs: profileIDs, blocklistIDs: blocklistIDs) == self
+        return sanitized(profileIDs: profileIDs, blocklistIDs: blocklistIDs, groupIDs: groupIDs) == self
     }
 }
 

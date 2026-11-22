@@ -3,9 +3,9 @@
 Rift makes firewall decisions on the Mac. It does not use analytics, an
 advertising SDK, a telemetry service, automatic diagnostics upload, or
 packet-payload capture. It doesn't send destination IP addresses to any
-service. Rift subscribes to no blocklist on its own; it downloads one only from
-a web address you enter, as described under
-[Blocklist subscriptions](#blocklist-subscriptions). It checks GitHub once a day
+service. Rift subscribes to no blocklist or rule group on its own; it downloads
+one only from a web address you enter, as described under
+[Subscriptions](#subscriptions). It checks GitHub once a day
 for software updates, as described under [Update checks](#update-checks).
 
 ## Data kept on the Mac
@@ -69,17 +69,26 @@ It recognizes a network by its router's address. If you also turn on
 Services, because macOS lets apps read Wi-Fi names only with that permission.
 Rift reads only the network's name and never asks for the Mac's location.
 
-## Blocklist subscriptions
+## Subscriptions
 
 If you subscribe to a blocklist in **Settings › Blocklists**, Rift downloads it
 from the address you entered right away, then checks for a new version while
 Rift is running as often as you choose for that list (every hour, day or week,
 or only when you ask; daily unless you change it), and when you choose
-**Update Now** or **Update All Subscriptions**. Rift downloads
-only over HTTPS, sends no cookies and no details about the Mac, and identifies
-itself only as "Rift". The list's server sees your IP address and when Rift
-checks, as with any download. Removing the blocklist stops the checks. Rift
-suggests no lists and never adds a subscription by itself.
+**Update Now** or **Update All Subscriptions**.
+
+If you subscribe to a rule group with **Subscribe to Rule Group…** on the Rules
+page, Rift downloads the `.lsrules` file from the address you entered, shows
+what it would add, and adds nothing until you confirm. It then checks the file
+as often as you choose for that group, the same way as a blocklist, and when
+you choose **Update Now**. Unless you turn it off for that group, allow rules
+that arrive in an update stay off until you turn them on.
+
+Rift downloads only over HTTPS, sends no cookies and no details about the Mac,
+and identifies itself only as "Rift". The server sees your IP address and when
+Rift checks, as with any download. Removing the blocklist or rule group stops
+the checks. Rift suggests no lists or groups and never adds a subscription by
+itself.
 
 ## Explaining a connection
 
@@ -111,8 +120,8 @@ by Apple.
 ## Exports and sharing
 
 Configuration archives exclude history, counters, machine identifiers, policy
-lineage and generation, and signing material. They include blocklist
-subscription addresses, alert settings, and **Settings › Networks**, so a
+lineage and generation, and signing material. They include blocklist and rule
+group subscription addresses, alert settings, and **Settings › Networks**, so a
 restore brings those back too. When profile switching by network is on, that
 means the names of remembered networks, which can include Wi-Fi names and
 router addresses. Rules exported as a rule set or as a `.lsrules` file contain

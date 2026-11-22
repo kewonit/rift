@@ -2,8 +2,8 @@ import Foundation
 import RiftControl
 
 /// The settings outside the configuration database that a configuration
-/// archive carries: blocklist subscriptions, Settings › Networks, and the
-/// alert settings that change what happens to a connection.
+/// archive carries: blocklist and rule group subscriptions, Settings ›
+/// Networks, and the alert settings that change what happens to a connection.
 @MainActor
 enum ArchivedAppPreferences {
     static func current() -> ConfigurationArchivePreferences {
@@ -17,12 +17,14 @@ enum ArchivedAppPreferences {
                 defaultLifetime: defaults.string(forKey: AlertDefaults.lifetimeKey) ?? AlertDefaults.lastUsed,
                 defaultDestination: defaults.string(forKey: AlertDefaults.destinationKey) ?? AlertDefaults.lastUsed,
                 defaultScope: defaults.string(forKey: AlertDefaults.scopeKey) ?? ArchivedAlertPreferences.scopes[0]
-            )
+            ),
+            ruleGroupSubscriptions: RuleGroupSubscriptions.shared.archived
         )
     }
 
     static func apply(_ preferences: ConfigurationArchivePreferences) {
         BlocklistSubscriptions.shared.restore(preferences.blocklistSubscriptions)
+        RuleGroupSubscriptions.shared.restore(preferences.ruleGroupSubscriptions)
         NetworkProfileSwitcher.shared.restore(preferences.networkProfiles)
         let defaults = UserDefaults.standard
         defaults.set(preferences.alerts.blocksUnanswered, forKey: ConnectionAlertCountdown.blocksUnansweredKey)
@@ -38,13 +40,13 @@ enum ArchivedAppPreferences {
     /// What a restore brings back besides the configuration, in a sentence.
     static func summary(_ preferences: ConfigurationArchivePreferences) -> String {
         let subscriptions = preferences.blocklistSubscriptions.count
+        let groups = preferences.ruleGroupSubscriptions?.count ?? 0
         let networks = preferences.networkProfiles.remembered.count
-        let parts = [
-            subscriptions == 1 ? "1 blocklist subscription" : "\(subscriptions) blocklist subscriptions",
-            networks == 1 ? "1 remembered network" : "\(networks) remembered networks",
-            preferences.alerts.blocksUnanswered
-                ? "alert settings (unanswered connections are blocked)" : "alert settings",
-        ]
-        return "Also restores \(parts[0]), \(parts[1]), and \(parts[2])."
+        var parts = [subscriptions == 1 ? "1 blocklist subscription" : "\(subscriptions) blocklist subscriptions"]
+        if groups > 0 { parts.append(groups == 1 ? "1 rule group subscription" : "\(groups) rule group subscriptions") }
+        parts.append(networks == 1 ? "1 remembered network" : "\(networks) remembered networks")
+        parts.append(preferences.alerts.blocksUnanswered
+            ? "alert settings (unanswered connections are blocked)" : "alert settings")
+        return "Also restores \(ListFormatter.localizedString(byJoining: parts))."
     }
 }

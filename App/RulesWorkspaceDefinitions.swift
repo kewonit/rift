@@ -71,11 +71,13 @@ extension RulesWorkspaceController {
     }
 
     func removeGroup(_ id: UUID, deletingRules: Bool) async {
-        _ = await definitionCommand(
+        let removed = await definitionCommand(
             "Couldn’t remove the group. It may contain protected or blocklist rules."
         ) {
             try await controlPlane.removeLocalGroup(id, deletingRules: deletingRules)
         }
+        // A removed group stops updating from its subscription.
+        if removed { RuleGroupSubscriptions.shared.forget(id) }
     }
 
     func setBlocklist(_ id: UUID, enabled: Bool) async {

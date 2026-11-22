@@ -14,6 +14,7 @@ struct RulesWorkspaceView: View {
     @State private var editingRow: RuleRowViewValue?
     @State private var showingInspector = true
     @State private var showingDeleteConfirmation = false
+    @State private var showingSubscribe = false
     @FocusState private var searchFocused: Bool
 
     // The modifiers are split across several properties so each one
@@ -84,6 +85,12 @@ struct RulesWorkspaceView: View {
             }
             .padding(8)
             .background(.orange.opacity(0.18))
+        }
+        if case .group(let id) = model.sidebarSelection {
+            RuleGroupSubscriptionBanner(
+                groupID: id, generation: model.generation,
+                reload: { await model.reload() }, select: { model.selectRulesImmediately($0) }
+            )
         }
         if let notice = model.notice {
             HStack(spacing: 10) {
@@ -178,6 +185,10 @@ struct RulesWorkspaceView: View {
                 Button("Import Rules…") { Task { await model.chooseRulesToImport() } }
                 Button("Export Selected Rules…") { Task { await model.exportSelected() } }
                     .disabled(model.exportableSelectionCount == 0)
+                Button("Export Selected as .lsrules…") { Task { await model.exportSelectedAsLSRules() } }
+                    .disabled(model.exportableSelectionCount == 0)
+                Divider()
+                Button("Subscribe to Rule Group…") { showingSubscribe = true }
             } label: {
                 Label("Import or Export", systemImage: "square.and.arrow.up.on.square")
             }
@@ -203,6 +214,13 @@ struct RulesWorkspaceView: View {
                     previewEnvironment: model.previewEnvironment,
                     artworkStore: artworkStore
                 ) { draft in await model.create(draft) }
+            }
+            .sheet(isPresented: $showingSubscribe) {
+                RuleGroupSubscribeSheet { message, groupID in
+                    model.sidebarSelection = .group(groupID)
+                    model.showNotice(message)
+                    Task { await model.reload() }
+                }
             }
             .sheet(isPresented: $model.bulkEditing) {
                 RuleBulkEditSheet(rules: model.bulkEditableRules) { edit in

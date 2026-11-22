@@ -124,3 +124,57 @@ private func preferences(
     )]
     #expect(!insecure.isValid(profileIDs: profiles, blocklistIDs: blocklists))
 }
+
+private func groupFixture() throws -> (PolicyConfigurationDraft, UUID) {
+    let base = try fixture().draft
+    let group = LocalRuleGroup(
+        id: UUID(), name: "Shared rules", note: "", isEnabled: true,
+        createdAt: Date(timeIntervalSince1970: 1), modifiedAt: Date(timeIntervalSince1970: 1)
+    )
+    let draft = PolicyConfigurationDraft(
+        lineageID: base.lineageID, authorizedUID: 501, operationMode: .silentAllow,
+        activeProfileID: nil, enabledLocalGroupIDs: [group.id], rules: base.rules,
+        localGroups: [group], profiles: base.profiles, blocklists: base.blocklists
+    )
+    return (draft, group.id)
+}
+
+@Test func archivesWithoutRuleGroupSubscriptionsKeepTheirShape() throws {
+    let fixture = try fixture()
+    let bytes = try ConfigurationArchiveCodec.export(
+        draft: fixture.draft, appVersion: "1.0", now: Date(timeIntervalSince1970: 200),
+        preferences: try preferences(blocklistID: fixture.blocklistID, profileID: fixture.profileID)
+    )
+    let object = try #require(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+    let payload = try #require(object["payload"] as? [String: Any])
+    let saved = try #require(payload["preferences"] as? [String: Any])
+    #expect(Set(saved.keys) == ["blocklistSubscriptions", "networkProfiles", "alerts"])
+    #expect(try ConfigurationArchiveCodec.decode(bytes).preferences?.ruleGroupSubscriptions == nil)
+}
+
+@Test func ruleGroupSubscriptionsSurviveARestore() throws {
+    let (draft, groupID) = try groupFixture()
+    let url = try BlocklistSubscriptionAddress.validate("https://rules.example.test/shared.lsrules")
+    var withGroups = try preferences(blocklistID: draft.blocklists[0].id, profileID: draft.profiles[0].id)
+    let kept = ArchivedRuleGroupSubscription(groupID: groupID, url: url, interval: .weekly, holdsNewAllowRules: false)
+    // A subscription for a group the configuration doesn't have is dropped.
+    withGroups.ruleGroupSubscriptions = [kept, ArchivedRuleGroupSubscription(groupID: UUID(), url: url)]
+    let bytes = try ConfigurationArchiveCodec.export(
+        draft: draft, appVersion: "1.0", now: Date(timeIntervalSince1970: 200), preferences: withGroups
+    )
+    let restored = try #require(try ConfigurationArchiveCodec.decode(bytes).preferences?.ruleGroupSubscriptions)
+    #expect(restored == [kept])
+    let subscription = RuleGroupSubscription(restoring: restored[0])
+    #expect(!subscription.holdsNewAllowRules)
+    #expect(subscription.effectiveInterval == .weekly)
+
+    // Defaults are left out, and a plain-HTTP address can't come back.
+    #expect(ArchivedRuleGroupSubscription(groupID: groupID, url: url).allowsNewAllowRules == nil)
+    let profiles = Set(draft.profiles.map(\.id))
+    let blocklists = Set(draft.blocklists.map(\.id))
+    var insecure = withGroups.sanitized(profileIDs: profiles, blocklistIDs: blocklists, groupIDs: [groupID])
+    insecure.ruleGroupSubscriptions = [ArchivedRuleGroupSubscription(
+        groupID: groupID, url: try #require(URL(string: "http://rules.example.test/shared.lsrules"))
+    )]
+    #expect(!insecure.isValid(profileIDs: profiles, blocklistIDs: blocklists, groupIDs: [groupID]))
+}

@@ -79,10 +79,7 @@ public struct BlocklistSubscription: Sendable, Hashable, Codable, Identifiable {
     /// Whether it's time to check again. A failed check is retried after an
     /// hour at most. A list checked only on request is never due.
     public func isDue(now: Date) -> Bool {
-        guard let seconds = effectiveInterval.seconds else { return false }
-        guard let lastCheckedAt else { return true }
-        let wait = lastFailure == nil ? seconds : min(seconds, 60 * 60)
-        return now.timeIntervalSince(lastCheckedAt) >= wait
+        effectiveInterval.isDue(lastCheckedAt: lastCheckedAt, failed: lastFailure != nil, now: now)
     }
 }
 

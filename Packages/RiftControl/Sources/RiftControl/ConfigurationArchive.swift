@@ -102,7 +102,8 @@ public enum ConfigurationArchiveCodec {
             blocklists: draft.blocklists,
             disabledBlocklistEntries: draft.disabledBlocklistEntries.sorted(),
             preferences: preferences?.sanitized(
-                profileIDs: Set(draft.profiles.map(\.id)), blocklistIDs: Set(draft.blocklists.map(\.id))
+                profileIDs: Set(draft.profiles.map(\.id)), blocklistIDs: Set(draft.blocklists.map(\.id)),
+                groupIDs: Set(draft.localGroups.map(\.id))
             )
         )
         return try encode(payload, flags: knownFlags, appVersion: appVersion, now: now)
@@ -261,7 +262,7 @@ public enum ConfigurationArchiveCodec {
         }
         // Preferences must be exactly what an export writes for this configuration.
         if let preferences = payload.preferences,
-           !preferences.isValid(profileIDs: profiles, blocklistIDs: blocklists) {
+           !preferences.isValid(profileIDs: profiles, blocklistIDs: blocklists, groupIDs: groups) {
             throw ConfigurationArchiveError.invalidDefinition
         }
         guard payload.localGroups.allSatisfy({
