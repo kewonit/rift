@@ -124,21 +124,66 @@ extension ControlPlaneController {
     }
 
     @discardableResult
-    func importBlocklist(data: Data, name: String) async throws -> ConfigurationMutationResult {
+    func importBlocklist(
+        data: Data,
+        name: String,
+        sourceID: UUID = UUID()
+    ) async throws -> ConfigurationMutationResult {
         try await BlocklistIngestion.ingest(data: data, name: name) { [self] preparation in
-            try await self.importPreparedBlocklist(preparation)
+            try await self.importPreparedBlocklist(preparation, sourceID: sourceID)
+        }
+    }
+
+    /// Replaces a blocklist's entries with a new version of the list, keeping
+    /// its name, whether it's on, and entries turned off in Check Entry.
+    /// Returns nil when the list hasn't changed.
+    func replaceBlocklist(_ id: UUID, data: Data) async throws -> ConfigurationMutationResult? {
+        guard let current = try await blocklistSources().first(where: { $0.id == id }) else {
+            throw RuleCommandError.unknownDefinition
+        }
+        return try await BlocklistIngestion.ingest(data: data, name: current.name) { [self] preparation in
+            guard preparation.contentHash != current.contentHash else { return nil }
+            return try await self.replacePreparedBlocklist(id, preparation: preparation)
+        }
+    }
+
+    private func replacePreparedBlocklist(
+        _ id: UUID,
+        preparation: BlocklistImportPreparation
+    ) async throws -> ConfigurationMutationResult {
+        try await mutateConfiguration(kind: "updateBlocklist") { draft in
+            guard let source = draft.blocklists.first(where: { $0.id == id }) else {
+                throw RuleCommandError.unknownDefinition
+            }
+            let result = try BlocklistImportBuilder.build(
+                preparation: preparation, lineageID: draft.lineageID, now: Date(),
+                sourceID: id, status: source.status
+            )
+            let rules = draft.rules.filter { rule in
+                guard case .blocklist(let sourceID) = rule.source else { return true }
+                return sourceID != id
+            } + result.rules
+            let disabled = try BlocklistEntryOverrides.retainingKnownEntries(
+                draft.disabledBlocklistEntries, in: rules
+            )
+            return Self.copy(
+                draft, rules: rules,
+                blocklists: draft.blocklists.map { $0.id == id ? result.source : $0 },
+                disabledBlocklistEntries: disabled
+            )
         }
     }
 
     private func importPreparedBlocklist(
-        _ preparation: BlocklistImportPreparation
+        _ preparation: BlocklistImportPreparation,
+        sourceID: UUID
     ) async throws -> ConfigurationMutationResult {
         try await mutateConfiguration(kind: "importBlocklist") { draft in
             try PolicyDefinitionValidator.rejectCollision(
                 preparation.name, existing: draft.blocklists.map { ($0.id, $0.name) }
             )
             let result = try BlocklistImportBuilder.build(
-                preparation: preparation, lineageID: draft.lineageID, now: Date()
+                preparation: preparation, lineageID: draft.lineageID, now: Date(), sourceID: sourceID
             )
             return Self.copy(
                 draft,

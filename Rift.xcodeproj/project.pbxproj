@@ -49,6 +49,8 @@
 		100000000000000000000026 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002A /* SettingsView.swift */; };
 		100000000000000000000027 /* FixtureDecisionDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002B /* FixtureDecisionDriver.swift */; };
 		100000000000000000000028 /* ControlPlaneArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002C /* ControlPlaneArchive.swift */; };
+		100000000000000000000104 /* BlocklistSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000104 /* BlocklistSubscriptions.swift */; };
+		100000000000000000000103 /* ControlPlaneRuleImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000103 /* ControlPlaneRuleImport.swift */; };
 		100000000000000000000029 /* ArchiveFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002D /* ArchiveFileAccess.swift */; };
 		10000000000000000000002A /* ControlPlanePolicyCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002E /* ControlPlanePolicyCommands.swift */; };
 		10000000000000000000002B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002F /* main.swift */; };
@@ -75,6 +77,7 @@
 		1000000000000000000000FC /* MonitorSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000FC /* MonitorSummaryView.swift */; };
 		100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000044 /* SettingsPrimaryPanes.swift */; };
 		100000000000000000000043 /* PolicySettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000045 /* PolicySettingsPane.swift */; };
+		100000000000000000000105 /* BlocklistSubscriptionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000105 /* BlocklistSubscriptionViews.swift */; };
 		100000000000000000000044 /* ControlPlaneRuleMutations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000046 /* ControlPlaneRuleMutations.swift */; };
 		100000000000000000000045 /* ApplicationArtworkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000047 /* ApplicationArtworkStore.swift */; };
 		100000000000000000000046 /* ApplicationIdentityIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000048 /* ApplicationIdentityIcon.swift */; };
@@ -240,6 +243,8 @@
 		20000000000000000000002A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		20000000000000000000002B /* FixtureDecisionDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureDecisionDriver.swift; sourceTree = "<group>"; };
 		20000000000000000000002C /* ControlPlaneArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneArchive.swift; sourceTree = "<group>"; };
+		200000000000000000000104 /* BlocklistSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlocklistSubscriptions.swift; sourceTree = "<group>"; };
+		200000000000000000000103 /* ControlPlaneRuleImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRuleImport.swift; sourceTree = "<group>"; };
 		20000000000000000000002D /* ArchiveFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveFileAccess.swift; sourceTree = "<group>"; };
 		20000000000000000000002E /* ControlPlanePolicyCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlanePolicyCommands.swift; sourceTree = "<group>"; };
 		20000000000000000000002F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -263,6 +268,7 @@
 		2000000000000000000000FC /* MonitorSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorSummaryView.swift; sourceTree = "<group>"; };
 		200000000000000000000044 /* SettingsPrimaryPanes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPrimaryPanes.swift; sourceTree = "<group>"; };
 		200000000000000000000045 /* PolicySettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolicySettingsPane.swift; sourceTree = "<group>"; };
+		200000000000000000000105 /* BlocklistSubscriptionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlocklistSubscriptionViews.swift; sourceTree = "<group>"; };
 		200000000000000000000046 /* ControlPlaneRuleMutations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneRuleMutations.swift; sourceTree = "<group>"; };
 		200000000000000000000047 /* ApplicationArtworkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationArtworkStore.swift; sourceTree = "<group>"; };
 		200000000000000000000048 /* ApplicationIdentityIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationIdentityIcon.swift; sourceTree = "<group>"; };
@@ -438,8 +444,11 @@
 				20000000000000000000002A /* SettingsView.swift */,
 				200000000000000000000044 /* SettingsPrimaryPanes.swift */,
 				200000000000000000000045 /* PolicySettingsPane.swift */,
+				200000000000000000000105 /* BlocklistSubscriptionViews.swift */,
 				20000000000000000000002B /* FixtureDecisionDriver.swift */,
 				20000000000000000000002C /* ControlPlaneArchive.swift */,
+				200000000000000000000104 /* BlocklistSubscriptions.swift */,
+				200000000000000000000103 /* ControlPlaneRuleImport.swift */,
 				20000000000000000000002D /* ArchiveFileAccess.swift */,
 				20000000000000000000002E /* ControlPlanePolicyCommands.swift */,
 				200000000000000000000046 /* ControlPlaneRuleMutations.swift */,
@@ -762,8 +771,11 @@
 				100000000000000000000026 /* SettingsView.swift in Sources */,
 				100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */,
 				100000000000000000000043 /* PolicySettingsPane.swift in Sources */,
+				100000000000000000000105 /* BlocklistSubscriptionViews.swift in Sources */,
 				100000000000000000000027 /* FixtureDecisionDriver.swift in Sources */,
 				100000000000000000000028 /* ControlPlaneArchive.swift in Sources */,
+				100000000000000000000104 /* BlocklistSubscriptions.swift in Sources */,
+				100000000000000000000103 /* ControlPlaneRuleImport.swift in Sources */,
 				100000000000000000000029 /* ArchiveFileAccess.swift in Sources */,
 				10000000000000000000002A /* ControlPlanePolicyCommands.swift in Sources */,
 				100000000000000000000044 /* ControlPlaneRuleMutations.swift in Sources */,

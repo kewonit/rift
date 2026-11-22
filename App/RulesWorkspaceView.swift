@@ -36,7 +36,7 @@ struct RulesWorkspaceView: View {
                 Button("Import") { Task { await model.confirmImport() } }
                 Button("Cancel", role: .cancel) { model.cancelImport() }
             } message: {
-                Text(model.pendingImport?.plan.summary ?? "")
+                Text(model.pendingImport?.summary ?? "")
             }
     }
 

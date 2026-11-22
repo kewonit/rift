@@ -8,7 +8,7 @@ public struct BlocklistImportResult: Sendable, Hashable {
 
 public struct BlocklistImportPreparation: Sendable {
     public let name: String
-    fileprivate let contentHash: Data
+    public let contentHash: Data
     fileprivate let domains: [DomainName]
     /// Names blocked with every name under them.
     fileprivate let subdomainDomains: [DomainName]
@@ -38,13 +38,15 @@ public enum BlocklistImportBuilder {
         )
     }
 
+    /// Pass the `sourceID` and `status` of a blocklist to build its update.
     public static func build(
         preparation: BlocklistImportPreparation,
         lineageID: UUID,
-        now: Date
+        now: Date,
+        sourceID: UUID = UUID(),
+        status: BlocklistSourceStatus = .active
     ) throws -> BlocklistImportResult {
         try Task.checkCancellation()
-        let sourceID = UUID()
         var rules: [Rule] = []
         for start in stride(
             from: 0, to: preparation.domains.count,
@@ -58,6 +60,7 @@ public enum BlocklistImportBuilder {
                 sourceID: sourceID,
                 lineageID: lineageID,
                 destination: .normalizedExactHostnameSet(Array(preparation.domains[start..<end])),
+                enabled: status == .active,
                 now: now
             ))
         }
@@ -73,6 +76,7 @@ public enum BlocklistImportBuilder {
                 sourceID: sourceID,
                 lineageID: lineageID,
                 destination: .normalizedDomainSet(Array(preparation.subdomainDomains[start..<end])),
+                enabled: status == .active,
                 now: now
             ))
         }
@@ -88,6 +92,7 @@ public enum BlocklistImportBuilder {
                 sourceID: sourceID,
                 lineageID: lineageID,
                 destination: .normalizedIPSet(Array(preparation.addresses[start..<end])),
+                enabled: status == .active,
                 now: now
             ))
         }
@@ -101,7 +106,7 @@ public enum BlocklistImportBuilder {
                 domainEntryCount: preparation.domains.count + preparation.subdomainDomains.count,
                 addressEntryCount: preparation.addresses.count,
                 contentHash: preparation.contentHash,
-                status: .active
+                status: status
             ),
             rules: rules
         )
@@ -156,6 +161,7 @@ public enum BlocklistImportBuilder {
         sourceID: UUID,
         lineageID: UUID,
         destination: DestinationCondition,
+        enabled: Bool,
         now: Date
     ) throws -> Rule {
         try Rule(
@@ -170,7 +176,7 @@ public enum BlocklistImportBuilder {
             port: nil,
             direction: .bidirectional,
             owner: .authorizedUser,
-            isEnabled: true,
+            isEnabled: enabled,
             flags: [.sourceManaged],
             reviewState: .reviewed,
             source: .blocklist(sourceID: sourceID),

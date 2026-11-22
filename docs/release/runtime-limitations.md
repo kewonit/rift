@@ -13,8 +13,9 @@ system-wide firewall.
 - A signed host app and system extension with matching Apple-authorized
   capabilities for live filtering
 
-Intel Macs, remote administration, and automatic remote list updates are outside
-this release scope. Mac App Store validation is still pending.
+Intel Macs and remote administration are outside this release scope. A
+blocklist updates from the web only when you subscribe to its address in
+Settings › Blocklists; Rift then checks it once a day while it's running. Mac App Store validation is still pending.
 
 ## Filtering behavior
 

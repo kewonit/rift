@@ -92,6 +92,17 @@ The changelog records notable user-visible changes.
 - Names with international letters can be typed as they're written; Rift
   stores and shows them in their `xn--` form.
 - The connections list can be grouped by domain.
+- Import Rules on the Rules page reads `.lsrules` rule group files. Each rule's
+  app is found on this Mac by its path or code ID, and the rules go into a
+  group named after the file, unreviewed. Rules Rift can't apply as written,
+  such as ones for ICMP, DNS servers, port lists or another account, are
+  skipped and counted rather than changed.
+- Settings › Blocklists can import a `.lsrules` file that only blocks
+  destinations, as a blocklist.
+- A blocklist can be a subscription to a web address you enter. Rift
+  downloads it over HTTPS, checks for a new version once a day while it's
+  running, and keeps the list's on or off state and the entries you turned
+  off. Update Now checks right away. Rift adds no list by itself.
 
 ## 0.4.0
 
