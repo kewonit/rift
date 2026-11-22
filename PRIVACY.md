@@ -95,7 +95,11 @@ by Apple.
 ## Exports and sharing
 
 Configuration archives exclude history, counters, machine identifiers, policy
-lineage and generation, and signing material. Diagnostics are created only after
+lineage and generation, and signing material. They include blocklist
+subscription addresses, alert settings, and **Settings › Networks**, so a
+restore brings those back too. When profile switching by network is on, that
+means the names of remembered networks, which can include Wi-Fi names and
+router addresses. Diagnostics are created only after
 a user action. They preview their contents, default to aggregate and redacted
 state, and are never uploaded automatically. Optional recent activity and rule
 summaries use fresh pseudonyms that are linkable only within that bundle.

@@ -87,6 +87,26 @@ final class NetworkProfileSwitcher {
         save()
     }
 
+    /// Settings › Networks, as a configuration archive keeps it.
+    var archived: ArchivedNetworkProfiles {
+        ArchivedNetworkProfiles(
+            enabled: enabled, notifies: notifies, usesWiFiNames: usesWiFiNames,
+            otherNetworks: otherNetworks, remembered: Array(remembered.values)
+        )
+    }
+
+    /// Takes Settings › Networks from a restored archive.
+    func restore(_ archived: ArchivedNetworkProfiles) {
+        remembered = Dictionary(archived.remembered.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+        notifiedNew = Set(remembered.keys)
+        otherNetworks = archived.otherNetworks
+        notifies = archived.notifies
+        usesWiFiNames = archived.usesWiFiNames
+        enabled = archived.enabled
+        save()
+        refresh()
+    }
+
     private func refresh() {
         if let lastPath { update(lastPath, force: true) }
     }

@@ -15,6 +15,13 @@ The changelog records notable user-visible changes.
   titled "Check this connection" and tinted, and Return no longer allows it:
   click Allow or press ⌘A. The one-second guard against keys typed for
   another window now covers ⌘A and ⌘B too.
+- Exported configurations now include blocklist subscription addresses,
+  Settings › Networks, and alert settings such as "Block connections I don't
+  answer", and Import Configuration restores them. Before, a restore brought
+  back a subscribed blocklist's entries but not its subscription, and lost
+  every network's profile choice. Undo Restore puts the previous settings
+  back. Configurations exported by this version can't be imported by earlier
+  ones.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

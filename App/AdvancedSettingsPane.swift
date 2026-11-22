@@ -19,7 +19,7 @@ struct AdvancedSettingsPane: View {
 
     var body: some View {
         Form {
-            Section("Configuration") {
+            Section {
                 Button("Export Configuration…", action: exportConfiguration)
                 Button("Import Configuration…", action: importConfiguration)
                 if controlPlane.configurationRecoveryRequired {
@@ -34,6 +34,10 @@ struct AdvancedSettingsPane: View {
                     Button("Undo Restore", role: .destructive, action: rollbackRestore)
                         .disabled(!controlPlane.canRollbackLastRestore)
                 }
+            } header: {
+                Text("Configuration")
+            } footer: {
+                Text("An exported configuration includes your rules, groups, profiles, blocklists and their subscription addresses, alert settings, and Settings › Networks, which can name your Wi-Fi networks and routers.")
             }
             Section {
                 DisclosureGroup("What’s Included") {

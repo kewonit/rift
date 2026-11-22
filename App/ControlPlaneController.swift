@@ -48,6 +48,8 @@ final class ControlPlaneController {
     var history: HistoryRepository?
     @ObservationIgnored var historyDatabaseURL: URL?
     var pendingRestoreBackupURL: URL?
+    /// The settings a restore replaced, so Undo Restore can put them back.
+    @ObservationIgnored var pendingRestorePreferences: ConfigurationArchivePreferences?
     var transientHistory = TransientHistoryBuffer(maximumFlows: ControlPlaneController.minimalFlowLimit)
     @ObservationIgnored var monitorIsVisible = false
     @ObservationIgnored var visibleMonitorCount = 0

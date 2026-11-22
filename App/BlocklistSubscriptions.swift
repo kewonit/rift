@@ -139,6 +139,22 @@ final class BlocklistSubscriptions {
         }
     }
 
+    /// What a configuration archive keeps: each list's ID and address.
+    var archived: [ArchivedBlocklistSubscription] {
+        items.values.map { ArchivedBlocklistSubscription(blocklistID: $0.id, url: $0.url) }
+    }
+
+    /// Replaces the subscriptions with ones from a restored archive. They
+    /// haven't been checked on this Mac, so each is checked soon.
+    func restore(_ archived: [ArchivedBlocklistSubscription]) {
+        items = Dictionary(
+            archived.map { ($0.blocklistID, BlocklistSubscription(id: $0.blocklistID, url: $0.url)) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        save()
+        Task { await refreshDue() }
+    }
+
     private func save() {
         guard let data = try? JSONEncoder().encode(Array(items.values)) else { return }
         UserDefaults.standard.set(data, forKey: Self.storageKey)
