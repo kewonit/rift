@@ -116,17 +116,23 @@ public struct ArchivedAlertPreferences: Sendable, Hashable, Codable {
 
     /// "Block connections I don't answer".
     public var blocksUnanswered: Bool
+    /// How long an alert waits for an answer. Nil for 30 seconds, so archives
+    /// made before the wait could be chosen keep their shape.
+    public var answerWaitSeconds: Int?
     public var defaultLifetime: String
     public var defaultDestination: String
     public var defaultScope: String
 
     public init(
         blocksUnanswered: Bool,
+        answerWaitSeconds: Int? = nil,
         defaultLifetime: String,
         defaultDestination: String,
         defaultScope: String
     ) {
         self.blocksUnanswered = blocksUnanswered
+        self.answerWaitSeconds = answerWaitSeconds == UnansweredAlertSettings.defaultWaitSeconds
+            ? nil : answerWaitSeconds
         self.defaultLifetime = defaultLifetime
         self.defaultDestination = defaultDestination
         self.defaultScope = defaultScope
@@ -134,6 +140,11 @@ public struct ArchivedAlertPreferences: Sendable, Hashable, Codable {
 
     var normalized: Self {
         var copy = self
+        let wait = UnansweredAlertSettings(
+            blocks: blocksUnanswered,
+            storedWaitSeconds: answerWaitSeconds ?? UnansweredAlertSettings.defaultWaitSeconds
+        ).waitSeconds
+        copy.answerWaitSeconds = wait == UnansweredAlertSettings.defaultWaitSeconds ? nil : wait
         copy.defaultLifetime = AlertDefaults.normalizedLifetimePreset(defaultLifetime)
         copy.defaultDestination = AlertDefaults.normalizedDestinationPreset(defaultDestination)
         if !Self.scopes.contains(defaultScope) { copy.defaultScope = Self.scopes[0] }

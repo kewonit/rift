@@ -9,6 +9,15 @@ public enum PolicyOutboxState: String, Sendable, Codable {
     case applyFailed
 }
 
+/// Whether a save also changes what happens to unanswered alerts. The stored
+/// value isn't part of a draft, so a save that doesn't mention it can never
+/// drop it.
+public enum UnansweredAlertChange: Sendable, Hashable {
+    case unchanged
+    /// Nil goes back to the fixed wait and Allow of earlier builds.
+    case set(UnansweredAlertPolicy?)
+}
+
 public struct PolicyConfigurationDraft: Sendable {
     public let lineageID: UUID
     public let authorizedUID: UInt32
@@ -21,6 +30,7 @@ public struct PolicyConfigurationDraft: Sendable {
     public let profiles: [PolicyProfile]
     public let blocklists: [BlocklistSource]
     public let disabledBlocklistEntries: Set<BlocklistEntry>
+    public let unansweredAlertChange: UnansweredAlertChange
 
     public init(
         lineageID: UUID,
@@ -33,7 +43,8 @@ public struct PolicyConfigurationDraft: Sendable {
         localGroups: [LocalRuleGroup] = [],
         profiles: [PolicyProfile] = [],
         blocklists: [BlocklistSource] = [],
-        disabledBlocklistEntries: Set<BlocklistEntry> = []
+        disabledBlocklistEntries: Set<BlocklistEntry> = [],
+        unansweredAlertChange: UnansweredAlertChange = .unchanged
     ) {
         self.lineageID = lineageID
         self.authorizedUID = authorizedUID
@@ -46,6 +57,7 @@ public struct PolicyConfigurationDraft: Sendable {
         self.profiles = profiles
         self.blocklists = blocklists
         self.disabledBlocklistEntries = disabledBlocklistEntries
+        self.unansweredAlertChange = unansweredAlertChange
     }
 }
 

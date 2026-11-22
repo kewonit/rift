@@ -454,7 +454,8 @@ extension ControlPlaneController {
         groups: [LocalRuleGroup]? = nil,
         profiles: [PolicyProfile]? = nil,
         blocklists: [BlocklistSource]? = nil,
-        disabledBlocklistEntries: Set<BlocklistEntry>? = nil
+        disabledBlocklistEntries: Set<BlocklistEntry>? = nil,
+        unansweredAlertChange: UnansweredAlertChange? = nil
     ) -> PolicyConfigurationDraft {
         PolicyConfigurationDraft(
             lineageID: draft.lineageID,
@@ -468,7 +469,8 @@ extension ControlPlaneController {
             profiles: profiles ?? draft.profiles,
             blocklists: blocklists ?? draft.blocklists,
             disabledBlocklistEntries: disabledBlocklistEntries
-                ?? draft.disabledBlocklistEntries
+                ?? draft.disabledBlocklistEntries,
+            unansweredAlertChange: unansweredAlertChange ?? draft.unansweredAlertChange
         )
     }
 }

@@ -249,6 +249,12 @@ public enum ConfigurationDatabase {
                 table.column("encoded_value", .blob).notNull()
             }
         }
+        migrator.registerMigration("configuration-v7-unanswered-alerts") { database in
+            // Null keeps the fixed wait and Allow of earlier builds.
+            try database.alter(table: "policy_preferences") { table in
+                table.add(column: "unanswered_alerts", .blob)
+            }
+        }
         return migrator
     }
 

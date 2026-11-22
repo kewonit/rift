@@ -163,6 +163,8 @@ struct SettingsView: View {
                 alertDefaultScope: $alertDefaultScope,
                 alertDefaultDestination: $alertDefaultDestination,
                 recentLimit: $recentLimit,
+                filterEnforcesUnanswered: controlPlane.filterEnforcesUnansweredAlerts,
+                unansweredChanged: controlPlane.syncUnansweredAlerts,
                 permissionRequested: requestNotificationPermission
             )
         case .history:

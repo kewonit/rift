@@ -85,7 +85,7 @@ struct ConnectionAlertView: View {
                     if let minimize, !decisionInProgress, !durableRuleSaved {
                         Button("Minimize", systemImage: "arrow.down.right.and.arrow.up.left", action: minimize)
                             .labelStyle(.iconOnly).buttonStyle(.borderless)
-                            .help(ConnectionAlertCountdown.blocksUnanswered
+                            .help(ConnectionAlertCountdown.outcome(for: prompt).blocks
                                 ? "Minimize. The connection keeps waiting and is blocked when time runs out."
                                 : "Minimize. The connection keeps waiting and is allowed when time runs out.")
                     }
@@ -433,7 +433,7 @@ struct ConnectionAlertView: View {
     }
 
     private func deadlineLabel(at date: Date) -> String {
-        ConnectionAlertCountdown.label(deadline: prompt.deadline, now: date)
+        ConnectionAlertCountdown.label(for: prompt, now: date)
     }
 
     private var canCreateRule: Bool {

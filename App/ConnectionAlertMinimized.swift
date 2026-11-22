@@ -30,7 +30,7 @@ struct ConnectionAlertMinimizedView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text(ConnectionAlertCountdown.label(deadline: prompt.deadline, now: context.date))
+                    Text(ConnectionAlertCountdown.label(for: prompt, now: context.date))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(Color(nsColor: .systemOrange))
                         .accessibilityLabel(ConnectionAlertSpeech.countdown(deadline: prompt.deadline, now: context.date))
@@ -121,24 +121,18 @@ struct ConnectionAlertWaitingMenu: View {
 
 enum ConnectionAlertCountdown {
     /// Settings › Alerts can block unanswered connections instead of allowing
-    /// them. Rift answers for you just before the filter's own deadline.
-    static let blocksUnansweredKey = "alertsBlockUnanswered"
-    /// How long before the filter's deadline Rift answers Block.
-    static let blockLead: TimeInterval = 1.5
+    /// them. A filter that speaks protocol 1.4 does it itself. For an older
+    /// one, Rift answers Block just before the filter's deadline.
+    static let blocksUnansweredKey = UnansweredAlertSettings.blocksKey
 
     static var blocksUnanswered: Bool { UserDefaults.standard.bool(forKey: blocksUnansweredKey) }
 
-    /// When nobody answers, the connection is allowed, or blocked if
-    /// Settings › Alerts says so.
-    static func label(deadline: Date, now: Date, blocks: Bool = blocksUnanswered) -> String {
-        let end = blocks ? deadline.addingTimeInterval(-blockLead) : deadline
-        let remaining = max(0, Int(end.timeIntervalSince(now).rounded(.up)))
-        let verb = blocks ? "Blocking" : "Allowing"
-        guard remaining > 0 else { return blocks ? "Not answered — connection blocked" : "Timed out — connection allowed" }
-        let minutes = remaining / 60
-        let seconds = remaining % 60
-        return minutes > 0
-            ? "\(verb) in \(minutes):\(String(format: "%02d", seconds))"
-            : "\(verb) in \(seconds)s"
+    /// What happens to this connection if nobody answers.
+    static func outcome(for prompt: PromptRequest) -> UnansweredAlertOutcome {
+        UnansweredAlertOutcome(prompt: prompt, blocksUnanswered: blocksUnanswered)
+    }
+
+    static func label(for prompt: PromptRequest, now: Date) -> String {
+        outcome(for: prompt).countdownLabel(for: prompt, now: now)
     }
 }

@@ -34,15 +34,19 @@ public struct IdentityAdmissionFallback: Sendable, Equatable {
 }
 
 public enum IdentityResolutionAdmissionPolicy {
+    /// The verdict for a connection the filter can't hold or can't identify.
+    /// One that needed an answer gets `unansweredAction`: Allow unless the
+    /// policy says connections nobody answers are blocked.
     public static func fallback(
         for decision: Decision,
-        identityResolutionFailed: Bool = false
+        identityResolutionFailed: Bool = false,
+        unansweredAction: FilterAction = .allow
     ) -> IdentityAdmissionFallback {
         let action: FilterAction
         let reason: RuntimeEventReason
         switch decision.filter.action {
         case .ask:
-            action = .allow
+            action = unansweredAction == .deny ? .deny : .allow
             reason = .promptUnavailableFallback
         case .allow, .deny:
             action = decision.filter.action

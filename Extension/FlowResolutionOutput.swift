@@ -17,7 +17,8 @@ extension FlowResolutionCoordinator {
         )
         let fallback = IdentityResolutionAdmissionPolicy.fallback(
             for: decision,
-            identityResolutionFailed: identityResolutionFailed
+            identityResolutionFailed: identityResolutionFailed,
+            unansweredAction: policy.unansweredAction
         )
         if fallback.permitsMetadataRecord {
             record(
@@ -35,23 +36,29 @@ extension FlowResolutionCoordinator {
         return reporting(verdict, hidden: !fallback.shouldReport)
     }
 
+    /// The verdict for a connection that needs an answer when Rift can't be
+    /// asked: it isn't running, or too many connections are already waiting.
     func resolvedPromptFallback(
         networkFlow: NEFilterFlow,
         metadata: CapturedFlowMetadata,
         decision: Decision,
         policy: RuntimePolicy
     ) -> NEFilterNewFlowVerdict {
+        let action = policy.unansweredAction
         record(
             networkFlow: networkFlow,
             flow: metadata.descriptor,
-            action: .allow,
+            action: action,
             reason: .promptUnavailableFallback,
             policy: policy.tuple,
             hidden: decision.privacy.action == .hidden,
             decision: decision.filter,
             shouldNotify: decision.notification.action == .notify
         )
-        return reporting(.allow(), hidden: decision.privacy.action == .hidden)
+        return reporting(
+            action == .deny ? .drop() : .allow(),
+            hidden: decision.privacy.action == .hidden
+        )
     }
 
     func verdict(_ decision: Decision) -> NEFilterNewFlowVerdict {

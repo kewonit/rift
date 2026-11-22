@@ -30,6 +30,22 @@ public struct RuntimePolicy: Sendable {
         )
     }
 
+    /// When a connection that needs an answer stops waiting for one.
+    public func promptDeadline(for flow: FlowDescriptor, askedAt: Date) -> Date {
+        UnansweredAlertPolicy.deadline(
+            for: flow.transportProtocol,
+            observedAt: flow.observedAt,
+            askedAt: askedAt,
+            policy: payload.unansweredAlerts
+        )
+    }
+
+    /// What happens to a connection that needed an answer and got none:
+    /// nobody answered in time, or Rift wasn't there to ask.
+    public var unansweredAction: FilterAction {
+        UnansweredAlertPolicy.action(for: payload.unansweredAlerts)
+    }
+
     public var recordedExpiryKeys: Set<ExpiredRuleKey> {
         if case .available(let keys) = expiryMetadata { return keys }
         return []

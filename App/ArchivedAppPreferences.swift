@@ -13,6 +13,7 @@ enum ArchivedAppPreferences {
             networkProfiles: NetworkProfileSwitcher.shared.archived,
             alerts: ArchivedAlertPreferences(
                 blocksUnanswered: defaults.bool(forKey: ConnectionAlertCountdown.blocksUnansweredKey),
+                answerWaitSeconds: ControlPlaneController.unansweredAlertSettings.waitSeconds,
                 defaultLifetime: defaults.string(forKey: AlertDefaults.lifetimeKey) ?? AlertDefaults.lastUsed,
                 defaultDestination: defaults.string(forKey: AlertDefaults.destinationKey) ?? AlertDefaults.lastUsed,
                 defaultScope: defaults.string(forKey: AlertDefaults.scopeKey) ?? ArchivedAlertPreferences.scopes[0]
@@ -25,6 +26,10 @@ enum ArchivedAppPreferences {
         NetworkProfileSwitcher.shared.restore(preferences.networkProfiles)
         let defaults = UserDefaults.standard
         defaults.set(preferences.alerts.blocksUnanswered, forKey: ConnectionAlertCountdown.blocksUnansweredKey)
+        defaults.set(
+            preferences.alerts.answerWaitSeconds ?? UnansweredAlertSettings.defaultWaitSeconds,
+            forKey: UnansweredAlertSettings.waitSecondsKey
+        )
         defaults.set(preferences.alerts.defaultLifetime, forKey: AlertDefaults.lifetimeKey)
         defaults.set(preferences.alerts.defaultDestination, forKey: AlertDefaults.destinationKey)
         defaults.set(preferences.alerts.defaultScope, forKey: AlertDefaults.scopeKey)

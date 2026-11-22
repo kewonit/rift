@@ -8,33 +8,32 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
     struct Pending {
         let flow: NEFilterFlow
         var metadata: CapturedFlowMetadata
-        let deadline: Date
+        var deadline: Date
         var cohortID: UUID?
         var privacyResolved: Bool
+        /// The decision was Ask, so the connection is waiting for an answer.
+        var awaitingAnswer: Bool
         var hidden: Bool
         var shouldNotify: Bool
     }
-    private struct Cohort {
+    struct Cohort {
         let key: PromptCohortKey
         let nonce: UUID
         var flowIDs: Set<UUID>
     }
     private static let maximumPendingFlows = 256
-    private static let maximumDeadlineNonceRetries = 8
-    private static let tcpDeadline: TimeInterval = 30
-    private static let udpDeadline: TimeInterval = 8
-    private let lock = NSLock()
+    let lock = NSLock()
     let resolver = IdentityResolver()
     let activePolicy: ActivePolicyReference
-    private let prompts: PromptQueue
+    let prompts: PromptQueue
     let events: RuntimeEventRing
     let notifications: EphemeralNotificationQueue
     private let reloads: PolicyReloadSignal
     let liveFlows: LiveFlowTracker
     weak var provider: NEFilterDataProvider?
-    private var pending: [UUID: Pending] = [:]
-    private var cohorts: [UUID: Cohort] = [:]
-    private var cohortIDsByKey: [PromptCohortKey: UUID] = [:]
+    var pending: [UUID: Pending] = [:]
+    var cohorts: [UUID: Cohort] = [:]
+    var cohortIDsByKey: [PromptCohortKey: UUID] = [:]
     private var reloadObserverID: UUID?
 
     init(
@@ -103,36 +102,6 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         scheduleDeadline(flowID: captured.descriptor.flowID, deadline: deadline)
         return .pause()
     }
-    func providerStopped() {
-        let (values, nonces) = lock.withLock {
-            let values = Array(pending.values)
-            let nonces = cohorts.values.map(\.nonce)
-            pending.removeAll(keepingCapacity: true)
-            cohorts.removeAll(keepingCapacity: true)
-            cohortIDsByKey.removeAll(keepingCapacity: true)
-            return (values, nonces)
-        }
-        nonces.forEach(prompts.cancel)
-        guard let provider else { return }
-        for value in values {
-            if value.privacyResolved {
-                record(
-                    networkFlow: value.flow,
-                    flow: value.metadata.descriptor,
-                    action: .allow,
-                    reason: .promptUnavailableFallback,
-                    policy: activePolicy.load()?.tuple,
-                    hidden: value.hidden,
-                    shouldNotify: value.shouldNotify
-                )
-            }
-            provider.resumeFlow(
-                value.flow,
-                with: reporting(.allow(), hidden: !value.privacyResolved || value.hidden)
-            )
-        }
-    }
-
     private func immediateOrPrompt(
         flow: NEFilterFlow,
         metadata: CapturedFlowMetadata,
@@ -153,12 +122,16 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
             )
             return verdict(decision)
         }
-        let deadline = deadline(for: metadata.descriptor)
+        let deadline = policy.promptDeadline(
+            for: metadata.descriptor,
+            askedAt: metadata.descriptor.observedAt
+        )
         let registration = register(
             flow: flow,
             metadata: metadata,
             deadline: deadline,
-            privacyResolved: true
+            privacyResolved: true,
+            awaitingAnswer: true
         )
         guard registration == .admitted else {
             return resolvedPromptFallback(
@@ -215,8 +188,17 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         let decision = policy.decision(for: value.metadata.descriptor, now: Date())
         value.hidden = decision.privacy.action == .hidden
         value.shouldNotify = decision.notification.action == .notify
-        update(value, flowID: flowID)
         if decision.filter.action == .ask {
+            // The wait for an answer starts now that there's an alert to
+            // show. The timer set for the identity check ignores a flow whose
+            // deadline moved later, so a moved deadline gets its own.
+            value.awaitingAnswer = true
+            let identityDeadline = value.deadline
+            value.deadline = policy.promptDeadline(for: value.metadata.descriptor, askedAt: Date())
+            update(value, flowID: flowID)
+            if value.deadline != identityDeadline {
+                scheduleDeadline(flowID: flowID, deadline: value.deadline)
+            }
             if !enqueuePrompt(
                 flowID: flowID,
                 metadata: value.metadata,
@@ -228,6 +210,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
             }
             return
         }
+        update(value, flowID: flowID)
         guard let completed = take(flowID: flowID) else { return }
         record(
             networkFlow: completed.flow,
@@ -243,7 +226,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         provider.resumeFlow(completed.flow, with: verdict(decision))
     }
 
-    private func enqueuePrompt(
+    func enqueuePrompt(
         flowID: UUID,
         metadata: CapturedFlowMetadata,
         decision: Decision,
@@ -282,7 +265,8 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
                         generation: policy.payload.generation,
                         flow: displayFlow,
                         winningRuleID: decision.filter.winningRuleID,
-                        affectingRuleIDs: decision.filter.affectingRuleIDs
+                        affectingRuleIDs: decision.filter.affectingRuleIDs,
+                        unansweredAction: policy.unansweredAction
                     ),
                     deadline: deadline
                 ) { [weak self] resolution in
@@ -310,8 +294,8 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         guard let provider else { return }
         let (action, reason): (FilterAction, RuntimeEventReason) = switch resolution {
         case .answered(let action): (action, .concreteDecision)
-        case .unavailableFallback: (.allow, .promptUnavailableFallback)
-        case .deadlineFallback: (.allow, .promptDeadlineFallback)
+        case .unavailableFallback: (unansweredAction(), .promptUnavailableFallback)
+        case .deadlineFallback: (unansweredAction(), .promptDeadlineFallback)
         }
         let result: NEFilterNewFlowVerdict = action == .deny ? .drop() : .allow()
         for value in values {
@@ -328,67 +312,12 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         }
     }
 
-    func scheduleDeadline(flowID: UUID, deadline: Date) {
-        let interval = max(0, deadline.timeIntervalSinceNow)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + interval) { [weak self] in
-            self?.deadlineReached(flowID: flowID, deadline: deadline)
-        }
-    }
-
-    private func deadlineReached(flowID: UUID, deadline: Date) {
-        let now = Date()
-        guard now >= deadline else {
-            scheduleDeadline(flowID: flowID, deadline: deadline)
-            return
-        }
-        for _ in 0..<Self.maximumDeadlineNonceRetries {
-            let nonce = lock.withLock {
-                pending[flowID]?.cohortID.flatMap { cohorts[$0]?.nonce }
-            }
-            guard let nonce else {
-                resumeFallback(flowID: flowID, reason: .promptDeadlineFallback)
-                return
-            }
-            if prompts.expire(nonce, now: now) { return }
-            let currentNonce = lock.withLock {
-                pending[flowID]?.cohortID.flatMap { cohorts[$0]?.nonce }
-            }
-            if currentNonce == nonce { return }
-        }
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(
-            deadline: .now() + .milliseconds(10)
-        ) { [weak self] in
-            self?.deadlineReached(flowID: flowID, deadline: deadline)
-        }
-    }
-
-    private func resumeFallback(
-        flowID: UUID,
-        reason: RuntimeEventReason = .promptUnavailableFallback
-    ) {
-        guard let value = take(flowID: flowID), let provider else { return }
-        if value.privacyResolved {
-            record(
-                networkFlow: value.flow,
-                flow: value.metadata.descriptor,
-                action: .allow,
-                reason: reason,
-                policy: activePolicy.load()?.tuple,
-                hidden: value.hidden,
-                shouldNotify: value.shouldNotify
-            )
-        }
-        provider.resumeFlow(
-            value.flow,
-            with: reporting(.allow(), hidden: !value.privacyResolved || value.hidden)
-        )
-    }
-
     func register(
         flow: NEFilterFlow,
         metadata: CapturedFlowMetadata,
         deadline: Date,
-        privacyResolved: Bool = false
+        privacyResolved: Bool = false,
+        awaitingAnswer: Bool = false
     ) -> PendingFlowAdmissionResult {
         lock.withLock {
             let result = PendingFlowAdmissionPolicy.classify(
@@ -403,6 +332,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
                 deadline: deadline,
                 cohortID: nil,
                 privacyResolved: privacyResolved,
+                awaitingAnswer: awaitingAnswer,
                 hidden: false,
                 shouldNotify: false
             )
@@ -410,7 +340,7 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         }
     }
 
-    private func value(flowID: UUID) -> Pending? {
+    func value(flowID: UUID) -> Pending? {
         lock.withLock { pending[flowID] }
     }
 
@@ -439,61 +369,4 @@ final class FlowResolutionCoordinator: @unchecked Sendable {
         result.1.map(prompts.cancel)
         return result.0
     }
-
-    private func policyChanged(_ policy: RuntimePolicy?) {
-        let (flowIDs, nonces) = lock.withLock { () -> ([UUID], [UUID]) in
-            let nonces = cohorts.values.map(\.nonce)
-            cohorts.removeAll(keepingCapacity: true)
-            cohortIDsByKey.removeAll(keepingCapacity: true)
-            for flowID in pending.keys {
-                pending[flowID]?.cohortID = nil
-            }
-            return (Array(pending.keys), nonces)
-        }
-        nonces.forEach(prompts.cancel)
-        guard let policy, let provider else {
-            flowIDs.forEach { resumeFallback(flowID: $0) }
-            return
-        }
-        for flowID in flowIDs {
-            guard let value = value(flowID: flowID) else { continue }
-            guard value.privacyResolved else { continue }
-            guard Date() < value.deadline else {
-                resumeFallback(flowID: flowID, reason: .promptDeadlineFallback)
-                continue
-            }
-            let decision = policy.decision(for: value.metadata.descriptor, now: Date())
-            if decision.filter.action == .ask {
-                if !enqueuePrompt(
-                    flowID: flowID,
-                    metadata: value.metadata,
-                    decision: decision,
-                    policy: policy,
-                    deadline: value.deadline
-                ) {
-                    resumeFallback(flowID: flowID, reason: .promptUnavailableFallback)
-                }
-            } else if let completed = take(flowID: flowID) {
-                record(
-                    networkFlow: completed.flow,
-                    flow: completed.metadata.descriptor,
-                    action: decision.filter.action,
-                    reason: decision.filter.winningRuleID == nil
-                        ? .unmatchedModeFallback : .concreteDecision,
-                    policy: policy.tuple,
-                    hidden: decision.privacy.action == .hidden,
-                    decision: decision.filter,
-                    shouldNotify: decision.notification.action == .notify
-                )
-                provider.resumeFlow(completed.flow, with: verdict(decision))
-            }
-        }
-    }
-
-    func deadline(for flow: FlowDescriptor) -> Date {
-        flow.observedAt.addingTimeInterval(
-            flow.transportProtocol == .udp ? Self.udpDeadline : Self.tcpDeadline
-        )
-    }
-
 }

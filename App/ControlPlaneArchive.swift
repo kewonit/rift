@@ -81,7 +81,10 @@ extension ControlPlaneController {
                     throw ArchiveControllerError.missingConfiguration
                 }
                 let outcome = try await recoverConfigurationArchive(payload)
-                if let preferences = payload.preferences { ArchivedAppPreferences.apply(preferences) }
+                if let preferences = payload.preferences {
+                    ArchivedAppPreferences.apply(preferences)
+                    syncUnansweredAlerts()
+                }
                 return outcome
             }
             guard let repository,
@@ -127,6 +130,7 @@ extension ControlPlaneController {
             if let preferences = payload.preferences {
                 pendingRestorePreferences = ArchivedAppPreferences.current()
                 ArchivedAppPreferences.apply(preferences)
+                syncUnansweredAlerts()
             } else {
                 pendingRestorePreferences = nil
             }
@@ -192,6 +196,7 @@ extension ControlPlaneController {
             phase = .desiredConfigurationSaved
             if let previous = pendingRestorePreferences {
                 ArchivedAppPreferences.apply(previous)
+                syncUnansweredAlerts()
                 pendingRestorePreferences = nil
             }
             try await reconcileSavedPolicy(desired, lineageID: current.lineageID)

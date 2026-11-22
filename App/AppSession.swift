@@ -117,6 +117,9 @@ final class AppSession {
             mode: unreadable ? nil : controlPlane.currentMode,
             configurationUnreadable: unreadable,
             waitingPrompts: controlPlane.pendingPrompts.count,
+            unansweredBlocked: controlPlane.pendingPrompts.contains {
+                ConnectionAlertCountdown.outcome(for: $0).blocks
+            },
             filterSilent: liveness.isSilent
         )
     }

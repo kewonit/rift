@@ -8,19 +8,23 @@ public struct PromptSeed: Sendable {
     public let flow: FlowDescriptor
     public let winningRuleID: UUID?
     public let affectingRuleIDs: [UUID]
+    /// What the filter will do at the deadline, for the alert to say.
+    public let unansweredAction: FilterAction?
 
     public init(
         lineageID: UUID,
         generation: UInt64,
         flow: FlowDescriptor,
         winningRuleID: UUID?,
-        affectingRuleIDs: [UUID]
+        affectingRuleIDs: [UUID],
+        unansweredAction: FilterAction? = nil
     ) {
         self.lineageID = lineageID
         self.generation = generation
         self.flow = flow
         self.winningRuleID = winningRuleID
         self.affectingRuleIDs = affectingRuleIDs
+        self.unansweredAction = unansweredAction
     }
 }
 
@@ -77,6 +81,9 @@ public final class PromptQueue: @unchecked Sendable {
 
     private let lock = NSLock()
     private var controller: Controller?
+    /// The protocol the controller holding `leaseID` speaks. Until it's
+    /// known, prompts go out in the oldest shape, which every app decodes.
+    private var controllerProtocol: (leaseID: UUID, version: ProtocolVersion)?
     private var entries: [UUID: Entry] = [:]
     private var order: [UUID] = []
     private var activitySignal: (@Sendable () -> Void)?
@@ -98,6 +105,12 @@ public final class PromptQueue: @unchecked Sendable {
             return old
         }
         fallbacks.forEach { $0(.unavailableFallback) }
+    }
+
+    /// Records which protocol the controller speaks, so prompts carry only
+    /// fields it can decode.
+    public func setControllerProtocol(_ version: ProtocolVersion, controllerLeaseID: UUID) {
+        lock.withLock { controllerProtocol = (controllerLeaseID, version) }
     }
 
     public func deactivate(controllerLeaseID: UUID) {
@@ -136,7 +149,8 @@ public final class PromptQueue: @unchecked Sendable {
                 transportProtocol: seed.flow.transportProtocol,
                 endpoint: seed.flow.destinationEndpoint,
                 winningRuleID: seed.winningRuleID,
-                affectingRuleIDs: Array(seed.affectingRuleIDs.prefix(256))
+                affectingRuleIDs: Array(seed.affectingRuleIDs.prefix(256)),
+                unansweredAction: seed.unansweredAction
             )
             entries[nonce] = Entry(
                 request: request,
@@ -155,12 +169,15 @@ public final class PromptQueue: @unchecked Sendable {
         try lock.withLock {
             guard controller?.leaseID == controllerLeaseID else { throw PromptQueueError.invalidLease }
             let now = Date()
+            let version = controllerProtocol.flatMap {
+                $0.leaseID == controllerLeaseID ? $0.version : nil
+            } ?? .baseline
             var result: [PromptRequest] = []
             for nonce in order where result.count < Self.maximumDrainCount {
                 guard var entry = entries[nonce], !entry.delivered, entry.deadline > now else { continue }
                 entry.delivered = true
                 entries[nonce] = entry
-                result.append(entry.request)
+                result.append(entry.request.compatible(with: version))
             }
             return result
         }
@@ -244,28 +261,5 @@ public final class PromptQueue: @unchecked Sendable {
                 entries[nonce] = entry
             }
         }
-    }
-}
-
-private extension PromptRequest {
-    func updated(deadline: Date, cohortCount: UInt16) -> PromptRequest {
-        PromptRequest(
-            nonce: nonce,
-            providerEpoch: providerEpoch,
-            lineageID: lineageID,
-            generation: generation,
-            flowID: flowID,
-            observedAt: observedAt,
-            deadline: deadline,
-            cohortCount: cohortCount,
-            owner: owner,
-            appIdentity: appIdentity,
-            processIdentity: processIdentity,
-            direction: direction,
-            transportProtocol: transportProtocol,
-            endpoint: endpoint,
-            winningRuleID: winningRuleID,
-            affectingRuleIDs: affectingRuleIDs
-        )
     }
 }

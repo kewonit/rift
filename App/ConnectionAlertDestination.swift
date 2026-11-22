@@ -41,10 +41,9 @@ extension ConnectionAlertView {
     }
 
     /// The last moment to answer: the filter's deadline, or a little before
-    /// it when Rift answers Block for unanswered connections.
+    /// it when Rift has to answer Block for an older filter.
     var answerDeadline: Date {
-        ConnectionAlertCountdown.blocksUnanswered
-            ? prompt.deadline.addingTimeInterval(-ConnectionAlertCountdown.blockLead) : prompt.deadline
+        ConnectionAlertCountdown.outcome(for: prompt).answerDeadline(for: prompt)
     }
 
     /// The destination as it reads in a sentence about the new rule.

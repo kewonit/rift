@@ -31,10 +31,18 @@ existing connection can remain established until the application
 or operating system opens another flow. A policy change does not promise to
 terminate every already-open connection immediately.
 
-An alert nobody answers allows its connection when it times out, unless
-Settings › Alerts blocks unanswered connections. Rift does that by answering
-Block for you just before the deadline, so it works only while Rift is open;
-before login, or with Rift closed, unanswered connections are still allowed.
+An alert nobody answers allows its connection when it times out, 30 seconds
+after a TCP connection starts and 8 seconds after a UDP one, unless Settings ›
+Alerts says otherwise. There you choose how long an alert waits, from 15 seconds
+to 2 minutes, and whether an unanswered connection is allowed or blocked. The
+filter enforces both. With Block chosen, it also blocks a connection that would
+need an answer while Rift isn't open, without waiting. UDP connections never
+wait longer than 8 seconds. The longest wait is 2 minutes because how long
+macOS keeps a paused connection alive hasn't been measured. Before login, or
+while another account is in front, connections that would ask are still
+allowed. A filter older than protocol 1.4 keeps the fixed wait, and Rift blocks
+for it by answering Block just before the deadline, which works only while Rift
+is open.
 
 When the extension has no compatible, validated policy, Rift fails open instead
 of silently disconnecting the Mac. This also applies to unavailable or degraded

@@ -1,3 +1,4 @@
+import RiftControl
 import RiftIPC
 import AppKit
 import Foundation
@@ -21,7 +22,7 @@ final class PromptPanelController {
     private var minimized = false
     private var lastInput: (prompts: [PromptRequest], controller: ControlPlaneController, artworkStore: ApplicationArtworkStore)?
     /// Answers Block for a connection nobody answered, when Settings › Alerts
-    /// says to.
+    /// says to and the filter is too old to do it itself.
     private var timeoutAnswers: [UUID: Task<Void, Never>] = [:]
     /// Connections the person is answering right now, which Rift leaves to
     /// them.
@@ -156,9 +157,9 @@ final class PromptPanelController {
         answering.formIntersection(waiting)
         for prompt in prompts where timeoutAnswers[prompt.nonce] == nil {
             timeoutAnswers[prompt.nonce] = Task { [weak self, weak controller] in
-                let wait = prompt.deadline.timeIntervalSinceNow - ConnectionAlertCountdown.blockLead
+                let wait = prompt.deadline.timeIntervalSinceNow - UnansweredAlertOutcome.appBlockLead
                 if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
-                guard !Task.isCancelled, ConnectionAlertCountdown.blocksUnanswered,
+                guard !Task.isCancelled, ConnectionAlertCountdown.outcome(for: prompt) == .blockedByApp,
                       prompt.deadline > Date(), let controller,
                       self?.answering.contains(prompt.nonce) != true else { return }
                 do {

@@ -26,6 +26,8 @@ public struct ProtectionInputs: Sendable, Equatable {
     public var mode: OperationMode?
     public var configurationUnreadable: Bool
     public var waitingPrompts: Int
+    /// Waiting connections nobody answers are blocked, not allowed.
+    public var unansweredBlocked: Bool
     /// The filter says it's on, but no connection has reached Rift for a
     /// while although the network is up. See `FilterLiveness`.
     public var filterSilent: Bool
@@ -43,6 +45,7 @@ public struct ProtectionInputs: Sendable, Equatable {
         mode: OperationMode? = nil,
         configurationUnreadable: Bool = false,
         waitingPrompts: Int = 0,
+        unansweredBlocked: Bool = false,
         filterSilent: Bool = false
     ) {
         self.isPreview = isPreview
@@ -57,6 +60,7 @@ public struct ProtectionInputs: Sendable, Equatable {
         self.mode = mode
         self.configurationUnreadable = configurationUnreadable
         self.waitingPrompts = waitingPrompts
+        self.unansweredBlocked = unansweredBlocked
         self.filterSilent = filterSilent
     }
 }
@@ -211,7 +215,9 @@ public struct ProtectionStatus: Sendable, Equatable {
         guard input.filterServiceConfirmed else { return connecting }
         guard let mode = input.mode, mode != .degradedFallback else { return modeUnknown }
         if input.filterSilent, mode != .filterOff { return filterSilent }
-        if input.waitingPrompts > 0 { return waiting(input.waitingPrompts) }
+        if input.waitingPrompts > 0 {
+            return waiting(input.waitingPrompts, blocked: input.unansweredBlocked)
+        }
         return active(mode)
     }
 
@@ -346,11 +352,13 @@ public struct ProtectionStatus: Sendable, Equatable {
         symbolName: "exclamationmark.shield"
     )
 
-    private static func waiting(_ count: Int) -> ProtectionStatus {
+    private static func waiting(_ count: Int, blocked: Bool) -> ProtectionStatus {
         ProtectionStatus(
             state: .waiting(count),
             title: "Connections are waiting",
-            detail: "Any you don’t answer in time are allowed.",
+            detail: blocked
+                ? "Any you don’t answer in time are blocked."
+                : "Any you don’t answer in time are allowed.",
             tone: .attention, traffic: .rulesApply, action: .reviewWaiting,
             symbolName: "exclamationmark.shield"
         )

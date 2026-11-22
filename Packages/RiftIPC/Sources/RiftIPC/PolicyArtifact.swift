@@ -29,8 +29,12 @@ public struct PolicyCompatibility: Sendable, Hashable, Codable {
 
     /// The oldest extension protocol that can decode `rules`. Policies with
     /// nothing new keep the baseline, so their bytes don't change.
-    public static func minimumExtensionProtocol(for rules: [Rule]) -> ProtocolVersion {
-        rules.contains(where: \.hasInternationalName) ? .internationalNames : .baseline
+    public static func minimumExtensionProtocol(
+        for rules: [Rule],
+        unansweredAlerts: UnansweredAlertPolicy? = nil
+    ) -> ProtocolVersion {
+        if unansweredAlerts != nil { return .extendedPolicy }
+        return rules.contains(where: \.hasInternationalName) ? .internationalNames : .baseline
     }
 
     func raisingExtensionMinimum(to version: ProtocolVersion) -> PolicyCompatibility {
@@ -69,6 +73,9 @@ public struct CompiledPolicyPayload: Sendable, Hashable, Codable {
     public let activeProfileID: UUID?
     public let enabledLocalGroupIDs: [UUID]
     public let rules: [Rule]
+    /// Nil keeps the fixed wait and Allow of earlier builds, and leaves the
+    /// policy's bytes as they were.
+    public let unansweredAlerts: UnansweredAlertPolicy?
 
     public init(
         lineageID: UUID,
@@ -79,7 +86,8 @@ public struct CompiledPolicyPayload: Sendable, Hashable, Codable {
         operationMode: OperationMode,
         activeProfileID: UUID?,
         enabledLocalGroupIDs: Set<UUID>,
-        rules: [Rule]
+        rules: [Rule],
+        unansweredAlerts: UnansweredAlertPolicy? = nil
     ) throws {
         guard generation > 0 else { throw PolicyArtifactError.invalidGeneration }
         guard operationMode != .degradedFallback else {
@@ -97,13 +105,17 @@ public struct CompiledPolicyPayload: Sendable, Hashable, Codable {
         self.generation = generation
         self.authorizedUID = authorizedUID
         self.compatibility = compatibility.raisingExtensionMinimum(
-            to: PolicyCompatibility.minimumExtensionProtocol(for: rules)
+            to: PolicyCompatibility.minimumExtensionProtocol(
+                for: rules,
+                unansweredAlerts: unansweredAlerts
+            )
         )
         self.createdAt = createdAt
         self.operationMode = operationMode
         self.activeProfileID = activeProfileID
         self.enabledLocalGroupIDs = enabledLocalGroupIDs.sorted { $0.uuidString < $1.uuidString }
         self.rules = rules.sorted { $0.id.uuidString < $1.id.uuidString }
+        self.unansweredAlerts = unansweredAlerts
     }
 
     public func validated() throws -> CompiledPolicyPayload {

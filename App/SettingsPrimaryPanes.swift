@@ -89,6 +89,9 @@ struct AlertSettingsPane: View {
     @Binding var alertDefaultScope: String
     @Binding var alertDefaultDestination: String
     @Binding var recentLimit: Int
+    /// The filter holds the wait and blocks unanswered connections itself.
+    let filterEnforcesUnanswered: Bool
+    let unansweredChanged: () -> Void
     let permissionRequested: (Bool) -> Void
     @AppStorage(NotificationKinds.blocked.rawValue) private var notifyBlocked = true
     @AppStorage(NotificationKinds.undecided.rawValue) private var notifyUndecided = true
@@ -96,6 +99,8 @@ struct AlertSettingsPane: View {
     @AppStorage(NotificationKinds.ruleSound.rawValue) private var notifyRuleSound = false
     @AppStorage(PromptPanelController.keepMinimizedKey) private var keepAlertsMinimized = false
     @AppStorage(ConnectionAlertCountdown.blocksUnansweredKey) private var blocksUnanswered = false
+    @AppStorage(UnansweredAlertSettings.waitSecondsKey)
+    private var answerWaitSeconds = UnansweredAlertSettings.defaultWaitSeconds
 
     var body: some View {
         Form {
@@ -139,17 +144,36 @@ struct AlertSettingsPane: View {
                     Text("All profiles").tag("All profiles")
                 }
                 Toggle("Show alerts minimized", isOn: $keepAlertsMinimized)
-                Toggle("Block connections I don’t answer", isOn: $blocksUnanswered)
+                Picker("If I don’t answer", selection: $blocksUnanswered) {
+                    Text("Allow the connection").tag(false)
+                    Text("Block the connection").tag(true)
+                }
+                .onChange(of: blocksUnanswered) { unansweredChanged() }
+                Picker("Wait for an answer", selection: $answerWaitSeconds) {
+                    ForEach(UnansweredAlertSettings.waitChoices, id: \.self) { seconds in
+                        Text(UnansweredAlertSettings.waitTitle(seconds)).tag(seconds)
+                    }
+                }
+                .disabled(!filterEnforcesUnanswered)
+                .onChange(of: answerWaitSeconds) { unansweredChanged() }
                 Stepper("Recent apps in menu: \(recentLimit)", value: $recentLimit, in: 0...10)
             } header: {
                 Text("Alert Defaults")
             } footer: {
-                Text(blocksUnanswered
-                    ? "In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed."
-                    : "In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift lets the connection through.")
+                Text("In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown. "
+                    + unansweredSettings.explanation(filterEnforces: filterEnforcesUnanswered)
+                    + (filterEnforcesUnanswered
+                        ? " UDP connections wait 8 seconds at most."
+                        : " The wait can be changed once the network filter is on and up to date."))
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+extension AlertSettingsPane {
+    fileprivate var unansweredSettings: UnansweredAlertSettings {
+        UnansweredAlertSettings(blocks: blocksUnanswered, storedWaitSeconds: answerWaitSeconds)
     }
 }
 
