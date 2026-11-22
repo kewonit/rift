@@ -106,6 +106,7 @@ struct RiftSearchField: View {
         .padding(.horizontal, RiftDesign.Spacing.s - 2)
         .frame(height: RiftDesign.barControlHeight)
         .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .riftContrastOutline(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .background(InitialFocusClearer())
         .frame(minWidth: 120, maxWidth: 220)
     }

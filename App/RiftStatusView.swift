@@ -92,7 +92,7 @@ struct RiftHealthView: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(status.color)
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
-                .animation(RiftDesign.Motion.enter(), value: status.symbolName)
+                .animation(reduceMotion ? nil : RiftDesign.Motion.enter(), value: status.symbolName)
                 .frame(width: 24)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
