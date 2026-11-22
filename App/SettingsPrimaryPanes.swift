@@ -94,6 +94,7 @@ struct AlertSettingsPane: View {
     @AppStorage(NotificationKinds.ruleMatches.rawValue) private var notifyRuleMatches = true
     @AppStorage(NotificationKinds.ruleSound.rawValue) private var notifyRuleSound = false
     @AppStorage(PromptPanelController.keepMinimizedKey) private var keepAlertsMinimized = false
+    @AppStorage(ConnectionAlertCountdown.blocksUnansweredKey) private var blocksUnanswered = false
 
     var body: some View {
         Form {
@@ -136,11 +137,14 @@ struct AlertSettingsPane: View {
                     Text("All profiles").tag("All profiles")
                 }
                 Toggle("Show alerts minimized", isOn: $keepAlertsMinimized)
+                Toggle("Block connections I don’t answer", isOn: $blocksUnanswered)
                 Stepper("Recent apps in menu: \(recentLimit)", value: $recentLimit, in: 0...10)
             } header: {
                 Text("Alert Defaults")
             } footer: {
-                Text("In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift lets the connection through.")
+                Text(blocksUnanswered
+                    ? "In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed."
+                    : "In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift lets the connection through.")
             }
         }
         .formStyle(.grouped)

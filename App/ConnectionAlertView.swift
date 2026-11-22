@@ -121,7 +121,9 @@ struct ConnectionAlertView: View {
                     if let minimize, !decisionInProgress, !durableRuleSaved {
                         Button("Minimize", systemImage: "arrow.down.right.and.arrow.up.left", action: minimize)
                             .labelStyle(.iconOnly).buttonStyle(.borderless)
-                            .help("Minimize. The connection keeps waiting and is allowed when time runs out.")
+                            .help(ConnectionAlertCountdown.blocksUnanswered
+                                ? "Minimize. The connection keeps waiting and is blocked when time runs out."
+                                : "Minimize. The connection keeps waiting and is allowed when time runs out.")
                     }
                     if others.isEmpty, let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
                         Text(waiting).font(.caption).foregroundStyle(.secondary).monospacedDigit()

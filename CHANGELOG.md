@@ -119,6 +119,9 @@ The changelog records notable user-visible changes.
   Wi-Fi names. Rift switches on its own only to a profile at least as strict
   as the current one; for a less strict one it notifies you instead, because
   anyone can name a network after yours.
+- Settings › Alerts can block connections you don't answer: Rift answers Block
+  just before the alert times out, and the countdown says so. When Rift isn't
+  open, or before you log in, connections nobody can answer are still allowed.
 
 ## 0.4.0
 

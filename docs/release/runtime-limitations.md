@@ -31,6 +31,11 @@ existing connection can remain established until the application
 or operating system opens another flow. A policy change does not promise to
 terminate every already-open connection immediately.
 
+An alert nobody answers allows its connection when it times out, unless
+Settings › Alerts blocks unanswered connections. Rift does that by answering
+Block for you just before the deadline, so it works only while Rift is open;
+before login, or with Rift closed, unanswered connections are still allowed.
+
 When the extension has no compatible, validated policy, Rift fails open instead
 of silently disconnecting the Mac. This also applies to unavailable or degraded
 policy persistence. Before the status surface describes a saved policy as
