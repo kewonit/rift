@@ -18,7 +18,9 @@ undersea cables, and lets you allow or block apps and sites.
   also imports `.lsrules` rule files.
 - **Connection alerts** in Ask Me mode, so you decide when an app connects
   somewhere new. Answers default to a lasting rule for the domain, and alerts
-  with a warning need a deliberate Allow.
+  with a warning need a deliberate Allow. When an app ships an Internet Access
+  Policy, alerts and the Map show what its developer says a connection is for
+  and what blocking it breaks, read from the app on disk.
 - **Map** of connections over undersea cables, with a timeline and a searchable
   connection table. Routes are estimates.
 - **Menu-bar panel** with the current mode, recent apps, and five-minute Allow

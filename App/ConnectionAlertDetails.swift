@@ -92,6 +92,7 @@ struct ConnectionAlertFacts {
 struct ConnectionAlertDetails: View {
     let prompt: PromptRequest
     let controller: ControlPlaneController
+    var developer: DeveloperExplanation?
     @State private var ruleSummaries: [(id: UUID, text: String)] = []
 
     private var facts: ConnectionAlertFacts { ConnectionAlertFacts(prompt: prompt) }
@@ -126,7 +127,8 @@ struct ConnectionAlertDetails: View {
             ConnectionExplanationView(
                 identity: prompt.processIdentity ?? prompt.appIdentity,
                 fallbackName: MonitorQuery.identityLabel(prompt.appIdentity ?? prompt.processIdentity),
-                host: prompt.endpoint?.hostname?.ascii ?? prompt.endpoint?.address.description
+                host: prompt.endpoint?.hostname?.ascii ?? prompt.endpoint?.address.description,
+                developer: developer
             )
             if !ruleSummaries.isEmpty {
                 VStack(alignment: .leading, spacing: 3) {

@@ -52,6 +52,8 @@ struct ConnectionAlertView: View {
     @State private var initialDeadlineInterval: TimeInterval = 30
     @State private var presentedAt = Date()
     @State private var answersSameApp = false
+    @State private var developerPolicy: InternetAccessPolicy?
+    @State private var confirmingBlock = false
     @FocusState private var noteFocused: Bool
 
     var body: some View {
@@ -98,9 +100,10 @@ struct ConnectionAlertView: View {
             }
 
             ConnectionAlertWarningList(warnings: ConnectionAlertWarnings.warnings(for: prompt))
+            ConnectionAlertFirstContact(prompt: prompt, domain: firstContactDomain, controller: controller)
 
             DisclosureGroup("Details", isExpanded: $showingDetails) {
-                ConnectionAlertDetails(prompt: prompt, controller: controller)
+                ConnectionAlertDetails(prompt: prompt, controller: controller, developer: developerExplanation)
             }
 
             if prompt.endpoint?.hostname == nil {
@@ -159,46 +162,16 @@ struct ConnectionAlertView: View {
             }
 
             if lifetime != .once {
-                Picker("Destination", selection: $destinationScope) {
-                    ForEach(destinationChoices) { choice in
-                        Text(choice == .domain ? "\(registeredDomain ?? "") and its subdomains" : choice.rawValue)
-                            .tag(choice)
-                    }
-                }
-                if destinationScope == .exact {
-                    Text("Applies to this destination on this port, for the same protocol and direction.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if destinationScope == .anyPort {
-                    Text("Applies to this destination on any port, for the same protocol and direction.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if destinationScope == .domain {
-                    Text("Applies to every name under \(registeredDomain ?? "this domain") on any port, for the same protocol and direction.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if destinationScope == .any {
-                    Label(
-                        "This rule will apply to all destinations for this app with the same protocol, direction, and owner.",
-                        systemImage: "exclamationmark.triangle"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                }
-                if activeProfileResolution.profile != nil {
-                    Picker("Apply to", selection: $scope) {
-                        ForEach(RuleScope.allCases) { Text(scopeTitle($0)).tag($0) }
-                    }
-                }
-                TextField("Note (optional)", text: $note, axis: .vertical)
-                    .lineLimit(2...4)
-                    .focused($noteFocused)
-                if !noteValid {
-                    Text("This note is too long.").font(.caption).foregroundStyle(.red)
-                }
+                ConnectionAlertRuleOptions(
+                    destinationScope: $destinationScope, scope: $scope, note: $note,
+                    noteFocused: $noteFocused, choices: destinationChoices,
+                    registeredDomain: registeredDomain, showsScope: activeProfileResolution.profile != nil,
+                    scopeTitle: scopeTitle, noteValid: noteValid
+                )
+            }
+
+            if confirmingBlock, !blockConsequences.isEmpty {
+                ConnectionAlertBlockConsequences(consequences: blockConsequences)
             }
 
             if let decisionMessage {
@@ -225,7 +198,9 @@ struct ConnectionAlertView: View {
                     // The width goes on the label so each bezel fills its half.
                     HStack(spacing: RiftDesign.Spacing.m) {
                         Button { decide(.deny) } label: {
-                            Label("Block", systemImage: "xmark").frame(maxWidth: .infinity)
+                            Label(confirmingBlock ? "Block Anyway" : blockConsequences.isEmpty ? "Block" : "Block…",
+                                  systemImage: "xmark")
+                                .frame(maxWidth: .infinity)
                         }
                         .tint(Color(nsColor: .systemRed))
                         .disabled(decisionDisabled(at: context.date))
@@ -291,14 +266,19 @@ struct ConnectionAlertView: View {
         }
         .task(id: presentationIdentity) {
             resolvedApplicationName = nil
+            developerPolicy = nil
             guard let presentationIdentity else { return }
             let name = await artworkStore.artwork(
                 for: presentationIdentity
             )?.displayName
             guard !Task.isCancelled else { return }
             resolvedApplicationName = name
+            let policy = await DeveloperPolicyStore.shared.policy(for: presentationIdentity, artworkStore: artworkStore)
+            guard !Task.isCancelled else { return }
+            developerPolicy = policy
         }
         .task(id: prompt.nonce) {
+            confirmingBlock = false
             ConnectionAlertSpeech.announceOpening(ConnectionAlertPresentation.headline(
                 application: applicationName,
                 destination: DisplaySanitizer.plainText(destination),
@@ -326,6 +306,12 @@ struct ConnectionAlertView: View {
         guard !decisionInProgress, !durableRuleSaved,
               Date() < answerDeadline,
               selected == .once || noteValid else { return }
+        // When the developer says what blocking breaks, the first Block shows
+        // it and the second blocks.
+        if action == .deny, !confirmingBlock, !blockConsequences.isEmpty {
+            confirmingBlock = true
+            return
+        }
         let selectedProfileID: UUID?
         if selected != .once, scope == .currentProfile {
             guard let profile = activeProfileResolution.profile else {
@@ -415,6 +401,16 @@ struct ConnectionAlertView: View {
             alertLastDestination = destinationScope.rawValue
         }
     }
+
+    /// What the app's developer says about this connection and the choice
+    /// being made, or nil when the app ships no policy.
+    private var developerExplanation: DeveloperExplanation? {
+        developerPolicy?.explanation(for: InternetAccessPolicyQuery(
+            prompt: prompt, choice: policyChoice(lifetime: lifetime, destination: destinationScope)
+        ))
+    }
+
+    private var blockConsequences: [String] { developerExplanation?.denyConsequences ?? [] }
 
     /// With a warning showing, Return doesn't allow.
     private var deliberateAllow: Bool { ConnectionAlertWarnings.requiresDeliberateAllow(for: prompt) }

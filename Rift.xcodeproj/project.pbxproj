@@ -46,6 +46,8 @@
 		1000000000000000000000FD /* RuleBulkEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000FD /* RuleBulkEditSheet.swift */; };
 		100000000000000000000022 /* FlowDescriptorRuntimeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000026 /* FlowDescriptorRuntimeExtensions.swift */; };
 		100000000000000000000025 /* NotificationRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000029 /* NotificationRouter.swift */; };
+		100000000000000000000200 /* DeveloperPolicyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000200 /* DeveloperPolicyStore.swift */; };
+		100000000000000000000201 /* ConnectionAlertRuleOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000201 /* ConnectionAlertRuleOptions.swift */; };
 		100000000000000000000026 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002A /* SettingsView.swift */; };
 		100000000000000000000027 /* FixtureDecisionDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002B /* FixtureDecisionDriver.swift */; };
 		10000000000000000000010A /* ArchivedAppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000010A /* ArchivedAppPreferences.swift */; };
@@ -257,6 +259,8 @@
 		2000000000000000000000FD /* RuleBulkEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleBulkEditSheet.swift; sourceTree = "<group>"; };
 		200000000000000000000026 /* FlowDescriptorRuntimeExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowDescriptorRuntimeExtensions.swift; sourceTree = "<group>"; };
 		200000000000000000000029 /* NotificationRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRouter.swift; sourceTree = "<group>"; };
+		200000000000000000000200 /* DeveloperPolicyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperPolicyStore.swift; sourceTree = "<group>"; };
+		200000000000000000000201 /* ConnectionAlertRuleOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionAlertRuleOptions.swift; sourceTree = "<group>"; };
 		20000000000000000000002A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		20000000000000000000002B /* FixtureDecisionDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureDecisionDriver.swift; sourceTree = "<group>"; };
 		20000000000000000000010A /* ArchivedAppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedAppPreferences.swift; sourceTree = "<group>"; };
@@ -476,6 +480,8 @@
 				200000000000000000000106 /* ConnectionExplanationView.swift */,
 				2000000000000000000000FC /* MonitorSummaryView.swift */,
 				200000000000000000000029 /* NotificationRouter.swift */,
+				200000000000000000000200 /* DeveloperPolicyStore.swift */,
+				200000000000000000000201 /* ConnectionAlertRuleOptions.swift */,
 				20000000000000000000002A /* SettingsView.swift */,
 				200000000000000000000044 /* SettingsPrimaryPanes.swift */,
 				200000000000000000000045 /* PolicySettingsPane.swift */,
@@ -821,6 +827,8 @@
 				100000000000000000000106 /* ConnectionExplanationView.swift in Sources */,
 				1000000000000000000000FC /* MonitorSummaryView.swift in Sources */,
 				100000000000000000000025 /* NotificationRouter.swift in Sources */,
+				100000000000000000000200 /* DeveloperPolicyStore.swift in Sources */,
+				100000000000000000000201 /* ConnectionAlertRuleOptions.swift in Sources */,
 				100000000000000000000026 /* SettingsView.swift in Sources */,
 				100000000000000000000042 /* SettingsPrimaryPanes.swift in Sources */,
 				100000000000000000000043 /* PolicySettingsPane.swift in Sources */,

@@ -14,6 +14,11 @@ struct ConnectionInspectorView: View {
     var ruleSummaries: ([UUID]) async -> [(id: UUID, text: String)] = { _ in [] }
     var canDecide = false
     @State private var appliedRules: [(id: UUID, text: String)] = []
+    @State private var developerPolicy: InternetAccessPolicy?
+
+    private var appIdentity: ProcessIdentity? {
+        row.flatMap { $0.event.flow.sourceAppIdentity ?? $0.event.flow.sourceProcessIdentity }
+    }
 
     var body: some View {
         ScrollView {
@@ -98,7 +103,9 @@ struct ConnectionInspectorView: View {
                     identity: row.event.flow.sourceProcessIdentity ?? row.event.flow.sourceAppIdentity,
                     fallbackName: MonitorQuery.applicationLabel(row),
                     host: row.event.flow.observedHostname?.ascii
-                        ?? row.event.flow.remoteEndpoint?.address.description
+                        ?? row.event.flow.remoteEndpoint?.address.description,
+                    developer: developerPolicy?.explanation(for: InternetAccessPolicyQuery(flow: row.event.flow)),
+                    showsConsequences: true
                 )
             }
             if !appliedRules.isEmpty {
@@ -119,6 +126,12 @@ struct ConnectionInspectorView: View {
             let winner = node.ruleCoverage.winningRuleID
             let others = node.ruleCoverage.ruleIDs.subtracting(winner.map { [$0] } ?? []).sorted { $0.uuidString < $1.uuidString }
             appliedRules = await ruleSummaries((winner.map { [$0] } ?? []) + others.prefix(9))
+        }
+        .task(id: appIdentity) {
+            developerPolicy = nil
+            let policy = await DeveloperPolicyStore.shared.policy(for: appIdentity, artworkStore: artworkStore)
+            guard !Task.isCancelled else { return }
+            developerPolicy = policy
         }
     }
 

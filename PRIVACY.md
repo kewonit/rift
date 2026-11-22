@@ -84,9 +84,17 @@ suggests no lists and never adds a subscription by itself.
 ## Explaining a connection
 
 Alert details and the Map inspector describe common macOS services from notes
-that ship inside Rift, so nothing is looked up. **Search the Web** opens your
-browser with a DuckDuckGo search for the app's identifier and the destination.
-Rift sends nothing itself, and the search happens only when you click it.
+that ship inside Rift, so nothing is looked up. For an app signed with a
+Developer ID or from the Mac App Store, they also show what the app's developer
+says a connection is for, and what blocking it would break, from the Internet
+Access Policy file the developer ships inside the app. Rift reads that file
+from the app on disk, uses it only when the app's signature covers it, and
+keeps it in memory only. When history is on and has been recording for at
+least a day, an alert can also say it's the first time the app has connected
+to a domain; that comes from your history on this Mac. **Search the Web** opens
+your browser with a DuckDuckGo search for the app's identifier and the
+destination. Rift sends nothing itself, and the search happens only when you
+click it.
 
 ## Update checks
 
