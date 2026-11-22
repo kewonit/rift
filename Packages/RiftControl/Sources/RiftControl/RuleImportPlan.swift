@@ -115,33 +115,28 @@ public struct RuleImportPlan: Sendable, Equatable {
     /// What the import will do, in a sentence or two.
     public var summary: String {
         var parts: [String] = []
-        parts.append(rules.count == 1 ? "Adds 1 rule." : "Adds \(rules.count) rules.")
+        parts.append(String(localized: "Adds \(rules.count) rules.", bundle: .module))
         let allows = rules.filter { $0.action == .filter(.allow) }.count
         if allows > 0 {
-            parts.append(allows == 1 ? "1 of them allows connections." : "\(allows) of them allow connections.")
+            parts.append(String(localized: "\(allows) of them allow connections.", bundle: .module))
         }
         if turnedOff > 0 {
-            parts.append(turnedOff == 1
-                ? "1 high-priority, blocklist-exception or system-process rule is added turned off. Check it, then turn it on in Rules."
-                : "\(turnedOff) high-priority, blocklist-exception or system-process rules are added turned off. Check them, then turn them on in Rules.")
+            parts.append(String(localized: "\(turnedOff) high-priority, blocklist-exception or system-process rules are added turned off. Check them, then turn them on in Rules.", bundle: .module))
         }
         if duplicates > 0 {
-            parts.append(duplicates == 1
-                ? "1 rule you already have is skipped."
-                : "\(duplicates) rules you already have are skipped.")
+            parts.append(String(localized: "\(duplicates) rules you already have are skipped.", bundle: .module))
         }
         if skipped > 0 {
-            parts.append(skipped == 1
-                ? "1 expired or blocklist rule is skipped."
-                : "\(skipped) expired or blocklist rules are skipped.")
+            parts.append(String(localized: "\(skipped) expired or blocklist rules are skipped.", bundle: .module))
         }
-        let created = newGroups.map { "the group “\(DisplaySanitizer.plainText($0.name))”" }
-            + newProfiles.map { "the profile “\(DisplaySanitizer.plainText($0.name))”" }
+        let created = newGroups.map { String(localized: "the group “\(DisplaySanitizer.plainText($0.name))”", bundle: .module) }
+            + newProfiles.map { String(localized: "the profile “\(DisplaySanitizer.plainText($0.name))”", bundle: .module) }
         if !created.isEmpty {
-            parts.append("Creates \(ListFormatter.localizedString(byJoining: created)).")
+            parts.append(String(localized: "Creates \(ListFormatter.localizedString(byJoining: created)).", bundle: .module,
+                                comment: "A list of new groups and profiles, like “the group “Work” and the profile “Home””"))
         }
         if !rules.isEmpty {
-            parts.append("New rules are marked unreviewed.")
+            parts.append(String(localized: "New rules are marked unreviewed.", bundle: .module))
         }
         return parts.joined(separator: " ")
     }

@@ -35,18 +35,18 @@ public struct UnansweredAlertSettings: Sendable, Hashable {
     }
 
     public static func waitTitle(_ seconds: Int) -> String {
-        if seconds < 60 { return "\(seconds) seconds" }
-        return seconds == 60 ? "1 minute" : "\(seconds / 60) minutes"
+        if seconds < 60 { return String(localized: "\(seconds) seconds", bundle: .module) }
+        return String(localized: "\(seconds / 60) minutes", bundle: .module)
     }
 
     /// What Settings says under the choices.
     public func explanation(filterEnforces: Bool) -> String {
         guard blocks else {
-            return "If you don’t answer in time, Rift lets the connection through."
+            return String(localized: "If you don’t answer in time, Rift lets the connection through.", bundle: .module)
         }
         return filterEnforces
-            ? "If you don’t answer in time, the connection is blocked. That includes connections that would need an answer while Rift isn’t open. Before you log in, or while another account is using this Mac, they’re still allowed."
-            : "If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed."
+            ? String(localized: "If you don’t answer in time, the connection is blocked. That includes connections that would need an answer while Rift isn’t open. Before you log in, or while another account is using this Mac, they’re still allowed.", bundle: .module)
+            : String(localized: "If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed.", bundle: .module)
     }
 }
 
@@ -83,13 +83,20 @@ public enum UnansweredAlertOutcome: Sendable, Equatable {
         let end = answerDeadline(for: prompt)
         let remaining = max(0, Int(end.timeIntervalSince(now).rounded(.up)))
         guard remaining > 0 else {
-            return blocks ? "Not answered — connection blocked" : "Timed out — connection allowed"
+            return blocks
+                ? String(localized: "Not answered — connection blocked", bundle: .module)
+                : String(localized: "Timed out — connection allowed", bundle: .module)
         }
-        let verb = blocks ? "Blocking" : "Allowing"
         let minutes = remaining / 60
         let seconds = remaining % 60
-        return minutes > 0
-            ? "\(verb) in \(minutes):\(String(format: "%02d", seconds))"
-            : "\(verb) in \(seconds)s"
+        guard minutes == 0 else {
+            let clock = "\(minutes):\(String(format: "%02d", seconds))"
+            return blocks
+                ? String(localized: "Blocking in \(clock)", bundle: .module, comment: "A countdown in minutes and seconds")
+                : String(localized: "Allowing in \(clock)", bundle: .module, comment: "A countdown in minutes and seconds")
+        }
+        return blocks
+            ? String(localized: "Blocking in \(seconds)s", bundle: .module, comment: "A countdown in seconds")
+            : String(localized: "Allowing in \(seconds)s", bundle: .module, comment: "A countdown in seconds")
     }
 }

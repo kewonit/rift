@@ -21,20 +21,20 @@ public enum BlocklistUpdateInterval: String, Sendable, Hashable, Codable, CaseIt
 
     public var title: String {
         switch self {
-        case .hourly: "Every hour"
-        case .daily: "Every day"
-        case .weekly: "Every week"
-        case .manual: "Only when I ask"
+        case .hourly: String(localized: "Every hour", bundle: .module)
+        case .daily: String(localized: "Every day", bundle: .module)
+        case .weekly: String(localized: "Every week", bundle: .module)
+        case .manual: String(localized: "Only when I ask", bundle: .module)
         }
     }
 
     /// How it reads in "Updates … from example.com".
     public var phrase: String {
         switch self {
-        case .hourly: "Updates hourly"
-        case .daily: "Updates daily"
-        case .weekly: "Updates weekly"
-        case .manual: "Updates when you ask"
+        case .hourly: String(localized: "Updates hourly", bundle: .module)
+        case .daily: String(localized: "Updates daily", bundle: .module)
+        case .weekly: String(localized: "Updates weekly", bundle: .module)
+        case .manual: String(localized: "Updates when you ask", bundle: .module)
         }
     }
 }

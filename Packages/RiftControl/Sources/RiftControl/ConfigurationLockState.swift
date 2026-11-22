@@ -62,8 +62,11 @@ public enum ConfigurationLockError: Error, Sendable, Equatable {
 
 public enum ConfigurationLockCopy {
     public static let lockedMessage =
-        "Rift’s configuration is locked. Choose Unlock Configuration… (⌘L) in the Rift menu to make changes."
-    public static let unlockReason = "unlock Rift’s rules and settings"
+        String(localized: "Rift’s configuration is locked. Choose Unlock Configuration… (⌘L) in the Rift menu to make changes.", bundle: .module)
+    public static let unlockReason = String(
+        localized: "unlock Rift’s rules and settings", bundle: .module,
+        comment: "Touch ID reason; macOS shows it after “Rift is trying to”"
+    )
     public static let banner =
-        "The configuration is locked. Rules, profiles, modes and settings can’t be changed until you unlock it. Alerts can still be answered once."
+        String(localized: "The configuration is locked. Rules, profiles, modes and settings can’t be changed until you unlock it. Alerts can still be answered once.", bundle: .module)
 }

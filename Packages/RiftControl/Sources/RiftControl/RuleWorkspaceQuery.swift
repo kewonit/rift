@@ -69,11 +69,12 @@ public enum RuleWorkspacePresentation {
     public static func process(_ condition: ProcessCondition) -> String {
         switch condition {
         case .anyProcess:
-            "Any application"
+            String(localized: "Any application", bundle: .module)
         case .exact(let identity):
             self.identity(identity)
         case .appViaHelper(let app, let helper):
-            "\(identity(app)) via \(identity(helper))"
+            String(localized: "\(identity(app)) via \(identity(helper))", bundle: .module,
+                   comment: "An app, then the helper process that connects for it")
         }
     }
 
@@ -87,23 +88,23 @@ public enum RuleWorkspacePresentation {
         case .appStore(let signed):
             value = "App Store • \(signed.signingIdentifier)"
         case .otherSigner(_, let identifier):
-            value = "Signed • \(identifier)"
+            value = String(localized: "Signed • \(identifier)", bundle: .module)
         case .adHoc(let hash):
-            value = "Ad hoc • \(hash.description.prefix(12))…"
+            value = String(localized: "Ad hoc • \(String(hash.description.prefix(12)))…", bundle: .module)
         case .unsigned(let path, _):
-            value = "Unsigned • \(path)"
+            value = String(localized: "Unsigned • \(path)", bundle: .module)
         }
         return DisplaySanitizer.plainText(value)
     }
 
     public static func endpointClass(_ value: EndpointClass) -> String {
         switch value {
-        case .loopback: "This Mac (loopback)"
-        case .linkLocal: "Link-local network"
-        case .broadcast: "Broadcast"
-        case .multicast: "Multicast"
+        case .loopback: String(localized: "This Mac (loopback)", bundle: .module)
+        case .linkLocal: String(localized: "Link-local network", bundle: .module)
+        case .broadcast: String(localized: "Broadcast", bundle: .module)
+        case .multicast: String(localized: "Multicast", bundle: .module)
         case .bonjour: "Bonjour"
-        case .localNetwork: "Local network"
+        case .localNetwork: String(localized: "Local network", bundle: .module)
         }
     }
 }

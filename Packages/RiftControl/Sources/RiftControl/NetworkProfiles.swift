@@ -33,7 +33,22 @@ public struct NetworkIdentity: Sendable, Hashable, Codable {
         return kind.rawValue + "-router:" + router
     }
 
+    /// The network's name in the person's language. A Wi-Fi name is shown as it is.
     public var displayName: String {
+        if let wifiName { return wifiName }
+        return switch (kind, router) {
+        case (.wifi, let router?): String(localized: "Wi-Fi with router \(router)", bundle: .module)
+        case (.wired, let router?): String(localized: "Ethernet with router \(router)", bundle: .module)
+        case (.other, let router?): String(localized: "Network with router \(router)", bundle: .module)
+        case (.wifi, nil): String(localized: "Wi-Fi", bundle: .module)
+        case (.wired, nil): String(localized: "Ethernet", bundle: .module)
+        case (.other, nil): String(localized: "Network", bundle: .module)
+        }
+    }
+
+    /// The name a remembered network is saved with. It stays in English, so
+    /// what's saved doesn't depend on the language Rift ran in.
+    public var storedName: String {
         if let wifiName { return wifiName }
         let kindName = switch kind {
         case .wifi: "Wi-Fi"
@@ -41,6 +56,16 @@ public struct NetworkIdentity: Sendable, Hashable, Codable {
         case .other: "Network"
         }
         return router.map { "\(kindName) with router \($0)" } ?? kindName
+    }
+
+    /// The name to show for a remembered network, worked out again from the
+    /// key it's saved under, or nil when the key isn't one Rift made.
+    public static func displayName(forKey key: String) -> String? {
+        if key.hasPrefix("wifi-name:") { return String(key.dropFirst("wifi-name:".count)) }
+        guard let separator = key.range(of: "-router:"),
+              let kind = Kind(rawValue: String(key[..<separator.lowerBound])) else { return nil }
+        let router = String(key[separator.upperBound...])
+        return NetworkIdentity(kind: kind, wifiName: nil, router: router).displayName
     }
 }
 

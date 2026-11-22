@@ -153,15 +153,13 @@ public struct RuleGroupSubscriptionMerge: Sendable, Equatable {
 
     /// What an update did, in a sentence.
     public var summary: String {
-        guard changed else { return "The rule group is up to date." }
+        guard changed else { return String(localized: "The rule group is up to date.", bundle: .module) }
         var parts = [
-            added == 1 ? "1 rule added" : "\(added) rules added",
-            removed == 1 ? "1 removed" : "\(removed) removed",
+            String(localized: "\(added) rules added", bundle: .module),
+            String(localized: "\(removed) removed", bundle: .module, comment: "A number of rules removed"),
         ]
         if !heldRuleIDs.isEmpty {
-            parts.append(heldRuleIDs.count == 1
-                ? "1 new allow rule is off until you turn it on"
-                : "\(heldRuleIDs.count) new allow rules are off until you turn them on")
+            parts.append(String(localized: "\(heldRuleIDs.count) new allow rules are off until you turn them on", bundle: .module))
         }
         return parts.joined(separator: ", ") + "."
     }

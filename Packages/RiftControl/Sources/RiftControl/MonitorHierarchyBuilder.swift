@@ -182,7 +182,7 @@ public enum MonitorHierarchyBuilder {
         let unavailable = Component(
             kind: .hostname,
             key: "hostname-unavailable",
-            title: "Hostname unavailable",
+            title: String(localized: "Hostname unavailable", bundle: .module),
             subtitle: subtitle
         )
         guard let endpoint = flow.destinationEndpoint else { return [unavailable] }
@@ -190,7 +190,7 @@ public enum MonitorHierarchyBuilder {
             kind: .address,
             key: "destination-address:" + endpoint.address.description,
             title: endpoint.address.description,
-            subtitle: "IP address"
+            subtitle: String(localized: "IP address", bundle: .module)
         )]
     }
 
@@ -202,7 +202,7 @@ public enum MonitorHierarchyBuilder {
             kind: .helper,
             key: String(reflecting: process),
             title: MonitorQuery.identityLabel(process),
-            subtitle: "Helper"
+            subtitle: String(localized: "Helper", bundle: .module)
         )]
     }
 
@@ -223,14 +223,15 @@ public enum MonitorHierarchyBuilder {
         // isn't labeled local because this Mac's own address is.
         let classes = flow.remoteEndpoint?.classes ?? []
         let locality: String? =
-            if classes.contains(.loopback) { "This Mac" }
+            if classes.contains(.loopback) { String(localized: "This Mac", bundle: .module) }
             else if classes.contains(.bonjour) { "Bonjour" }
-            else if classes.contains(.broadcast) { "Broadcast" }
-            else if classes.contains(.multicast) { "Multicast" }
-            else if classes.contains(.localNetwork) { "Local network" }
-            else if classes.contains(.linkLocal) { "Local network" }
+            else if classes.contains(.broadcast) { String(localized: "Broadcast", bundle: .module) }
+            else if classes.contains(.multicast) { String(localized: "Multicast", bundle: .module) }
+            else if classes.contains(.localNetwork) { String(localized: "Local network", bundle: .module) }
+            else if classes.contains(.linkLocal) { String(localized: "Local network", bundle: .module) }
             else { nil }
-        let parts = [flow.direction == .incoming ? "Incoming" : nil, locality].compactMap { $0 }
+        let incoming = flow.direction == .incoming ? String(localized: "Incoming", bundle: .module) : nil
+        let parts = [incoming, locality].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 

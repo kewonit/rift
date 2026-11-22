@@ -28,12 +28,12 @@ public enum HistoryLimits {
 
     public static func daysLabel(_ days: Int) -> String {
         switch days {
-        case 1: "1 day"
-        case 7: "1 week"
-        case 14: "2 weeks"
-        case 30: "30 days"
-        case 365: "1 year"
-        default: "\(days) days"
+        case 1: String(localized: "1 day", bundle: .module)
+        case 7: String(localized: "1 week", bundle: .module)
+        case 14: String(localized: "2 weeks", bundle: .module)
+        case 30: String(localized: "30 days", bundle: .module)
+        case 365: String(localized: "1 year", bundle: .module)
+        default: String(localized: "\(days) days", bundle: .module)
         }
     }
 

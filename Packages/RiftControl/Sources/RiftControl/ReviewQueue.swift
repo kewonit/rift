@@ -171,7 +171,7 @@ public struct ReviewQueue: Sendable, Hashable {
     public static func destinationLabel(_ row: MonitorEventRow) -> String {
         let flow = row.event.flow
         if flow.metadataConfidence.contains(.observedHostname), let name = flow.observedHostname { return name.ascii }
-        guard let endpoint = flow.destinationEndpoint else { return "Unknown destination" }
+        guard let endpoint = flow.destinationEndpoint else { return String(localized: "Unknown destination", bundle: .module) }
         return endpoint.hostname?.ascii ?? endpoint.address.description
     }
 }

@@ -1,7 +1,898 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-
+    " for %@" : {
+      "comment" : "How long a rule lasts, like “ for one hour”"
+    },
+    " on port %@" : {},
+    " • by a rule" : {},
+    " • by default" : {},
+    "%@ %@ and %@." : {
+      "comment" : "The rules summary, then counts of rules and blocklists",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ and %3$@."
+          }
+        }
+      }
+    },
+    "%@ %@." : {
+      "comment" : "The rules summary, then a count of rules",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@."
+          }
+        }
+      }
+    },
+    "%@ Rift can’t confirm connections are being filtered." : {},
+    "%@ You have no rules yet." : {},
+    "%@ and its subdomains" : {},
+    "%@ can now connect to %@%@%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ can now connect to %2$@%3$@%4$@."
+          }
+        }
+      }
+    },
+    "%@ is now blocked from %@%@%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is now blocked from %2$@%3$@%4$@."
+          }
+        }
+      }
+    },
+    "%@ on any port" : {},
+    "%@ via %@" : {
+      "comment" : "An app, then the helper process that connects for it",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ via %2$@"
+          }
+        }
+      }
+    },
+    "%@ wants to connect to %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ wants to connect to %2$@."
+          }
+        }
+      }
+    },
+    "%@ will be able to connect to %@%@%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ will be able to connect to %2$@%3$@%4$@."
+          }
+        }
+      }
+    },
+    "%@ will be blocked from %@%@%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ will be blocked from %2$@%3$@%4$@."
+          }
+        }
+      }
+    },
+    "%@, any port" : {},
+    "%lld blocklists" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocklist"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocklists"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld expired or blocklist rules are skipped." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld expired or blocklist rule is skipped."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld expired or blocklist rules are skipped."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld high-priority rules are added at normal priority." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld high-priority rule is added at normal priority."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld high-priority rules are added at normal priority."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld high-priority, blocklist-exception or system-process rules are added turned off. Check them, then turn them on in Rules." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld high-priority, blocklist-exception or system-process rule is added turned off. Check it, then turn it on in Rules."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld high-priority, blocklist-exception or system-process rules are added turned off. Check them, then turn them on in Rules."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld minutes" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld minute"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld minutes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld more waiting" : {},
+    "%lld new allow rules are off until you turn them on" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld new allow rule is off until you turn it on"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld new allow rules are off until you turn them on"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld of them allow connections." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld of them allows connections."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld of them allow connections."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld removed" : {
+      "comment" : "A number of rules removed"
+    },
+    "%lld rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules added" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule added"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules added"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules are skipped because Rift can’t apply them as written, such as ones for ICMP or another account." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule is skipped because Rift can’t apply it as written, such as one for ICMP or another account."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules are skipped because Rift can’t apply them as written, such as ones for ICMP or another account."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules are skipped because their apps aren’t on this Mac." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule is skipped because its app isn’t on this Mac."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules are skipped because their apps aren’t on this Mac."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules were skipped because the .lsrules format can’t express them, such as temporary rules, rules for one profile, or rules for system processes." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule was skipped because the .lsrules format can’t express it, such as temporary rules, rules for one profile, or rules for system processes."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules were skipped because the .lsrules format can’t express them, such as temporary rules, rules for one profile, or rules for system processes."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld rules you already have are skipped." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule you already have is skipped."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules you already have are skipped."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld seconds" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld second"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld seconds"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%llu more notifications were combined into this summary." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%llu more notification was combined into this summary."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%llu more notifications were combined into this summary."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "1 day" : {},
+    "1 week" : {},
+    "1 year" : {},
+    "10 minutes" : {},
+    "2 minutes" : {},
+    "2 weeks" : {},
+    "3 days" : {},
+    "30 days" : {},
+    "5 hours" : {},
+    "A rule allowed it." : {},
+    "A rule blocked it." : {},
+    "Action" : {},
+    "Active" : {},
+    "Ad hoc signed app" : {},
+    "Ad hoc • %@…" : {},
+    "Adds %lld rules." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Adds %lld rule."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Adds %lld rules."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "All Actions" : {},
+    "All Fields" : {},
+    "All Rules" : {},
+    "All connections are allowed and your rules are off." : {},
+    "All connections are being allowed" : {},
+    "All connections stay allowed and your rules stay off until you change the mode." : {},
+    "All decisions" : {},
+    "All destinations" : {},
+    "All directions" : {},
+    "All history" : {},
+    "All networks" : {},
+    "All owners" : {},
+    "All saved activity" : {},
+    "Allow" : {},
+    "Allow %@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Allow %1$@ • %2$@"
+          }
+        }
+      }
+    },
+    "Allow and Watch" : {},
+    "Allow everything and turn your rules off." : {},
+    "Allow new connections unless a rule blocks them." : {},
+    "Allowed" : {},
+    "Allowing in %@" : {
+      "comment" : "A countdown in minutes and seconds"
+    },
+    "Allowing in %llds" : {
+      "comment" : "A countdown in seconds"
+    },
+    "Always" : {},
+    "Any application" : {},
+    "Any destination" : {},
+    "Any you don’t answer in time are allowed." : {},
+    "Any you don’t answer in time are blocked." : {},
+    "App" : {},
+    "App path" : {},
+    "App process ID" : {},
+    "Approve Rift in System Settings" : {},
+    "Ask" : {},
+    "Ask %@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ask %1$@ • %2$@"
+          }
+        }
+      }
+    },
+    "Ask Me" : {},
+    "Ask about new connections with no rule." : {},
+    "Automatic" : {},
+    "Block" : {},
+    "Block %@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Block %1$@ • %2$@"
+          }
+        }
+      }
+    },
+    "Block Unless Allowed" : {},
+    "Block everything without an allow rule?" : {},
+    "Block new connections unless a rule allows them." : {},
+    "Block • from a blocklist" : {},
+    "Block • from the blocklist “%@”" : {},
+    "Blocked" : {},
+    "Blocking in %@" : {
+      "comment" : "A countdown in minutes and seconds"
+    },
+    "Blocking in %llds" : {
+      "comment" : "A countdown in seconds"
+    },
+    "Broadcast" : {},
+    "Can’t reach the filter" : {},
+    "Checking the filter" : {},
+    "Click to see it in Rift." : {},
+    "Code %@…" : {},
+    "Condition" : {},
+    "Connecting to the filter" : {},
+    "Connections are waiting" : {},
+    "Creates %@." : {
+      "comment" : "A list of new groups and profiles, like “the group “Work” and the profile “Home””"
+    },
+    "Destination: %@" : {},
+    "Ethernet" : {},
+    "Ethernet with router %@" : {},
+    "Every day" : {},
+    "Every hour" : {},
+    "Every week" : {},
+    "Expired" : {},
+    "Exported %lld rules." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld rule."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld rules."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Fifteen minutes" : {},
+    "First time this app has connected to %@" : {},
+    "Five minutes" : {},
+    "For 1 day" : {},
+    "For 1 hour" : {},
+    "For 1 week" : {},
+    "For 15 minutes" : {},
+    "For 5 minutes" : {},
+    "Group off" : {},
+    "Helper" : {},
+    "Helper path" : {},
+    "Helper process ID" : {},
+    "Hide" : {},
+    "Hide %@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hide %1$@ • %2$@"
+          }
+        }
+      }
+    },
+    "Hostname unavailable" : {},
+    "IP address" : {},
+    "If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed." : {},
+    "If you don’t answer in time, Rift lets the connection through." : {},
+    "If you don’t answer in time, the connection is blocked. That includes connections that would need an answer while Rift isn’t open. Before you log in, or while another account is using this Mac, they’re still allowed." : {},
+    "In effect, but temporary rules may not apply." : {},
+    "In effect." : {},
+    "Incoming" : {},
+    "Incoming connections to %@%@ are now allowed%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Incoming connections to %1$@%2$@ are now allowed%3$@."
+          }
+        }
+      }
+    },
+    "Incoming connections to %@%@ are now blocked%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Incoming connections to %1$@%2$@ are now blocked%3$@."
+          }
+        }
+      }
+    },
+    "Incoming connections to %@%@ will be allowed%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Incoming connections to %1$@%2$@ will be allowed%3$@."
+          }
+        }
+      }
+    },
+    "Incoming connections to %@%@ will be blocked%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Incoming connections to %1$@%2$@ will be blocked%3$@."
+          }
+        }
+      }
+    },
+    "Internet" : {},
+    "It isn’t signed with Apple’s network filter permission, so it can’t see or block connections." : {},
+    "It’s installed but turned off, so all connections are allowed." : {},
+    "Last 10 minutes" : {},
+    "Last 2 minutes" : {},
+    "Last 3 days" : {},
+    "Last 30 days" : {},
+    "Last 5 hours" : {},
+    "Link-local network" : {},
+    "Local network" : {},
+    "Match" : {},
+    "Modified" : {},
+    "Multicast" : {},
+    "Network" : {},
+    "Network with router %@" : {},
+    "New connections are allowed unless a rule blocks them." : {},
+    "New connections are blocked unless a rule allows them." : {},
+    "New rules are marked unreviewed." : {},
+    "No Team ID" : {},
+    "No name" : {},
+    "No rule applied" : {},
+    "No rule decided this, so your mode allowed it." : {},
+    "No rule decided this, so your mode blocked it." : {},
+    "No rules were active, so it was allowed." : {},
+    "No rules were active, so it was blocked." : {},
+    "None are in effect." : {},
+    "Not answered — connection blocked" : {},
+    "Not applied" : {},
+    "Notes" : {},
+    "Notify" : {},
+    "Notify %@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Notify %1$@ • %2$@"
+          }
+        }
+      }
+    },
+    "Off" : {},
+    "Off." : {},
+    "Once" : {},
+    "One day" : {},
+    "One hour" : {},
+    "One week" : {},
+    "Only %@" : {},
+    "Only %@ on port %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Only %1$@ on port %2$@"
+          }
+        }
+      }
+    },
+    "Only this time" : {},
+    "Only when I ask" : {},
+    "Open Login Items & Extensions, choose Network Extensions, and turn on Rift. All connections are allowed until you do." : {},
+    "Open System Settings" : {},
+    "Other profile" : {},
+    "Outgoing" : {},
+    "Path" : {},
+    "Pause Rules" : {},
+    "Pause your rules?" : {},
+    "Precedence" : {},
+    "Preview" : {},
+    "Process ID" : {},
+    "Protocol %@" : {},
+    "Recently Modified" : {},
+    "Recently Used" : {},
+    "Redundant" : {},
+    "Resume Rules" : {},
+    "Review" : {},
+    "Rift allowed a connection with no rule" : {},
+    "Rift asks about new connections with no rule. If it can’t ask, they’re allowed." : {},
+    "Rift blocked a connection" : {},
+    "Rift can’t confirm any rules are in effect." : {},
+    "Rift can’t confirm how connections are handled." : {},
+    "Rift can’t confirm they’re in effect." : {},
+    "Rift can’t confirm your rules are in effect until this finishes." : {},
+    "Rift can’t confirm your rules are in effect yet." : {},
+    "Rift can’t confirm your rules or ask about new connections." : {},
+    "Rift can’t read them." : {},
+    "Rift can’t read your rules" : {},
+    "Rift couldn’t identify this app, so you can only answer once." : {},
+    "Rift couldn’t show an alert, so it was allowed." : {},
+    "Rift couldn’t show an alert, so it was blocked." : {},
+    "Rift doesn’t know the destination, so you can only answer once." : {},
+    "Rift is asking" : {},
+    "Rift is blocking" : {},
+    "Rift is checking the filter’s status with macOS." : {},
+    "Rift is watching" : {},
+    "Rift isn’t filtering yet. All connections are allowed until setup is done." : {},
+    "Rift isn’t seeing connections" : {},
+    "Rift needs attention" : {},
+    "Rift will allow all connections and stop applying your rules. You’ll still see activity." : {},
+    "Rift will block every connection that no rule allows. Apps without an allow rule lose network access. Rift filters TCP and UDP only, so other traffic, such as ping, isn’t blocked." : {},
+    "Rift’s configuration is locked, so you can only answer once." : {},
+    "Rift’s configuration is locked. Choose Unlock Configuration… (⌘L) in the Rift menu to make changes." : {},
+    "Rules are on, with a problem" : {},
+    "Rules are paused" : {},
+    "Scope" : {},
+    "Set Up Rift" : {},
+    "Set up Rift" : {},
+    "Show Status" : {},
+    "Showing Allow rules" : {},
+    "Showing Ask rules" : {},
+    "Showing Block rules" : {},
+    "Showing Hide rules" : {},
+    "Showing Notify rules" : {},
+    "Signed • %@" : {},
+    "Something wants to connect to %@ on this Mac." : {},
+    "System services" : {},
+    "Team %@" : {},
+    "Temporary" : {},
+    "The alert timed out, so it was allowed." : {},
+    "The alert timed out, so it was blocked." : {},
+    "The configuration is locked. Rules, profiles, modes and settings can’t be changed until you unlock it. Alerts can still be answered once." : {},
+    "The filter is off" : {},
+    "The filter is on but has no rules loaded." : {},
+    "The filter is still using your last working rules." : {},
+    "The filter says it’s on, but no connection has reached Rift for %lld minutes while the network is up. Your rules may not be applying." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The filter says it’s on, but no connection has reached Rift for %lld minute while the network is up. Your rules may not be applying."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The filter says it’s on, but no connection has reached Rift for %lld minutes while the network is up. Your rules may not be applying."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The helper that made this connection is signed only by itself, so Rift can’t tell who made it. A rule for it stops working when it’s rebuilt or updated." : {},
+    "The helper that made this connection is signed with a certificate Apple didn’t issue, so Rift can’t confirm who made it." : {},
+    "The helper that made this connection isn’t signed, so Rift can’t tell who made it. A rule for it stops working if the file changes." : {},
+    "The rule group is up to date." : {},
+    "This Hour" : {},
+    "This Mac" : {},
+    "This Mac (loopback)" : {},
+    "This Month" : {},
+    "This Week" : {},
+    "This app is signed only by itself, so Rift can’t tell who made it. A rule for it stops working when it’s rebuilt or updated." : {},
+    "This app is signed with a certificate Apple didn’t issue, so Rift can’t confirm who made it." : {},
+    "This app isn’t signed, so Rift can’t tell who made it. A rule for it stops working if the file changes." : {},
+    "This applies to connections that use this name, not direct connections to its IP address." : {},
+    "This copy can’t filter" : {},
+    "This destination" : {},
+    "This destination, any port" : {},
+    "This domain" : {},
+    "This hour" : {},
+    "This month" : {},
+    "This name uses international letters, shown in their xn-- form. Check it isn’t imitating a name you know." : {},
+    "This preview shows sample data. Nothing on this Mac changes." : {},
+    "This week" : {},
+    "Timed out — connection allowed" : {},
+    "To block the file’s %lld listed destinations too, import it in Settings › Blocklists." : {},
+    "Today" : {},
+    "Unknown" : {},
+    "Unknown app" : {},
+    "Unknown destination" : {},
+    "Unknown location" : {},
+    "Unknown owner" : {},
+    "Unreviewed" : {},
+    "Unsigned • %@" : {},
+    "Unused" : {},
+    "Updates daily" : {},
+    "Updates hourly" : {},
+    "Updates weekly" : {},
+    "Updates when you ask" : {},
+    "Updating the filter" : {},
+    "Usage" : {},
+    "Via %@" : {},
+    "Waiting for filter" : {},
+    "Wi-Fi" : {},
+    "Wi-Fi with router %@" : {},
+    "You allowed it when Rift asked." : {},
+    "You blocked it when Rift asked." : {},
+    "Your apps" : {},
+    "Your changes are saved, but the filter is still using your previous rules." : {},
+    "Your latest changes are saved, but they aren’t in effect yet." : {},
+    "Your latest rules aren’t in effect" : {},
+    "Your rules are in effect, but the filter can’t save its state, and temporary rules may not apply." : {},
+    "Your rules stay active, and connections with no rule are allowed as usual. Activity may have gaps until you open Rift again." : {},
+    "Your rules stay active, and connections with no rule stay blocked. Activity may have gaps until you open Rift again." : {},
+    "Your rules stay active, but Rift can’t ask while it’s closed, so connections with no rule are allowed until you open it again." : {},
+    "all destinations" : {},
+    "any port" : {},
+    "aren’t being filtered" : {
+      "comment" : "Must appear word for word in the filter messages that say connections aren’t being filtered"
+    },
+    "fifteen minutes" : {},
+    "five minutes" : {},
+    "macOS is running this app from a temporary copy, because it was opened where it was downloaded. Move it to Applications and open it again, or a rule for it won’t match next time." : {},
+    "one day" : {},
+    "one hour" : {},
+    "one week" : {},
+    "the group “%@”" : {},
+    "the profile “%@”" : {},
+    "unlock Rift’s rules and settings" : {
+      "comment" : "Touch ID reason; macOS shows it after “Rift is trying to”"
+    }
   },
   "version" : "1.0"
 }

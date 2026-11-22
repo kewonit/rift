@@ -66,7 +66,7 @@ public enum HistoryFirstContact {
     public static let minimumRecording: TimeInterval = 24 * 60 * 60
 
     public static func sentence(domain: String) -> String {
-        "First time this app has connected to \(DisplaySanitizer.plainText(domain))"
+        String(localized: "First time this app has connected to \(DisplaySanitizer.plainText(domain))", bundle: .module)
     }
 }
 

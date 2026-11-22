@@ -17,12 +17,10 @@ public enum LSRulesWriter {
 
         /// What happened, for the Rules page.
         public var summary: String {
-            let written = exported == 1 ? "Exported 1 rule." : "Exported \(exported) rules."
+            let written = String(localized: "Exported \(exported) rules.", bundle: .module)
             guard skipped > 0 else { return written }
-            let left = skipped == 1
-                ? "1 rule was skipped because the .lsrules format can’t express it"
-                : "\(skipped) rules were skipped because the .lsrules format can’t express them"
-            return "\(written) \(left), such as temporary rules, rules for one profile, or rules for system processes."
+            let left = String(localized: "\(skipped) rules were skipped because the .lsrules format can’t express them, such as temporary rules, rules for one profile, or rules for system processes.", bundle: .module)
+            return "\(written) \(left)"
         }
     }
 

@@ -118,7 +118,7 @@ public enum RuleWorkspaceHierarchy {
     private static func ruleNode(_ row: RuleRowViewValue) -> RuleWorkspaceNode {
         let helper: String?
         if case .appViaHelper(_, let identity) = row.rule.process {
-            helper = "Via \(RuleWorkspacePresentation.identity(identity))"
+            helper = String(localized: "Via \(RuleWorkspacePresentation.identity(identity))", bundle: .module)
         } else {
             helper = nil
         }
@@ -132,7 +132,7 @@ public enum RuleWorkspaceHierarchy {
 
     private static func title(_ key: RuleWorkspaceApplicationKey) -> String {
         switch key {
-        case .anyProcess: "Any application"
+        case .anyProcess: String(localized: "Any application", bundle: .module)
         case .identity(let identity): RuleWorkspacePresentation.identity(identity)
         }
     }
@@ -147,9 +147,10 @@ public enum RuleWorkspaceHierarchy {
         let value: String
         switch identity {
         case .applePlatform(let signed), .developerID(let signed), .appStore(let signed):
-            value = signed.teamIdentifier.map { "Team \($0)" } ?? "No Team ID"
+            value = signed.teamIdentifier.map { String(localized: "Team \($0)", bundle: .module) }
+                ?? String(localized: "No Team ID", bundle: .module)
         case .otherSigner(let hash, _), .adHoc(let hash):
-            value = "Code \(hash.description.prefix(16))…"
+            value = String(localized: "Code \(String(hash.description.prefix(16)))…", bundle: .module)
         case .unsigned(let path, let hash):
             value = "\(path) • \(hash.description.prefix(16))…"
         }

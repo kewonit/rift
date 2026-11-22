@@ -57,13 +57,16 @@ public enum MonitorTimeFilter: String, CaseIterable, Sendable, Identifiable {
     /// start of the period, so they never say "last".
     public var liveLabel: String {
         switch self {
-        case .all: "All saved activity"
-        case .hour: "This hour"
-        case .day: "Today"
-        case .week: "This week"
-        case .month: "This month"
-        case .twoMinutes, .tenMinutes, .fiveHours, .threeDays, .thirtyDays:
-            "Last \(rawValue)"
+        case .all: String(localized: "All saved activity", bundle: .module)
+        case .hour: String(localized: "This hour", bundle: .module)
+        case .day: String(localized: "Today", bundle: .module)
+        case .week: String(localized: "This week", bundle: .module)
+        case .month: String(localized: "This month", bundle: .module)
+        case .twoMinutes: String(localized: "Last 2 minutes", bundle: .module)
+        case .tenMinutes: String(localized: "Last 10 minutes", bundle: .module)
+        case .fiveHours: String(localized: "Last 5 hours", bundle: .module)
+        case .threeDays: String(localized: "Last 3 days", bundle: .module)
+        case .thirtyDays: String(localized: "Last 30 days", bundle: .module)
         }
     }
 }
@@ -262,7 +265,7 @@ public enum MonitorQuery {
         let flow = row.event.flow
         guard flow.metadataConfidence.contains(.observedHostname),
               let hostname = flow.observedHostname else {
-            return "Hostname unavailable"
+            return String(localized: "Hostname unavailable", bundle: .module)
         }
         return hostname.ascii
     }
@@ -271,12 +274,12 @@ public enum MonitorQuery {
         switch row.event.flow.transportProtocol {
         case .tcp: "TCP"
         case .udp: "UDP"
-        case .unsupported(let number): "Protocol \(number)"
+        case .unsupported(let number): String(localized: "Protocol \(String(number))", bundle: .module)
         }
     }
 
     private static func endpoint(_ endpoint: Endpoint?) -> String {
-        guard let endpoint else { return "Unknown destination" }
+        guard let endpoint else { return String(localized: "Unknown destination", bundle: .module) }
         let host = endpoint.hostname?.ascii ?? endpoint.address.description
         return endpoint.port.map { "\(host):\($0)" } ?? host
     }
@@ -286,9 +289,9 @@ public enum MonitorQuery {
         case .applePlatform(let value), .developerID(let value), .appStore(let value):
             value.signingIdentifier
         case .otherSigner(_, let identifier): identifier
-        case .adHoc: "Ad hoc signed app"
+        case .adHoc: String(localized: "Ad hoc signed app", bundle: .module)
         case .unsigned(let path, _): path
-        case nil: "Unknown app"
+        case nil: String(localized: "Unknown app", bundle: .module)
         }
     }
 

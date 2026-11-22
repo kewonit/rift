@@ -13,13 +13,13 @@ public enum RuleEffectiveState: Sendable, Hashable {
 
     public var label: String {
         switch self {
-        case .active: "Active"
-        case .off: "Off"
-        case .otherProfile: "Other profile"
-        case .groupOff: "Group off"
-        case .expired: "Expired"
-        case .waitingForFilter: "Waiting for filter"
-        case .notApplied: "Not applied"
+        case .active: String(localized: "Active", bundle: .module)
+        case .off: String(localized: "Off", bundle: .module)
+        case .otherProfile: String(localized: "Other profile", bundle: .module)
+        case .groupOff: String(localized: "Group off", bundle: .module)
+        case .expired: String(localized: "Expired", bundle: .module)
+        case .waitingForFilter: String(localized: "Waiting for filter", bundle: .module)
+        case .notApplied: String(localized: "Not applied", bundle: .module)
         }
     }
 

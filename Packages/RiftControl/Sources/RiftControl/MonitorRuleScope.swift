@@ -21,6 +21,15 @@ public enum MonitorRuleDuration: String, Sendable, Hashable, CaseIterable, Ident
 
     public var id: String { rawValue }
 
+    /// The name shown in a picker. The raw value stays the same in every language.
+    public var title: String {
+        switch self {
+        case .fiveMinutes: String(localized: "Five minutes", bundle: .module)
+        case .oneHour: String(localized: "One hour", bundle: .module)
+        case .always: String(localized: "Always", bundle: .module)
+        }
+    }
+
     public var interval: TimeInterval? {
         switch self {
         case .always: nil
@@ -33,8 +42,8 @@ public enum MonitorRuleDuration: String, Sendable, Hashable, CaseIterable, Ident
     public var phrase: String? {
         switch self {
         case .always: nil
-        case .oneHour: "one hour"
-        case .fiveMinutes: "five minutes"
+        case .oneHour: String(localized: "one hour", bundle: .module)
+        case .fiveMinutes: String(localized: "five minutes", bundle: .module)
         }
     }
 
@@ -117,10 +126,12 @@ public enum MonitorRuleScope {
         port: UInt16?
     ) -> String {
         switch breadth {
-        case .thisHost: "\(host), any port"
-        case .thisDomain: "\(domain ?? host) and its subdomains"
-        case .allDestinations: "All destinations"
-        case .exactConnection: port.map { "Only \(host) on port \($0)" } ?? "Only \(host)"
+        case .thisHost: String(localized: "\(host), any port", bundle: .module)
+        case .thisDomain: String(localized: "\(domain ?? host) and its subdomains", bundle: .module)
+        case .allDestinations: String(localized: "All destinations", bundle: .module)
+        case .exactConnection:
+            port.map { String(localized: "Only \(host) on port \(String($0))", bundle: .module) }
+                ?? String(localized: "Only \(host)", bundle: .module)
         }
     }
 
@@ -144,9 +155,9 @@ public enum MonitorRuleScope {
 
     public static func phrase(_ breadth: MonitorRuleBreadth, host: String, domain: String? = nil) -> String {
         switch breadth {
-        case .thisHost: "\(host) on any port"
-        case .thisDomain: "\(domain ?? host) and its subdomains"
-        case .allDestinations: "all destinations"
+        case .thisHost: String(localized: "\(host) on any port", bundle: .module)
+        case .thisDomain: String(localized: "\(domain ?? host) and its subdomains", bundle: .module)
+        case .allDestinations: String(localized: "all destinations", bundle: .module)
         case .exactConnection: host
         }
     }
@@ -155,6 +166,9 @@ public enum MonitorRuleScope {
     public static func limitation(_ breadth: MonitorRuleBreadth, row: MonitorEventRow) -> String? {
         guard breadth == .thisHost || breadth == .thisDomain,
               row.event.flow.observedHostname != nil else { return nil }
-        return "This applies to connections that use this name, not direct connections to its IP address."
+        return String(
+            localized: "This applies to connections that use this name, not direct connections to its IP address.",
+            bundle: .module
+        )
     }
 }

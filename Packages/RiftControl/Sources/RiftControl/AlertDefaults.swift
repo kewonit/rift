@@ -38,13 +38,39 @@ public enum AlertLifetime: String, CaseIterable, Identifiable, Sendable {
     /// The label in the alert's Remember menu.
     public var menuTitle: String {
         switch self {
-        case .once: "Only this time"
-        case .fiveMinutes: "For 5 minutes"
-        case .fifteenMinutes: "For 15 minutes"
-        case .oneHour: "For 1 hour"
-        case .oneDay: "For 1 day"
-        case .oneWeek: "For 1 week"
-        case .permanent: "Always"
+        case .once: String(localized: "Only this time", bundle: .module)
+        case .fiveMinutes: String(localized: "For 5 minutes", bundle: .module)
+        case .fifteenMinutes: String(localized: "For 15 minutes", bundle: .module)
+        case .oneHour: String(localized: "For 1 hour", bundle: .module)
+        case .oneDay: String(localized: "For 1 day", bundle: .module)
+        case .oneWeek: String(localized: "For 1 week", bundle: .module)
+        case .permanent: String(localized: "Always", bundle: .module)
+        }
+    }
+
+    /// The name in Settings. The raw value is what's stored, so it stays in English.
+    public var displayName: String {
+        switch self {
+        case .once: String(localized: "Once", bundle: .module)
+        case .fiveMinutes: String(localized: "Five minutes", bundle: .module)
+        case .fifteenMinutes: String(localized: "Fifteen minutes", bundle: .module)
+        case .oneHour: String(localized: "One hour", bundle: .module)
+        case .oneDay: String(localized: "One day", bundle: .module)
+        case .oneWeek: String(localized: "One week", bundle: .module)
+        case .permanent: String(localized: "Always", bundle: .module)
+        }
+    }
+
+    /// How long a rule lasts, as the end of a sentence, or nil when the
+    /// answer makes no rule that expires.
+    public var phrase: String? {
+        switch self {
+        case .once, .permanent: nil
+        case .fiveMinutes: String(localized: "five minutes", bundle: .module)
+        case .fifteenMinutes: String(localized: "fifteen minutes", bundle: .module)
+        case .oneHour: String(localized: "one hour", bundle: .module)
+        case .oneDay: String(localized: "one day", bundle: .module)
+        case .oneWeek: String(localized: "one week", bundle: .module)
         }
     }
 }
@@ -57,6 +83,16 @@ public enum AlertDestinationChoice: String, CaseIterable, Identifiable, Sendable
     case any = "Any destination"
 
     public var id: String { rawValue }
+
+    /// The words for this choice. The raw value is what's stored, so it stays in English.
+    public var displayName: String {
+        switch self {
+        case .exact: String(localized: "This destination", bundle: .module)
+        case .anyPort: String(localized: "This destination, any port", bundle: .module)
+        case .domain: String(localized: "This domain", bundle: .module)
+        case .any: String(localized: "Any destination", bundle: .module)
+        }
+    }
 
     public var ruleScope: AlertDestinationScope {
         switch self {

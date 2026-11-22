@@ -26,22 +26,16 @@ public enum LSRulesConverter {
         public var notices: [String] {
             var parts: [String] = []
             if missingApps > 0 {
-                parts.append(missingApps == 1
-                    ? "1 rule is skipped because its app isn’t on this Mac."
-                    : "\(missingApps) rules are skipped because their apps aren’t on this Mac.")
+                parts.append(String(localized: "\(missingApps) rules are skipped because their apps aren’t on this Mac.", bundle: .module))
             }
             if unsupported > 0 {
-                parts.append(unsupported == 1
-                    ? "1 rule is skipped because Rift can’t apply it as written, such as one for ICMP or another account."
-                    : "\(unsupported) rules are skipped because Rift can’t apply them as written, such as ones for ICMP or another account.")
+                parts.append(String(localized: "\(unsupported) rules are skipped because Rift can’t apply them as written, such as ones for ICMP or another account.", bundle: .module))
             }
             if lowered > 0 {
-                parts.append(lowered == 1
-                    ? "1 high-priority rule is added at normal priority."
-                    : "\(lowered) high-priority rules are added at normal priority.")
+                parts.append(String(localized: "\(lowered) high-priority rules are added at normal priority.", bundle: .module))
             }
             if blockedDestinations > 0 {
-                parts.append("To block the file’s \(blockedDestinations) listed destinations too, import it in Settings › Blocklists.")
+                parts.append(String(localized: "To block the file’s \(blockedDestinations) listed destinations too, import it in Settings › Blocklists.", bundle: .module))
             }
             return parts
         }
