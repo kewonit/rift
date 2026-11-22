@@ -44,7 +44,9 @@ The changelog records notable user-visible changes.
 - Map search understands `domain:`, `proto:`, `country:` and
   `decision:timedout`. The search field's tooltip lists every filter.
 - From Now (⌘K) hides earlier connections. A chip shows them again.
-- Connection rows have Copy and Copy Hostname.
+- Connection rows have Copy and Copy Hostname, and Hide Connections Like
+  This, which adds a Hide rule so that app's connections to that host stay out
+  of the Map and history while still being filtered.
 - Window › Float on Top keeps Rift above other windows.
 - Notifications have separate switches for blocked connections, connections no
   rule decided, and Notify rules, with an optional sound for Notify rules.

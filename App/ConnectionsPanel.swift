@@ -302,6 +302,7 @@ struct ConnectionContextMenu: View {
     let showRules: () -> Void
     var copyText: String?
     var hostname: String?
+    var hide: (() -> Void)?
 
     var body: some View {
         if canDecide() {
@@ -310,6 +311,11 @@ struct ConnectionContextMenu: View {
             Divider()
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)
+        if let hide, canDecide() {
+            Button("Hide Connections Like This", action: hide)
+                .disabled(disabled)
+                .help("Leaves this app’s connections to this host out of the Map and history. They’re still filtered.")
+        }
         Divider()
         Button("Copy") { copy(copyText) }.disabled(copyText == nil)
         if let hostname {

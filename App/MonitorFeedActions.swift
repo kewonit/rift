@@ -173,4 +173,37 @@ extension MonitorFeed {
         session.requestedRuleIDs = ids
         session.destination = .rules
     }
+
+    /// Adds a Hide rule for connections like this one: the same app to the
+    /// same host. They're still filtered, just left out of the Map and
+    /// history.
+    func hideConnections(like node: MonitorHierarchyNode) {
+        guard let row = representativeRow(for: node),
+              let seed = MonitorExactRuleSeed.make(from: row) else { return }
+        let controlPlane = session.controlPlane
+        let results = controlPlane.actionResults
+        let draft = ManualRuleDraft(
+            action: .privacy(.hide), priority: .normal, process: seed.process, destination: seed.destination,
+            transport: .anySupportedProtocol, port: nil, direction: seed.direction, owner: seed.owner,
+            profileID: nil, localGroupID: nil, expiresAt: nil, isEnabled: true, reviewState: .reviewed,
+            note: "Added with Hide Connections on the Map."
+        )
+        Task {
+            do {
+                controlPlane.ruleChanges.nextChangeName = "Hide Connections"
+                defer { controlPlane.ruleChanges.nextChangeName = nil }
+                _ = try await controlPlane.createManualRule(
+                    draft, expectedGeneration: controlPlane.desiredPolicyTuple?.generation ?? 0
+                )
+                results.post(
+                    "Connections like this are hidden from the Map and history. They’re still filtered by your rules.",
+                    ruleIDs: controlPlane.ruleChanges.plan?.affectedRuleIDs ?? [],
+                    offersUndo: true
+                )
+                requestPresentationRefresh()
+            } catch {
+                results.post("Rift couldn’t hide these connections. Try again.", tone: .failure)
+            }
+        }
+    }
 }

@@ -78,7 +78,8 @@ struct ConnectionsTable: View {
                     copyText: feed.representativeRow(for: node)?.copyDescription,
                     hostname: feed.representativeRow(for: node).flatMap { row in
                         row.event.flow.observedHostname?.ascii
-                    }
+                    },
+                    hide: { feed.hideConnections(like: node) }
                 )
             }
         }
