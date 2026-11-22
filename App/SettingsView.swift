@@ -100,6 +100,7 @@ struct SettingsView: View {
             }
         }
         .modifier(ModeChangeConfirmation(pendingMode: $pendingBaseMode, confirm: saveBaseMode))
+        .riftAnnounces(message)
         .confirmationDialog(
             "Restore this configuration?",
             isPresented: $showingRestoreConfirmation,
