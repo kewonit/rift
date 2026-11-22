@@ -153,6 +153,7 @@ private struct RuleWorkspaceDropTargetModifier: ViewModifier {
     let selection: RulesSidebarSelection
     @Binding var pendingDrop: RuleWorkspaceDropRequest?
     @Binding var activeSelection: RulesSidebarSelection?
+    @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
         let isTargeted = Binding(
@@ -167,7 +168,8 @@ private struct RuleWorkspaceDropTargetModifier: ViewModifier {
         )
         content
             .listRowBackground(
-                activeSelection == selection ? Color.accentColor.opacity(0.14) : Color.clear
+                activeSelection == selection
+                    ? Color.accentColor.opacity(contrast == .increased ? 0.32 : 0.14) : Color.clear
             )
             .help("Drop rules here to move them. Hold Option to copy them instead.")
             .onDrop(
