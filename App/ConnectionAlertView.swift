@@ -117,6 +117,7 @@ struct ConnectionAlertView: View {
             }
             .fixedSize()
             .disabled(!lastingChoiceAvailable)
+            .help(ConnectionAlertKeys.help)
 
             if let hint = ConnectionAlertPresentation.lastingChoiceHint(
                 hasIdentity: prompt.appIdentity != nil || prompt.processIdentity != nil,
@@ -241,7 +242,9 @@ struct ConnectionAlertView: View {
                             allow: { decideFromKeyboard(.allow) },
                             block: { decideFromKeyboard(.deny) },
                             returnAllows: !deliberateAllow,
-                            noteFocused: noteFocused
+                            noteFocused: noteFocused,
+                            lifetime: lastingChoiceAvailable ? $lifetime : nil,
+                            toggleDetails: { showingDetails.toggle() }
                         )
                         .disabled(decisionDisabled(at: context.date))
                     }

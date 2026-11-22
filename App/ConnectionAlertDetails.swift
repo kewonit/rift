@@ -186,14 +186,34 @@ struct ConnectionAlertWarningList: View {
 /// buttons are invisible so every key goes through the same guard as the
 /// others. When the alert carries a warning, Return does nothing, so allowing
 /// takes a click or ⌘A.
+///
+/// Single keys choose how long the answer lasts and open the details, as in
+/// other firewalls: O only this time, 5 five minutes, H one hour, F always,
+/// D details. They're off while the note is being typed.
 struct ConnectionAlertKeys: View {
+    static let lifetimeKeys: [(key: Character, lifetime: AlertLifetime)] = [
+        ("o", .once), ("5", .fiveMinutes), ("h", .oneHour), ("f", .permanent),
+    ]
+    static let help = "Keys: O only this time, 5 five minutes, H one hour, F always, D details"
+
     let allow: () -> Void
     let block: () -> Void
     var returnAllows = true
     var noteFocused = false
+    /// Nil while a lasting answer isn't on offer.
+    var lifetime: Binding<AlertLifetime>?
+    var toggleDetails: () -> Void = {}
 
     var body: some View {
         ZStack {
+            ForEach(Self.lifetimeKeys, id: \.key) { item in
+                Button(item.lifetime.menuTitle) { lifetime?.wrappedValue = item.lifetime }
+                    .keyboardShortcut(KeyEquivalent(item.key), modifiers: [])
+                    .disabled(lifetime == nil || noteFocused)
+            }
+            Button("Details", action: toggleDetails)
+                .keyboardShortcut("d", modifiers: [])
+                .disabled(noteFocused)
             // Return and Esc belong to the note while it's being typed.
             Button("Allow", action: allow).keyboardShortcut(.defaultAction)
                 .disabled(!returnAllows || noteFocused)

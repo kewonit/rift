@@ -53,6 +53,9 @@ The changelog records notable user-visible changes.
   updates. The Status page, the menu-bar icon, the Map and `riftctl status`
   show "Rift isn't seeing connections". Rift checks only while it's receiving
   connections, with history on or the Map or menu open.
+- In a connection alert, single keys choose how long the answer lasts: O only
+  this time, 5 five minutes, H one hour, F always. D shows or hides the
+  details. They're off while you type a note.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
