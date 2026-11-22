@@ -31,6 +31,12 @@ public enum ConnectionAlertWarning: Sendable, Hashable {
 }
 
 public enum ConnectionAlertWarnings {
+    /// Whether allowing should take a deliberate click or ⌘A instead of
+    /// Return. Any warning is a reason to read the alert first.
+    public static func requiresDeliberateAllow(for prompt: PromptRequest) -> Bool {
+        !warnings(for: prompt).isEmpty
+    }
+
     /// Warnings for one alert, most serious first.
     public static func warnings(for prompt: PromptRequest) -> [ConnectionAlertWarning] {
         var result: [ConnectionAlertWarning] = []

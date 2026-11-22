@@ -182,15 +182,25 @@ struct ConnectionAlertWarningList: View {
 }
 
 /// Return allows and Esc blocks, like the default and cancel buttons of a
-/// dialog. The buttons are invisible because the visible ones keep ⌘A and ⌘B.
+/// dialog, and ⌘A and ⌘B work even while the note is being typed. The
+/// buttons are invisible so every key goes through the same guard as the
+/// others. When the alert carries a warning, Return does nothing, so allowing
+/// takes a click or ⌘A.
 struct ConnectionAlertKeys: View {
     let allow: () -> Void
     let block: () -> Void
+    var returnAllows = true
+    var noteFocused = false
 
     var body: some View {
         ZStack {
+            // Return and Esc belong to the note while it's being typed.
             Button("Allow", action: allow).keyboardShortcut(.defaultAction)
+                .disabled(!returnAllows || noteFocused)
             Button("Block", action: block).keyboardShortcut(.cancelAction)
+                .disabled(noteFocused)
+            Button("Allow", action: allow).keyboardShortcut("a", modifiers: .command)
+            Button("Block", action: block).keyboardShortcut("b", modifiers: .command)
         }
         .opacity(0)
         .frame(width: 0, height: 0)

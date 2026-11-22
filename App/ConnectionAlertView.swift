@@ -63,7 +63,7 @@ struct ConnectionAlertView: View {
                     artworkStore: artworkStore
                 )
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Connection request")
+                    Text(deliberateAllow ? "Check this connection" : "Connection request")
                         .font(.title2.weight(.semibold))
                     Text(ConnectionAlertPresentation.headline(
                         application: applicationName,
@@ -221,13 +221,11 @@ struct ConnectionAlertView: View {
                             Label("Block", systemImage: "xmark").frame(maxWidth: .infinity)
                         }
                         .tint(Color(nsColor: .systemRed))
-                        .keyboardShortcut("b", modifiers: .command)
                         .disabled(decisionDisabled(at: context.date))
                         Button { decide(.allow) } label: {
                             Label("Allow", systemImage: "checkmark").frame(maxWidth: .infinity)
                         }
                         .tint(Color(nsColor: .systemGreen))
-                        .keyboardShortcut("a", modifiers: .command)
                         .disabled(decisionDisabled(at: context.date))
                     }
                     .buttonStyle(.bordered)
@@ -235,10 +233,11 @@ struct ConnectionAlertView: View {
                     .background {
                         ConnectionAlertKeys(
                             allow: { decideFromKeyboard(.allow) },
-                            block: { decideFromKeyboard(.deny) }
+                            block: { decideFromKeyboard(.deny) },
+                            returnAllows: !deliberateAllow,
+                            noteFocused: noteFocused
                         )
-                        // Return and Esc belong to the note while it's being typed.
-                        .disabled(decisionDisabled(at: context.date) || noteFocused)
+                        .disabled(decisionDisabled(at: context.date))
                     }
                     VStack(spacing: RiftDesign.Spacing.xs + 2) {
                         ProgressView(
@@ -250,7 +249,7 @@ struct ConnectionAlertView: View {
                         .tint(context.date >= prompt.deadline ? Color(nsColor: .systemOrange) : .secondary)
                         HStack {
                             if controlActiveState == .key {
-                                Text(noteFocused ? "⌘B Block · ⌘A Allow" : "Esc Block · Return Allow")
+                                Text(keyHint)
                             }
                             Spacer()
                             Text(deadlineLabel(at: context.date))
@@ -264,6 +263,8 @@ struct ConnectionAlertView: View {
         }
         .padding(RiftDesign.Spacing.xl)
         .frame(width: 520)
+        // A warned alert looks different, so it isn't answered from habit.
+        .background(deliberateAllow ? Color(nsColor: .systemOrange).opacity(0.07) : .clear)
         .task {
             initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
             presentedAt = Date()
@@ -397,6 +398,14 @@ struct ConnectionAlertView: View {
         if AlertDefaults.remembersDestination(destinationScope, domainAvailable: registeredDomain != nil) {
             alertLastDestination = destinationScope.rawValue
         }
+    }
+
+    /// With a warning showing, Return doesn't allow.
+    private var deliberateAllow: Bool { ConnectionAlertWarnings.requiresDeliberateAllow(for: prompt) }
+
+    private var keyHint: String {
+        if noteFocused { return "⌘B Block · ⌘A Allow" }
+        return deliberateAllow ? "Esc Block · ⌘A Allow" : "Esc Block · Return Allow"
     }
 
     private var noteValid: Bool {

@@ -144,8 +144,8 @@ struct AlertSettingsPane: View {
                 Text("Alert Defaults")
             } footer: {
                 Text(blocksUnanswered
-                    ? "In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed."
-                    : "In an alert, Return allows and Esc blocks. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift lets the connection through.")
+                    ? "In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift blocks the connection. When Rift isn’t open, or before you log in, connections nobody can answer are still allowed."
+                    : "In an alert, Return allows and Esc blocks, except that an alert with a warning needs a click or ⌘A to allow. A minimized alert shows as a small bar with a countdown. If you don’t answer in time, Rift lets the connection through.")
             }
         }
         .formStyle(.grouped)

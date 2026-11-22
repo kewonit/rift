@@ -11,6 +11,10 @@ The changelog records notable user-visible changes.
   recent lasting answer; choosing a fixed default in Settings › Alerts keeps it.
   Before, alerts defaulted to Once for one host and port.
 - Alerts and the Alert Defaults setting add 15 minutes, 1 day and 1 week.
+- An alert with a warning, such as for unsigned code or a look-alike name, is
+  titled "Check this connection" and tinted, and Return no longer allows it:
+  click Allow or press ⌘A. The one-second guard against keys typed for
+  another window now covers ⌘A and ⌘B too.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
