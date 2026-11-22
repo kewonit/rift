@@ -83,7 +83,7 @@ struct StatusMenuView: View {
             if session.review.count > 0 {
                 StatusMenuButton(action: openReview) {
                     Label(ReviewBannerCopy.message(session.review.queue), systemImage: "checklist")
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .help("Allow or block each in one click")

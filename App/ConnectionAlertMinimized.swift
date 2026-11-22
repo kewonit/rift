@@ -30,9 +30,11 @@ struct ConnectionAlertMinimizedView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 TimelineView(.periodic(from: .now, by: 1)) { context in
+                    // Wraps rather than cutting off a longer translation in the narrow bar.
                     Text(ConnectionAlertCountdown.label(for: prompt, now: context.date))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(Color(nsColor: .systemOrange))
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityLabel(ConnectionAlertSpeech.countdown(for: prompt, now: context.date))
                 }
             }

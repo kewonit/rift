@@ -163,7 +163,8 @@ private struct StatusMenuHeader: View, Equatable {
                     .symbolRenderingMode(.hierarchical)
                     .frame(width: 28)
                     .accessibilityHidden(true)
-                Text(status.title).font(.headline).lineLimit(2)
+                // Three lines, so a longer translation beside the mode menu wraps instead of cutting off.
+                Text(status.title).font(.headline).lineLimit(3)
                 Spacer(minLength: RiftDesign.Spacing.s)
                 Menu {
                     Section(profile.map { String(localized: "Mode for \($0)") } ?? String(localized: "Mode")) {
