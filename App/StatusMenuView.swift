@@ -76,14 +76,15 @@ struct StatusMenuView: View {
                 selectMode: requestMode,
                 performAction: perform,
                 toggleNotifications: toggleNotifications,
-                openConnection: openActivity
+                openConnection: openActivity,
+                decideForFiveMinutes: decideForFiveMinutes
             )
             StatusMenuBlockedList(
                 items: snapshot.recentlyBlocked,
                 now: dashboardNow,
                 artworkStore: session.applicationArtwork,
                 open: openActivity,
-                allowForFiveMinutes: allowForFiveMinutes
+                allowForFiveMinutes: { decideForFiveMinutes($0, .allow) }
             )
             StatusMenuTemporaryRules(
                 rules: temporaryRules,
@@ -327,9 +328,9 @@ struct StatusMenuView: View {
 
     // MARK: Quick rules
 
-    /// Lets a blocked connection through for five minutes, the same way the
-    /// Map does, with the narrowest useful scope.
-    private func allowForFiveMinutes(_ eventID: String) {
+    /// Allows or blocks a recent connection for five minutes, the same way
+    /// the Map does, with the narrowest useful scope.
+    private func decideForFiveMinutes(_ eventID: String, _ action: FilterAction) {
         let results = controller.actionResults
         guard !session.isUIFixture,
               let row = cache.rows.first(where: { $0.id == eventID }),
@@ -340,23 +341,26 @@ struct StatusMenuView: View {
         Task {
             do {
                 let change = try await controller.applyMonitorRule(
-                    for: row, action: .allow, breadth: breadth, duration: .fiveMinutes
+                    for: row, action: action, breadth: breadth, duration: .fiveMinutes
                 )
+                let done = action == .deny ? "Blocked for 5 minutes." : "Allowed for 5 minutes."
                 if let result = change.result {
                     results.post(
-                        result.requiresAttention ? "Allowed for 5 minutes. \(result.message)" : "Allowed for 5 minutes.",
+                        result.requiresAttention ? "\(done) \(result.message)" : done,
                         tone: result.requiresAttention ? .pending : .success,
                         ruleIDs: change.ruleIDs,
                         offersUndo: true
                     )
                 } else {
-                    results.post("This is already allowed.", ruleIDs: change.ruleIDs)
+                    results.post(action == .deny ? "This is already blocked." : "This is already allowed.",
+                                 ruleIDs: change.ruleIDs)
                 }
                 await load()
             } catch ControlPlaneController.RuleCommandError.elevatedOverrideRequiresConfirmation {
                 results.post("This destination is on a blocklist. Open it in Rift to allow it.", tone: .failure)
             } catch ControlPlaneController.RuleCommandError.permanentRuleConflict {
-                results.post("A permanent rule blocks this. Change it in Rift.", tone: .failure)
+                results.post(action == .deny ? "A permanent rule allows this. Change it in Rift."
+                    : "A permanent rule blocks this. Change it in Rift.", tone: .failure)
             } catch ControlPlaneController.RuleCommandError.overriddenByRule {
                 results.post("Nothing changed, because another rule still decides this connection.", tone: .failure)
             } catch ControlPlaneController.RuleCommandError.incomingBlocklistOverride {

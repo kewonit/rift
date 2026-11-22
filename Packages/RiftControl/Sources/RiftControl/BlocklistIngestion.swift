@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 public enum BlocklistIngestion {
@@ -30,6 +31,16 @@ public enum BlocklistIngestion {
     ) async throws -> BlocklistImportPreparation {
         try Task.checkCancellation()
         let worker = Task.detached(priority: .userInitiated) {
+            // A rule group file whose rules only block destinations reads as
+            // a blocklist.
+            if LSRulesFile.looksLikeRulesFile(data) {
+                guard data.count <= BlocklistParser.maximumBytes else { throw BlocklistParserError.oversizedInput }
+                return try BlocklistImportBuilder.prepare(
+                    entries: LSRulesConverter.blocklistEntries(LSRulesFile.decode(data)),
+                    name: name,
+                    contentHash: Data(SHA256.hash(data: data))
+                )
+            }
             let parsed = try BlocklistParser.parseInstrumented(data)
             return try BlocklistImportBuilder.prepare(
                 entries: parsed.entries,

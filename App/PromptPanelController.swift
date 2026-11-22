@@ -20,6 +20,12 @@ final class PromptPanelController {
     private var chosenNonce: UUID?
     private var minimized = false
     private var lastInput: (prompts: [PromptRequest], controller: ControlPlaneController, artworkStore: ApplicationArtworkStore)?
+    /// Answers Block for a connection nobody answered, when Settings › Alerts
+    /// says to.
+    private var timeoutAnswers: [UUID: Task<Void, Never>] = [:]
+    /// Connections the person is answering right now, which Rift leaves to
+    /// them.
+    var answering: Set<UUID> = []
 
     func update(
         prompts: [PromptRequest],
@@ -27,6 +33,7 @@ final class PromptPanelController {
         artworkStore: ApplicationArtworkStore
     ) {
         lastInput = (prompts, controller, artworkStore)
+        scheduleTimeoutAnswers(prompts, controller: controller)
         guard let first = prompts.first else {
             closePanel()
             chosenNonce = nil
@@ -118,6 +125,35 @@ final class PromptPanelController {
     private func refresh() {
         guard let lastInput else { return }
         update(prompts: lastInput.prompts, controller: lastInput.controller, artworkStore: lastInput.artworkStore)
+    }
+
+    private func scheduleTimeoutAnswers(_ prompts: [PromptRequest], controller: ControlPlaneController) {
+        let waiting = Set(prompts.map(\.nonce))
+        for (nonce, task) in timeoutAnswers where !waiting.contains(nonce) {
+            task.cancel()
+            timeoutAnswers.removeValue(forKey: nonce)
+        }
+        answering.formIntersection(waiting)
+        for prompt in prompts where timeoutAnswers[prompt.nonce] == nil {
+            timeoutAnswers[prompt.nonce] = Task { [weak self, weak controller] in
+                let wait = prompt.deadline.timeIntervalSinceNow - ConnectionAlertCountdown.blockLead
+                if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+                guard !Task.isCancelled, ConnectionAlertCountdown.blocksUnanswered,
+                      prompt.deadline > Date(), let controller,
+                      self?.answering.contains(prompt.nonce) != true else { return }
+                do {
+                    try await controller.answerOnce(prompt, action: .deny)
+                } catch {
+                    // Unless the connection was answered meanwhile, say that
+                    // it's going to be allowed after all.
+                    guard controller.pendingPrompts.contains(where: { $0.nonce == prompt.nonce }) else { return }
+                    controller.actionResults.post(
+                        "Rift couldn’t block a connection you didn’t answer, so it will be allowed.",
+                        tone: .failure
+                    )
+                }
+            }
+        }
     }
 
     private func place(_ panel: NSPanel, nearTopRightOf screen: NSScreen?) {

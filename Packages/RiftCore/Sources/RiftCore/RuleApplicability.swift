@@ -158,8 +158,9 @@ enum RuleApplicability {
         case .domainSet(let values):
             guard flow.direction == .outgoing, let host = flow.observedHostname else { return nil }
             let matches = values.filter { host.isEqualToOrSubdomain(of: $0) }
+            // The most specific member that matches stands for the set.
             guard let best = matches.min(by: { lhs, rhs in
-                if lhs.labelCount != rhs.labelCount { return lhs.labelCount < rhs.labelCount }
+                if lhs.labelCount != rhs.labelCount { return lhs.labelCount > rhs.labelCount }
                 return lhs < rhs
             }) else { return nil }
             return .domain(set: values, matched: best)

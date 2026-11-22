@@ -52,6 +52,40 @@ public struct DomainName: Sendable, Hashable, Comparable, Codable, CustomStringC
         self.ascii = canonical
     }
 
+    /// A name typed or listed with international letters, such as
+    /// `bücher.de`, converted label by label to its ASCII `xn--` form. ASCII
+    /// input is checked as usual.
+    /// (A static function rather than an initializer, so `DomainName.init`
+    /// stays unambiguous.)
+    public static func converting(_ input: String) throws -> DomainName {
+        guard !input.unicodeScalars.allSatisfy(\.isASCII) else {
+            return try DomainName(input)
+        }
+        let trimmed = input
+        // Like browsers, fold full-width and other compatibility forms (NFKC)
+        // and treat the other full stops as dots, so ｅｘａｍｐｌｅ。com names
+        // the same host as example.com.
+        let dots = trimmed.replacingOccurrences(of: "\u{3002}", with: ".")
+            .replacingOccurrences(of: "\u{FF0E}", with: ".")
+            .replacingOccurrences(of: "\u{FF61}", with: ".")
+        let folded = dots.precomposedStringWithCompatibilityMapping
+            .lowercased(with: Locale(identifier: "en_US_POSIX"))
+        var labels: [String] = []
+        for label in folded.split(separator: ".", omittingEmptySubsequences: false) {
+            if label.unicodeScalars.allSatisfy(\.isASCII) {
+                labels.append(String(label))
+            } else {
+                guard let encoded = Punycode.encode(Array(label.unicodeScalars)),
+                      let text = String(bytes: encoded, encoding: .ascii) else {
+                    throw DomainNameError.malformedALabel
+                }
+                labels.append("xn--" + text)
+            }
+        }
+        let joined = labels.joined(separator: ".")
+        return try DomainName(joined.hasSuffix(".") ? String(joined.dropLast()) : joined)
+    }
+
     public var description: String { ascii }
     public var labelCount: Int { ascii.split(separator: ".").count }
 

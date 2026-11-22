@@ -16,28 +16,35 @@ struct RulesWorkspaceView: View {
     @State private var showingDeleteConfirmation = false
     @FocusState private var searchFocused: Bool
 
+    // The modifiers are split across several properties so each one
+    // type-checks quickly; one long chain is too slow for the compiler.
     var body: some View {
+        withSheets
+            .confirmationDialog(
+                deleteTitle,
+                isPresented: $showingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(deleteButtonTitle, role: .destructive) {
+                    Task { await model.deleteSelected() }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(deleteMessage)
+            }
+            .confirmationDialog(importTitle, isPresented: importPresented, titleVisibility: .visible) {
+                Button("Import") { Task { await model.confirmImport() } }
+                Button("Cancel", role: .cancel) { model.cancelImport() }
+            } message: {
+                Text(model.pendingImport?.summary ?? "")
+            }
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             bar
             Divider()
-            if let message = model.errorMessage, !setupIncomplete {
-                HStack(spacing: 10) {
-                    Label(message, systemImage: "exclamationmark.triangle")
-                    Spacer()
-                    Button("Try Again") { Task { await model.reload() } }
-                }
-                .padding(8)
-                .background(.orange.opacity(0.18))
-            }
-            if let notice = model.notice {
-                HStack(spacing: 10) {
-                    Label(notice, systemImage: "info.circle")
-                    Spacer()
-                    Button("Dismiss") { model.dismissNotice() }
-                }
-                .padding(8)
-                .background(.orange.opacity(0.12))
-            }
+            banners
             if model.errorMessage == nil {
                 RulesWorkspaceTable(
                     model: model,
@@ -65,164 +72,190 @@ struct RulesWorkspaceView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .onChange(of: model.search) { _, value in searchChanged(value) }
+    }
+
+    @ViewBuilder
+    private var banners: some View {
+        if let message = model.errorMessage, !setupIncomplete {
+            HStack(spacing: 10) {
+                Label(message, systemImage: "exclamationmark.triangle")
+                Spacer()
+                Button("Try Again") { Task { await model.reload() } }
+            }
+            .padding(8)
+            .background(.orange.opacity(0.18))
+        }
+        if let notice = model.notice {
+            HStack(spacing: 10) {
+                Label(notice, systemImage: "info.circle")
+                Spacer()
+                Button("Dismiss") { model.dismissNotice() }
+            }
+            .padding(8)
+            .background(.orange.opacity(0.12))
+        }
+    }
+
+    private var inspected: some View {
+        content
+            .onChange(of: model.search) { _, value in searchChanged(value) }
 #if DEBUG
-        .task { if FixturePreviewOptions.opensRuleEditor { showingEditor = true } }
+            .task { if FixturePreviewOptions.opensRuleEditor { showingEditor = true } }
 #endif
-        .onChange(of: model.controlPlane.desiredPolicyTuple) { _, _ in
-            Task { await model.reload() }
-        }
-        .onChange(of: model.controlPlane.activePolicyTuple) { _, _ in
-            Task { await model.reload() }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .inspector(isPresented: $showingInspector) {
-            Group {
-                if let row = model.selectedRow, model.errorMessage == nil {
-                    RuleInspectorView(
-                        row: row,
-                        groups: model.groups,
-                        profiles: model.profiles,
-                        blocklists: model.blocklists,
-                        artworkStore: artworkStore,
-                        actions: isPreview || row.rule.flags.contains(.protected)
-                            || row.rule.flags.contains(.sourceManaged)
-                            ? nil
-                            : RuleInspectorActions(
-                                edit: { editingRow = row },
-                                setEnabled: { value in Task { await model.setSelectedEnabled(value) } },
-                                makePermanent: { Task { await model.makeSelectedPermanent() } },
-                                delete: { showingDeleteConfirmation = true }
-                            )
-                    )
-                } else {
-                    ContentUnavailableView("No Rule Selected", systemImage: "list.bullet.rectangle")
-                }
+            .onChange(of: model.controlPlane.desiredPolicyTuple) { _, _ in
+                Task { await model.reload() }
             }
-            .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
+            .onChange(of: model.controlPlane.activePolicyTuple) { _, _ in
+                Task { await model.reload() }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .inspector(isPresented: $showingInspector) {
+                inspector.inspectorColumnWidth(min: 260, ideal: 300, max: 360)
+            }
+            .navigationTitle(model.sidebarTitle)
+            .focusedSceneValue(\.findRules) { searchFocused = true }
+            .onDeleteCommand {
+                guard !isPreview, !model.historyCommandIsRunning, model.eligibleSelectionCount > 0 else { return }
+                showingDeleteConfirmation = true
+            }
+            .toolbar { toolbarItems }
+    }
+
+    @ViewBuilder
+    private var inspector: some View {
+        if let row = model.selectedRow, model.errorMessage == nil {
+            RuleInspectorView(
+                row: row,
+                groups: model.groups,
+                profiles: model.profiles,
+                blocklists: model.blocklists,
+                artworkStore: artworkStore,
+                actions: inspectorActions(for: row)
+            )
+        } else {
+            ContentUnavailableView("No Rule Selected", systemImage: "list.bullet.rectangle")
         }
-        .navigationTitle(model.sidebarTitle)
-        .focusedSceneValue(\.findRules) { searchFocused = true }
-        .onDeleteCommand {
-            guard !isPreview, !model.historyCommandIsRunning, model.eligibleSelectionCount > 0 else { return }
-            showingDeleteConfirmation = true
+    }
+
+    private func inspectorActions(for row: RuleRowViewValue) -> RuleInspectorActions? {
+        if isPreview || row.rule.flags.contains(.protected) || row.rule.flags.contains(.sourceManaged) {
+            return nil
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Menu {
-                    Picker("Show", selection: $model.actionFilter) {
-                        ForEach(RuleActionFilter.allCases) { filter in
-                            Text(filter.rawValue).tag(filter)
-                        }
+        return RuleInspectorActions(
+            edit: { editingRow = row },
+            setEnabled: { value in Task { await model.setSelectedEnabled(value) } },
+            makePermanent: { Task { await model.makeSelectedPermanent() } },
+            delete: { showingDeleteConfirmation = true }
+        )
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarItems: some ToolbarContent {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Menu {
+                Picker("Show", selection: $model.actionFilter) {
+                    ForEach(RuleActionFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
                     }
-                    Picker("Sort By", selection: $model.sort) {
-                        ForEach(RuleWorkspaceSort.allCases) { sort in
-                            Text(sort.rawValue).tag(sort)
-                        }
-                    }
-                    Picker("Search In", selection: $model.searchScope) {
-                        ForEach(RuleSearchScope.allCases) { scope in
-                            Text(scope.rawValue).tag(scope)
-                        }
-                    }
-                } label: {
-                    Label("Filter and Sort", systemImage: model.actionFilter == .all
-                        ? "line.3.horizontal.decrease"
-                        : "line.3.horizontal.decrease.circle.fill")
                 }
-                .help("Filter and sort rules")
-                Menu {
-                    Button("Import Rules…") { Task { await model.chooseRulesToImport() } }
-                    Button("Export Selected Rules…") { Task { await model.exportSelected() } }
-                        .disabled(model.exportableSelectionCount == 0)
-                } label: {
-                    Label("Import or Export", systemImage: "square.and.arrow.up.on.square")
+                Picker("Sort By", selection: $model.sort) {
+                    ForEach(RuleWorkspaceSort.allCases) { sort in
+                        Text(sort.rawValue).tag(sort)
+                    }
                 }
+                Picker("Search In", selection: $model.searchScope) {
+                    ForEach(RuleSearchScope.allCases) { scope in
+                        Text(scope.rawValue).tag(scope)
+                    }
+                }
+            } label: {
+                Label("Filter and Sort", systemImage: filterSymbol)
+            }
+            .help("Filter and sort rules")
+            Menu {
+                Button("Import Rules…") { Task { await model.chooseRulesToImport() } }
+                Button("Export Selected Rules…") { Task { await model.exportSelected() } }
+                    .disabled(model.exportableSelectionCount == 0)
+            } label: {
+                Label("Import or Export", systemImage: "square.and.arrow.up.on.square")
+            }
+            .disabled(isPreview || model.historyCommandIsRunning)
+            .help("Import rules from a file, or export the selected rules to share them")
+            Button { showingEditor = true } label: { Label("Add Rule", systemImage: "plus") }
                 .disabled(isPreview || model.historyCommandIsRunning)
-                .help("Import rules from a file, or export the selected rules to share them")
-                Button { showingEditor = true } label: { Label("Add Rule", systemImage: "plus") }
-                    .disabled(isPreview || model.historyCommandIsRunning)
-                    .help("Add a rule")
-                Button { showingInspector.toggle() } label: {
-                    Label(showingInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
+                .help("Add a rule")
+            Button { showingInspector.toggle() } label: {
+                Label(showingInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right")
+            }
+            .help(showingInspector ? "Hide the inspector" : "Show the inspector")
+        }
+    }
+
+    private var withSheets: some View {
+        inspected
+            .sheet(isPresented: $showingEditor) {
+                ManualRuleEditorView(
+                    identities: model.identityChoices,
+                    groups: model.groups,
+                    profiles: model.profiles,
+                    previewEnvironment: model.previewEnvironment,
+                    artworkStore: artworkStore
+                ) { draft in await model.create(draft) }
+            }
+            .sheet(isPresented: $model.bulkEditing) {
+                RuleBulkEditSheet(rules: model.bulkEditableRules) { edit in
+                    await model.editSelected(edit)
                 }
-                .help(showingInspector ? "Hide the inspector" : "Show the inspector")
             }
-        }
-        .sheet(isPresented: $showingEditor) {
-            ManualRuleEditorView(
-                identities: model.identityChoices,
-                groups: model.groups,
-                profiles: model.profiles,
-                previewEnvironment: model.previewEnvironment,
-                artworkStore: artworkStore
-            ) { draft in await model.create(draft) }
-        }
-        .sheet(isPresented: $model.bulkEditing) {
-            RuleBulkEditSheet(rules: model.bulkEditableRules) { edit in
-                await model.editSelected(edit)
-            }
-        }
-        .sheet(item: $editingRow) { row in
-            ManualRuleEditorView(
-                initial: row.rule,
-                identities: model.identityChoices,
-                groups: model.groups,
-                profiles: model.profiles,
-                previewEnvironment: model.previewEnvironment,
-                artworkStore: artworkStore
-            ) { draft in
-                await model.edit(row.id, draft: draft)
-            }
-        }
-        .task {
-            if requestedSelection.isEmpty {
-                await model.reload()
-                if isPreview, model.selection.isEmpty, let first = model.rows.first {
-                    model.selection = [first.id]
+            .sheet(item: $editingRow) { row in
+                ManualRuleEditorView(
+                    initial: row.rule,
+                    identities: model.identityChoices,
+                    groups: model.groups,
+                    profiles: model.profiles,
+                    previewEnvironment: model.previewEnvironment,
+                    artworkStore: artworkStore
+                ) { draft in
+                    await model.edit(row.id, draft: draft)
                 }
-            } else {
-                await acceptRequestedSelection()
             }
-        }
-        .onChange(of: model.sidebarSelection) { _, _ in model.scheduleReload() }
-        .onChange(of: model.search) { _, _ in model.scheduleReload() }
-        .onChange(of: model.searchScope) { _, _ in model.scheduleReload() }
-        .onChange(of: model.actionFilter) { _, _ in model.scheduleReload() }
-        .onChange(of: model.sort) { _, _ in model.scheduleReload() }
-        .onChange(of: requestedSelection) { _, _ in
-            Task { await acceptRequestedSelection() }
-        }
-        .confirmationDialog(
-            model.eligibleSelectionCount == 1
-                ? "Delete 1 rule?" : "Delete \(model.eligibleSelectionCount) rules?",
-            isPresented: $showingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(
-                model.eligibleSelectionCount == 1
-                    ? "Delete Rule" : "Delete \(model.eligibleSelectionCount) Rules",
-                role: .destructive
-            ) {
-                Task { await model.deleteSelected() }
+            .task {
+                if requestedSelection.isEmpty {
+                    await model.reload()
+                    if isPreview, model.selection.isEmpty, let first = model.rows.first {
+                        model.selection = [first.id]
+                    }
+                } else {
+                    await acceptRequestedSelection()
+                }
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(deleteMessage)
-        }
-        .confirmationDialog(
-            importTitle,
-            isPresented: Binding(
-                get: { model.pendingImport != nil },
-                set: { if !$0 { model.cancelImport() } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Import") { Task { await model.confirmImport() } }
-            Button("Cancel", role: .cancel) { model.cancelImport() }
-        } message: {
-            Text(model.pendingImport?.plan.summary ?? "")
-        }
+            .onChange(of: model.sidebarSelection) { _, _ in model.scheduleReload() }
+            .onChange(of: model.search) { _, _ in model.scheduleReload() }
+            .onChange(of: model.searchScope) { _, _ in model.scheduleReload() }
+            .onChange(of: model.actionFilter) { _, _ in model.scheduleReload() }
+            .onChange(of: model.sort) { _, _ in model.scheduleReload() }
+            .onChange(of: requestedSelection) { _, _ in
+                Task { await acceptRequestedSelection() }
+            }
+    }
+
+    private var filterSymbol: String {
+        model.actionFilter == .all ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill"
+    }
+
+    private var deleteTitle: String {
+        model.eligibleSelectionCount == 1 ? "Delete 1 rule?" : "Delete \(model.eligibleSelectionCount) rules?"
+    }
+
+    private var deleteButtonTitle: String {
+        model.eligibleSelectionCount == 1 ? "Delete Rule" : "Delete \(model.eligibleSelectionCount) Rules"
+    }
+
+    private var importPresented: Binding<Bool> {
+        Binding(
+            get: { model.pendingImport != nil },
+            set: { if !$0 { model.cancelImport() } }
+        )
     }
 
     private var importTitle: String {

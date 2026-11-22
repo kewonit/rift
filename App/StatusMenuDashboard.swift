@@ -18,6 +18,8 @@ struct StatusMenuDashboard: View {
     let performAction: (ProtectionStatus.Action) -> Void
     let toggleNotifications: () -> Void
     let openConnection: (String) -> Void
+    /// Makes a five-minute rule for a recent connection.
+    var decideForFiveMinutes: (String, FilterAction) -> Void = { _, _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: RiftDesign.Spacing.m) {
@@ -85,6 +87,14 @@ struct StatusMenuDashboard: View {
                         }
                     }
                     .accessibilityHint("Shows this connection in Rift")
+                    .contextMenu {
+                        if item.decision == .denied {
+                            Button("Allow for 5 Minutes") { decideForFiveMinutes(item.eventID, .allow) }
+                        } else {
+                            Button("Block for 5 Minutes") { decideForFiveMinutes(item.eventID, .deny) }
+                        }
+                        Button("Show in Rift") { openConnection(item.eventID) }
+                    }
                 }
             }
             if snapshot.deniedCount > 0 {

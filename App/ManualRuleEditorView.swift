@@ -127,10 +127,12 @@ struct ManualRuleEditorView: View {
                         axis: .vertical
                     )
                     .lineLimit(2...5)
-                    .disabled(includesChildren)
+                    if PublicSuffixList.shared.isAvailable || includesChildren {
+                        Toggle("Include subdomains", isOn: $includesChildren)
+                    }
                     Text(includesChildren
-                        ? "This rule also matches subdomains, so these entries can’t be edited here."
-                        : "Separate entries with commas or new lines. Sites match exactly and don’t include subdomains.")
+                        ? "Separate entries with commas or new lines. Each site also covers its subdomains: example.com covers www.example.com."
+                        : "Separate entries with commas or new lines. Sites match exactly; www.example.com isn’t covered by example.com.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -245,6 +247,14 @@ struct ManualRuleEditorView: View {
             validation = "Use either hostnames or IP addresses in one rule, not both."
         } catch DestinationEditorError.overLimit {
             validation = "There are too many entries. Split them into more than one rule."
+        } catch DestinationEditorError.someSubdomains {
+            validation = "Turn on Include subdomains, or remove *. so every site matches exactly."
+        } catch DestinationEditorError.childDomainsNeedNames {
+            validation = "Subdomains apply to names. Turn off Include subdomains to enter IP addresses."
+        } catch DestinationEditorError.childDomainsUnavailable {
+            validation = "Rift couldn’t read its list of domain suffixes, so it can’t check subdomain rules."
+        } catch DestinationEditorError.wholeRegistry(let name) {
+            validation = "Anyone can register names under \(name), so this would cover far too much. Enter a domain someone registered, like example.co.uk."
         } catch {
             validation = "Enter a valid hostname, IP address, or IP range."
         }
@@ -393,12 +403,15 @@ struct ManualRuleEditorView: View {
     private func destinationCondition() throws -> DestinationCondition {
         switch destinationKind {
         case .hostOrAddress:
-            if includesChildren, let initial, case .domainSet = initial.destination {
+            // An unchanged domain rule keeps its destination, so it can still
+            // be edited if the suffix list can't be read.
+            if includesChildren, let initial, case .domainSet = initial.destination,
+               destinationText == Self.destinationText(initial.destination) {
                 return initial.destination
             }
             return try DestinationEditorParser.parse(
                 destinationText,
-                domainsIncludeChildren: false
+                domainsIncludeChildren: includesChildren
             )
         case .broadcast: return .endpointClass(.broadcast)
         case .multicast: return .endpointClass(.multicast)

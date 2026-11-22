@@ -133,8 +133,8 @@ public struct RuleImportPlan: Sendable, Equatable {
                 ? "1 expired or blocklist rule is skipped."
                 : "\(skipped) expired or blocklist rules are skipped.")
         }
-        let created = newGroups.map { "the group “\($0.name)”" }
-            + newProfiles.map { "the profile “\($0.name)”" }
+        let created = newGroups.map { "the group “\(DisplaySanitizer.plainText($0.name))”" }
+            + newProfiles.map { "the profile “\(DisplaySanitizer.plainText($0.name))”" }
         if !created.isEmpty {
             parts.append("Creates \(ListFormatter.localizedString(byJoining: created)).")
         }

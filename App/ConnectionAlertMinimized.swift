@@ -107,14 +107,25 @@ struct ConnectionAlertWaitingMenu: View {
 }
 
 enum ConnectionAlertCountdown {
-    /// When nobody answers, the connection is allowed.
-    static func label(deadline: Date, now: Date) -> String {
-        let remaining = max(0, Int(deadline.timeIntervalSince(now).rounded(.up)))
-        guard remaining > 0 else { return "Timed out — connection allowed" }
+    /// Settings › Alerts can block unanswered connections instead of allowing
+    /// them. Rift answers for you just before the filter's own deadline.
+    static let blocksUnansweredKey = "alertsBlockUnanswered"
+    /// How long before the filter's deadline Rift answers Block.
+    static let blockLead: TimeInterval = 1.5
+
+    static var blocksUnanswered: Bool { UserDefaults.standard.bool(forKey: blocksUnansweredKey) }
+
+    /// When nobody answers, the connection is allowed, or blocked if
+    /// Settings › Alerts says so.
+    static func label(deadline: Date, now: Date, blocks: Bool = blocksUnanswered) -> String {
+        let end = blocks ? deadline.addingTimeInterval(-blockLead) : deadline
+        let remaining = max(0, Int(end.timeIntervalSince(now).rounded(.up)))
+        let verb = blocks ? "Blocking" : "Allowing"
+        guard remaining > 0 else { return blocks ? "Not answered — connection blocked" : "Timed out — connection allowed" }
         let minutes = remaining / 60
         let seconds = remaining % 60
         return minutes > 0
-            ? "Allowing in \(minutes):\(String(format: "%02d", seconds))"
-            : "Allowing in \(seconds)s"
+            ? "\(verb) in \(minutes):\(String(format: "%02d", seconds))"
+            : "\(verb) in \(seconds)s"
     }
 }

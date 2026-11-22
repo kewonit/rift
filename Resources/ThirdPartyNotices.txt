@@ -181,3 +181,9 @@ Public Domain Dedication and License 1.0.
 Country shapes
 Natural Earth (https://www.naturalearthdata.com/), public domain.
 
+
+Public Suffix List
+https://publicsuffix.org/, version 2026-11-21_04-33-45_UTC. Subject to the
+terms of the Mozilla Public License, v. 2.0: https://mozilla.org/MPL/2.0/
+The bundled public_suffix_list.dat is an unmodified copy; its source is the
+file itself, in the app's Resources folder and in Rift's source repository.

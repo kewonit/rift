@@ -74,7 +74,7 @@ struct BlocklistIngestionTests {
         #expect(input.count < BlocklistParser.maximumBytes)
 
         let output = try BlocklistParser.parseInstrumented(input)
-        #expect(output.entries == [.domain(try DomainName("ads.example.test"))])
+        #expect(output.entries == [.domainAndSubdomains(try DomainName("ads.example.test"))])
         #expect(output.metrics.uniqueEntryHighWater == 1)
         #expect(
             output.metrics.maximumBufferedLineBytes

@@ -40,9 +40,6 @@ enum BlocklistRuleInvariant {
               source.importedAt.timeIntervalSinceReferenceDate.isFinite else {
             throw invalid
         }
-        guard rules.count == chunkCount(domainCount) + chunkCount(addressCount) else {
-            throw invalid
-        }
 
         let reference = rules[0]
         guard reference.revision > 0,
@@ -51,10 +48,18 @@ enum BlocklistRuleInvariant {
               reference.modifiedAt.timeIntervalSinceReferenceDate.isFinite else {
             throw invalid
         }
+        // Splitting names into exact and subdomain chunks adds at most one.
+        guard rules.count <= chunkCount(domainCount) + 1 + chunkCount(addressCount) else {
+            throw invalid
+        }
 
+        // Names are either exact or cover their subdomains, never both, and
+        // each kind is chunked on its own.
         var domains: Set<DomainName> = []
+        var subdomainDomains: Set<DomainName> = []
         var addresses: Set<IPInterval> = []
         var domainChunks: [[DomainName]] = []
+        var subdomainChunks: [[DomainName]] = []
         var addressChunks: [[IPInterval]] = []
         for rule in rules {
             guard hasCanonicalShape(rule, source: source),
@@ -66,11 +71,17 @@ enum BlocklistRuleInvariant {
             }
             switch rule.destination {
             case .exactHostnameSet(let values):
-                guard values.count <= domainCount - domains.count,
-                      values.allSatisfy({ domains.insert($0).inserted }) else {
+                guard values.count <= domainCount - domains.count - subdomainDomains.count,
+                      values.allSatisfy({ !subdomainDomains.contains($0) && domains.insert($0).inserted }) else {
                     throw invalid
                 }
                 domainChunks.append(values)
+            case .domainSet(let values):
+                guard values.count <= domainCount - domains.count - subdomainDomains.count,
+                      values.allSatisfy({ !domains.contains($0) && subdomainDomains.insert($0).inserted }) else {
+                    throw invalid
+                }
+                subdomainChunks.append(values)
             case .ipSet(let values):
                 guard values.count <= addressCount - addresses.count,
                       !values.contains(where: isUniversal),
@@ -78,14 +89,17 @@ enum BlocklistRuleInvariant {
                     throw invalid
                 }
                 addressChunks.append(values)
-            case .domainSet, .endpointClass, .anyEndpoint:
+            case .endpointClass, .anyEndpoint:
                 throw invalid
             }
         }
 
-        guard domains.count == domainCount,
+        guard domains.count + subdomainDomains.count == domainCount,
               addresses.count == addressCount,
+              rules.count == chunkCount(domains.count) + chunkCount(subdomainDomains.count)
+                + chunkCount(addressCount),
               canonicalChunks(Array(domains).sorted()) == sortedChunks(domainChunks),
+              canonicalChunks(Array(subdomainDomains).sorted()) == sortedChunks(subdomainChunks),
               canonicalChunks(Array(addresses).sorted()) == sortedChunks(addressChunks) else {
             throw invalid
         }

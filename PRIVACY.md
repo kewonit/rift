@@ -3,7 +3,9 @@
 Rift makes firewall decisions on the Mac. It does not use analytics, an
 advertising SDK, a telemetry service, automatic diagnostics upload, or
 packet-payload capture. It doesn't send destination IP addresses to any
-service. Rift does not enable a remote blocklist. It checks GitHub once a day
+service. Rift subscribes to no blocklist on its own; it downloads one only from
+a web address you enter, as described under
+[Blocklist subscriptions](#blocklist-subscriptions). It checks GitHub once a day
 for software updates, as described under [Update checks](#update-checks).
 
 ## Data kept on the Mac
@@ -51,6 +53,32 @@ from the location you placed to that country across the bundled cable map. The
 country can be wrong for VPNs, relays, and content delivery networks, and the
 path is an estimate, not the route your data actually takes. Countries and
 paths are shown only while the map is open and aren't saved.
+
+## Switching profiles by network
+
+**Settings › Networks** is off until you turn it on. Rift then remembers the
+networks the Mac joins, on this Mac only, so you can choose a profile for each.
+It recognizes a network by its router's address. If you also turn on
+**Recognize Wi-Fi networks by name**, macOS asks whether Rift may use Location
+Services, because macOS lets apps read Wi-Fi names only with that permission.
+Rift reads only the network's name and never asks for the Mac's location.
+
+## Blocklist subscriptions
+
+If you subscribe to a blocklist in **Settings › Blocklists**, Rift downloads it
+from the address you entered right away, then checks for a new version once a
+day while Rift is running, and when you choose **Update Now**. Rift downloads
+only over HTTPS, sends no cookies and no details about the Mac, and identifies
+itself only as "Rift". The list's server sees your IP address and when Rift
+checks, as with any download. Removing the blocklist stops the checks. Rift
+suggests no lists and never adds a subscription by itself.
+
+## Explaining a connection
+
+Alert details and the Map inspector describe common macOS services from notes
+that ship inside Rift, so nothing is looked up. **Search the Web** opens your
+browser with a DuckDuckGo search for the app's identifier and the destination.
+Rift sends nothing itself, and the search happens only when you click it.
 
 ## Update checks
 

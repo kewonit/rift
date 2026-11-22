@@ -3,11 +3,6 @@ import RiftCore
 import Foundation
 import Observation
 
-struct PendingRuleImport: Equatable {
-    let data: Data
-    let plan: RuleImportPlan
-}
-
 @MainActor
 @Observable
 final class RulesWorkspaceController {
@@ -401,16 +396,16 @@ final class RulesWorkspaceController {
     func chooseRulesToImport() async {
         do {
             guard let data = try await ArchiveFileAccess.open() else { return }
-            let plan = try await controlPlane.previewRuleImport(data)
-            guard !plan.rules.isEmpty else {
-                reportNotSaved("Nothing to import. " + plan.summary)
+            let pending = try await controlPlane.previewRuleImport(data)
+            guard !pending.plan.rules.isEmpty else {
+                reportNotSaved("Nothing to import. " + pending.summary)
                 return
             }
-            pendingImport = PendingRuleImport(data: data, plan: plan)
+            pendingImport = pending
         } catch {
             reportNotSaved(ArchiveFileAccess.message(
                 for: error,
-                fallback: "Rift couldn’t read this file. Choose rules or a configuration exported from Rift."
+                fallback: "Rift couldn’t read this file. Choose rules exported from Rift, or a .lsrules rule file."
             ))
         }
     }
@@ -419,7 +414,7 @@ final class RulesWorkspaceController {
         guard let pending = pendingImport else { return }
         pendingImport = nil
         do {
-            let (result, added) = try await controlPlane.importRules(pending.data)
+            let (result, added) = try await controlPlane.importRules(pending.payload)
             if await focusRuleIDsAfterReload(added) == .loadFailed { await reload() }
             present(result)
         } catch {

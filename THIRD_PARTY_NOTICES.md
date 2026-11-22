@@ -217,3 +217,13 @@ Views and RIPE RIS routing archives, and operator geofeeds.
 Country label points and the land grid in `country-grid.bin` come from
 [Natural Earth](https://www.naturalearthdata.com/) 1:50m admin-0 countries 5.1.1,
 which is in the public domain.
+
+## Public Suffix List
+
+`Resources/DomainData/public_suffix_list.dat` is an unmodified copy of the
+[Public Suffix List](https://publicsuffix.org/), version
+`2026-11-21_04-33-45_UTC` (commit `87a2c1b8de5886a133ff4da21b2aa6fec88d8739`),
+fetched by `Scripts/build-domain-data.sh`. It is subject to the terms of the
+[Mozilla Public License 2.0](https://mozilla.org/MPL/2.0/). Rift reads it only
+on the Mac, to keep domain rules from covering a whole registry such as
+`co.uk`, and makes no network requests for it.

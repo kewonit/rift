@@ -78,6 +78,24 @@ extension ControlPlaneController {
         }
     }
 
+    /// Adds the macOS Services group, which allows Apple's own services to
+    /// reach Apple's servers.
+    @discardableResult
+    func addMacOSServicesGroup() async throws -> ConfigurationMutationResult {
+        try await mutateConfiguration(kind: "addBuiltInGroup") { draft in
+            try PolicyDefinitionValidator.rejectCollision(
+                BuiltInRuleGroups.macOSServicesName, existing: draft.localGroups.map { ($0.id, $0.name) }
+            )
+            let made = try BuiltInRuleGroups.macOSServices(lineageID: draft.lineageID, now: Date())
+            return Self.copy(
+                draft,
+                enabledGroups: draft.enabledLocalGroupIDs.union([made.group.id]),
+                rules: draft.rules + made.rules,
+                groups: draft.localGroups + [made.group]
+            )
+        }
+    }
+
     @discardableResult
     func createLocalGroup(name: String) async throws -> ConfigurationMutationResult {
         return try await mutateConfiguration(kind: "createGroup") { draft in

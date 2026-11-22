@@ -57,6 +57,43 @@ public enum BlocklistEntryOverrides {
         )
     }
 
+    /// The entries that block what was typed, most specific first: for a
+    /// name, the exact entry and every entry covering it with its subdomains;
+    /// for an address or range, every entry whose range covers all of it.
+    public static func coveringEntries(
+        for value: String,
+        configuration: PolicyConfigurationDraft
+    ) throws -> [BlocklistEntryImpact] {
+        let typed = try parseSingle(value)
+        let known = try allEntries(in: configuration.rules)
+            .union(configuration.disabledBlocklistEntries)
+        let matches: [BlocklistEntry]
+        if let name = typed.name {
+            matches = known.filter { $0.covers(name) }.sorted { lhs, rhs in
+                let left = lhs.name?.labelCount ?? 0
+                let right = rhs.name?.labelCount ?? 0
+                if left != right { return left > right }
+                return lhs < rhs
+            }
+        } else if case .address(let typedRange) = typed {
+            matches = known.filter { entry in
+                guard case .address(let range) = entry else { return false }
+                return range.contains(typedRange.lowerBound) && range.contains(typedRange.upperBound)
+            }.sorted { lhs, rhs in
+                guard case .address(let left) = lhs, case .address(let right) = rhs else { return lhs < rhs }
+                // Every match covers the typed range, so the one starting
+                // later, or ending sooner, is the narrower one.
+                if left.lowerBound != right.lowerBound { return left.lowerBound > right.lowerBound }
+                return left.upperBound < right.upperBound
+            }
+        } else {
+            matches = []
+        }
+        return try matches.compactMap { entry in
+            try? impact(for: entry, configuration: configuration)
+        }
+    }
+
     public static func retainingKnownEntries(
         _ disabled: Set<BlocklistEntry>,
         in rules: [Rule]
@@ -93,8 +130,9 @@ public enum BlocklistEntryOverrides {
     static func entries(in rule: Rule) -> [BlocklistEntry]? {
         switch rule.destination {
         case .exactHostnameSet(let values): values.map(BlocklistEntry.domain)
+        case .domainSet(let values): values.map(BlocklistEntry.domainAndSubdomains)
         case .ipSet(let values): values.map(BlocklistEntry.address)
-        case .domainSet, .endpointClass, .anyEndpoint: nil
+        case .endpointClass, .anyEndpoint: nil
         }
     }
 }
@@ -148,6 +186,15 @@ private extension Rule {
                 throw BlocklistEntryOverrideError.invalidManagedRule
             }
             destination = try .normalizedExactHostnameSet(values)
+        case .domainAndSubdomains:
+            let values = entries.compactMap { entry -> DomainName? in
+                guard case .domainAndSubdomains(let value) = entry else { return nil }
+                return value
+            }
+            guard values.count == entries.count else {
+                throw BlocklistEntryOverrideError.invalidManagedRule
+            }
+            destination = try .normalizedDomainSet(values)
         case .address:
             let values = entries.compactMap { entry -> IPInterval? in
                 guard case .address(let value) = entry else { return nil }

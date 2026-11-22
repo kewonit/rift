@@ -28,3 +28,22 @@ struct MonitorCountryGroup: Hashable {
         self.title = title
     }
 }
+
+/// The registered domain a connection's name belongs to, for grouping the
+/// list by domain: `example.co.uk` for `cdn.example.co.uk`. Connections with
+/// no name share one group.
+struct MonitorDomainGroup: Hashable {
+    let key: String
+    let title: String
+
+    init(_ flow: FlowDescriptor, suffixes: PublicSuffixList = .shared) {
+        guard flow.direction == .outgoing, let host = flow.observedHostname else {
+            key = "no-name"
+            title = "No name"
+            return
+        }
+        let domain = suffixes.registrableDomain(of: host) ?? host
+        key = "domain:" + domain.ascii
+        title = domain.ascii
+    }
+}

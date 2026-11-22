@@ -57,6 +57,10 @@
     <string>Copyright © 2026 Rift contributors</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>NSLocationUsageDescription</key>
+    <string>macOS lets an app read Wi-Fi network names only with Location Services. Rift reads only the network name, to switch profiles by network, and never the Mac’s location.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>macOS lets an app read Wi-Fi network names only with Location Services. Rift reads only the network name, to switch profiles by network, and never the Mac’s location.</string>
     <key>NSSystemExtensionUsageDescription</key>
     <string>Rift uses a network filter to apply your connection rules on this Mac.</string>
 </dict>

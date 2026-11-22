@@ -8,6 +8,8 @@ public enum AlertRuleBuilderError: Error, Sendable, Equatable {
     case unsupportedProtocol
     case foreignOwner
     case systemOwnerConfirmationRequired
+    /// The connection has no name, or the name is itself a registry suffix.
+    case domainUnavailable
 }
 
 public enum AlertDestinationScope: Sendable, Equatable {
@@ -15,6 +17,9 @@ public enum AlertDestinationScope: Sendable, Equatable {
     case exactObservedEndpoint
     /// The observed host or address, on any port.
     case observedDestinationAnyPort
+    /// The domain the observed name was registered under, and every name
+    /// below it, on any port.
+    case observedDomain
     case anyEndpoint
 }
 
@@ -29,6 +34,7 @@ public enum AlertRuleBuilder {
         destinationScope: AlertDestinationScope = .exactObservedEndpoint,
         allowSystemOwner: Bool = false,
         notes: String = "",
+        suffixes: PublicSuffixList = .shared,
         now: Date
     ) throws -> Rule {
         let process: ProcessCondition
@@ -50,6 +56,12 @@ public enum AlertRuleBuilder {
             } else {
                 destination = try .normalizedIPSet([IPInterval(exact: endpoint.address)])
             }
+        case .observedDomain:
+            guard prompt.direction == .outgoing, let hostname = endpoint.hostname,
+                  let domain = suffixes.registrableDomain(of: hostname) else {
+                throw AlertRuleBuilderError.domainUnavailable
+            }
+            destination = try .normalizedDomainSet([domain])
         case .anyEndpoint:
             destination = .anyEndpoint
         }

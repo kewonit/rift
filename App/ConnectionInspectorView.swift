@@ -80,6 +80,14 @@ struct ConnectionInspectorView: View {
                     Text(ConnectionAlertFacts.signerLabel(for: identity)).multilineTextAlignment(.trailing)
                 }
             }
+            if let row {
+                ConnectionExplanationView(
+                    identity: row.event.flow.sourceProcessIdentity ?? row.event.flow.sourceAppIdentity,
+                    fallbackName: MonitorQuery.applicationLabel(row),
+                    host: row.event.flow.observedHostname?.ascii
+                        ?? row.event.flow.remoteEndpoint?.address.description
+                )
+            }
             if !appliedRules.isEmpty {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Rules that apply").font(.caption).foregroundStyle(.secondary)

@@ -21,6 +21,8 @@ struct PolicySettingsPane: View {
     @State private var pendingModeProfile: PolicyProfile?
     @State private var blocklistEntry = ""
     @State private var entryImpact: BlocklistEntryImpact?
+    /// Other entries that also block what was checked.
+    @State private var otherCoveringEntries: [BlocklistEntry] = []
     @State private var pendingDisableImpact: BlocklistEntryImpact?
     @State private var showingDisableConfirmation = false
 
@@ -136,29 +138,37 @@ struct PolicySettingsPane: View {
     private var blocklistsSection: some View {
         Section {
             ForEach(blocklists) { source in
-                HStack {
-                    Toggle(source.name, isOn: Binding(
-                        get: { source.status == .active },
-                        set: { setBlocklist(source, enabled: $0) }
-                    ))
-                    Spacer()
-                    Text(source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries")
-                        .foregroundStyle(.secondary)
-                    Button("Remove…", role: .destructive) {
-                        pendingRemoval = PendingRemoval(
-                            name: source.name,
-                            message: "This removes the blocklist and its rules. Open connections aren’t affected.",
-                            action: "Remove Blocklist"
-                        ) { removeBlocklist(source) }
+                VStack(alignment: .leading, spacing: RiftDesign.Spacing.xxs) {
+                    HStack {
+                        Toggle(source.name, isOn: Binding(
+                            get: { source.status == .active },
+                            set: { setBlocklist(source, enabled: $0) }
+                        ))
+                        Spacer()
+                        Text(source.entryCount == 1 ? "1 entry" : "\(source.entryCount.formatted()) entries")
+                            .foregroundStyle(.secondary)
+                        Button("Remove…", role: .destructive) {
+                            pendingRemoval = PendingRemoval(
+                                name: source.name,
+                                message: "This removes the blocklist and its rules. Open connections aren’t affected.",
+                                action: "Remove Blocklist"
+                            ) { removeBlocklist(source) }
+                        }
                     }
+                    BlocklistSubscriptionStatus(sourceID: source.id, reload: reload, message: $message)
                 }
             }
-            TextField("Name for imported blocklist", text: $blocklistName)
-            Button("Import Blocklist…", action: importBlocklist)
+            TextField("Name for a new blocklist", text: $blocklistName)
+            Button("Import File…", action: importBlocklist)
                 .disabled(blocklistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .help("Import a hosts file, a list of names or addresses, an Adblock list, or a .lsrules file that only blocks destinations")
+            BlocklistSubscribeRow(name: $blocklistName, message: $message, reload: reload)
             Divider()
             TextField("Domain, IP address, or IP range", text: $blocklistEntry)
-                .onChange(of: blocklistEntry) { _, _ in entryImpact = nil }
+                .onChange(of: blocklistEntry) { _, _ in
+                    entryImpact = nil
+                    otherCoveringEntries = []
+                }
             HStack {
                 Button("Check Entry", action: inspectBlocklistEntry)
                     .disabled(blocklistEntry.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -182,7 +192,7 @@ struct PolicySettingsPane: View {
         } header: {
             Text("Blocklists")
         } footer: {
-            Text("Blocklists apply to every account on this Mac. Each name, including an Adblock ||name^ line, blocks that exact host, not its subdomains.")
+            Text("Blocklists apply to every account on this Mac. A hosts file blocks the exact names it lists. A plain list of names, *.name and Adblock ||name^ lines also block the names under each one, except a suffix like co.uk. Lists imported before Rift supported subdomains match exact names until you import them again.")
         }
     }
 
@@ -244,7 +254,11 @@ struct PolicySettingsPane: View {
     }
 
     private func removeBlocklist(_ source: BlocklistSource) {
-        perform("Couldn’t remove the blocklist.") { try await controlPlane.removeBlocklist(source.id) }
+        perform("Couldn’t remove the blocklist.") {
+            let result = try await controlPlane.removeBlocklist(source.id)
+            BlocklistSubscriptions.shared.forget(source.id)
+            return result
+        }
     }
 
     private func importBlocklist() {
@@ -259,6 +273,12 @@ struct PolicySettingsPane: View {
                 )
                 message = result.message
                 await reload()
+            } catch LSRulesFileError.hasOtherRules(let count) {
+                message = count == 1
+                    ? "This rules file has a rule that does more than block destinations. Import it with Import Rules on the Rules page."
+                    : "This rules file has \(count) rules that do more than block destinations. Import it with Import Rules on the Rules page."
+            } catch LSRulesFileError.malformedEntry(let entry) {
+                message = "Couldn’t import the blocklist: “\(DisplaySanitizer.plainText(entry))” isn’t a valid name or address. Your rules haven’t changed."
             } catch {
                 message = "Couldn’t import the blocklist. Your rules haven’t changed."
                 await reload()
@@ -269,10 +289,12 @@ struct PolicySettingsPane: View {
     private func inspectBlocklistEntry() {
         Task { @MainActor in
             do {
-                entryImpact = try await controlPlane.blocklistEntryImpact(blocklistEntry)
+                try await loadEntryImpacts()
+                if entryImpact == nil { message = "None of your blocklists block that." }
             } catch {
                 entryImpact = nil
-                message = "None of your blocklists contain that exact entry."
+                otherCoveringEntries = []
+                message = "Enter one name, IP address, or IP range to check."
             }
         }
     }
@@ -285,7 +307,7 @@ struct PolicySettingsPane: View {
                 )
                 message = result.message
                 await reload()
-                entryImpact = try await controlPlane.blocklistEntryImpact(blocklistEntry)
+                try await loadEntryImpacts()
             } catch {
                 message = "Couldn’t change that entry."
                 await reload()
@@ -293,7 +315,20 @@ struct PolicySettingsPane: View {
         }
     }
 
+    private func loadEntryImpacts() async throws {
+        let impacts = try await controlPlane.blocklistEntryImpacts(blocklistEntry)
+        entryImpact = impacts.first
+        otherCoveringEntries = impacts.dropFirst().map(\.entry)
+    }
+
     private func entryImpactSummary(_ impact: BlocklistEntryImpact) -> String {
+        let others = otherCoveringEntries.prefix(2).map(\.description).joined(separator: ", ")
+        let also = otherCoveringEntries.isEmpty ? "" : " • Also blocked by \(others)"
+            + (otherCoveringEntries.count > 2 ? " +\(otherCoveringEntries.count - 2)" : "")
+        return "\(impact.entry) • " + entrySummary(impact) + also
+    }
+
+    private func entrySummary(_ impact: BlocklistEntryImpact) -> String {
         let state = impact.isDisabled ? "Off" : "On"
         let activeCount = impact.activeSourceNames.count
         let totalCount = impact.sourceNames.count

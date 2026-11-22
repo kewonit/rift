@@ -403,11 +403,25 @@ public enum DestinationEditorError: Error, Sendable, Equatable {
     case mixedTypes
     case malformed
     case overLimit
+    /// The suffix list couldn't be read, so subdomains can't be checked.
     case childDomainsUnavailable
+    /// Subdomains apply to names, not IP addresses.
+    case childDomainsNeedNames
+    /// A name like `co.uk` that anyone can register under.
+    case wholeRegistry(String)
+    /// Some names have `*.` and others don't, with Include subdomains off.
+    case someSubdomains
 }
 
 public enum DestinationEditorParser {
-    public static func parse(_ text: String, domainsIncludeChildren: Bool) throws -> DestinationCondition {
+    /// Reads typed destinations. Names may use international letters, and a
+    /// `*.` prefix asks for subdomains the same way `domainsIncludeChildren`
+    /// does.
+    public static func parse(
+        _ text: String,
+        domainsIncludeChildren: Bool,
+        suffixes: PublicSuffixList = .shared
+    ) throws -> DestinationCondition {
         let tokens = text.split(whereSeparator: { $0 == "," || $0 == "\n" })
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -417,22 +431,40 @@ public enum DestinationEditorParser {
         }
         var intervals: [IPInterval] = []
         var domains: [DomainName] = []
+        var includeChildren = domainsIncludeChildren
+        // `*.` asks for subdomains only when every name has it, so one entry
+        // can't quietly widen the others.
+        let starred = tokens.filter { $0.hasPrefix("*.") }.count
+        if !domainsIncludeChildren, starred > 0, starred < tokens.count {
+            throw DestinationEditorError.someSubdomains
+        }
         for token in tokens {
             if let interval = try? parseIP(token) {
                 guard domains.isEmpty else { throw DestinationEditorError.mixedTypes }
                 intervals.append(interval)
-            } else if let domain = try? DomainName(token) {
-                guard intervals.isEmpty else { throw DestinationEditorError.mixedTypes }
-                domains.append(domain)
-            } else {
+                continue
+            }
+            var name = Substring(token)
+            if name.hasPrefix("*.") {
+                name = name.dropFirst(2)
+                includeChildren = true
+            }
+            guard let domain = try? DomainName.converting(String(name)) else {
                 throw DestinationEditorError.malformed
             }
+            guard intervals.isEmpty else { throw DestinationEditorError.mixedTypes }
+            domains.append(domain)
         }
-        if !intervals.isEmpty { return try .normalizedIPSet(intervals) }
-        guard !domainsIncludeChildren else {
-            throw DestinationEditorError.childDomainsUnavailable
+        if !intervals.isEmpty {
+            guard !includeChildren else { throw DestinationEditorError.childDomainsNeedNames }
+            return try .normalizedIPSet(intervals)
         }
-        return try .normalizedExactHostnameSet(domains)
+        guard includeChildren else { return try .normalizedExactHostnameSet(domains) }
+        guard suffixes.isAvailable else { throw DestinationEditorError.childDomainsUnavailable }
+        if let registry = domains.first(where: suffixes.coversWholeRegistry) {
+            throw DestinationEditorError.wholeRegistry(registry.ascii)
+        }
+        return try .normalizedDomainSet(domains)
     }
 
     private static func parseIP(_ token: String) throws -> IPInterval {

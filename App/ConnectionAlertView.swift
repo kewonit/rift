@@ -48,6 +48,7 @@ struct ConnectionAlertView: View {
     enum DestinationScope: String, CaseIterable, Identifiable {
         case exact = "This destination"
         case anyPort = "This destination, any port"
+        case domain = "This domain"
         case any = "Any destination"
         var id: String { rawValue }
 
@@ -55,6 +56,7 @@ struct ConnectionAlertView: View {
             switch self {
             case .exact: .exactObservedEndpoint
             case .anyPort: .observedDestinationAnyPort
+            case .domain: .observedDomain
             case .any: .anyEndpoint
             }
         }
@@ -119,7 +121,9 @@ struct ConnectionAlertView: View {
                     if let minimize, !decisionInProgress, !durableRuleSaved {
                         Button("Minimize", systemImage: "arrow.down.right.and.arrow.up.left", action: minimize)
                             .labelStyle(.iconOnly).buttonStyle(.borderless)
-                            .help("Minimize. The connection keeps waiting and is allowed when time runs out.")
+                            .help(ConnectionAlertCountdown.blocksUnanswered
+                                ? "Minimize. The connection keeps waiting and is blocked when time runs out."
+                                : "Minimize. The connection keeps waiting and is allowed when time runs out.")
                     }
                     if others.isEmpty, let waiting = ConnectionAlertPresentation.moreWaitingLabel(moreWaiting) {
                         Text(waiting).font(.caption).foregroundStyle(.secondary).monospacedDigit()
@@ -186,7 +190,10 @@ struct ConnectionAlertView: View {
 
             if lifetime != .once {
                 Picker("Destination", selection: $destinationScope) {
-                    ForEach(DestinationScope.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(destinationChoices) { choice in
+                        Text(choice == .domain ? "\(registeredDomain ?? "") and its subdomains" : choice.rawValue)
+                            .tag(choice)
+                    }
                 }
                 if destinationScope == .exact {
                     Text("Applies to this destination on this port, for the same protocol and direction.")
@@ -195,6 +202,11 @@ struct ConnectionAlertView: View {
                 }
                 if destinationScope == .anyPort {
                     Text("Applies to this destination on any port, for the same protocol and direction.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if destinationScope == .domain {
+                    Text("Applies to every name under \(registeredDomain ?? "this domain") on any port, for the same protocol and direction.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -295,7 +307,9 @@ struct ConnectionAlertView: View {
             presentedAt = Date()
             scope = RuleScope(rawValue: alertDefaultScope) ?? .currentProfile
             destinationScope = DestinationScope(rawValue: alertDefaultDestination) ?? .exact
-            if destinationScope == .any { destinationScope = .exact }
+            if !destinationChoices.contains(destinationScope) || destinationScope == .any {
+                destinationScope = .exact
+            }
             await resolveActiveProfile()
         }
         .task(id: presentationIdentity) {
@@ -333,7 +347,7 @@ struct ConnectionAlertView: View {
         let durableScopeConfirmed = !requiresSystemScopeConfirmation || systemScopeConfirmed
         let selected = canCreateDurableRule && durableScopeConfirmed ? lifetime : .once
         guard !decisionInProgress, !durableRuleSaved,
-              Date() < prompt.deadline,
+              Date() < answerDeadline,
               selected == .once || noteValid else { return }
         let selectedProfileID: UUID?
         if selected != .once, scope == .currentProfile {
@@ -351,10 +365,15 @@ struct ConnectionAlertView: View {
         pendingDecision = action
         decisionMessage = nil
         decisionNeedsAttention = false
+        // While this answer is on its way, Rift doesn't answer Block for it.
+        PromptPanelController.shared.answering.insert(prompt.nonce)
         Task { @MainActor in
             defer {
                 decisionInProgress = false
                 pendingDecision = nil
+                if decisionNeedsAttention, !durableRuleSaved {
+                    PromptPanelController.shared.answering.remove(prompt.nonce)
+                }
             }
             if selected == .once {
                 do {
@@ -386,8 +405,7 @@ struct ConnectionAlertView: View {
                     let sentence = RulePlainLanguage.change(
                         action: action,
                         application: applicationName,
-                        destination: destinationScope == .any
-                            ? "any destination" : DisplaySanitizer.plainText(destination),
+                        destination: destinationPhrase(for: destinationScope),
                         port: nil,
                         incoming: prompt.direction == .incoming,
                         lasting: selected.duration.map { _ in selected.rawValue.lowercased() }
@@ -411,7 +429,7 @@ struct ConnectionAlertView: View {
     }
 
     private func decisionDisabled(at date: Date) -> Bool {
-        !noteValid || date >= prompt.deadline || decisionInProgress || durableRuleSaved
+        !noteValid || date >= answerDeadline || decisionInProgress || durableRuleSaved
     }
 
     private func deadlineLabel(at date: Date) -> String {

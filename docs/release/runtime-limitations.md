@@ -13,19 +13,28 @@ system-wide firewall.
 - A signed host app and system extension with matching Apple-authorized
   capabilities for live filtering
 
-Intel Macs, remote administration, and automatic remote list updates are outside
-this release scope. Mac App Store validation is still pending.
+Intel Macs and remote administration are outside this release scope. A
+blocklist updates from the web only when you subscribe to its address in
+Settings › Blocklists; Rift then checks it once a day while it's running. Mac App Store validation is still pending.
 
 ## Filtering behavior
 
 Rift filters new TCP and UDP flows through the macOS Network Extension
 content-filter surface. Other IP traffic, such as ICMP (ping), isn't filtered in
 any mode, including Block Unless Allowed. It does not inspect packet payloads or
-complete URLs. A blocklist name, or a host in a rule you make in Rift, matches
-that exact host, not its subdomains. Only a domain rule (shown as `*.name`),
-which can arrive in an imported configuration, also covers subdomains. An existing connection can remain established until the application
+complete URLs. A host in a rule matches that exact host. A domain rule (shown
+as `*.name`, made with Include subdomains or a domain choice in an alert or on
+the Map) also covers every name under it. Rift refuses a domain rule for a
+suffix anyone can register under, such as `co.uk`, using its bundled copy of the
+Public Suffix List. When two domain rules match, the more specific one wins. An
+existing connection can remain established until the application
 or operating system opens another flow. A policy change does not promise to
 terminate every already-open connection immediately.
+
+An alert nobody answers allows its connection when it times out, unless
+Settings › Alerts blocks unanswered connections. Rift does that by answering
+Block for you just before the deadline, so it works only while Rift is open;
+before login, or with Rift closed, unanswered connections are still allowed.
 
 When the extension has no compatible, validated policy, Rift fails open instead
 of silently disconnecting the Mac. This also applies to unavailable or degraded
@@ -53,11 +62,13 @@ Rift would ask you to confirm: a weaker mode, Pause Rules or Block Unless
 Allowed, or a profile change that turns off rules that block or turns on rules
 that allow. Make those switches in Rift.
 
-Blocklists read plain names, hosts files, and the name rules of Adblock-style
-lists (`||name^`). Like every blocklist name, a `||name^` rule blocks that exact
-host. Ad blockers also apply it to subdomains, so an Adblock list blocks less in
-Rift than in an ad blocker. Rift skips Adblock rules it can't apply as written:
-exceptions, element hiding, and rules with paths, wildcards or options.
+Blocklists read plain names, hosts files, wildcard names (`*.name`), and the
+name rules of Adblock-style lists (`||name^`). A hosts file blocks the exact
+names it lists. A plain name, `*.name` and `||name^` also block every name under
+it, except a suffix anyone can register under, which stays exact. Lists imported
+before Rift supported subdomains match exact names until they're imported again.
+Rift skips Adblock rules it can't apply as written: exceptions, element hiding,
+and rules with paths, wildcards or options.
 
 A rule is listed as Redundant only when another rule with the same action
 applies whenever it does and covers everything it matches, and no rule with a

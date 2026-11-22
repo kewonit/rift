@@ -303,7 +303,7 @@ import Testing
     #expect(decision.issues.contains(DecisionIssue(category: .filter, reason: .ambiguousPrecedence)))
 }
 
-@Test func smallerSetsAndFewerDomainLabelsWinWithinDestinationType() throws {
+@Test func smallerSetsAndMoreSpecificDomainsWinWithinDestinationType() throws {
     let api = try DomainName("api.sub.example.com")
     let other = try DomainName("other.example.com")
     let smallSet = try RuleTestSupport.rule(
@@ -326,17 +326,17 @@ import Testing
     )
     #expect(exactDecision.filter.action == .allow)
 
-    let fewerLabels = try RuleTestSupport.rule(
+    let broader = try RuleTestSupport.rule(
         id: 112,
         action: .filter(.allow),
         destination: .normalizedDomainSet([try DomainName("example.com")])
     )
-    let moreLabels = try RuleTestSupport.rule(
+    let narrower = try RuleTestSupport.rule(
         id: 113,
         action: .filter(.deny),
         destination: .normalizedDomainSet([try DomainName("sub.example.com")])
     )
-    let domainDecision = ReferenceRuleMatcher(rules: [moreLabels, fewerLabels]).decision(
+    let domainDecision = ReferenceRuleMatcher(rules: [broader, narrower]).decision(
         for: try RuleTestSupport.flow(
             remote: RuleTestSupport.endpoint(hostname: api.ascii),
             observedHostname: .some(api)
@@ -344,7 +344,9 @@ import Testing
         context: RuleTestSupport.context(),
         mode: .alert
     )
-    #expect(domainDecision.filter.action == .allow)
+    // A Block on sub.example.com beats an Allow on example.com.
+    #expect(domainDecision.filter.action == .deny)
+    #expect(domainDecision.filter.winningRuleID == RuleTestSupport.uuid(113))
 }
 
 @Test func ownerDirectionAndFilterActionResolveInDocumentedOrder() throws {
@@ -423,4 +425,28 @@ import Testing
         mode: .alert
     )
     #expect(decision.filter.winningRuleID == RuleTestSupport.uuid(150))
+}
+
+@Test func aMoreSpecificDomainWinsEvenInALargerSet() throws {
+    let host = try DomainName("a.example.com")
+    let broad = try RuleTestSupport.rule(
+        id: 114,
+        action: .filter(.deny),
+        destination: .normalizedDomainSet([try DomainName("example.com")])
+    )
+    let narrowInLargerSet = try RuleTestSupport.rule(
+        id: 115,
+        action: .filter(.allow),
+        destination: .normalizedDomainSet([host, try DomainName("b.example.com")])
+    )
+    let decision = ReferenceRuleMatcher(rules: [broad, narrowInLargerSet]).decision(
+        for: try RuleTestSupport.flow(
+            remote: RuleTestSupport.endpoint(hostname: host.ascii),
+            observedHostname: .some(host)
+        ),
+        context: RuleTestSupport.context(),
+        mode: .alert
+    )
+    #expect(decision.filter.action == .allow)
+    #expect(decision.filter.winningRuleID == RuleTestSupport.uuid(115))
 }

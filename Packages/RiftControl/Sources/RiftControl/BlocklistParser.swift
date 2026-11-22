@@ -2,23 +2,53 @@ import RiftCore
 import CryptoKit
 import Foundation
 
+/// One entry in a blocklist. Hosts files block exact names; a plain list of
+/// names, `*.name` and Adblock's `||name^` block each name and every name
+/// under it.
 public enum BlocklistEntry: Sendable, Hashable, Comparable, Codable, CustomStringConvertible {
     case domain(DomainName)
     case address(IPInterval)
+    case domainAndSubdomains(DomainName)
 
     public var description: String {
         switch self {
         case .domain(let value): value.description
         case .address(let value): value.description
+        case .domainAndSubdomains(let value): "*." + value.description
+        }
+    }
+
+    /// The name this entry blocks, with or without the names under it.
+    public var name: DomainName? {
+        switch self {
+        case .domain(let value), .domainAndSubdomains(let value): value
+        case .address: nil
+        }
+    }
+
+    /// Whether a connection to `host` is blocked by this entry.
+    public func covers(_ host: DomainName) -> Bool {
+        switch self {
+        case .domain(let value): host == value
+        case .domainAndSubdomains(let value): host.isEqualToOrSubdomain(of: value)
+        case .address: false
+        }
+    }
+
+    private var rank: Int {
+        switch self {
+        case .domain: 0
+        case .domainAndSubdomains: 1
+        case .address: 2
         }
     }
 
     public static func < (lhs: BlocklistEntry, rhs: BlocklistEntry) -> Bool {
         switch (lhs, rhs) {
         case (.domain(let left), .domain(let right)): left < right
+        case (.domainAndSubdomains(let left), .domainAndSubdomains(let right)): left < right
         case (.address(let left), .address(let right)): left < right
-        case (.domain, .address): true
-        case (.address, .domain): false
+        default: lhs.rank < rhs.rank
         }
     }
 
@@ -32,6 +62,8 @@ public enum BlocklistEntry: Sendable, Hashable, Comparable, Codable, CustomStrin
         }
         if values.contains(.domain) {
             self = .domain(try values.decode(DomainName.self, forKey: .domain))
+        } else if values.contains(.domainAndSubdomains) {
+            self = .domainAndSubdomains(try values.decode(DomainName.self, forKey: .domainAndSubdomains))
         } else {
             self = .address(try values.decode(IPInterval.self, forKey: .address))
         }
@@ -42,12 +74,14 @@ public enum BlocklistEntry: Sendable, Hashable, Comparable, Codable, CustomStrin
         switch self {
         case .domain(let value): try values.encode(value, forKey: .domain)
         case .address(let value): try values.encode(value, forKey: .address)
+        case .domainAndSubdomains(let value): try values.encode(value, forKey: .domainAndSubdomains)
         }
     }
 
     private enum CodingKeys: String, CodingKey {
         case domain
         case address
+        case domainAndSubdomains
     }
 }
 
@@ -221,25 +255,31 @@ private struct BlocklistLineParser {
         let trimmed = text.drop(while: \.isWhitespace)
         if let adblock = BlocklistAdblockLine(trimmed) {
             guard case .name(let name) = adblock else { return }
-            try insert(.domain(name))
+            try insert(.domainAndSubdomains(name))
             return
         }
         let comment = text.firstIndex(where: { $0 == "#" || $0 == ";" }) ?? text.endIndex
         let fields = text[..<comment].split(whereSeparator: { $0.isWhitespace || $0 == "," })
         guard !fields.isEmpty else { return }
         let candidates: ArraySlice<Substring>
+        let hostsLine: Bool
         if fields.count > 1,
            (try? IPAddress(String(fields[0]))) != nil,
            fields.dropFirst().allSatisfy({ (try? DomainName(String($0))) != nil }) {
             candidates = fields.dropFirst()
+            hostsLine = true
         } else {
             candidates = fields[...]
+            hostsLine = false
         }
         for candidate in candidates {
             try cancellationCheck()
-            guard let entry = try parseToken(String(candidate)) else {
+            guard var entry = try parseToken(String(candidate)) else {
                 throw BlocklistParserError.malformedLine(lineNumber)
             }
+            // A hosts file maps exact names; a plain list means each name
+            // and the names under it.
+            if !hostsLine, case .domain(let name) = entry { entry = .domainAndSubdomains(name) }
             try insert(entry)
         }
     }
@@ -280,7 +320,7 @@ private struct BlocklistLineParser {
 }
 
 /// The part of Adblock filter syntax a name list can use. `||name^` blocks a
-/// name; comments, the header, exceptions, element-hiding rules, and rules
+/// name and its subdomains, as does a wildcard list's `*.name`; comments, the header, exceptions, element-hiding rules, and rules
 /// with options or paths are skipped, because Rift can't apply them. Blocking
 /// a name an option limits, such as `$third-party`, would block more than the
 /// list means.
@@ -301,6 +341,18 @@ enum BlocklistAdblockLine: Equatable {
                 self = .skipped
                 return
             }
+        }
+        // `*.name`, as wildcard name lists write a name and its subdomains.
+        if line.hasPrefix("*.") {
+            let body = line.dropFirst(2).prefix { !$0.isWhitespace }
+            let rest = line.dropFirst(2 + body.count).drop(while: \.isWhitespace)
+            if rest.isEmpty || rest.hasPrefix("#") || rest.hasPrefix(";"),
+               let name = try? DomainName(String(body)) {
+                self = .name(name)
+            } else {
+                self = .skipped
+            }
+            return
         }
         guard line.hasPrefix("||") else {
             if Self.usesAdblockOnlySyntax(line) {

@@ -113,6 +113,8 @@ struct RiftSidebarView: View {
                 Menu {
                     Button("New Profile…") { editor = .newProfile }
                     Button("New Group…") { editor = .newGroup }
+                    Button("Add macOS Services Group") { Task { await model.addMacOSServicesGroup() } }
+                        .help("Adds a group that lets Apple’s own system services reach Apple’s servers, so Ask and Block Unless Allowed don’t interrupt iCloud, updates or certificate checks")
                     Divider()
                     Button("Import Blocklist…") { showingBlocklistImport = true }
                 } label: {

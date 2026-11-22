@@ -112,6 +112,11 @@ struct ConnectionAlertDetails: View {
                processIdentity != prompt.appIdentity {
                 identity("Helper process", processIdentity)
             }
+            ConnectionExplanationView(
+                identity: prompt.processIdentity ?? prompt.appIdentity,
+                fallbackName: MonitorQuery.identityLabel(prompt.appIdentity ?? prompt.processIdentity),
+                host: prompt.endpoint?.hostname?.ascii ?? prompt.endpoint?.address.description
+            )
             if !ruleSummaries.isEmpty {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Rules that apply").foregroundStyle(.secondary)

@@ -125,34 +125,26 @@ public enum RuleWorkspaceQuery {
         let tokens = searchTokens(search)
         let redundant = filter == .redundant
             ? RuleRedundancy.redundantRules(in: rules, now: context?.now ?? Date()) : [:]
-        return rules.lazy
-            .map { rule in
-                RuleRowViewValue(
-                    rule: rule,
-                    state: state,
-                    generation: generation,
-                    usage: usage[rule.id] ?? RuleUsageValue(
-                        lowerBoundCount: 0, lastUsedAt: nil, coverage: .gap
-                    ),
-                    context: context
-                )
-            }
-            .filter { row in
-                filter == .redundant
-                    ? redundant[row.id] != nil
-                    : includes(row, filter: filter, context: context)
-            }
-            .filter { collection.includes($0.rule) }
-            .filter { actionFilter.includes($0.rule.action) }
-            .filter { row in
-                tokens.isEmpty || matches(
-                    row,
-                    tokens: tokens,
-                    scope: searchScope,
-                    context: context
-                )
-            }
-            .sorted { ordered($0, before: $1, filter: filter, sort: sort) }
+        let unused = RuleUsageValue(lowerBoundCount: 0, lastUsedAt: nil, coverage: .gap)
+        var result: [RuleRowViewValue] = []
+        for rule in rules {
+            guard collection.includes(rule), actionFilter.includes(rule.action) else { continue }
+            let row = RuleRowViewValue(
+                rule: rule,
+                state: state,
+                generation: generation,
+                usage: usage[rule.id] ?? unused,
+                context: context
+            )
+            let listed: Bool = filter == .redundant
+                ? redundant[row.id] != nil
+                : includes(row, filter: filter, context: context)
+            guard listed else { continue }
+            if !tokens.isEmpty, !matches(row, tokens: tokens, scope: searchScope, context: context) { continue }
+            result.append(row)
+        }
+        result.sort { ordered($0, before: $1, filter: filter, sort: sort) }
+        return result
     }
 
     private static func includes(

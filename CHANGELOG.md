@@ -25,7 +25,7 @@ The changelog records notable user-visible changes.
 - Internationalized names, shown in their `xn--` form, can be blocked by name
   and imported from blocklists. Before, Rift ignored them.
 - Settings and the Block Unless Allowed confirmation now say that Rift filters
-  TCP and UDP only, and that blocklist names match exact hosts.
+  TCP and UDP only.
 - In a connection alert, Return allows and Esc blocks. Keys pressed in the
   first second after an alert appears are ignored. ⌘A and ⌘B still work.
 - Alerts offer Five minutes, and a rule can cover this destination on any port.
@@ -44,13 +44,14 @@ The changelog records notable user-visible changes.
 - Map search understands `domain:`, `proto:`, `country:` and
   `decision:timedout`. The search field's tooltip lists every filter.
 - From Now (⌘K) hides earlier connections. A chip shows them again.
-- Connection rows have Copy and Copy Hostname.
+- Connection rows have Copy and Copy Hostname, and Hide Connections Like
+  This, which adds a Hide rule so that app's connections to that host stay out
+  of the Map and history while still being filtered.
 - Window › Float on Top keeps Rift above other windows.
 - Notifications have separate switches for blocked connections, connections no
   rule decided, and Notify rules, with an optional sound for Notify rules.
-- Blocklists read Adblock-style `||name^` lines, which block that exact host
-  like other names, and `;` comments. Adblock rules Rift can't apply are
-  skipped. Before, an element-hiding line such as `example.com##.ad` blocked
+- Blocklists read Adblock-style `||name^` lines and `;` comments. Adblock
+  rules Rift can't apply are skipped. Before, an element-hiding line such as `example.com##.ad` blocked
   example.com, and other Adblock rules stopped the import.
 - For incoming connections, the map, the Country column, the Network filter and
   `country:` search use the remote peer. Before, they used this Mac's own
@@ -72,10 +73,58 @@ The changelog records notable user-visible changes.
   once, and can be undone.
 - The menu bar panel lists recently blocked connections, with Allow for 5
   Minutes, and temporary rules that are still running, with the time left,
-  Make Permanent and Remove.
+  Make Permanent and Remove. Its recent apps can be allowed or blocked for 5
+  minutes from their context menu.
 - A connection alert can be minimized to a small bar that keeps counting down,
   and another waiting connection can be answered first. Settings › Alerts can
   show alerts minimized.
+- Rules can cover a domain and its subdomains. In the rule editor, turn on
+  Include subdomains or type `*.name`. Alerts and the Map offer "example.com
+  and its subdomains", taken from the part of the name someone registered, and
+  Settings › Alerts can preselect it. Rift won't make a domain rule for a
+  suffix anyone can register under, like `co.uk`; it checks a copy of the
+  Public Suffix List that ships with the app.
+- When two domain rules match a connection, the more specific one wins: a
+  Block on ads.example.com beats an Allow on example.com. Before, the broader
+  domain won.
+- In a blocklist, a plain list of names, `*.name` and `||name^` lines now block
+  every name under each one; hosts files still block the exact names they
+  list. Lists imported earlier match exact names until you import them again.
+  Check Entry lists every entry that blocks a name, including one that covers
+  it as a subdomain.
+- Names with international letters can be typed as they're written; Rift
+  stores and shows them in their `xn--` form.
+- The connections list can be grouped by domain.
+- Import Rules on the Rules page reads `.lsrules` rule group files. Each rule's
+  app is found on this Mac by its path or code ID, and the rules go into a
+  group named after the file, unreviewed. Rules Rift can't apply as written,
+  such as ones for ICMP, DNS servers, port lists or another account, are
+  skipped and counted rather than changed.
+- Settings › Blocklists can import a `.lsrules` file that only blocks
+  destinations, as a blocklist.
+- A blocklist can be a subscription to a web address you enter. Rift
+  downloads it over HTTPS, checks for a new version once a day while it's
+  running, and keeps the list's on or off state and the entries you turned
+  off. Update Now checks right away. Rift adds no list by itself.
+- Alert details and the Map inspector say what common macOS services do, from
+  notes that ship with Rift, and offer Search the Web, which opens your
+  browser with a search for the app and destination.
+- The Rules sidebar's Add menu can add a macOS Services group, which lets
+  Apple's own system services reach Apple's servers, so Ask and Block Unless
+  Allowed don't interrupt iCloud, updates or certificate checks. Nothing is
+  added at setup, and the group's rules can be edited, turned off or deleted
+  like any others.
+- Settings › Networks can switch profiles by network. Rift remembers the
+  networks the Mac joins, so you can choose a profile for each and for new
+  ones, and tells you when it switches or finds a new network. It recognizes
+  a network by its router's address, or by its Wi-Fi name if you allow it;
+  macOS then asks for Location Services permission, which it requires to read
+  Wi-Fi names. Rift switches on its own only to a profile at least as strict
+  as the current one; for a less strict one it notifies you instead, because
+  anyone can name a network after yours.
+- Settings › Alerts can block connections you don't answer: Rift answers Block
+  just before the alert times out, and the countdown says so. When Rift isn't
+  open, or before you log in, connections nobody can answer are still allowed.
 
 ## 0.4.0
 

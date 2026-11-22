@@ -34,26 +34,6 @@ extension ControlPlaneController {
         return try ConfigurationArchiveCodec.exportRules(ids, from: draft, appVersion: version, now: Date())
     }
 
-    func previewRuleImport(_ data: Data) async throws -> RuleImportPlan {
-        let payload = try ConfigurationArchiveCodec.decodeRules(data)
-        guard let draft = try await repository?.currentConfiguration() else {
-            throw ArchiveControllerError.missingConfiguration
-        }
-        return try RuleImportPlan.make(payload, into: draft, now: Date())
-    }
-
-    /// Adds the file's rules to the current ones. Returns the new rules' IDs.
-    func importRules(_ data: Data) async throws -> (ConfigurationMutationResult, Set<UUID>) {
-        let payload = try ConfigurationArchiveCodec.decodeRules(data)
-        var added: Set<UUID> = []
-        let result = try await mutateConfiguration(kind: "importRules") { draft in
-            let plan = try RuleImportPlan.make(payload, into: draft, now: Date())
-            added = Set(plan.rules.map(\.id))
-            return plan.applied(to: draft)
-        }
-        return (result, added)
-    }
-
     func previewConfigurationArchive(_ data: Data) async throws -> String {
         let payload = try ConfigurationArchiveCodec.decode(data)
         guard let current = try await repository?.currentConfiguration() else {

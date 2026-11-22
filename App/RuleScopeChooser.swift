@@ -12,6 +12,7 @@ struct MonitorRuleRequest: Identifiable {
     let application: String
 
     var host: String { DisplaySanitizer.plainText(MonitorQuery.hostnameLabel(row)) }
+    var domain: String? { MonitorRuleScope.domain(for: row)?.ascii }
     var port: UInt16? { row.event.flow.destinationEndpoint?.port }
     var verb: String { action == .deny ? "Block" : "Allow" }
 }
@@ -42,7 +43,7 @@ struct RuleScopeChooser: View {
             if request.options.count > 1 {
                 Picker("Applies to", selection: $breadth) {
                     ForEach(request.options) { option in
-                        Text(MonitorRuleScope.title(option, host: request.host, port: request.port))
+                        Text(MonitorRuleScope.title(option, host: request.host, domain: request.domain, port: request.port))
                             .tag(option)
                     }
                 }
@@ -76,7 +77,7 @@ struct RuleScopeChooser: View {
         RulePlainLanguage.change(
             action: request.action,
             application: request.application,
-            destination: MonitorRuleScope.phrase(breadth, host: request.host),
+            destination: MonitorRuleScope.phrase(breadth, host: request.host, domain: request.domain),
             port: breadth == .exactConnection ? request.port : nil,
             incoming: request.row.event.flow.direction == .incoming,
             lasting: duration.phrase,

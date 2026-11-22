@@ -190,6 +190,8 @@ struct SettingsView: View {
                 editGroup: beginEditing,
                 reload: loadDefinitions
             )
+        case .networks:
+            NetworkSettingsPane(profiles: profiles)
         case .advanced:
             AdvancedSettingsPane(
                 controlPlane: controlPlane,

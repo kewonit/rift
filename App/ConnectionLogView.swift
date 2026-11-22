@@ -33,7 +33,8 @@ struct ConnectionLogView: View {
                         apply: { feed.requestRule($0, for: node) },
                         showRules: { feed.showRules(for: node) },
                         copyText: feed.rowLookup[id]?.copyDescription,
-                        hostname: feed.rowLookup[id]?.event.flow.observedHostname?.ascii
+                        hostname: feed.rowLookup[id]?.event.flow.observedHostname?.ascii,
+                        hide: feed.canHide(node) ? { feed.hideConnections(like: node) } : nil
                     )
                 }
             }

@@ -55,7 +55,7 @@ struct ConnectionsPanel: View {
                     .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .help(showsLog ? "Group connections by app, destination or country" : "List every connection in order, newest first")
+                .help(showsLog ? "Group connections by app, destination, domain or country" : "List every connection in order, newest first")
                 Button(action: toggleMap) {
                     Label(
                         mapHidden ? "Show Map" : "Hide Map",
@@ -239,6 +239,7 @@ extension MonitorLens {
         switch self {
         case .application: "App"
         case .hostname: "Destination"
+        case .domain: "Domain"
         case .country: "Country"
         }
     }
@@ -301,6 +302,7 @@ struct ConnectionContextMenu: View {
     let showRules: () -> Void
     var copyText: String?
     var hostname: String?
+    var hide: (() -> Void)?
 
     var body: some View {
         if canDecide() {
@@ -309,6 +311,11 @@ struct ConnectionContextMenu: View {
             Divider()
         }
         Button("Show Matching Rules", action: showRules).disabled(!hasRules)
+        if let hide {
+            Button("Hide Connections Like This", action: hide)
+                .disabled(disabled)
+                .help("Leaves this app’s connections to this host out of the Map and history. They’re still filtered.")
+        }
         Divider()
         Button("Copy") { copy(copyText) }.disabled(copyText == nil)
         if let hostname {
