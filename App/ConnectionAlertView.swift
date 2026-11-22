@@ -51,6 +51,7 @@ struct ConnectionAlertView: View {
     @State private var decisionNeedsAttention = false
     @State private var initialDeadlineInterval: TimeInterval = 30
     @State private var presentedAt = Date()
+    @State private var answersSameApp = false
     @FocusState private var noteFocused: Bool
 
     var body: some View {
@@ -111,10 +112,10 @@ struct ConnectionAlertView: View {
                 .foregroundStyle(.secondary)
             }
 
-            Picker("Apply this decision", selection: $lifetime) {
-                ForEach(Lifetime.allCases) { Text($0.shortTitle).tag($0) }
+            Picker("Remember", selection: $lifetime) {
+                ForEach(Lifetime.allCases) { Text($0.menuTitle).tag($0) }
             }
-            .pickerStyle(.segmented)
+            .fixedSize()
             .disabled(!lastingChoiceAvailable)
 
             if let hint = ConnectionAlertPresentation.lastingChoiceHint(
@@ -122,6 +123,11 @@ struct ConnectionAlertView: View {
                 hasEndpoint: prompt.endpoint != nil
             ) {
                 Text(hint).font(.caption).foregroundStyle(.secondary)
+            }
+
+            if lifetime == .once, !sameAppWaiting.isEmpty {
+                let count = sameAppWaiting.count
+                Toggle("Also answer \(count) other waiting \(count == 1 ? "connection" : "connections") from this app", isOn: $answersSameApp)
             }
 
             if requiresSystemScopeConfirmation {
@@ -263,6 +269,8 @@ struct ConnectionAlertView: View {
         }
         .padding(RiftDesign.Spacing.xl)
         .frame(width: 520)
+        // Its own height, so a taller window can't open gaps between the controls.
+        .fixedSize(horizontal: false, vertical: true)
         // A warned alert looks different, so it isn't answered from habit.
         .background(deliberateAllow ? Color(nsColor: .systemOrange).opacity(0.07) : .clear)
         .task {
@@ -342,6 +350,9 @@ struct ConnectionAlertView: View {
             if selected == .once {
                 do {
                     try await controller.answerOnce(prompt, action: action)
+                    if answersSameApp {
+                        for other in sameAppWaiting { try? await controller.answerOnce(other, action: action) }
+                    }
                     // Once counts as a choice only when a lasting one was on offer.
                     if lifetime == .once, lastingChoiceAvailable { alertLastLifetime = Lifetime.once.rawValue }
                 } catch {

@@ -27,6 +27,24 @@ final class PromptPanelController {
     /// them.
     var answering: Set<UUID> = []
 
+    /// Whether the frontmost app has a window covering a whole screen. Reads
+    /// only window sizes and owners, which needs no permission.
+    static func frontmostAppIsFullScreen() -> Bool {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              let windows = CGWindowListCopyWindowInfo(
+                  [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
+              ) as? [[String: Any]] else { return false }
+        let screens = NSScreen.screens.map(\.frame.size)
+        return windows.contains { window in
+            guard (window[kCGWindowOwnerPID as String] as? pid_t) == app.processIdentifier,
+                  (window[kCGWindowLayer as String] as? Int) == 0,
+                  let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return false }
+            return screens.contains { abs($0.width - rect.width) < 1 && abs($0.height - rect.height) < 1 }
+        }
+    }
+
     func update(
         prompts: [PromptRequest],
         controller: ControlPlaneController,
@@ -43,8 +61,10 @@ final class PromptPanelController {
         let next = prompts.first { $0.nonce == chosenNonce } ?? first
         if next.nonce != chosenNonce { chosenNonce = nil }
         // A new alert after none were waiting opens the way the person chose.
+        // Over a full-screen app it arrives as the small bar, so it doesn't
+        // interrupt whatever is on screen.
         if panel == nil {
-            minimized = UserDefaults.standard.bool(forKey: Self.keepMinimizedKey)
+            minimized = UserDefaults.standard.bool(forKey: Self.keepMinimizedKey) || Self.frontmostAppIsFullScreen()
         }
         let others = prompts.filter { $0.nonce != next.nonce }
         let view: AnyView

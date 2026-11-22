@@ -36,6 +36,7 @@ enum FixturePreviewOptions {
     static var opensSettings: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-settings") }
     static var showsAlert: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-alert") }
     static var opensReview: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-review") }
+    static var alertHasWarning: Bool { ProcessInfo.processInfo.arguments.contains("--ui-fixture-alert-warning") }
 
     /// Blocks the first connection through the real action path, and undoes it
     /// a few seconds later with `undo`.
@@ -121,7 +122,7 @@ struct AlertFixtureHost: View {
             Color(nsColor: .windowBackgroundColor)
             if let prompt = Self.samplePrompts(count: 1, deadline: Date().addingTimeInterval(3_600)).first {
                 ConnectionAlertView(
-                    prompt: prompt,
+                    prompt: FixturePreviewOptions.alertHasWarning ? Self.unsigned(prompt) : prompt,
                     controller: session.controlPlane,
                     artworkStore: session.applicationArtwork
                 )
@@ -130,6 +131,19 @@ struct AlertFixtureHost: View {
             }
         }
         .frame(minWidth: 640, minHeight: 560)
+    }
+
+    /// The same alert, for an unsigned command-line tool.
+    private static func unsigned(_ prompt: PromptRequest) -> PromptRequest {
+        guard let hash = try? CodeDigest(hex: String(repeating: "ab", count: 32), expectedByteCount: 32) else { return prompt }
+        let tool = ProcessIdentity.unsigned(normalizedPath: "/usr/local/bin/sync-tool", fileHash: hash)
+        return PromptRequest(
+            nonce: prompt.nonce, providerEpoch: prompt.providerEpoch, lineageID: prompt.lineageID,
+            generation: prompt.generation, flowID: prompt.flowID, observedAt: prompt.observedAt,
+            deadline: prompt.deadline, owner: prompt.owner, appIdentity: tool, processIdentity: tool,
+            direction: prompt.direction, transportProtocol: prompt.transportProtocol, endpoint: prompt.endpoint,
+            winningRuleID: nil, affectingRuleIDs: []
+        )
     }
 
     static func samplePrompts(count: Int, deadline: Date) -> [PromptRequest] {

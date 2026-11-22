@@ -44,6 +44,10 @@ The changelog records notable user-visible changes.
   answered, have Allow and Block buttons that make a lasting rule for its
   domain, with Undo in Rift. A new network's notification offers "Use Current
   Profile Here" and "Choose…", which opens Settings › Networks.
+- When the app in front is full screen, a new alert arrives as the small
+  minimized bar instead of covering it. With "Only this time" chosen, an
+  alert can answer the other waiting connections from the same app too. The
+  alert's lifetime is now a Remember menu, so the new lifetimes fit.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

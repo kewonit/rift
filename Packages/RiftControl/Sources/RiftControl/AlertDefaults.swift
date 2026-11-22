@@ -35,16 +35,15 @@ public enum AlertLifetime: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The label in the alert's segmented control, short enough for seven
-    /// segments.
-    public var shortTitle: String {
+    /// The label in the alert's Remember menu.
+    public var menuTitle: String {
         switch self {
-        case .once: "Once"
-        case .fiveMinutes: "5 min"
-        case .fifteenMinutes: "15 min"
-        case .oneHour: "1 hour"
-        case .oneDay: "1 day"
-        case .oneWeek: "1 week"
+        case .once: "Only this time"
+        case .fiveMinutes: "For 5 minutes"
+        case .fifteenMinutes: "For 15 minutes"
+        case .oneHour: "For 1 hour"
+        case .oneDay: "For 1 day"
+        case .oneWeek: "For 1 week"
         case .permanent: "Always"
         }
     }
