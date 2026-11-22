@@ -55,3 +55,23 @@ import Testing
     )
     try PolicyConfigurationValidator.validate(draft)
 }
+
+@Test func theMacOSServicesGroupIsValidAndOnlyAllowsAppleCode() throws {
+    let lineage = UUID()
+    let made = try BuiltInRuleGroups.macOSServices(lineageID: lineage, now: Date(timeIntervalSince1970: 9))
+    #expect(made.rules.count == (BuiltInRuleGroups.appleServices.count + 2) * 2)
+    #expect(made.rules.allSatisfy { rule in
+        guard case .exact(.applePlatform) = rule.process else { return false }
+        return rule.action == .filter(.allow) && rule.direction == .outgoing
+            && rule.localGroupID == made.group.id && rule.source == .manual
+    })
+    let draft = PolicyConfigurationDraft(
+        lineageID: lineage, authorizedUID: 501, operationMode: .silentAllow, baseOperationMode: .silentAllow,
+        activeProfileID: nil, enabledLocalGroupIDs: [made.group.id], rules: made.rules,
+        localGroups: [made.group], profiles: [], blocklists: []
+    )
+    try PolicyConfigurationValidator.validate(draft)
+    // A full export of a configuration with the group still restores.
+    let archive = try ConfigurationArchiveCodec.export(draft: draft, appVersion: "test", now: Date())
+    #expect(try ConfigurationArchiveCodec.decode(archive).rules.count == made.rules.count)
+}

@@ -106,6 +106,11 @@ The changelog records notable user-visible changes.
 - Alert details and the Map inspector say what common macOS services do, from
   notes that ship with Rift, and offer Search the Web, which opens your
   browser with a search for the app and destination.
+- The Rules sidebar's Add menu can add a macOS Services group, which lets
+  Apple's own system services reach Apple's servers, so Ask and Block Unless
+  Allowed don't interrupt iCloud, updates or certificate checks. Nothing is
+  added at setup, and the group's rules can be edited, turned off or deleted
+  like any others.
 
 ## 0.4.0
 

@@ -46,6 +46,12 @@ extension RulesWorkspaceController {
         }
     }
 
+    func addMacOSServicesGroup() async {
+        _ = await definitionCommand("Couldn’t add the macOS Services group. You may already have a group with that name.") {
+            try await controlPlane.addMacOSServicesGroup()
+        }
+    }
+
     func createGroup(name: String) async -> Bool {
         await definitionCommand("Couldn’t create the group.") {
             try await controlPlane.createLocalGroup(name: name)
