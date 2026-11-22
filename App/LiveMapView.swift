@@ -104,6 +104,11 @@ struct LiveMapView: View {
         .modifier(ActivityRefreshSignal(controller: session.controlPlane, changed: { feed.scheduleReload() }))
         .onChange(of: session.controlPlane.persistentHistoryEnabled) { _, _ in feed.historyPreferenceChanged() }
         .background(ActivityWindowVisibility(changed: visibilityChanged))
+        .onChange(of: session.requestedMapSearch, initial: true) { _, search in
+            guard let search else { return }
+            feed.query.search = search
+            session.requestedMapSearch = nil
+        }
         .onChange(of: session.requestedMonitorEventID, initial: true) { _, id in
             guard id != nil else { return }
             feed.acceptRequestedSelection()

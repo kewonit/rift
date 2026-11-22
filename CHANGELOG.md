@@ -69,6 +69,10 @@ The changelog records notable user-visible changes.
   Rift then switches on its own and always notifies you when it does.
   Changing that network's profile turns the approval off. Without it, Rift
   still never weakens protection on its own.
+- The Redundant, Unused and Expired rule lists say what they mean and offer
+  Delete All, with Undo. A rule's context menu adds Show on Map, which opens
+  the Map searched to its app. The rule editor's Choose App or Tool… accepts
+  command-line tools as well as apps.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

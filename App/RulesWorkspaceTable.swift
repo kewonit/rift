@@ -71,6 +71,7 @@ struct RulesWorkspaceTable: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
+            RuleMaintenanceBar(model: model, isPreview: isPreview)
             if let focusedApplication {
                 HStack(spacing: 6) {
                     Label(
@@ -303,6 +304,17 @@ struct RulesWorkspaceTable: View {
         model.actionFilter = .all
         model.sort = .automatic
         model.scheduleReload()
+    }
+
+    /// Opens the Map searched to this rule's app, to see what it connects to.
+    func showOnMap(_ ids: Set<RuleWorkspaceNodeID>) {
+        guard let identity = selectedApplicationIdentity(ids) else { return }
+        let name = MonitorQuery.identityLabel(identity).replacingOccurrences(of: "\"", with: "")
+        var components = URLComponents()
+        components.scheme = "rift"
+        components.host = "map"
+        components.queryItems = [URLQueryItem(name: "search", value: "app:\"\(name)\"")]
+        if let url = components.url { NSWorkspace.shared.open(url) }
     }
 
     func revealApplication(_ ids: Set<RuleWorkspaceNodeID>) {

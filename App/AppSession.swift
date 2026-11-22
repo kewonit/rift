@@ -48,6 +48,8 @@ final class AppSession {
     var savedMapState: SavedMapState?
     var savedRulesSearch = ""
     var requestedMonitorEventID: String?
+    /// A search for the Map to show, from `rift://map?search=…`.
+    var requestedMapSearch: String?
     /// Asks the Map page to show every connection in its table.
     var showsConnectionTable = false
     var requestedRuleIDs: Set<UUID> = []

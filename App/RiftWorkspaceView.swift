@@ -102,6 +102,10 @@ struct RiftWorkspaceView: View {
                 openSettings()
             } else if let destination = AppDestination(deepLink: url) {
                 session.destination = destination
+                if target == "map", let search = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .queryItems?.first(where: { $0.name == "search" })?.value {
+                    session.requestedMapSearch = String(search.prefix(256))
+                }
                 if target == "activity" { session.showsConnectionTable = true }
             }
         }

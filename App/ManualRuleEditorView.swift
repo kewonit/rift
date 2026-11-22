@@ -115,7 +115,7 @@ struct ManualRuleEditorView: View {
                             Text(displayName(choice)).tag(choice.process)
                         }
                     }
-                    Button("Choose App…", action: chooseApp)
+                    Button("Choose App or Tool…", action: chooseApp)
                 }
                 Picker("Destination", selection: $destinationKind) {
                     ForEach(visibleDestinationKinds) { Text($0.rawValue).tag($0) }
@@ -367,8 +367,10 @@ struct ManualRuleEditorView: View {
 
     private func chooseApp() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.applicationBundle]
+        // Command-line tools too, which otherwise show up only after they connect.
+        panel.allowedContentTypes = [.applicationBundle, .unixExecutable]
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.message = "Choose an app or a command-line tool."
         panel.prompt = "Choose"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { @MainActor in
@@ -383,7 +385,8 @@ struct ManualRuleEditorView: View {
             if !availableIdentities.contains(where: { $0.process == condition }) {
                 chosenApps.append(RuleIdentityChoice(process: condition, permitsSystemOwner: false))
             }
-            chosenNames[condition] = url.deletingPathExtension().lastPathComponent
+            chosenNames[condition] = url.pathExtension == "app"
+                ? url.deletingPathExtension().lastPathComponent : url.lastPathComponent
             process = condition
             validation = nil
         }

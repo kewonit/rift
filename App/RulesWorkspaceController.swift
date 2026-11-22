@@ -214,6 +214,23 @@ final class RulesWorkspaceController {
         }
     }
 
+    /// The rules a maintenance list shows that can be deleted: not
+    /// protected, and not kept up to date by a blocklist or subscription.
+    var deletableShownRuleIDs: Set<UUID> {
+        Set(rows.map(\.rule).filter {
+            !$0.flags.contains(.protected) && !$0.flags.contains(.sourceManaged)
+        }.map(\.id))
+    }
+
+    /// Deletes every rule the current maintenance list shows.
+    func deleteAllShown() async {
+        let ids = deletableShownRuleIDs
+        guard !ids.isEmpty else { return }
+        await ruleCommand("Delete Rules") {
+            try await controlPlane.deleteRules(ids, expectedGeneration: generation)
+        }
+    }
+
     func duplicateSelected() async {
         guard let id = selection.first else { return }
         await ruleCommand("Duplicate Rule") {

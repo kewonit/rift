@@ -81,6 +81,8 @@ extension RulesWorkspaceTable {
         Divider()
         Button("Show Rules for This App") { focusAffectingRules(ids) }
             .disabled(selectedApplicationIdentity(ids) == nil)
+        Button("Show on Map") { showOnMap(ids) }
+            .disabled(isPreview || selectedApplicationIdentity(ids) == nil)
         Button("Show App in Finder") { revealApplication(ids) }
             .disabled(isPreview || selectedApplicationIdentity(ids) == nil)
         Button("Copy Details") { copyDetails(ids) }
