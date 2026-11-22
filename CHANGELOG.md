@@ -4,6 +4,13 @@ The changelog records notable user-visible changes.
 
 ## Unreleased
 
+- A connection alert now offers a lasting rule for the whole domain by
+  default, so the same app doesn't ask again for the next name under it.
+  Connections with no name, and incoming ones, still default to the exact
+  destination. Alert defaults start at "As last time", which follows your most
+  recent lasting answer; choosing a fixed default in Settings › Alerts keeps it.
+  Before, alerts defaulted to Once for one host and port.
+- Alerts and the Alert Defaults setting add 15 minutes, 1 day and 1 week.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

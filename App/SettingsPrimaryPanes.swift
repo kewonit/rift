@@ -122,15 +122,16 @@ struct AlertSettingsPane: View {
             }
             Section {
                 Picker("Remember decisions", selection: $alertDefaultLifetime) {
-                    Text("Once").tag("Once")
-                    Text("Five minutes").tag("Five minutes")
-                    Text("One hour").tag("One hour")
-                    Text("Always").tag("Always")
+                    Text("As last time").tag(AlertDefaults.lastUsed)
+                    Divider()
+                    ForEach(AlertLifetime.allCases) { Text($0.rawValue).tag($0.rawValue) }
                 }
                 Picker("New rules cover", selection: $alertDefaultDestination) {
-                    Text("This destination and port").tag("This destination")
-                    Text("This destination, any port").tag("This destination, any port")
-                    Text("Its domain and subdomains").tag("This domain")
+                    Text("As last time").tag(AlertDefaults.lastUsed)
+                    Divider()
+                    Text("This destination and port").tag(AlertDestinationChoice.exact.rawValue)
+                    Text("This destination, any port").tag(AlertDestinationChoice.anyPort.rawValue)
+                    Text("Its domain and subdomains").tag(AlertDestinationChoice.domain.rawValue)
                 }
                 Picker("Apply new rules to", selection: $alertDefaultScope) {
                     Text("Current profile").tag("Current profile")

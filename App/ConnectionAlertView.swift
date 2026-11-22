@@ -23,45 +23,6 @@ struct ConnectionAlertView: View {
         }
     }
 
-    enum RuleScope: String, CaseIterable, Identifiable {
-        case currentProfile = "Current profile"
-        case allProfiles = "All profiles"
-        var id: String { rawValue }
-    }
-
-    enum Lifetime: String, CaseIterable, Identifiable {
-        case once = "Once"
-        case fiveMinutes = "Five minutes"
-        case oneHour = "One hour"
-        case permanent = "Always"
-
-        var id: String { rawValue }
-        var duration: TimeInterval? {
-            switch self {
-            case .once, .permanent: nil
-            case .fiveMinutes: 300
-            case .oneHour: 3_600
-            }
-        }
-    }
-
-    enum DestinationScope: String, CaseIterable, Identifiable {
-        case exact = "This destination"
-        case anyPort = "This destination, any port"
-        case domain = "This domain"
-        case any = "Any destination"
-        var id: String { rawValue }
-
-        var ruleScope: AlertDestinationScope {
-            switch self {
-            case .exact: .exactObservedEndpoint
-            case .anyPort: .observedDestinationAnyPort
-            case .domain: .observedDomain
-            case .any: .anyEndpoint
-            }
-        }
-    }
-
     let prompt: PromptRequest
     var moreWaiting = 0
     var others: [PromptRequest] = []
@@ -70,9 +31,11 @@ struct ConnectionAlertView: View {
     @Bindable var controller: ControlPlaneController
     let artworkStore: ApplicationArtworkStore
     @Environment(\.controlActiveState) private var controlActiveState
-    @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = Lifetime.once.rawValue
-    @AppStorage("alertDefaultScope") private var alertDefaultScope = RuleScope.currentProfile.rawValue
-    @AppStorage("alertDefaultDestination") private var alertDefaultDestination = DestinationScope.exact.rawValue
+    @AppStorage(AlertDefaults.lifetimeKey) private var alertDefaultLifetime = AlertDefaults.lastUsed
+    @AppStorage(AlertDefaults.scopeKey) private var alertDefaultScope = RuleScope.currentProfile.rawValue
+    @AppStorage(AlertDefaults.destinationKey) private var alertDefaultDestination = AlertDefaults.lastUsed
+    @AppStorage(AlertDefaults.lastLifetimeKey) private var alertLastLifetime = ""
+    @AppStorage(AlertDefaults.lastDestinationKey) private var alertLastDestination = ""
     @State private var lifetime: Lifetime = .once
     @State private var destinationScope: DestinationScope = .exact
     @State private var showingDetails = false
@@ -149,7 +112,7 @@ struct ConnectionAlertView: View {
             }
 
             Picker("Apply this decision", selection: $lifetime) {
-                ForEach(Lifetime.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Lifetime.allCases) { Text($0.shortTitle).tag($0) }
             }
             .pickerStyle(.segmented)
             .disabled(!lastingChoiceAvailable)
@@ -302,14 +265,14 @@ struct ConnectionAlertView: View {
         .padding(RiftDesign.Spacing.xl)
         .frame(width: 520)
         .task {
-            if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
             initialDeadlineInterval = max(1, prompt.deadline.timeIntervalSinceNow)
             presentedAt = Date()
             scope = RuleScope(rawValue: alertDefaultScope) ?? .currentProfile
-            destinationScope = DestinationScope(rawValue: alertDefaultDestination) ?? .exact
-            if !destinationChoices.contains(destinationScope) || destinationScope == .any {
-                destinationScope = .exact
-            }
+            destinationScope = AlertDefaults.destination(
+                preset: alertDefaultDestination,
+                lastUsed: alertLastDestination,
+                domainAvailable: registeredDomain != nil
+            )
             await resolveActiveProfile()
         }
         .task(id: presentationIdentity) {
@@ -378,6 +341,8 @@ struct ConnectionAlertView: View {
             if selected == .once {
                 do {
                     try await controller.answerOnce(prompt, action: action)
+                    // Once counts as a choice only when a lasting one was on offer.
+                    if lifetime == .once, lastingChoiceAvailable { alertLastLifetime = Lifetime.once.rawValue }
                 } catch {
                     decisionMessage = "Rift couldn’t send your answer. This alert is still open, so you can try again."
                     decisionNeedsAttention = true
@@ -394,6 +359,7 @@ struct ConnectionAlertView: View {
                         note: note
                     )
                     durableRuleSaved = true
+                    rememberLastChoice(selected)
                     decisionMessage = result.message
                     decisionNeedsAttention = result.requiresAttention
                     // The rule may not reach the filter before the deadline.
@@ -421,6 +387,15 @@ struct ConnectionAlertView: View {
                     decisionNeedsAttention = true
                 }
             }
+        }
+    }
+
+    /// Feeds the "Last used" presets. An answer to an alert that couldn't
+    /// offer a domain leaves the destination preference alone.
+    private func rememberLastChoice(_ selected: Lifetime) {
+        alertLastLifetime = selected.rawValue
+        if AlertDefaults.remembersDestination(destinationScope, domainAvailable: registeredDomain != nil) {
+            alertLastDestination = destinationScope.rawValue
         }
     }
 
@@ -471,7 +446,7 @@ struct ConnectionAlertView: View {
                 scope = .allProfiles
             }
             lifetime = canCreateRule && !requiresSystemScopeConfirmation
-                ? (Lifetime(rawValue: alertDefaultLifetime) ?? .once)
+                ? AlertDefaults.lifetime(preset: alertDefaultLifetime, lastUsed: alertLastLifetime)
                 : .once
         } catch {
             guard !Task.isCancelled else { return }

@@ -9,9 +9,9 @@ struct SettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationSensitiveDetails") private var sensitiveDetails = false
     @AppStorage("statusRecentLimit") private var recentLimit = 5
-    @AppStorage("alertDefaultLifetime") private var alertDefaultLifetime = "Once"
-    @AppStorage("alertDefaultScope") private var alertDefaultScope = "Current profile"
-    @AppStorage("alertDefaultDestination") private var alertDefaultDestination = "This destination"
+    @AppStorage(AlertDefaults.lifetimeKey) private var alertDefaultLifetime = AlertDefaults.lastUsed
+    @AppStorage(AlertDefaults.scopeKey) private var alertDefaultScope = "Current profile"
+    @AppStorage(AlertDefaults.destinationKey) private var alertDefaultDestination = AlertDefaults.lastUsed
     @AppStorage("settingsSection") private var section: SettingsSection = .general
     @State private var launchAtLogin = false
     @State private var loginItemLoaded = false
@@ -78,10 +78,8 @@ struct SettingsView: View {
                 return
             }
             recentLimit = min(max(recentLimit, 0), 25)
-            if alertDefaultLifetime == "Permanent" { alertDefaultLifetime = "Always" }
-            if !["Once", "Five minutes", "One hour", "Always"].contains(alertDefaultLifetime) {
-                alertDefaultLifetime = "Once"
-            }
+            alertDefaultLifetime = AlertDefaults.normalizedLifetimePreset(alertDefaultLifetime)
+            alertDefaultDestination = AlertDefaults.normalizedDestinationPreset(alertDefaultDestination)
             if !["Current profile", "All profiles"].contains(alertDefaultScope) {
                 alertDefaultScope = "Current profile"
             }

@@ -4,6 +4,15 @@ import SwiftUI
 
 /// What a rule made from the alert can cover.
 extension ConnectionAlertView {
+    typealias Lifetime = AlertLifetime
+    typealias DestinationScope = AlertDestinationChoice
+
+    enum RuleScope: String, CaseIterable, Identifiable {
+        case currentProfile = "Current profile"
+        case allProfiles = "All profiles"
+        var id: String { rawValue }
+    }
+
     /// The domain the connection's name was registered under, like
     /// `example.co.uk` for `www.example.co.uk`.
     var registeredDomain: String? {
