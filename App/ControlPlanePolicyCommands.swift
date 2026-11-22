@@ -13,6 +13,9 @@ extension ControlPlaneController {
         allowSystemOwner: Bool,
         note: String
     ) async throws -> ConfigurationMutationResult {
+        // A locked configuration takes no new rules; the alert can still be
+        // answered once.
+        try requireUnlocked()
         guard action != .ask, let repository else {
             throw RuleCommandError.missingConfiguration
         }
@@ -151,7 +154,9 @@ extension ControlPlaneController {
         _ id: UUID,
         preparation: BlocklistImportPreparation
     ) async throws -> ConfigurationMutationResult {
-        try await mutateConfiguration(kind: "updateBlocklist") { draft in
+        // A new version of a subscribed list is the subscription doing what
+        // the person set it up to do, so it isn't held up by the lock.
+        try await mutateConfiguration(kind: "updateBlocklist", change: .automatic) { draft in
             guard let source = draft.blocklists.first(where: { $0.id == id }) else {
                 throw RuleCommandError.unknownDefinition
             }

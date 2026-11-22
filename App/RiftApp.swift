@@ -24,6 +24,7 @@ struct RiftApp: App {
                 RuleWorkspaceCommands(session: session)
             }
             MapCommands()
+            ConfigurationLockCommands()
             WindowLevelCommands()
             UpdateCommands()
         }

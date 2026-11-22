@@ -75,7 +75,7 @@ final class NetworkProfileSwitcher {
     }
 
     func setChoice(_ choice: NetworkProfileChoice, for key: String) {
-        guard var network = remembered[key] else { return }
+        guard var network = remembered[key], ConfigurationLock.shared.permits(.byHand) else { return }
         // An approval covered the old choice, not the new one.
         if network.choice != choice { network.allowsLessStrictSwitch = nil }
         network.choice = choice
@@ -87,7 +87,7 @@ final class NetworkProfileSwitcher {
     /// Lets Rift switch to this network's profile on its own even when it's
     /// less strict. Given only here, in the app.
     func setAllowsLessStrict(_ allowed: Bool, for key: String) {
-        guard var network = remembered[key] else { return }
+        guard var network = remembered[key], ConfigurationLock.shared.permits(.byHand) else { return }
         network.allowsLessStrictSwitch = allowed ? true : nil
         remembered[key] = network
         save()
@@ -95,6 +95,7 @@ final class NetworkProfileSwitcher {
     }
 
     func forget(_ key: String) {
+        guard ConfigurationLock.shared.permits(.byHand) else { return }
         remembered.removeValue(forKey: key)
         save()
     }
@@ -158,7 +159,7 @@ final class NetworkProfileSwitcher {
         ), target != definitions.active else { return }
         let name = target.flatMap { profiles[$0] } ?? "No profile"
         do {
-            _ = try await controlPlane.activateProfile(target, unattended: true)
+            _ = try await controlPlane.activateProfile(target, unattended: true, change: .automatic)
             lastMessage = "Switched to \(name) for \(network.displayName)."
             if notifies { notify("Switched to \(name)", "For the network \(network.displayName).") }
         } catch CLIRelayRefusal.profileSwitchNeedsConfirmation {
@@ -187,7 +188,7 @@ final class NetworkProfileSwitcher {
         controlPlane: ControlPlaneController
     ) async {
         do {
-            _ = try await controlPlane.activateProfile(target, unattended: false)
+            _ = try await controlPlane.activateProfile(target, unattended: false, change: .automatic)
             lastMessage = "Switched to \(name), which is less strict, as you allowed for \(network.displayName)."
             notify(
                 "Switched to \(name), which is less strict",
@@ -201,7 +202,8 @@ final class NetworkProfileSwitcher {
     /// Remembers the active profile, or no profile, for a network, from a
     /// notification's button.
     func useActiveProfile(for key: String) async {
-        guard let controlPlane, let definitions = try? await controlPlane.policyDefinitions() else { return }
+        guard let controlPlane, (try? controlPlane.requireUnlocked()) != nil,
+              let definitions = try? await controlPlane.policyDefinitions() else { return }
         setChoice(definitions.active.map(NetworkProfileChoice.profile) ?? .noProfile, for: key)
     }
 

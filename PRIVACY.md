@@ -34,6 +34,9 @@ for software updates, as described under [Update checks](#update-checks).
   Privacy-hidden decisions do not enter visible history or aggregates.
 - Rule-use counters are separate from connection history. Users can clear them
   separately. New usage is recorded only while persistent history is enabled.
+- Whether the configuration is locked is saved in the app's local preferences.
+  Unlocking uses the Touch ID or password prompt macOS shows; Rift never sees
+  your fingerprint or password.
 - Rift keeps notifications private by default. It never includes complete URLs
   or packet contents in prompts, history, logs, or diagnostics.
 - Rift reads application names and icons only from installed local apps. It

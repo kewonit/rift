@@ -250,6 +250,7 @@ extension ControlPlaneController {
     }
 
     func configureHistory(enabled: Bool, retentionDays: Int, maximumFlows: Int) async throws {
+        try requireUnlocked()
         let history = try await openHistoryForExplicitRequest()
         try await history?.configure(
             enabled: enabled, retentionDays: retentionDays, maximumFlows: maximumFlows
@@ -266,6 +267,7 @@ extension ControlPlaneController {
     }
 
     func clearHistory(clearUsage: Bool = false) async throws {
+        try requireUnlocked()
         try await openHistoryForExplicitRequest()?.clearHistory()
         if clearUsage { try await repository?.clearUsage() }
         transientHistory.clear()

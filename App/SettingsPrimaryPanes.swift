@@ -70,6 +70,13 @@ struct GeneralSettingsPane: View {
                 .disabled(!isLoginItemReady)
                 GlobalShortcutToggle()
             }
+            Section {
+                Button("Lock Configuration") { ConfigurationLock.shared.lock() }
+            } header: {
+                Text("Lock")
+            } footer: {
+                Text("Stops changes to rules, profiles, modes and settings until you unlock with Touch ID or your login password. Alerts can still be answered once, and changes you set up to happen on their own, such as subscription updates and switching profiles by network, keep working. Press ⌘L to lock.")
+            }
             if let updater = RiftUpdater.shared {
                 UpdateSettingsSection(updater: updater)
             }

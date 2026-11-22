@@ -67,6 +67,7 @@ extension ControlPlaneController {
     }
 
     func restoreConfigurationArchive(_ data: Data) async throws -> ConfigurationRestoreOutcome {
+        try requireUnlocked()
         var phase = ConfigurationRestorePhase.preparing
         do {
             let payload = try ConfigurationArchiveCodec.decode(data)
@@ -160,6 +161,7 @@ extension ControlPlaneController {
     var canRollbackLastRestore: Bool { pendingRestoreBackupURL != nil }
 
     func rollbackLastRestore() async throws -> ConfigurationRestoreOutcome {
+        try requireUnlocked()
         var phase = ConfigurationRestorePhase.preparing
         do {
             guard let backupURL = pendingRestoreBackupURL,

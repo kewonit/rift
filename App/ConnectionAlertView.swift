@@ -124,7 +124,7 @@ struct ConnectionAlertView: View {
 
             if let hint = ConnectionAlertPresentation.lastingChoiceHint(
                 hasIdentity: prompt.appIdentity != nil || prompt.processIdentity != nil,
-                hasEndpoint: prompt.endpoint != nil
+                hasEndpoint: prompt.endpoint != nil, configurationLocked: ConfigurationLock.shared.isLocked
             ) {
                 Text(hint).font(.caption).foregroundStyle(.secondary)
             }
@@ -436,8 +436,9 @@ struct ConnectionAlertView: View {
         prompt.endpoint != nil && (prompt.appIdentity != nil || prompt.processIdentity != nil)
     }
 
+    /// A locked configuration takes no new rules, so only Once is offered.
     private var canCreateDurableRule: Bool {
-        canCreateRule && activeProfileResolution.isResolved
+        canCreateRule && activeProfileResolution.isResolved && !ConfigurationLock.shared.isLocked
     }
 
     private var lastingChoiceAvailable: Bool {
@@ -466,7 +467,7 @@ struct ConnectionAlertView: View {
                 activeProfileResolution = .none
                 scope = .allProfiles
             }
-            lifetime = canCreateRule && !requiresSystemScopeConfirmation
+            lifetime = canCreateDurableRule && !requiresSystemScopeConfirmation
                 ? AlertDefaults.lifetime(preset: alertDefaultLifetime, lastUsed: alertLastLifetime)
                 : .once
         } catch {

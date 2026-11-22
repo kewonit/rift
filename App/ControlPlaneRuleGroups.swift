@@ -85,7 +85,7 @@ extension ControlPlaneController {
         var outcome: RuleGroupSubscriptionMerge?
         var groupRules: [Rule] = []
         do {
-            _ = try await mutateConfiguration(kind: "updateRuleGroup") { draft in
+            _ = try await mutateConfiguration(kind: "updateRuleGroup", change: .automatic) { draft in
                 guard draft.localGroups.contains(where: { $0.id == groupID }) else {
                     throw RuleCommandError.unknownDefinition
                 }

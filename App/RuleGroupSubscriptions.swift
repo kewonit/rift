@@ -138,7 +138,8 @@ final class RuleGroupSubscriptions {
             let done = count == 1 ? "Turned on 1 rule." : "Turned on \(count) rules."
             return result.requiresAttention ? "\(done) \(result.message)" : done
         } catch {
-            return "The rules weren’t turned on. Your rules may have changed, so try again."
+            return ConfigurationLock.message(for: error)
+                ?? "The rules weren’t turned on. Your rules may have changed, so try again."
         }
     }
 
@@ -178,18 +179,19 @@ final class RuleGroupSubscriptions {
     }
 
     func setInterval(_ interval: BlocklistUpdateInterval, for id: UUID) {
-        guard var item = items[id] else { return }
+        guard var item = items[id], ConfigurationLock.shared.permits(.byHand) else { return }
         item.interval = interval == .daily ? nil : interval
         keep(item)
     }
 
     func setHoldsNewAllowRules(_ holds: Bool, for id: UUID) {
-        guard var item = items[id] else { return }
+        guard var item = items[id], ConfigurationLock.shared.permits(.byHand) else { return }
         item.allowsNewAllowRules = holds ? nil : true
         keep(item)
     }
 
     static func message(for error: any Error) -> String {
+        if let locked = ConfigurationLock.message(for: error) { return locked }
         switch error {
         case RuleGroupSubscriptionError.onlyBlockedDestinations:
             return "This file only blocks destinations. Subscribe to it in Settings › Blocklists instead."

@@ -10,6 +10,8 @@ extension ControlPlaneController {
     }
 
     func prepareForUninstall() async -> Bool {
+        // Removing the filter is the largest change of all.
+        guard (try? requireUnlocked()) != nil else { return false }
         do {
             if configurationRecoveryRequired {
                 let recoveryClient = client
@@ -39,6 +41,7 @@ extension ControlPlaneController {
     }
 
     func resetConfiguration() async throws -> ConfigurationRestoreOutcome {
+        try requireUnlocked()
         guard configurationRecoveryRequired,
               repository == nil,
               let configurationDatabaseURL,
@@ -151,6 +154,7 @@ extension ControlPlaneController {
     func recoverConfigurationArchive(
         _ payload: ConfigurationArchivePayload
     ) async throws -> ConfigurationRestoreOutcome {
+        try requireUnlocked()
         try await client.connect()
         let handshake = try await client.handshake()
         let observedLineages = Set([

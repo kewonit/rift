@@ -71,7 +71,8 @@ struct StatusMenuView: View {
                 now: dashboardNow,
                 keepsHistory: !controller.isMinimalActivity,
                 notificationsEnabled: session.isUIFixture ? fixtureNotificationsEnabled : notificationsEnabled,
-                canChangeMode: !session.isUIFixture && controller.desiredPolicyTuple != nil,
+                canChangeMode: !session.isUIFixture && controller.desiredPolicyTuple != nil
+                    && !ConfigurationLock.shared.isLocked,
                 artworkStore: session.applicationArtwork,
                 selectMode: requestMode,
                 performAction: perform,
@@ -162,6 +163,12 @@ struct StatusMenuView: View {
                     trailing: String(controller.pendingPrompts.count),
                     action: openNextAlert
                 )
+            }
+            if ConfigurationLock.shared.isLocked {
+                StatusMenuActionRow(title: "Unlock Configuration…", trailing: "Locked") {
+                    Task { await ConfigurationLock.shared.unlock(untilQuit: false) }
+                }
+                .help("Unlock with Touch ID or your login password to change the mode, profile or rules")
             }
             if !profiles.isEmpty {
                 Menu {
@@ -264,7 +271,7 @@ struct StatusMenuView: View {
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
-                errorMessage = "Couldn’t change the mode. Try again."
+                errorMessage = ConfigurationLock.message(for: error) ?? "Couldn’t change the mode. Try again."
             }
         }
     }
@@ -280,7 +287,7 @@ struct StatusMenuView: View {
             } catch {
                 profileActivationMessage = nil
                 profileActivationNeedsAttention = false
-                errorMessage = "Couldn’t switch profiles. Try again."
+                errorMessage = ConfigurationLock.message(for: error) ?? "Couldn’t switch profiles. Try again."
             }
         }
     }
@@ -310,6 +317,11 @@ struct StatusMenuView: View {
     private func toggleNotifications() {
         if session.isUIFixture {
             fixtureNotificationsEnabled.toggle()
+            return
+        }
+        // Notifications are a setting, so the lock covers them too.
+        guard ConfigurationLock.shared.permits(.byHand) else {
+            errorMessage = ConfigurationLockCopy.lockedMessage
             return
         }
         if notificationsEnabled {

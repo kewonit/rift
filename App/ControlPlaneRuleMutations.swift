@@ -240,6 +240,7 @@ extension ControlPlaneController {
         recordsRedo: Bool = false,
         transform: ([Rule]) throws -> [Rule]
     ) async throws -> ConfigurationMutationResult {
+        try requireUnlocked()
         guard let repository,
               let draft = try await repository.currentConfiguration(),
               let currentDesired = try await repository.newestDesiredPolicy() else {
@@ -274,10 +275,14 @@ extension ControlPlaneController {
         )
     }
 
+    /// Every change to rules, groups, profiles, blocklists and the mode comes
+    /// through here or `mutateRules`, which is where the lock is checked.
     func mutateConfiguration(
         kind: String,
+        change: ConfigurationChange = .byHand,
         transform: (PolicyConfigurationDraft) throws -> PolicyConfigurationDraft
     ) async throws -> ConfigurationMutationResult {
+        try requireUnlocked(change)
         guard let repository,
               let draft = try await repository.currentConfiguration(),
               let currentDesired = try await repository.newestDesiredPolicy() else {

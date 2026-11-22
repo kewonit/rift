@@ -26,6 +26,8 @@ undersea cables, and lets you allow or block apps and sites.
   connection table. Routes are estimates.
 - **Menu-bar panel** with the current mode, recent apps, and five-minute Allow
   and Block.
+- **Lock Configuration** with ⌘L, so rules, profiles, modes and settings stay
+  as they are until you unlock with Touch ID or your login password.
 - **`riftctl`**, a command-line client inside the app at
   `Rift.app/Contents/Helpers/riftctl`.
 - **Automatic updates**, signed and notarized.

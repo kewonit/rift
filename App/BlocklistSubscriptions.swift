@@ -152,7 +152,7 @@ final class BlocklistSubscriptions {
     }
 
     func setInterval(_ interval: BlocklistUpdateInterval, for id: UUID) {
-        guard var item = items[id] else { return }
+        guard var item = items[id], ConfigurationLock.shared.permits(.byHand) else { return }
         item.interval = interval == .daily ? nil : interval
         items[id] = item
         save()

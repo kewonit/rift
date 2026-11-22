@@ -86,6 +86,7 @@ struct RulesWorkspaceView: View {
             .padding(8)
             .background(.orange.opacity(0.18))
         }
+        ConfigurationLockBanner()
         if case .group(let id) = model.sidebarSelection {
             RuleGroupSubscriptionBanner(
                 groupID: id, generation: model.generation,

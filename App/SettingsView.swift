@@ -59,9 +59,11 @@ struct SettingsView: View {
                             .padding(.vertical, 8)
                         Divider()
                     }
+                    ConfigurationLockBanner()
                     pane(for: item)
                         .allowsHitTesting(!isPreview)
                         .accessibilityHidden(isPreview)
+                        .disabled(ConfigurationLock.shared.isLocked)
                 }
                 .tabItem { Label(item.title, systemImage: item.symbol) }
                 .tag(item)

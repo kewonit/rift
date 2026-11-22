@@ -116,6 +116,7 @@ struct RuleGroupSubscriptionBanner: View {
                         set: { subscriptions.setHoldsNewAllowRules($0, for: groupID) }
                     ))
                     .toggleStyle(.checkbox)
+                    .disabled(ConfigurationLock.shared.isLocked)
                     .help("Keep allow rules that arrive in an update off until you turn them on")
                     Picker("Check", selection: Binding(
                         get: { item.effectiveInterval },
@@ -124,6 +125,7 @@ struct RuleGroupSubscriptionBanner: View {
                         ForEach(BlocklistUpdateInterval.allCases) { Text($0.title).tag($0) }
                     }
                     .labelsHidden().fixedSize()
+                    .disabled(ConfigurationLock.shared.isLocked)
                     .help("How often Rift checks this file while it’s running")
                     if subscriptions.refreshing.contains(groupID) {
                         ProgressView().controlSize(.small)
@@ -143,6 +145,7 @@ struct RuleGroupSubscriptionBanner: View {
                         Button(count == 1 ? "Turn On" : "Turn On All") {
                             run { await subscriptions.approvePending(groupID) }
                         }
+                        .disabled(ConfigurationLock.shared.isLocked)
                     }
                 }
                 if let message {

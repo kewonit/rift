@@ -60,13 +60,15 @@ extension ControlPlaneController {
 
     /// `unattended` is for `riftctl`, which any process running as the user
     /// can call. It refuses a switch that weakens protection; the user has to
-    /// make that switch in Rift.
+    /// make that switch in Rift. `change` is automatic only for a switch by
+    /// network, which the person set up and which carries on while locked.
     @discardableResult
     func activateProfile(
         _ id: UUID?,
-        unattended: Bool = false
+        unattended: Bool = false,
+        change: ConfigurationChange = .byHand
     ) async throws -> ConfigurationMutationResult {
-        return try await mutateConfiguration(kind: "activateProfile") { draft in
+        return try await mutateConfiguration(kind: "activateProfile", change: change) { draft in
             guard id == nil || draft.profiles.contains(where: { $0.id == id }) else {
                 throw RuleCommandError.unknownDefinition
             }
