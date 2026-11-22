@@ -73,7 +73,8 @@ The changelog records notable user-visible changes.
   once, and can be undone.
 - The menu bar panel lists recently blocked connections, with Allow for 5
   Minutes, and temporary rules that are still running, with the time left,
-  Make Permanent and Remove.
+  Make Permanent and Remove. Its recent apps can be allowed or blocked for 5
+  minutes from their context menu.
 - A connection alert can be minimized to a small bar that keeps counting down,
   and another waiting connection can be answered first. Settings › Alerts can
   show alerts minimized.
