@@ -61,6 +61,9 @@ The changelog records notable user-visible changes.
   connection for a destination, with Undo. A filled button shows what
   today's rules do. Clicking a column header sorts by it, and Sort By adds
   Most Connections.
+- In the menu-bar panel, pointing at a recent app shows its five-minute rule:
+  Block for an allowed app, Allow for a blocked one. Before, it took a
+  right-click. VoiceOver offers it as an action.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

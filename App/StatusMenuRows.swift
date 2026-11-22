@@ -1,3 +1,4 @@
+import RiftCore
 import SwiftUI
 
 /// A full-width button that highlights on hover, like a menu item.
@@ -66,3 +67,32 @@ struct StatusMenuFixtureHost: View {
     }
 }
 #endif
+
+/// A recent-app row with its five-minute rule on show while the pointer is
+/// over it: Allow for a blocked app, Block for an allowed one.
+struct StatusMenuFiveMinuteRow<Content: View>: View {
+    let undo: FilterAction
+    let decide: (FilterAction) -> Void
+    @ViewBuilder let content: Content
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(spacing: 0) {
+            content
+            Button { decide(undo) } label: {
+                Image(systemName: undo == .allow ? "checkmark.circle" : "xmark.circle")
+                    .foregroundStyle(undo == .allow ? Color(nsColor: .systemGreen) : Color(nsColor: .systemRed))
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .help(title)
+            .opacity(hovering ? 1 : 0)
+            .accessibilityHidden(true)
+        }
+        .onHover { hovering = $0 }
+        .accessibilityAction(named: title) { decide(undo) }
+    }
+
+    private var title: String { undo == .allow ? "Allow for 5 Minutes" : "Block for 5 Minutes" }
+}

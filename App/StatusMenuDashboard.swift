@@ -64,36 +64,41 @@ struct StatusMenuDashboard: View {
                     .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
             } else {
                 ForEach(snapshot.applications) { item in
-                    StatusMenuButton(action: { openConnection(item.eventID) }) {
-                        HStack(spacing: RiftDesign.Spacing.s) {
-                            ApplicationIdentityIcon(
-                                identity: item.identity, fallbackSystemName: "app.dashed",
-                                size: 18, artworkStore: artworkStore
-                            )
-                            VStack(alignment: .leading, spacing: 0) {
-                                ApplicationNameText(identity: item.identity, fallback: item.name, artworkStore: artworkStore)
-                                    .lineLimit(1)
-                                Text(item.destination)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
+                    StatusMenuFiveMinuteRow(
+                        undo: item.decision == .denied ? .allow : .deny,
+                        decide: { decideForFiveMinutes(item.eventID, $0) }
+                    ) {
+                        StatusMenuButton(action: { openConnection(item.eventID) }) {
+                            HStack(spacing: RiftDesign.Spacing.s) {
+                                ApplicationIdentityIcon(
+                                    identity: item.identity, fallbackSystemName: "app.dashed",
+                                    size: 18, artworkStore: artworkStore
+                                )
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ApplicationNameText(identity: item.identity, fallback: item.name, artworkStore: artworkStore)
+                                        .lineLimit(1)
+                                    Text(item.destination)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                                Spacer(minLength: RiftDesign.Spacing.s)
+                                Text(RiftRelativeTime.short(item.occurredAt, now: now))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.tertiary)
+                                RiftDecisionBadge(decision: item.decision)
                             }
-                            Spacer(minLength: RiftDesign.Spacing.s)
-                            Text(RiftRelativeTime.short(item.occurredAt, now: now))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.tertiary)
-                            RiftDecisionBadge(decision: item.decision)
                         }
-                    }
-                    .accessibilityHint("Shows this connection in Rift")
-                    .contextMenu {
-                        if item.decision == .denied {
-                            Button("Allow for 5 Minutes") { decideForFiveMinutes(item.eventID, .allow) }
-                        } else {
-                            Button("Block for 5 Minutes") { decideForFiveMinutes(item.eventID, .deny) }
+                        .accessibilityHint("Shows this connection in Rift")
+                        .contextMenu {
+                            if item.decision == .denied {
+                                Button("Allow for 5 Minutes") { decideForFiveMinutes(item.eventID, .allow) }
+                            } else {
+                                Button("Block for 5 Minutes") { decideForFiveMinutes(item.eventID, .deny) }
+                            }
+                            Button("Show in Rift") { openConnection(item.eventID) }
                         }
-                        Button("Show in Rift") { openConnection(item.eventID) }
                     }
                 }
             }
