@@ -87,6 +87,10 @@ The changelog records notable user-visible changes.
   it. An alert's "Apply to" names the active profile.
 - A Map row's context menu adds Show Only This App or Show Only This
   Destination, which fills the search to narrow the list.
+- `riftctl history export <path> [--format csv|json]` saves connection
+  history. It works only after you turn on Allow access from Terminal in
+  Settings › Advanced, which is off by default, because any app running as you
+  can run `riftctl`. Status, profiles and diagnostics don't need it.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

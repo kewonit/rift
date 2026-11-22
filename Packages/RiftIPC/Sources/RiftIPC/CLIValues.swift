@@ -12,6 +12,17 @@ public enum CLICommandKind: String, Sendable, Hashable, Codable {
     case profilesActivate
     /// The mode, active profile and filter health, as the running app sees them.
     case statusSummary
+    /// Connection history as CSV or JSON, named by the request's argument.
+    /// Needs Terminal access turned on in Rift.
+    case historyExportBegin
+}
+
+/// A refusal for a command that needs "Allow access from Terminal" in
+/// Rift's settings. Only the type name crosses the connection.
+public enum CLIAccessRefusal: Error, Sendable, Hashable {
+    case terminalAccessOff
+
+    public static let code = String(describing: CLIAccessRefusal.self)
 }
 
 /// What `riftctl status` adds from the running app.

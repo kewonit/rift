@@ -109,6 +109,11 @@ a user action. They preview their contents, default to aggregate and redacted
 state, and are never uploaded automatically. Optional recent activity and rule
 summaries use fresh pseudonyms that are linkable only within that bundle.
 
+`riftctl` can show status and profiles and save redacted diagnostics. It can
+export connection history only after you turn on **Allow access from
+Terminal** in **Settings › Advanced**, because any app running as you can run
+`riftctl`.
+
 Exported files are outside Rift's control. Review them before sharing. Use a
 secure channel. Do not include private traffic data or Apple signing credentials
 in a public issue.

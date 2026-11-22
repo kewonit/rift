@@ -183,3 +183,12 @@ import Testing
     let request = try CLIRelayRequest(command: .statusSummary)
     #expect(try JSONDecoder().decode(CLIRelayRequest.self, from: try JSONEncoder().encode(request)).command == .statusSummary)
 }
+
+@Test func historyExportRequestsCarryTheirFormatAndRefusalsTheirType() throws {
+    let request = try CLIRelayRequest(command: .historyExportBegin, argument: "json")
+    let decoded = try JSONDecoder().decode(CLIRelayRequest.self, from: try JSONEncoder().encode(request))
+    #expect(decoded.command == .historyExportBegin)
+    #expect(decoded.argument == "json")
+    #expect(CLIAccessRefusal.code == "CLIAccessRefusal")
+    #expect(CLIAccessRefusal.code != CLIRelayRefusal.code)
+}

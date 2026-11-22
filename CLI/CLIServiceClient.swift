@@ -92,10 +92,11 @@ actor CLIServiceClient {
 
     func beginDownload(
         command: CLICommandKind,
+        argument: String? = nil,
         launchingAppIfNeeded: Bool
     ) async throws -> (summary: String, descriptor: CLITransferDescriptor) {
         let begin = try await relay(
-            try CLIRelayRequest(command: command),
+            try CLIRelayRequest(command: command, argument: argument),
             launchingAppIfNeeded: launchingAppIfNeeded
         )
         let descriptor = try SecureIPCCodec.decode(CLITransferDescriptor.self, from: begin.payload)

@@ -8,7 +8,7 @@ struct RiftCTL: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "riftctl",
         abstract: "Inspect and manage the installed Rift firewall.",
-        subcommands: [Status.self, Rules.self, Profiles.self, Diagnostics.self]
+        subcommands: [Status.self, Rules.self, Profiles.self, History.self, Diagnostics.self]
     )
 
     struct Status: AsyncParsableCommand {
@@ -167,6 +167,53 @@ struct RiftCTL: AsyncParsableCommand {
                     )
                 }
                 try CLIOutput.write(response.summary)
+            }
+        }
+    }
+
+    struct History: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(subcommands: [Export.self])
+
+        struct Export: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Save connection history. Needs Allow access from Terminal in Rift’s Advanced settings."
+            )
+            @Argument(help: "New absolute destination path.") var path: String
+            @Option(help: "csv or json.") var format = "csv"
+
+            mutating func run() async throws {
+                guard ["csv", "json"].contains(format) else { throw CLIMessageError("Use --format csv or --format json.") }
+                let format = format
+                let path = path
+                do {
+                    try await CLIServiceClient.withConnected { client in
+                        let writer = try CLIFileAccess.beginCreate(path: path)
+                        let begin = try await client.beginDownload(
+                            command: .historyExportBegin, argument: format, launchingAppIfNeeded: true
+                        )
+                        do {
+                            try await CLITransferPump.download(
+                                totalBytes: begin.descriptor.totalBytes,
+                                maximumChunkBytes: IPCProtocolLimits.maximumChunkBytes,
+                                fetch: { offset, _ in
+                                    try await client.downloadChunk(descriptor: begin.descriptor, offset: offset)
+                                },
+                                write: writer.append
+                            )
+                            try writer.finish()
+                            try await client.cancelTransfer(begin.descriptor.transferID)
+                            try CLIOutput.write(begin.summary)
+                        } catch {
+                            writer.abort()
+                            try? await client.cancelTransfer(begin.descriptor.transferID)
+                            throw error
+                        }
+                    }
+                } catch CLIServiceError.rejected(let code?) where code == CLIAccessRefusal.code {
+                    throw CLIMessageError(
+                        "Turn on Allow access from Terminal in Rift’s Settings › Advanced first."
+                    )
+                }
             }
         }
     }

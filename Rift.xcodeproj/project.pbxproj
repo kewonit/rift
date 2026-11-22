@@ -145,6 +145,7 @@
 		1000000000000000000000DE /* ControlPlanePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DE /* ControlPlanePrompts.swift */; };
 		1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DD /* FilterConfigurationStore.swift */; };
 		1000000000000000000000DC /* RuleInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DC /* RuleInspectorView.swift */; };
+		100000000000000000000180 /* CLIAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000180 /* CLIAccess.swift */; };
 		1000000000000000000000DB /* RiftStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DB /* RiftStatusView.swift */; };
 		1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */; };
 		1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000D9 /* ConfigurationMutationResult.swift */; };
@@ -348,6 +349,7 @@
 		2000000000000000000000DE /* ControlPlanePrompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlanePrompts.swift; sourceTree = "<group>"; };
 		2000000000000000000000DD /* FilterConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterConfigurationStore.swift; sourceTree = "<group>"; };
 		2000000000000000000000DC /* RuleInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleInspectorView.swift; sourceTree = "<group>"; };
+		200000000000000000000180 /* CLIAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIAccess.swift; sourceTree = "<group>"; };
 		2000000000000000000000DB /* RiftStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiftStatusView.swift; sourceTree = "<group>"; };
 		2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneDefinitionCommands.swift; sourceTree = "<group>"; };
 		2000000000000000000000D9 /* ConfigurationMutationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationMutationResult.swift; sourceTree = "<group>"; };
@@ -520,6 +522,7 @@
 				2000000000000000000000DE /* ControlPlanePrompts.swift */,
 				2000000000000000000000DD /* FilterConfigurationStore.swift */,
 				2000000000000000000000DC /* RuleInspectorView.swift */,
+				200000000000000000000180 /* CLIAccess.swift */,
 				2000000000000000000000DB /* RiftStatusView.swift */,
 				2000000000000000000000DA /* ControlPlaneDefinitionCommands.swift */,
 				2000000000000000000000D9 /* ConfigurationMutationResult.swift */,
@@ -860,6 +863,7 @@
 				1000000000000000000000DE /* ControlPlanePrompts.swift in Sources */,
 				1000000000000000000000DD /* FilterConfigurationStore.swift in Sources */,
 				1000000000000000000000DC /* RuleInspectorView.swift in Sources */,
+				100000000000000000000180 /* CLIAccess.swift in Sources */,
 				1000000000000000000000DB /* RiftStatusView.swift in Sources */,
 				1000000000000000000000DA /* ControlPlaneDefinitionCommands.swift in Sources */,
 				1000000000000000000000D9 /* ConfigurationMutationResult.swift in Sources */,

@@ -390,6 +390,8 @@ extension ControlPlaneController {
             let finish = try SecureIPCCodec.decode(CLITransferFinish.self, from: request.payload)
             await cliTransfers.cancel(finish.transferID)
             return try CLIRelayResponse(summary: "Transfer released")
+        case .historyExportBegin:
+            return try await cliHistoryExport(request)
         case .statusSummary:
             let draft = try await repository?.currentConfiguration()
             let status = protectionStatusProvider?()

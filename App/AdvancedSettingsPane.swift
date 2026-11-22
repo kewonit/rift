@@ -39,6 +39,7 @@ struct AdvancedSettingsPane: View {
             } footer: {
                 Text("An exported configuration includes your rules, groups, profiles, blocklists and their subscription addresses, alert settings, and Settings › Networks, which can name your Wi-Fi networks and routers.")
             }
+            CLIAccessSection()
             Section {
                 DisclosureGroup("What’s Included") {
                     VStack(alignment: .leading, spacing: 5) {
