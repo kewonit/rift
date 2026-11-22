@@ -102,6 +102,12 @@ private final class RiftApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppStartupCoordinator.shared.applicationDidFinishLaunching()
+        if AppStartupCoordinator.shared.session?.isUIFixture == false { GlobalShortcut.shared.applyStoredSetting() }
+    }
+
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        guard let session = AppStartupCoordinator.shared.session else { return nil }
+        return QuickAccess.dockMenu(review: session.review)
     }
 }
 

@@ -68,6 +68,7 @@ struct GeneralSettingsPane: View {
                     }
                 ))
                 .disabled(!isLoginItemReady)
+                GlobalShortcutToggle()
             }
             if let updater = RiftUpdater.shared {
                 UpdateSettingsSection(updater: updater)

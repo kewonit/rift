@@ -77,6 +77,9 @@ The changelog records notable user-visible changes.
   only when you ask; daily is still the default. Update All Subscriptions
   checks them all at once. With notifications on, Rift says when an
   automatic check changes a list or can't reach it.
+- Rift's Dock icon has a menu with Map, Rules, Review and Settings, and
+  Settings › General can turn on ⌃⌥⌘R to show the Map from any app. Both work
+  when the menu-bar icon is hidden. The shortcut needs no extra permission.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
