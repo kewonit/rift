@@ -126,7 +126,12 @@ final class NetworkProfileSwitcher {
             remembered[key] = network
             save()
             if isNew, notifies, notifiedNew.insert(key).inserted {
-                notify("New network: \(identity.displayName)", "Choose a profile for it in Settings › Networks.")
+                notify(
+                    "New network: \(identity.displayName)",
+                    "Keep the current profile here, or choose one.",
+                    category: NotificationActions.newNetworkCategory,
+                    userInfo: [NotificationActions.networkKey: key]
+                )
             }
         }
         Task { await apply(force: force) }
@@ -157,10 +162,19 @@ final class NetworkProfileSwitcher {
         }
     }
 
-    private func notify(_ title: String, _ body: String) {
+    /// Remembers the active profile, or no profile, for a network, from a
+    /// notification's button.
+    func useActiveProfile(for key: String) async {
+        guard let controlPlane, let definitions = try? await controlPlane.policyDefinitions() else { return }
+        setChoice(definitions.active.map(NetworkProfileChoice.profile) ?? .noProfile, for: key)
+    }
+
+    private func notify(_ title: String, _ body: String, category: String? = nil, userInfo: [String: String] = [:]) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
+        if let category { content.categoryIdentifier = category }
+        content.userInfo = userInfo
         let request = UNNotificationRequest(identifier: "rift-network-\(UUID().uuidString)", content: content, trigger: nil)
         Task { try? await UNUserNotificationCenter.current().add(request) }
     }

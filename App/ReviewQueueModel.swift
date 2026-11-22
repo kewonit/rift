@@ -83,10 +83,16 @@ final class ReviewQueueModel {
 
     /// Allows or blocks one unanswered destination, by domain when it has one.
     func decide(_ action: FilterAction, unanswered item: ReviewQueue.Unanswered, name: String) {
-        let options = MonitorRuleScope.options(for: [item.row])
+        decide(action, destinationOf: item.row, name: name, itemID: item.id)
+    }
+
+    /// Allows or blocks a connection's destination, by domain when it has
+    /// one, as a notification's buttons do.
+    func decide(_ action: FilterAction, destinationOf row: MonitorEventRow, name: String, itemID: String? = nil) {
+        let options = MonitorRuleScope.options(for: [row])
         guard let breadth = [MonitorRuleBreadth.thisDomain, .thisHost, .exactConnection]
             .first(where: options.contains) else { return }
-        apply(action, row: item.row, breadth: breadth, name: name, itemID: item.id)
+        apply(action, row: row, breadth: breadth, name: name, itemID: itemID ?? row.id)
     }
 
     private func apply(

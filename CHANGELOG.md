@@ -40,6 +40,10 @@ The changelog records notable user-visible changes.
   left; "Not Now" hides an app until it connects somewhere new. After a day
   in Allow and Watch, Rift suggests a review once, and when nothing is left
   it offers Ask Me.
+- Notifications about a connection no rule decided, including alerts nobody
+  answered, have Allow and Block buttons that make a lasting rule for its
+  domain, with Undo in Rift. A new network's notification offers "Use Current
+  Profile Here" and "Choose…", which opens Settings › Networks.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your
