@@ -69,8 +69,10 @@ Rift reads only the network's name and never asks for the Mac's location.
 ## Blocklist subscriptions
 
 If you subscribe to a blocklist in **Settings › Blocklists**, Rift downloads it
-from the address you entered right away, then checks for a new version once a
-day while Rift is running, and when you choose **Update Now**. Rift downloads
+from the address you entered right away, then checks for a new version while
+Rift is running as often as you choose for that list (every hour, day or week,
+or only when you ask; daily unless you change it), and when you choose
+**Update Now** or **Update All Subscriptions**. Rift downloads
 only over HTTPS, sends no cookies and no details about the Mac, and identifies
 itself only as "Rift". The list's server sees your IP address and when Rift
 checks, as with any download. Removing the blocklist stops the checks. Rift

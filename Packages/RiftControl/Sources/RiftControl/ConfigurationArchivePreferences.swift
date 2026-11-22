@@ -57,10 +57,13 @@ public struct ConfigurationArchivePreferences: Sendable, Hashable, Codable {
 public struct ArchivedBlocklistSubscription: Sendable, Hashable, Codable {
     public let blocklistID: UUID
     public let url: URL
+    /// Nil for daily, so archives made before intervals keep their shape.
+    public let interval: BlocklistUpdateInterval?
 
-    public init(blocklistID: UUID, url: URL) {
+    public init(blocklistID: UUID, url: URL, interval: BlocklistUpdateInterval? = nil) {
         self.blocklistID = blocklistID
         self.url = url
+        self.interval = interval == .daily ? nil : interval
     }
 }
 

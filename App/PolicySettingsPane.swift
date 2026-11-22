@@ -163,6 +163,15 @@ struct PolicySettingsPane: View {
                 .disabled(blocklistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .help("Import a hosts file, a list of names or addresses, an Adblock list, or a .lsrules file that only blocks destinations")
             BlocklistSubscribeRow(name: $blocklistName, message: $message, reload: reload)
+            if BlocklistSubscriptions.shared.items.count > 1 {
+                Button("Update All Subscriptions") {
+                    Task { @MainActor in
+                        message = await BlocklistSubscriptions.shared.refreshAll()
+                        await reload()
+                    }
+                }
+                .disabled(!BlocklistSubscriptions.shared.refreshing.isEmpty)
+            }
             Divider()
             TextField("Domain, IP address, or IP range", text: $blocklistEntry)
                 .onChange(of: blocklistEntry) { _, _ in

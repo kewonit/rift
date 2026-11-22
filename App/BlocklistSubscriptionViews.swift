@@ -19,6 +19,16 @@ struct BlocklistSubscriptionStatus: View {
                     Text(detail(item)).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: RiftDesign.Spacing.s)
+                Picker("Check", selection: Binding(
+                    get: { item.effectiveInterval },
+                    set: { subscriptions.setInterval($0, for: sourceID) }
+                )) {
+                    ForEach(BlocklistUpdateInterval.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden()
+                .fixedSize()
+                .controlSize(.small)
+                .help("How often Rift checks this list while it’s running")
                 if subscriptions.refreshing.contains(sourceID) {
                     ProgressView().controlSize(.small)
                 } else {
@@ -38,9 +48,10 @@ struct BlocklistSubscriptionStatus: View {
 
     private func detail(_ item: BlocklistSubscription) -> String {
         let host = BlocklistSubscriptionAddress.host(of: item.url)
-        guard let checked = item.lastCheckedAt else { return "Updates daily from \(host)" }
+        let updates = item.effectiveInterval.phrase
+        guard let checked = item.lastCheckedAt else { return "\(updates) from \(host)" }
         let when = checked.formatted(.relative(presentation: .named))
-        return "Updates daily from \(host) • Checked \(when)"
+        return "\(updates) from \(host) • Checked \(when)"
     }
 }
 

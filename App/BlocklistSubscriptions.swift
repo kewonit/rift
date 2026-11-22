@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 import RiftControl
+import RiftCore
+import UserNotifications
 
 /// Keeps subscribed blocklists up to date: once a day while Rift runs, and
 /// whenever the person asks. Only lists the person subscribed to are
@@ -52,9 +54,11 @@ final class BlocklistSubscriptions {
         return result
     }
 
-    /// Checks one list now. Returns what happened, in a sentence.
+    /// Checks one list now. Returns what happened, in a sentence. An
+    /// automatic check also notifies when the list changed or couldn't be
+    /// checked, if notifications are on.
     @discardableResult
-    func refresh(_ id: UUID) async -> String {
+    func refresh(_ id: UUID, notifies: Bool = false) async -> String {
         guard var item = items[id] else { return "This blocklist isn’t a subscription." }
         guard let controlPlane else { return "Rift isn’t ready to check blocklists yet." }
         guard !refreshing.contains(id) else { return "This blocklist is already being checked." }
@@ -78,12 +82,14 @@ final class BlocklistSubscriptions {
                 item.lastModified = modified
                 if result != nil { item.lastChangedAt = now }
                 keep(item)
+                if notifies, let result { await notify("Blocklist updated", id: id, detail: result.message) }
                 return result.map { $0.message } ?? "The blocklist is up to date."
             }
         } catch {
             item.lastFailure = Self.message(for: error)
             item.lastCheckedAt = now
             keep(item)
+            if notifies { await notify("A blocklist couldn’t be updated", id: id, detail: item.lastFailure ?? "") }
             return item.lastFailure ?? "The blocklist couldn’t be checked."
         }
     }
@@ -108,7 +114,7 @@ final class BlocklistSubscriptions {
         for id in items.keys where !existing.contains(id) { forget(id) }
         let now = Date()
         for item in items.values where item.isDue(now: now) {
-            await refresh(item.id)
+            await refresh(item.id, notifies: true)
         }
     }
 
@@ -139,16 +145,49 @@ final class BlocklistSubscriptions {
         }
     }
 
-    /// What a configuration archive keeps: each list's ID and address.
+    /// What a configuration archive keeps: each list's ID, address and how
+    /// often it's checked.
     var archived: [ArchivedBlocklistSubscription] {
-        items.values.map { ArchivedBlocklistSubscription(blocklistID: $0.id, url: $0.url) }
+        items.values.map { ArchivedBlocklistSubscription(blocklistID: $0.id, url: $0.url, interval: $0.interval) }
+    }
+
+    func setInterval(_ interval: BlocklistUpdateInterval, for id: UUID) {
+        guard var item = items[id] else { return }
+        item.interval = interval == .daily ? nil : interval
+        items[id] = item
+        save()
+    }
+
+    /// Checks every subscribed list now, one after another.
+    func refreshAll() async -> String {
+        var changed = 0
+        var failed = 0
+        for id in items.keys.sorted(by: { $0.uuidString < $1.uuidString }) {
+            let before = items[id]?.lastChangedAt
+            _ = await refresh(id)
+            if items[id]?.lastFailure != nil { failed += 1 } else if items[id]?.lastChangedAt != before { changed += 1 }
+        }
+        let lists = items.count == 1 ? "1 list" : "\(items.count) lists"
+        return "Checked \(lists): \(changed) updated, \(failed) couldn’t be checked."
+    }
+
+    private func notify(_ title: String, id: UUID, detail: String) async {
+        guard UserDefaults.standard.bool(forKey: "notificationsEnabled") else { return }
+        let name = (try? await controlPlane?.blocklistSources())?.first { $0.id == id }?.name
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = [name.map { DisplaySanitizer.plainText($0) }, detail].compactMap { $0 }.joined(separator: ": ")
+        let request = UNNotificationRequest(identifier: "rift-blocklist-\(id.uuidString)", content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
     }
 
     /// Replaces the subscriptions with ones from a restored archive. They
     /// haven't been checked on this Mac, so each is checked soon.
     func restore(_ archived: [ArchivedBlocklistSubscription]) {
         items = Dictionary(
-            archived.map { ($0.blocklistID, BlocklistSubscription(id: $0.blocklistID, url: $0.url)) },
+            archived.map {
+                ($0.blocklistID, BlocklistSubscription(id: $0.blocklistID, url: $0.url, interval: $0.interval))
+            },
             uniquingKeysWith: { first, _ in first }
         )
         save()

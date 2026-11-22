@@ -73,6 +73,10 @@ The changelog records notable user-visible changes.
   Delete All, with Undo. A rule's context menu adds Show on Map, which opens
   the Map searched to its app. The rule editor's Choose App or Tool… accepts
   command-line tools as well as apps.
+- Each blocklist subscription can be checked every hour, day or week, or
+  only when you ask; daily is still the default. Update All Subscriptions
+  checks them all at once. With notifications on, Rift says when an
+  automatic check changes a list or can't reach it.
 - Blocklists now block listed destinations for every account on the Mac,
   including processes running as root. Before, they covered only your account.
 - While you aren't at the console, such as before login, app rules for your

@@ -75,3 +75,24 @@ import Testing
     let archive = try ConfigurationArchiveCodec.export(draft: draft, appVersion: "test", now: Date())
     #expect(try ConfigurationArchiveCodec.decode(archive).rules.count == made.rules.count)
 }
+
+@Test func eachIntervalDecidesWhenAListIsDue() throws {
+    let url = try BlocklistSubscriptionAddress.validate("https://lists.example.test/hosts.txt")
+    let checked = Date(timeIntervalSince1970: 1_000_000)
+    var item = BlocklistSubscription(id: UUID(), url: url, lastCheckedAt: checked)
+    #expect(item.effectiveInterval == .daily)
+    #expect(!item.isDue(now: checked.addingTimeInterval(23 * 3_600)))
+    #expect(item.isDue(now: checked.addingTimeInterval(24 * 3_600)))
+    item.interval = .hourly
+    #expect(item.isDue(now: checked.addingTimeInterval(3_600)))
+    item.interval = .weekly
+    #expect(!item.isDue(now: checked.addingTimeInterval(6 * 86_400)))
+    item.lastFailure = "The server answered with error 500."
+    #expect(item.isDue(now: checked.addingTimeInterval(3_600)))
+    item.interval = .manual
+    #expect(!item.isDue(now: checked.addingTimeInterval(30 * 86_400)))
+    // Lists saved before intervals existed decode as daily.
+    let old = Data(#"{"id":"\#(UUID().uuidString)","url":"https:\/\/lists.example.test\/a.txt"}"#.utf8)
+    #expect(try JSONDecoder().decode(BlocklistSubscription.self, from: old).effectiveInterval == .daily)
+    #expect(ArchivedBlocklistSubscription(blocklistID: UUID(), url: url, interval: .daily).interval == nil)
+}
