@@ -165,6 +165,9 @@ struct RiftCTL: AsyncParsableCommand {
                     throw CLIMessageError(
                         "This profile would weaken protection or needs confirmation. Switch to it in Rift."
                     )
+                } catch CLIServiceError.rejected(let code?) where code == "ConfigurationLockError" {
+                    // The app names the error type it refused with.
+                    throw CLIMessageError("Rift’s configuration is locked. Unlock it in Rift to switch profiles.")
                 }
                 try CLIOutput.write(response.summary)
             }
